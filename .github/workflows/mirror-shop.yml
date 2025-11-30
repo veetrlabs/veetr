@@ -1,0 +1,73 @@
+name: Mirror Shop to veetr.com Repository
+
+on:
+  push:
+    branches: [main]
+    paths: ['veetr.com/**']
+  workflow_dispatch:
+
+jobs:
+  mirror-shop:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout source repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Git
+      run: |
+        git config --global user.name 'GitHub Actions'
+        git config --global user.email 'actions@github.com'
+
+    - name: Clone target repository
+      run: |
+        git clone https://x-access-token:${{ secrets.VEETR_COM_TOKEN }}@github.com/veetrlabs/veetr.com.git target-repo
+      env:
+        VEETR_COM_TOKEN: ${{ secrets.VEETR_COM_TOKEN }}
+
+    - name: Copy shop files
+      run: |
+        # Remove existing files except .git and README
+        find target-repo -type f ! -path "target-repo/.git/*" ! -name "README.md" -delete
+        
+        # Copy new shop files
+        cp -r veetr.com/* target-repo/
+        
+        # Create or update README if it doesn't exist
+        if [ ! -f target-repo/README.md ]; then
+          cat > target-repo/README.md << 'EOF'
+        # Veetr Shop (veetr.com)
+        
+        This repository contains the e-commerce site for https://veetr.com
+        
+        **Note:** This repository is automatically synced from the main [Veetr repository](https://github.com/veetrlabs/veetr) `/veetr.com` folder.
+        
+        ## Contributing
+        
+        To make changes to this shop:
+        1. Edit files in the `/veetr.com` folder of the [main repository](https://github.com/veetrlabs/veetr)
+        2. Changes will be automatically deployed here via GitHub Actions
+        
+        ## Deployment
+        
+        This site is deployed via GitHub Pages at https://veetr.com
+        EOF
+        fi
+
+    - name: Commit and push changes
+      run: |
+        cd target-repo
+        git add .
+        git commit -m "Update shop from veetr@${GITHUB_SHA:0:7}
+        
+        Source: https://github.com/veetrlabs/veetr/commit/${{ github.sha }}"
+        git push origin main
+      env:
+        VEETR_COM_TOKEN: ${{ secrets.VEETR_COM_TOKEN }}
+
+    - name: Summary
+      run: |
+        echo "✅ Shop successfully mirrored to veetr.com repository"
+        echo "🌐 Changes will be live at https://veetr.com shortly"
