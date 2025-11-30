@@ -168,7 +168,7 @@ jobs:
         cat > release-notes.md << EOF
         # Veetr $VERSION
         
-        Built on $BUILD_DATE from commit [\`$COMMIT_SHORT\`](https://github.com/escopecz/veetr/commit/${{ github.sha }})
+        Built on $BUILD_DATE from commit [\`$COMMIT_SHORT\`](https://github.com/veetrlabs/veetr/commit/${{ github.sha }})
         
         ## 🆕 New Features
         
@@ -191,7 +191,7 @@ jobs:
         
         ## 🔄 How to Update
         
-        **📖 [Complete Firmware Update Guide](https://github.com/escopecz/veetr/blob/main/docs/FIRMWARE_UPDATE.md)**
+        **📖 [Complete Firmware Update Guide](https://github.com/veetrlabs/veetr/blob/main/docs/FIRMWARE_UPDATE.md)**
         
         **Quick Update**: Use the web dashboard → Settings → Firmware Update → "Check for Updates"
         
@@ -201,11 +201,11 @@ jobs:
         - **Firmware Size**: ${FIRMWARE_SIZE_KB} KB (${FIRMWARE_SIZE} bytes)
         - **Target**: ESP32 DOIT DevKit v1
         - **Build Date**: $BUILD_DATE
-        - **Commit**: [\`$COMMIT_SHORT\`](https://github.com/escopecz/veetr/commit/${{ github.sha }})
+        - **Commit**: [\`$COMMIT_SHORT\`](https://github.com/veetrlabs/veetr/commit/${{ github.sha }})
         
         ---
         
-        **Full Changelog**: https://github.com/escopecz/veetr/compare/$LAST_TAG...$VERSION
+        **Full Changelog**: https://github.com/veetrlabs/veetr/compare/$LAST_TAG...$VERSION
         EOF
         
         echo "✅ Generated release notes for $VERSION"
@@ -233,4 +233,4 @@ jobs:
         echo "   ✅ Web and firmware builds successful"
         echo "   ✅ GitHub Release published"
         echo ""
-        echo "🔗 Release: https://github.com/escopecz/veetr/releases/tag/${{ steps.version.outputs.version }}"
+        echo "🔗 Release: https://github.com/veetrlabs/veetr/releases/tag/${{ steps.version.outputs.version }}"

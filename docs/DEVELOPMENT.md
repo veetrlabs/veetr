@@ -16,7 +16,7 @@ This development guide is the primary resource for contributors. For specific te
 
 ### 1. Setup Development Environment
 ```bash
-git clone https://github.com/escopecz/veetr.git
+git clone https://github.com/veetrlabs/veetr.git
 cd veetr
 code veetr.code-workspace
 ```

@@ -23,7 +23,7 @@ jobs:
 
     - name: Clone target repository
       run: |
-        git clone https://x-access-token:${{ secrets.VEETR_SITE_TOKEN }}@github.com/escopecz/veetr-site.git target-repo
+        git clone https://x-access-token:${{ secrets.VEETR_SITE_TOKEN }}@github.com/veetrlabs/veetr-site.git target-repo
       env:
         VEETR_SITE_TOKEN: ${{ secrets.VEETR_SITE_TOKEN }}
 
@@ -42,12 +42,12 @@ jobs:
         
         This repository contains the static website for https://veetr.org
         
-        **Note:** This repository is automatically synced from the main [Veetr repository](https://github.com/escopecz/veetr) `/veetr.org` folder.
+        **Note:** This repository is automatically synced from the main [Veetr repository](https://github.com/veetrlabs/veetr) `/veetr.org` folder.
         
         ## Contributing
         
         To make changes to this website:
-        1. Edit files in the `/veetr.org` folder of the [main repository](https://github.com/escopecz/veetr)
+        1. Edit files in the `/veetr.org` folder of the [main repository](https://github.com/veetrlabs/veetr)
         2. Changes will be automatically deployed here via GitHub Actions
         
         ## Deployment
@@ -62,7 +62,7 @@ jobs:
         git add .
         git commit -m "Update site from veetr@${GITHUB_SHA:0:7}
         
-        Source: https://github.com/escopecz/veetr/commit/${{ github.sha }}"
+        Source: https://github.com/veetrlabs/veetr/commit/${{ github.sha }}"
         git push origin main
       env:
         VEETR_SITE_TOKEN: ${{ secrets.VEETR_SITE_TOKEN }}
