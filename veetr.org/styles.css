@@ -285,6 +285,65 @@ header {
     }
 }
 
+/* App Showcase Section with Dark Ocean Theme */
+.app-showcase {
+    background: linear-gradient(180deg, 
+        #0a1929 0%, 
+        #152a3f 50%, 
+        #1a3447 100%);
+    padding: 0;
+    margin: 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.app-showcase .container {
+    padding: 0;
+    margin: 0 auto;
+}
+
+.app-showcase::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        radial-gradient(ellipse at 30% 40%, rgba(72, 179, 246, 0.05) 0%, transparent 50%),
+        radial-gradient(ellipse at 70% 60%, rgba(16, 47, 86, 0.3) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+.showcase-image {
+    text-align: center;
+    position: relative;
+    z-index: 1;
+    margin: 0;
+    padding: 0;
+    line-height: 0;
+}
+
+.showcase-image img {
+    max-width: 100%;
+    width: 100%;
+    max-width: 1200px;
+    height: auto;
+    filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.3));
+    display: block;
+    margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+    .app-showcase {
+        padding: 0;
+    }
+    
+    .showcase-image img {
+        max-width: 95%;
+    }
+}
+
 .features {
     background: white;
     padding: 6rem 0;
