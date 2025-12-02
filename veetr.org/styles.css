@@ -959,3 +959,184 @@ footer {
         border-bottom: 1px solid var(--alice-blue);
     }
 }
+
+/* Mautic Form Styles */
+.newsletter,
+.contact {
+    padding: 4rem 0;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+}
+
+.newsletter h2,
+.contact h2 {
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.newsletter p,
+.contact p {
+    text-align: center;
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+    color: var(--oxford-navy);
+    opacity: 0.8;
+}
+
+.form-container {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.mauticform_wrapper {
+    width: 100%;
+}
+
+.mauticform-innerform {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.mauticform-page-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: flex-end;
+}
+
+.mauticform-email {
+    flex: 1;
+    min-width: 250px;
+}
+
+.mauticform-text {
+    flex: 1 1 100%;
+    width: 100%;
+}
+
+.mauticform-button-wrapper {
+    margin-top: 0;
+}
+
+.mauticform-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.mauticform-label {
+    font-weight: 600;
+    color: var(--oxford-navy);
+    font-size: 1rem;
+}
+
+.mauticform-input,
+.mauticform-textarea {
+    padding: 0.875rem 1rem;
+    border: 2px solid var(--alice-blue);
+    border-radius: 8px;
+    font-size: 1rem;
+    font-family: 'IBM Plex Sans', Arial, sans-serif;
+    color: var(--oxford-navy);
+    background: white;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.mauticform-textarea {
+    min-height: 120px;
+    resize: vertical;
+}
+
+.mauticform-input:focus,
+.mauticform-textarea:focus {
+    outline: none;
+    border-color: var(--fresh-sky);
+    box-shadow: 0 0 0 3px rgba(72, 179, 246, 0.1);
+}
+
+.mauticform-button-wrapper {
+    margin-top: 0;
+}
+
+.mauticform-button {
+    width: auto;
+    padding: 0.875rem 2rem;
+    background: var(--fresh-sky);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s, transform 0.2s;
+    font-family: 'IBM Plex Sans', Arial, sans-serif;
+    white-space: nowrap;
+}
+
+.mauticform-button:hover {
+    background: var(--oxford-navy);
+    transform: translateY(-2px);
+}
+
+.mauticform-button:active {
+    transform: translateY(0);
+}
+
+.mauticform-errormsg {
+    color: #dc3545;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+.mauticform-error {
+    padding: 1rem;
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 8px;
+    color: #721c24;
+    margin-bottom: 1rem;
+    display: none;
+}
+
+.mauticform-error:not(:empty) {
+    display: block;
+}
+
+.mauticform-message {
+    padding: 1rem;
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 8px;
+    color: #155724;
+    margin-bottom: 1rem;
+    display: none;
+}
+
+.mauticform-message:not(:empty) {
+    display: block;
+}
+
+@media (max-width: 768px) {
+    .newsletter,
+    .contact {
+        padding: 3rem 0;
+    }
+    
+    .form-container {
+        padding: 0 1rem;
+    }
+    
+    .mauticform-page-wrapper {
+        flex-direction: column;
+    }
+    
+    .mauticform-email,
+    .mauticform-text {
+        width: 100%;
+    }
+    
+    .mauticform-button {
+        width: 100%;
+    }
+}
