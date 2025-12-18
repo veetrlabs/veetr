@@ -157,6 +157,13 @@ The software architecture has been migrated from WiFi Access Point to BLE connec
 - **Marine UX:** Design for readability in bright sunlight conditions
 - **Responsive Design:** Optimize for marine tablet/smartphone usage
 
+### CSS and Styling Guidelines
+- **Modern CSS:** Prefer `clamp()`, `min()`, `max()` over media queries for sizing/spacing
+- **Responsive Grids:** Use `repeat(auto-fit, minmax(min(150px, 100%), 1fr))`
+- **Media Queries:** Only for layout shifts, orientation, or feature detection
+- **Consistency:** CSS custom properties for theming, minimum 44px touch targets
+- **Details:** See `.github/copilot/web-designer-agent.md` for comprehensive guidelines
+
 ## Problem-Solving Approach
 
 ### Firmware Development
