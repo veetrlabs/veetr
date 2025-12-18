@@ -41,7 +41,7 @@ body {
 }
 
 h1 {
-  font-size: 3.2em;
+  font-size: clamp(2em, 5vw, 3.2em);
   line-height: 1.1;
 }
 
@@ -49,14 +49,14 @@ button {
   border-radius: 8px;
   border: 1px solid transparent;
   padding: 0.6em 1.2em;
-  font-size: 1em;
+  font-size: clamp(0.85em, 2vw, 1em);
   font-weight: 500;
   font-family: inherit;
   background-color: var(--btn-bg);
   color: var(--btn-text);
   cursor: pointer;
   transition: border-color 0.25s;
-  min-height: 44px; /* Touch-friendly minimum */
+  min-height: clamp(44px, 10vw, 48px); /* Touch-friendly minimum */
 }
 
 button:hover {
@@ -68,29 +68,7 @@ button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
-/* Responsive typography */
-@media (max-width: 768px) {
-  h1 {
-    font-size: 2.5em;
-  }
-  
-  button {
-    font-size: 0.9em;
-    padding: 0.7em 1.4em;
-  }
-}
 
-@media (max-width: 480px) {
-  h1 {
-    font-size: 2em;
-  }
-  
-  button {
-    font-size: 0.85em;
-    padding: 0.8em 1.5em;
-    min-height: 48px; /* Larger touch target on mobile */
-  }
-}
 
 /* High DPI displays */
 @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {

@@ -1,8 +1,8 @@
 /* Compact Connection Button Styles */
 .compact-connection-btn {
   position: absolute;
-  top: 10px;
-  left: 10px;
+  top: min(10px, 2vw);
+  left: min(10px, 2vw);
   z-index: 100;
   border: none;
   cursor: pointer;
@@ -20,9 +20,9 @@
 .compact-connection-btn.disconnected {
   background: var(--error-color);
   color: white;
-  padding: 8px 16px;
+  padding: clamp(6px, 2vw, 8px) clamp(12px, 4vw, 16px);
   border-radius: 20px;
-  font-size: 0.9rem;
+  font-size: clamp(0.8rem, 2vw, 0.9rem);
   box-shadow: 0 2px 8px var(--shadow-color);
 }
 
@@ -42,8 +42,8 @@
 /* Connected state - Small green circle */
 .compact-connection-btn.connected {
   background: var(--success-color);
-  width: 20px;
-  height: 20px;
+  width: clamp(18px, 5vw, 20px);
+  height: clamp(18px, 5vw, 20px);
   border-radius: 50%;
   padding: 0;
   box-shadow: 0 2px 6px var(--shadow-color);
@@ -112,21 +112,11 @@
   opacity: 0.9;
 }
 
-/* Mobile responsiveness */
+/* Mobile responsiveness - mostly handled by clamp() above */
 @media (max-width: 768px) {
   .connection-button-container {
-    top: 5px;
-    left: 5px;
-  }
-  
-  .compact-connection-btn.disconnected {
-    padding: 6px 12px;
-    font-size: 0.8rem;
-  }
-  
-  .compact-connection-btn.connected {
-    width: 18px;
-    height: 18px;
+    top: min(5px, 1vw);
+    left: min(5px, 1vw);
   }
   
   .connection-dot {

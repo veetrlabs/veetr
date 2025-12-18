@@ -60,18 +60,18 @@
 /* Mobile optimizations */
 @media (max-width: 768px) {
   .theme-toggle {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.8rem;
+    padding: clamp(0.3rem, 1vw, 0.4rem) clamp(0.6rem, 2vw, 0.8rem);
+    font-size: clamp(0.75rem, 2vw, 0.8rem);
   }
   
   .theme-toggle-icon {
-    width: 18px;
-    height: 18px;
+    width: clamp(16px, 4vw, 18px);
+    height: clamp(16px, 4vw, 18px);
   }
   
   .theme-toggle-icon svg {
-    width: 18px;
-    height: 18px;
+    width: clamp(16px, 4vw, 18px);
+    height: clamp(16px, 4vw, 18px);
   }
 }
 

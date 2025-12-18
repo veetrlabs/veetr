@@ -117,33 +117,19 @@
   .connection-status {
     flex-direction: column;
     gap: 0.5rem;
+    width: min(100%, 90vw);
   }
   
   .status-indicator {
-    font-size: 0.85rem;
-  }
-  
-  .connect-button {
-    font-size: 0.85rem;
-    padding: 0.6rem 1.2rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .connection-status {
-    width: 100%;
-  }
-  
-  .status-indicator {
-    font-size: 0.8rem;
+    font-size: clamp(0.8rem, 2vw, 0.85rem);
     text-align: center;
   }
   
   .connect-button {
-    font-size: 0.8rem;
-    padding: 0.7rem 1.5rem;
+    font-size: clamp(0.8rem, 2vw, 0.85rem);
+    padding: clamp(0.6rem, 2vw, 0.7rem) clamp(1.2rem, 4vw, 1.5rem);
     width: 100%;
-    min-height: 44px;
+    min-height: clamp(44px, 10vw, 48px);
   }
 }
 

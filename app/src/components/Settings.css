@@ -365,18 +365,18 @@
 /* Media Queries for Mobile */
 @media (max-width: 768px) {
   .hamburger-button {
-    top: 5px;
-    right: 5px;
+    top: min(10px, 2vw);
+    right: min(10px, 2vw);
   }
   
   .settings-menu {
-    width: calc(100% - 20px);
-    right: 5px;
+    width: min(calc(100% - 20px), 90vw);
+    right: min(10px, 2vw);
     top: 45px;
   }
 
   .input-group input {
-    width: calc(100% - 70px);
+    width: calc(100% - min(70px, 20vw));
   }
 
   .input-group button {

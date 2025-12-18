@@ -91,25 +91,6 @@ code {
   --text-accent: #1a365d;
 }
 
-/* Responsive design */
-@media (max-width: 768px) {
-  .app-main {
-    min-height: 100vh;
-  }
-}
-
-@media (max-width: 599px) {
-  .app-main {
-    min-height: 100vh;
-  }
-}
-
-@media (max-width: 480px) {
-  .app-main {
-    min-height: 100vh;
-  }
-}
-
 /* Touch device optimizations */
 @media (hover: none) and (pointer: coarse) {
   .card:hover {

@@ -40,7 +40,7 @@ body {
 .container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 0 20px;
+    padding: 0 min(20px, 5vw);
 }
 
 header {
@@ -984,7 +984,7 @@ footer {
 }
 
 .form-container {
-    max-width: 600px;
+    max-width: min(600px, 90vw);
     margin: 0 auto;
 }
 
@@ -1007,7 +1007,7 @@ footer {
 
 .mauticform-email {
     flex: 1;
-    min-width: 250px;
+    min-width: min(250px, 100%);
 }
 
 .mauticform-text {
@@ -1120,11 +1120,7 @@ footer {
 @media (max-width: 768px) {
     .newsletter,
     .contact {
-        padding: 3rem 0;
-    }
-    
-    .form-container {
-        padding: 0 1rem;
+        padding: min(4rem, 8vw) 0;
     }
     
     .mauticform-page-wrapper {

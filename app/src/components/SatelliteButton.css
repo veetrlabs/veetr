@@ -6,8 +6,8 @@
   z-index: 1001;
   background: none;
   border: none;
-  width: 3rem;
-  height: 3rem;
+  width: clamp(2.5rem, 8vw, 3rem);
+  height: clamp(2.5rem, 8vw, 3rem);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -24,8 +24,8 @@
 }
 
 .satellite-icon {
-  width: 1.5rem !important;
-  height: 1.5rem !important;
+  width: clamp(1.25rem, 4vw, 1.5rem) !important;
+  height: clamp(1.25rem, 4vw, 1.5rem) !important;
   stroke-width: 2 !important;
   flex-shrink: 0;
 }
@@ -154,26 +154,16 @@
 /* Responsive adjustments */
 @media (max-width: 480px) {
   .modal-content {
-    width: 95vw;
+    width: min(95vw, 400px);
   }
   
   .modal-header,
   .modal-body {
-    padding: 1rem;
+    padding: clamp(0.75rem, 3vw, 1rem);
   }
   
   .gps-info-row {
-    padding: 0.5rem 0.75rem;
-  }
-  
-  .satellite-btn {
-    width: 2.5rem;
-    height: 2.5rem;
-  }
-  
-  .satellite-icon {
-    width: 1.25rem !important;
-    height: 1.25rem !important;
+    padding: clamp(0.5rem, 2vw, 0.75rem) clamp(0.5rem, 2vw, 0.75rem);
   }
 }
 
