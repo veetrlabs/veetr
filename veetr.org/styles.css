@@ -209,7 +209,7 @@ header {
 
 .about {
     background: linear-gradient(135deg, var(--bright-snow) 0%, var(--alice-blue) 100%);
-    padding: 6rem 0;
+    padding: 1rem 0;
 }
 
 .about h2 {
@@ -225,6 +225,19 @@ header {
     grid-template-columns: 1fr 1fr;
     gap: 4rem;
     align-items: start;
+}
+
+.about-image {
+    margin-bottom: 2rem;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.about-image img {
+    width: 100%;
+    height: auto;
+    display: block;
 }
 
 .about-story h3,
