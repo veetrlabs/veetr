@@ -42,14 +42,9 @@ export class BLEFirmwareUpdater {
 
   // Method to handle chunk acknowledgment from ESP32
   handleChunkAck(data: any): void {
-    console.log(`[FirmwareUpdater] Received ack for chunk ${data.index}, expecting ${this.expectedChunkIndex}, pendingResolve: ${!!this.pendingAckResolve}`)
-    
     if (this.pendingAckResolve && data.index === this.expectedChunkIndex) {
-      console.log(`[FirmwareUpdater] Resolving ack for chunk ${data.index}`)
       this.pendingAckResolve(data)
       this.pendingAckResolve = null
-    } else {
-      console.log(`[FirmwareUpdater] Ignoring ack for chunk ${data.index} (expected ${this.expectedChunkIndex}, pendingResolve: ${!!this.pendingAckResolve})`)
     }
   }
 
@@ -72,23 +67,17 @@ export class BLEFirmwareUpdater {
 
   // Wait for chunk acknowledgment from ESP32
   private async waitForChunkAck(chunkIndex: number): Promise<any> {
-    console.log(`[FirmwareUpdater] Setting up ack wait for chunk ${chunkIndex}`)
-    
     return new Promise((resolve, reject) => {
       // Set up timeout for acknowledgment
       const timeout = setTimeout(() => {
-        console.log(`[FirmwareUpdater] Timeout waiting for chunk ${chunkIndex} acknowledgment`)
         this.pendingAckResolve = null
         reject(new Error(`Timeout waiting for chunk ${chunkIndex} acknowledgment`))
       }, 5000) // 5 second timeout
 
       this.pendingAckResolve = (data: any) => {
-        console.log(`[FirmwareUpdater] Ack received for chunk ${chunkIndex}`)
         clearTimeout(timeout)
         resolve(data)
       }
-      
-      console.log(`[FirmwareUpdater] Ack wait setup complete for chunk ${chunkIndex}`)
     })
   }
 
@@ -278,8 +267,6 @@ export class BLEFirmwareUpdater {
     if (encodedCommand.length > 2048) { // Increased limit for base64 data
       throw new Error(`Command too large: ${encodedCommand.length} bytes (max 2048). Chunk ${chunkIndex} size: ${chunkData.byteLength}`)
     }
-    
-    console.log(`Sending chunk ${chunkIndex}: ${chunkData.byteLength} bytes raw -> ${encodedCommand.length} bytes encoded`)
     
     // Use writeValueWithoutResponse for better reliability
     await this.characteristic.writeValueWithoutResponse(encodedCommand)
