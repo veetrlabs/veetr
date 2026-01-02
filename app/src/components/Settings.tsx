@@ -606,7 +606,10 @@ export default function Settings() {
               
               <div className="menu-section">
                 <div className="version-info">
-                  <p>Version: {APP_VERSION}</p>
+                  <p>App Version: {APP_VERSION}</p>
+                  {state.isConnected && state.firmwareInfo.currentVersion && (
+                    <p>Firmware Version: {state.firmwareInfo.currentVersion}</p>
+                  )}
                   {state.deviceName && (
                     <p>Connected Device: {state.deviceName}</p>
                   )}

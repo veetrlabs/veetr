@@ -35,21 +35,6 @@
   color: var(--text-secondary);
 }
 
-.status-update-available {
-  background: var(--status-update-available-bg);
-  color: var(--status-update-available-text);
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
-}
-
 .firmware-info {
   margin-bottom: 20px;
 }
@@ -88,6 +73,27 @@
   font-style: italic;
 }
 
+.status-message {
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.status-up-to-date {
+  background: rgba(76, 175, 80, 0.1);
+  color: var(--success-color);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.status-update-ready {
+  background: rgba(33, 150, 243, 0.1);
+  color: var(--accent-color);
+  border: 1px solid rgba(33, 150, 243, 0.3);
+}
+
 .update-progress {
   margin-bottom: 20px;
 }
@@ -119,8 +125,8 @@
 
 .timing-info {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 6px;
   margin: 8px 0;
   padding: 8px 12px;
   background: var(--bg-secondary);
@@ -129,9 +135,20 @@
   color: var(--text-secondary);
 }
 
-.timing-info > div {
-  text-align: center;
-  flex: 1;
+.timing-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.timing-label {
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.timing-value {
+  font-family: 'Monaco', 'Menlo', monospace;
+  color: var(--text-color);
 }
 
 .update-warning {

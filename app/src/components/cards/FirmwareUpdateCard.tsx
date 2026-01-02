@@ -33,7 +33,7 @@ export function FirmwareUpdateCard() {
       showSingleAlert(`The device has restarted with the new firmware. Please:
 1. Wait 10-15 seconds for the device to fully boot
 2. Click "Connect to Veetr" to reconnect
-3. Check that the "Current Version" shows the new version
+3. Check that the "Device Firmware" version has updated
 
 If you still see the old version, the update may have failed.`, '✅ Firmware Update Completed!')
       
@@ -68,27 +68,34 @@ If you still see the old version, the update may have failed.`, '✅ Firmware Up
     <div className="firmware-update-card">
       <div className="card-header">
         <h3>Firmware Update</h3>
-        {state.firmwareInfo.updateAvailable && (
-          <div className="status-badge status-update-available">
-            Update Available
-          </div>
-        )}
       </div>
 
       <div className="firmware-info">
         <div className="version-info">
           <div className="version-item">
-            <label>Current Version:</label>
+            <label>Device Firmware:</label>
             <span className="version-number">{state.firmwareInfo.currentVersion}</span>
           </div>
           
           {state.firmwareInfo.latestVersion && (
             <div className="version-item">
-              <label>Latest Version:</label>
+              <label>Available Firmware:</label>
               <span className="version-number">{state.firmwareInfo.latestVersion}</span>
             </div>
           )}
         </div>
+
+        {state.firmwareInfo.latestVersion && !state.firmwareInfo.updateAvailable && (
+          <div className="status-message status-up-to-date">
+            ✅ Your device is running the latest firmware
+          </div>
+        )}
+
+        {state.firmwareInfo.updateAvailable && (
+          <div className="status-message status-update-ready">
+            🔄 A newer firmware version is available
+          </div>
+        )}
 
         {lastChecked && (
           <div className="last-checked">
@@ -111,12 +118,21 @@ If you still see the old version, the update may have failed.`, '✅ Firmware Up
           </div>
           {state.firmwareInfo.isUpdating && (
             <div className="timing-info">
-              <div>Elapsed: {formatTime(state.firmwareInfo.elapsedTimeMs || 0)}</div>
+              <div className="timing-row">
+                <span className="timing-label">Elapsed:</span>
+                <span className="timing-value">{formatTime(state.firmwareInfo.elapsedTimeMs || 0)}</span>
+              </div>
               {state.firmwareInfo.estimatedRemainingTimeMs && (
-                <div>Remaining: {formatTime(state.firmwareInfo.estimatedRemainingTimeMs)}</div>
+                <div className="timing-row">
+                  <span className="timing-label">Remaining:</span>
+                  <span className="timing-value">{formatTime(state.firmwareInfo.estimatedRemainingTimeMs)}</span>
+                </div>
               )}
               {state.firmwareInfo.estimatedTotalTimeMs && (
-                <div>Total: {formatTime(state.firmwareInfo.estimatedTotalTimeMs)}</div>
+                <div className="timing-row">
+                  <span className="timing-label">Total:</span>
+                  <span className="timing-value">{formatTime(state.firmwareInfo.estimatedTotalTimeMs)}</span>
+                </div>
               )}
             </div>
           )}
