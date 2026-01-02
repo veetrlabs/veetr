@@ -2,6 +2,7 @@ import { createContext, useContext, useReducer, useEffect, useRef, ReactNode } f
 import { getLatestRelease, getFirmwareAsset, downloadFirmware, compareVersions } from '../utils/githubApi'
 import { BLEFirmwareUpdater, FirmwareUpdateProgress } from '../utils/firmwareUpdater'
 import { showSingleAlert } from '../utils/alertUtils'
+import { dataStorage, SensorReading } from '../utils/dataStorage'
 
 // Types for sailing data
 export interface SailingData {
@@ -735,6 +736,23 @@ Please try the update again or contact support.`, '❌ Firmware Apply Failed')
       mappedData.windDirection = mappedData.windAngle
 
       dispatch({ type: 'UPDATE_DATA', payload: mappedData })
+
+      // Store sensor data with 10-second averaging
+      const reading: SensorReading = {
+        timestamp: Date.now(),
+        AWS: mappedData.windSpeed || 0,
+        AWA: data.AWA || 0,
+        SOG: mappedData.speed || 0,
+        HDM: mappedData.heading || 0,
+        heel: mappedData.tilt || 0,
+        lat: mappedData.lat && mappedData.lat !== 0 ? mappedData.lat : undefined,
+        lon: mappedData.lon && mappedData.lon !== 0 ? mappedData.lon : undefined,
+        satellites: mappedData.gpsSatellites
+      }
+      
+      dataStorage.addReading(reading).catch(err => {
+        console.error('Failed to store sensor reading:', err)
+      })
 
       // Update RSSI if included in sensor data
       if (data.rssi !== undefined) {

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useBLE } from '../context/BLEContext'
 import { FirmwareUpdateCard } from './cards/FirmwareUpdateCard'
+import DataManager from './DataManager'
 import ThemeToggle from './ThemeToggle'
 import { APP_VERSION } from '../utils/version'
 import { Menu, X, Moon, Bluetooth, Flag, Settings as SettingsIcon, Info, ChevronRight, ChevronLeft, AlertTriangle } from 'lucide-react'
@@ -606,6 +607,10 @@ export default function Settings() {
 
               <div className="menu-section">
                 <FirmwareUpdateCard />
+              </div>
+
+              <div className="menu-section">
+                <DataManager />
               </div>
 
               <div className="menu-section">

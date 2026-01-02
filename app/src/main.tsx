@@ -2,6 +2,14 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
+import { dataStorage } from './utils/dataStorage'
+
+// Initialize IndexedDB for sensor data storage
+dataStorage.init().then(() => {
+  console.log('[DataStorage] Initialized successfully')
+}).catch(err => {
+  console.error('[DataStorage] Failed to initialize:', err)
+})
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
