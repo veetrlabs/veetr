@@ -603,26 +603,14 @@ export default function Settings() {
                   <X size={20} />
                 </button>
               </div>
-              
-              <div className="menu-section">
-                <div className="version-info">
-                  <p>App Version: {APP_VERSION}</p>
-                  {state.isConnected && state.firmwareInfo.currentVersion && (
-                    <p>Firmware Version: {state.firmwareInfo.currentVersion}</p>
-                  )}
-                  {state.deviceName && (
-                    <p>Connected Device: {state.deviceName}</p>
-                  )}
-                </div>
-              </div>
 
               <div className="menu-section">
-                <h4>Firmware Update</h4>
                 <FirmwareUpdateCard />
               </div>
 
               <div className="menu-section">
                 <h4>Information</h4>
+                <p>App Version: {APP_VERSION}</p>
                 <p className="help-text">
                   Veetr is an open-source sailing dashboard providing real-time wind, GPS, and boat data via Bluetooth Low Energy.
                 </p>

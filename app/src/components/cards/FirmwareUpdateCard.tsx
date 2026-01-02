@@ -54,7 +54,6 @@ If you still see the old version, the update may have failed.`, '✅ Firmware Up
     return (
       <div className="firmware-update-card">
         <div className="card-header">
-          <h3>Firmware Update</h3>
           <div className="status-badge status-disconnected">
             Device Disconnected
           </div>
@@ -66,10 +65,6 @@ If you still see the old version, the update may have failed.`, '✅ Firmware Up
 
   return (
     <div className="firmware-update-card">
-      <div className="card-header">
-        <h3>Firmware Update</h3>
-      </div>
-
       <div className="firmware-info">
         <div className="version-info">
           <div className="version-item">
