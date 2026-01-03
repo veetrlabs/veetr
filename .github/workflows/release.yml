@@ -33,12 +33,12 @@ jobs:
         ROOT_VERSION=$(node -e "console.log(require('./package.json').version)")
         echo "Root package.json version: $ROOT_VERSION"
         
-        # Check web package.json
-        WEB_VERSION=$(node -e "console.log(require('./web/package.json').version)")
-        echo "Web package.json version: $WEB_VERSION"
+        # Check app package.json
+        APP_VERSION=$(node -e "console.log(require('./app/package.json').version)")
+        echo "App package.json version: $APP_VERSION"
         
         # Check TypeScript version file
-        TS_VERSION=$(grep "const VERSION = " web/src/utils/version.ts | sed "s/.*const VERSION = '\\(.*\\)'.*/\\1/")
+        TS_VERSION=$(grep "const VERSION = " app/src/utils/version.ts | sed "s/.*const VERSION = '\\(.*\\)'.*/\\1/")
         echo "TypeScript version.ts version: $TS_VERSION"
         
         # Check firmware version
@@ -53,8 +53,8 @@ jobs:
           ERRORS=$((ERRORS + 1))
         fi
         
-        if [ "$WEB_VERSION" != "$VERSION" ]; then
-          echo "❌ Web package.json version ($WEB_VERSION) doesn't match tag ($VERSION)"
+        if [ "$APP_VERSION" != "$VERSION" ]; then
+          echo "❌ App package.json version ($APP_VERSION) doesn't match tag ($VERSION)"
           ERRORS=$((ERRORS + 1))
         fi
         
@@ -80,12 +80,12 @@ jobs:
       with:
         node-version: '18'
     
-    - name: Install web dependencies and build
+    - name: Install app dependencies and build
       run: |
-        echo "📦 Installing web dependencies..."
-        cd web && npm install
+        echo "📦 Installing app dependencies..."
+        npm install
         echo "🏗️ Building web application..."
-        npm run build
+        npm run --workspace=app build
     
     - name: Setup Python for PlatformIO
       uses: actions/setup-python@v4

@@ -327,7 +327,6 @@ function SimpleLineChart({ data, timeRange }: SimpleLineChartProps) {
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
     
     const x = clientX - rect.left
-    const y = clientY - rect.top
 
     const padding = { top: 20, right: 20, bottom: 30, left: 40 }
     const chartWidth = rect.width - padding.left - padding.right

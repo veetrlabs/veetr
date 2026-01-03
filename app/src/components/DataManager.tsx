@@ -5,7 +5,7 @@ import './DataManager.css'
 export default function DataManager() {
   const [recordCount, setRecordCount] = useState<number>(0)
   const [storageSize, setStorageSize] = useState<number>(0)
-  const [storageQuota, setStorageQuota] = useState<{ usage: number, quota: number, percentage: number }>({ usage: 0, quota: 0, percentage: 0 })
+  const [, setStorageQuota] = useState<{ usage: number, quota: number, percentage: number }>({ usage: 0, quota: 0, percentage: 0 })
   const [isExporting, setIsExporting] = useState(false)
 
   useEffect(() => {
