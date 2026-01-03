@@ -496,7 +496,7 @@ export default function Settings() {
                   onClick={handleCalibrateLevel}
                   disabled={actionInProgress !== null || !state.isConnected}
                 >
-                  {actionInProgress === 'resetHeel' ? 'Calibrating...' : 'Vessel is Level'}
+                  {actionInProgress === 'resetHeel' ? 'Calibrating...' : 'Set vessel is Level'}
                 </button>
                 <p className="help-text">Calibrates current position as level across all axes (heel, pitch, roll)</p>
                 
@@ -505,7 +505,7 @@ export default function Settings() {
                   onClick={handleCalibrateCompass}
                   disabled={actionInProgress !== null || !state.isConnected}
                 >
-                  {actionInProgress === 'resetCompass' ? 'Calibrating...' : 'Set Compass North'}
+                  {actionInProgress === 'resetCompass' ? 'Calibrating...' : 'Set vessel pointing North'}
                 </button>
                 <p className="help-text">Point vessel's bow to north, then press to calibrate compass heading</p>
               </div>

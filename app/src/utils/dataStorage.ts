@@ -13,7 +13,8 @@ export interface SensorReading {
   AWA: number    // Apparent Wind Angle
   SOG: number    // Speed Over Ground
   HDM: number    // Heading Magnetic
-  heel: number   // Heel angle
+  heel: number   // Heel angle (roll)
+  pitch: number  // Pitch angle (trim)
   lat?: number   // GPS Latitude
   lon?: number   // GPS Longitude
   satellites?: number
@@ -152,6 +153,7 @@ class DataStorageManager {
       SOG: this.avg(samples.map(s => s.SOG)),
       HDM: this.avgCircular(samples.map(s => s.HDM)),
       heel: this.avg(samples.map(s => s.heel)),
+      pitch: this.avg(samples.map(s => s.pitch)),
       sampleCount: count
     }
 

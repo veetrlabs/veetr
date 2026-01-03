@@ -76,19 +76,41 @@ See the **[Hardware Guide](./HARDWARE.md)** for detailed specifications and purc
 
 Once your Veetr is connected and showing data, you'll want to calibrate it for accurate readings.
 
-#### **Heel Angle Calibration** ⚖️
+#### **Sensor Orientation** 📐
 
-You don't have to mount the Veetr device exactly level to the boat. Mount it firmly though so it doesn't move so the calibration actually lasts. It must at the same position every time. Otherwise you'll have to re-calibrate.
+**Important**: The Veetr device can be mounted in **ANY orientation** - horizontal, vertical, upside down, or at any angle! The calibration process learns your sensor's orientation automatically.
 
-**When to calibrate**: When your boat is completely level (flat water, no wind pressure)
+**Mounting tips**:
+- Mount firmly so it doesn't move (calibration depends on consistent positioning)
+- Avoid extreme vibration areas
+
+#### **Level Calibration** ⚖️
+
+**When to calibrate**: When your boat is completely level (flat water, no heel)
 
 1. **Level your boat**: Find calm water or secure the boat level at dock/mooring
 2. **Open Settings**: In the Veetr dashboard, go to Settings tab
-3. **Calibrate**: Click the "Vessel is level" button
-4. **Wait**: Allow 5 seconds for calibration to complete
-5. **Done**: The heel angle will now show 0° when your boat is level
+3. **Calibrate**: Click the "Reset Level" button
+4. **Done**: The device now knows what "level" means for your mounting orientation
 
-**Why important**: Sets the "zero point" so heel angles are accurate relative to your boat's level position.
+**What this does**: Stores the sensor's 3D orientation when level, so heel and pitch readings are accurate regardless of how you mounted the sensor.
+
+**Note**: You can recalibrate level anytime without affecting compass calibration.
+
+#### **Compass North Calibration** 🧭
+
+**When to calibrate**: After level calibration, or when north reference needs updating
+
+1. **Point to North**: Turn your boat so the bow (front) points toward magnetic north
+   - Can use boat's compass, phone compass, or known landmarks
+   - Boat can be heeled - doesn't need to be level
+2. **Open Settings**: In the Veetr dashboard, go to Settings tab
+3. **Calibrate**: Click "Set Compass North" button
+4. **Done**: The device now knows your boat's longitudinal axis and magnetic north
+
+**What this does**: Stores the sensor's 3D orientation when bow points north, so heading readings are accurate regardless of sensor mounting.
+
+**Note**: You can recalibrate north anytime without affecting level calibration.
 
 #### **Wind Direction Calibration** 💨
 **When to calibrate**: After mounting the wind sensor
@@ -96,17 +118,6 @@ You don't have to mount the Veetr device exactly level to the boat. Mount it fir
 1. **Mount correctly**: Install wind sensor with arrow pointing toward bow (front) of boat
 
 **Why important**: Ensures wind direction readings are relative to your boat's heading.
-
-#### **Compass Calibration** 🧭
-**Manual calibration required**: Set your compass north reference for accurate heading readings
-
-1. **Point to North**: Turn your boat so the bow (front) points toward magnetic north
-2. **Open Settings**: In the Veetr dashboard, go to Settings tab
-3. **Calibrate**: Click "Set Compass North" button
-4. **Confirm**: The app will ask for confirmation - press OK
-5. **Done**: Your current heading is now set as north (0°)
-
-**Why important**: Sets the magnetic north reference so compass headings are accurate relative to true directions.
 
 #### **GPS Calibration** 🛰️
 **Automatic**: GPS requires no calibration

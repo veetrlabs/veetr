@@ -745,6 +745,7 @@ Please try the update again or contact support.`, '❌ Firmware Apply Failed')
         SOG: mappedData.speed || 0,
         HDM: mappedData.heading || 0,
         heel: mappedData.tilt || 0,
+        pitch: data.pitch || 0,
         lat: mappedData.lat && mappedData.lat !== 0 ? mappedData.lat : undefined,
         lon: mappedData.lon && mappedData.lon !== 0 ? mappedData.lon : undefined,
         satellites: mappedData.gpsSatellites

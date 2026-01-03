@@ -53,8 +53,6 @@ int base64_decode(const char* input, uint8_t* output) {
 
 // Persistent storage for settings
 Preferences preferences;
-float heelAngleDelta = 0.0f;
-float compassOffsetDelta = 0.0f; // Compass calibration offset in degrees
 int deadWindAngle = 40; // default
 float refreshRateSeconds = 1.0f; // Default 1.0 second refresh rate
 bool otaInProgress = false; // Flag to pause sensor data during firmware updates
@@ -89,6 +87,13 @@ static size_t otaSize = 0;
 #define BNO080_SCL 22
 BNO080 imu;
 bool imuAvailable = false; // Track if IMU is working
+
+// Calibration - simple angle offsets (works for arbitrary mounting orientations)
+float rollOffset = 0.0;      // Roll offset when level
+float pitchOffset = 0.0;     // Pitch offset when level  
+float headingOffset = 0.0;   // Heading offset when pointing north
+bool levelCalibrated = false;
+bool northCalibrated = false;
 
 // RS485 Wind Sensor Configuration
 #define RS485_DE 14
@@ -154,6 +159,8 @@ void stopDiscoveryMode();
 void updateDiscoveryStatus();
 void updateRefreshRate();
 
+
+
 // Safe BLE transmission function to prevent data corruption
 bool safeBLESend(const String& data, bool isCommand) {
   Serial.printf("[BLE DEBUG] Attempting to send %d chars, command=%s\n", 
@@ -181,25 +188,17 @@ bool safeBLESend(const String& data, bool isCommand) {
   
   // Set sending flag
   bleSending = true;
-  Serial.println("[BLE DEBUG] Sending flag set, starting transmission...");
-  
   try {
     // Convert string to byte array to avoid encoding issues
     std::vector<uint8_t> dataBytes(data.begin(), data.end());
-    Serial.printf("[BLE DEBUG] Converted to %d bytes\n", dataBytes.size());
     
     pSensorDataCharacteristic->setValue(dataBytes);
-    Serial.println("[BLE DEBUG] Characteristic value set");
-    
     pSensorDataCharacteristic->notify();
-    Serial.println("[BLE DEBUG] Notify called");
-    
     // Small delay to ensure transmission completes
     delay(isCommand ? 10 : 5);
     Serial.printf("[BLE DEBUG] Delay completed (%d ms)\n", isCommand ? 10 : 5);
     
     bleSending = false;
-    Serial.println("[BLE DEBUG] SUCCESS: Transmission completed");
     return true;
   } catch (...) {
     bleSending = false;
@@ -301,21 +300,28 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
           }
           
           if (action == "resetHeelAngle") {
-            // Calibrate vessel level position (sets current orientation as zero reference)
+            // Calibrate vessel level position (boat is level, any heading)
             if (imuAvailable) {
-              // Get current rotation vector for calibration
               if (imu.dataAvailable()) {
-                // Use rotation vector to calculate current heel angle
-                float i = imu.getQuatI();
-                float j = imu.getQuatJ();
-                float k = imu.getQuatK();
-                float real = imu.getQuatReal();
+                // Get current heel/pitch from accelerometer
+                float accelX = imu.getAccelX();
+                float accelY = imu.getAccelY();
+                float accelZ = imu.getAccelZ();
                 
-                // Convert quaternion to heel angle (roll around X-axis)
-                float roll = atan2(2.0f * (real * i + j * k), 1.0f - 2.0f * (i * i + j * j)) * 180.0f / PI;
-                heelAngleDelta = roll;
-                preferences.putFloat("delta", heelAngleDelta);
-                Serial.printf("Vessel level calibrated - offset set to %.2f degrees\n", heelAngleDelta);
+                float currentRoll = atan2(accelX, sqrt(accelY * accelY + accelZ * accelZ)) * 180.0f / PI;
+                float currentPitch = atan2(accelY, sqrt(accelX * accelX + accelZ * accelZ)) * 180.0f / PI;
+                
+                // Store these as offsets
+                rollOffset = currentRoll;
+                pitchOffset = currentPitch;
+                levelCalibrated = true;
+                
+                // Save to NVS
+                preferences.putFloat("rollOffset", rollOffset);
+                preferences.putFloat("pitchOffset", pitchOffset);
+                preferences.putBool("levelCal", true);
+                
+                Serial.printf("Level calibrated - Roll offset: %.2f°, Pitch offset: %.2f°\n", rollOffset, pitchOffset);
               } else {
                 Serial.println("Level calibration failed - can't read IMU sensor");
               }
@@ -324,23 +330,37 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
             }
           }
           else if (action == "resetCompassNorth") {
-            // Calibrate compass to north - saves current magnetic heading as north reference
+            // Calibrate compass north (bow points north, any heel angle)
             if (imuAvailable) {
-              // Get current magnetometer data
               if (imu.dataAvailable()) {
-                float magX = imu.getMagX();
-                float magY = imu.getMagY();
+                // Use rotation vector (includes magnetometer fusion)
+                float quatI = imu.getQuatI();
+                float quatJ = imu.getQuatJ();
+                float quatK = imu.getQuatK();
+                float quatReal = imu.getQuatReal();
                 
-                // Calculate current magnetic heading
-                float currentHeading = atan2(magY, magX) * 180.0f / PI;
-                if (currentHeading < 0) currentHeading += 360.0f;
+                float quatMag = sqrt(quatI*quatI + quatJ*quatJ + quatK*quatK + quatReal*quatReal);
                 
-                // Store this heading as the offset (what the device reads when vessel points north)
-                compassOffsetDelta = currentHeading;
-                preferences.putFloat("compassOffset", compassOffsetDelta);
-                Serial.printf("Compass calibrated - north offset set to %.2f degrees\n", compassOffsetDelta);
+                if (quatMag > 0.1) {
+                  // Calculate current tilt-compensated heading from rotation vector quaternion
+                  float currentHeading = atan2(2.0f * (quatI*quatJ + quatReal*quatK),
+                                             quatReal*quatReal + quatI*quatI - quatJ*quatJ - quatK*quatK);
+                  currentHeading = currentHeading * 180.0f / PI;
+                  if (currentHeading < 0) currentHeading += 360.0f;
+                  
+                  // Store this as the heading offset (when bow points north, this should become 0°)
+                  headingOffset = currentHeading;
+                  preferences.putFloat("headingOffset", headingOffset);
+                  
+                  northCalibrated = true;
+                  preferences.putBool("northCal", true);
+                  
+                  Serial.printf("North calibrated - heading offset: %.1f°\n", headingOffset);
+                } else {
+                  Serial.println("Compass calibration failed - rotation vector not ready");
+                }
               } else {
-                Serial.println("Compass calibration failed - can't read magnetometer");
+                Serial.println("Compass calibration failed - sensor data not available");
               }
             } else {
               Serial.println("Compass calibration failed - IMU sensor not available");
@@ -875,7 +895,8 @@ struct SensorData {
   int windAngle;        // Apparent wind angle in degrees (0-360)
   float trueWindSpeed;  // True wind speed in knots
   int trueWindAngle;    // True wind angle in degrees (0-360)
-  float tilt;           // Vessel heel/tilt angle in degrees
+  float tilt;           // Vessel heel/tilt angle in degrees (roll)
+  float pitch;          // Vessel pitch/trim angle in degrees
   int HDM;              // Magnetic heading in degrees (0-359)
   float accelX;         // Acceleration X-axis in m/s²
   float accelY;         // Acceleration Y-axis in m/s²
@@ -1129,15 +1150,31 @@ void setup() {
   
   // Initialize Preferences for persistent storage
   preferences.begin("settings", false);
-  heelAngleDelta = preferences.getFloat("delta", 0.0f);
-  compassOffsetDelta = preferences.getFloat("compassOffset", 0.0f);
+  
+  // Load simple offset calibrations
+  levelCalibrated = preferences.getBool("levelCal", false);
+  if (levelCalibrated) {
+    rollOffset = preferences.getFloat("rollOffset", 0.0f);
+    pitchOffset = preferences.getFloat("pitchOffset", 0.0f);
+    Serial.printf("[Boot] Loaded level calibration - Roll offset: %.2f°, Pitch offset: %.2f°\n",
+                 rollOffset, pitchOffset);
+  } else {
+    Serial.println("[Boot] No level calibration found");
+  }
+  
+  northCalibrated = preferences.getBool("northCal", false);
+  if (northCalibrated) {
+    headingOffset = preferences.getFloat("headingOffset", 0.0f);
+    Serial.printf("[Boot] Loaded north calibration - Heading offset: %.1f°\n", headingOffset);
+  } else {
+    Serial.println("[Boot] No north calibration found");
+  }
+  
+  // Load other settings
   deadWindAngle = preferences.getInt("deadWindAngle", 40);
   refreshRateSeconds = preferences.getFloat("refreshRate", 1.0f);
   String deviceName = preferences.getString("deviceName", "Veetr");
-  Serial.print("[Boot] Loaded level calibration offset from NVS: ");
-  Serial.println(heelAngleDelta);
-  Serial.print("[Boot] Loaded compass calibration offset from NVS: ");
-  Serial.println(compassOffsetDelta);
+  
   Serial.print("[Boot] Loaded deadWindAngle from NVS: ");
   Serial.println(deadWindAngle);
   Serial.print("[Boot] Loaded refreshRate from NVS: ");
@@ -1151,6 +1188,7 @@ void setup() {
   
   // Initialize I2C for BNO080 with detection
   Wire.begin(BNO080_SDA, BNO080_SCL);
+  Wire.setClock(400000); // Set I2C to 400kHz Fast mode (BNO08X supports up to 400kHz)
   Wire.setTimeout(100); // Set I2C timeout to 100ms to prevent long blocking
   
   Serial.print("Testing BNO080 connection... ");
@@ -1164,17 +1202,14 @@ void setup() {
   if (imu.begin()) {
     Serial.println("BNO080 begin() successful, configuring sensor...");
     
-    // Enable rotation vector for tilt/heel angle calculation
-    imu.enableRotationVector(50); // 50ms = 20Hz update rate
-    Serial.println("Rotation vector configuration sent");
+    // Enable accelerometer for fast heel/pitch (50ms = 20Hz)
+    imu.enableAccelerometer(50);
+    Serial.println("Accelerometer configuration sent (20Hz)");
     
-    // Enable magnetometer for compass heading with responsive update rate
-    imu.enableMagnetometer(50); // 50ms = 20Hz update rate (responsive but stable)
-    Serial.println("Magnetometer configuration sent (20Hz)");
-    
-    // Enable accelerometer for acceleration data
-    imu.enableAccelerometer(50); // 50ms = 20Hz update rate
-    Serial.println("Accelerometer configuration sent");
+    // Enable rotation vector (gyro + accel + mag fusion with tilt compensation)
+    // This includes magnetometer, so heading will be tilt-compensated
+    imu.enableRotationVector(100); // 100ms = 10Hz for stable heading
+    Serial.println("Rotation vector configuration sent (10Hz)");
     
     // Give sensor more time to initialize and start providing data
     Serial.println("Waiting for sensor data...");
@@ -1462,51 +1497,6 @@ float calculateBearing(double lat1, double lon1, double lat2, double lon2) {
             sin(lat1 * PI / 180.0) * cos(lat2 * PI / 180.0) * cos(dLon);
   float bearing = atan2(y, x) * 180.0 / PI;
   return fmod(bearing + 360.0, 360.0);
-}
-
-// Transform accelerometer data from device coordinates to vessel coordinates using calibration
-// This uses the level calibration (heelAngleDelta) and compass calibration (compassOffsetDelta)
-// to create a rotation matrix that transforms device coordinates to vessel coordinates
-void transformAccelerometerToVessel(float deviceX, float deviceY, float deviceZ, 
-                                   float &vesselForward, float &vesselStarboard, float &vesselUp) {
-  
-  // For now, we'll assume the device coordinate system aligns with vessel coordinates
-  // after level and compass calibration. This is a simplified approach.
-  // In a full implementation, we'd need to determine the device mounting orientation
-  // and create proper rotation matrices.
-  
-  // Simplified mapping (this assumes device X=forward, Y=starboard, Z=up)
-  // This will need to be enhanced based on actual device mounting
-  vesselForward = deviceX;    // Forward/aft acceleration
-  vesselStarboard = deviceY;  // Port/starboard acceleration  
-  vesselUp = deviceZ;         // Up/down acceleration
-  
-  // TODO: Apply proper rotation matrix transformation using heelAngleDelta and compassOffsetDelta
-  // This would involve creating a 3D rotation matrix that accounts for:
-  // 1. Device mounting orientation relative to vessel
-  // 2. Current heel angle compensation
-  // 3. Compass heading compensation
-}
-
-// Get forward acceleration (positive = accelerating forward)
-float getForwardAcceleration(float accelX, float accelY, float accelZ) {
-  float forward, starboard, up;
-  transformAccelerometerToVessel(accelX, accelY, accelZ, forward, starboard, up);
-  return forward;
-}
-
-// Get starboard acceleration (positive = accelerating to starboard/right)
-float getStarboardAcceleration(float accelX, float accelY, float accelZ) {
-  float forward, starboard, up;
-  transformAccelerometerToVessel(accelX, accelY, accelZ, forward, starboard, up);
-  return starboard;
-}
-
-// Get up acceleration (positive = accelerating upward)
-float getUpAcceleration(float accelX, float accelY, float accelZ) {
-  float forward, starboard, up;
-  transformAccelerometerToVessel(accelX, accelY, accelZ, forward, starboard, up);
-  return up;
 }
 
 // Store accelerometer reading for movement analysis
@@ -1917,124 +1907,84 @@ void readSensors() {
   // Read tilt from BNO080 (only if available)
   if (imuAvailable) {
     static unsigned long lastIMURead = 0;
-    const unsigned long IMU_READ_INTERVAL = 50; // Read IMU every 50ms (20Hz for good responsiveness)
+    const unsigned long IMU_READ_INTERVAL = 20; // Read IMU every 20ms (50Hz to match magnetometer)
     
     if (millis() - lastIMURead >= IMU_READ_INTERVAL) {
       lastIMURead = millis();
       
       if (imu.dataAvailable()) {
-        // Get quaternion data for precise orientation
-        float i = imu.getQuatI();
-        float j = imu.getQuatJ();
-        float k = imu.getQuatK();
-        float real = imu.getQuatReal();
+        // dataAvailable() processes incoming sensor reports from BNO080
+        // It updates internal variables: rawAccelX/Y/Z, rawMagX/Y/Z, rawQuatI/J/K/Real
         
-        // Convert quaternion to roll angle (heel angle)
-        // Roll is rotation around X-axis (fore-aft axis of boat)
-        float roll = atan2(2.0f * (real * i + j * k), 1.0f - 2.0f * (i * i + j * j)) * 180.0f / PI;
+        // **USE ACCELEROMETER FOR FAST HEEL/PITCH CALCULATION**
+        // The rotation vector (quaternion) updates too slowly (~4-6 seconds)
+        // Accelerometer updates fast and reliably every cycle
         
-        // Apply calibration offset
-        float zeroedTilt = roll - heelAngleDelta;
-        currentData.tilt = zeroedTilt;
+        // Get accelerometer readings (in m/s²)
+        float accelX = imu.getAccelX();
+        float accelY = imu.getAccelY();
+        float accelZ = imu.getAccelZ();
+        
+        // Calculate heel (roll) from gravity vector
+        // When level: accelZ ≈ 9.8, accelX ≈ 0, accelY ≈ 0
+        // When heeled right: accelX increases (positive), accelZ decreases
+        float rawRoll = atan2(accelX, sqrt(accelY * accelY + accelZ * accelZ)) * 180.0f / PI;
+        
+        // Calculate pitch from gravity vector  
+        float rawPitch = atan2(accelY, sqrt(accelX * accelX + accelZ * accelZ)) * 180.0f / PI;
+        
+        // Apply calibration offsets
+        float roll = rawRoll - rollOffset;
+        float pitch = rawPitch - pitchOffset;
+        
+        currentData.tilt = roll;
+        currentData.pitch = pitch;
         
         #ifdef DEBUG_BNO080
-        Serial.printf("[BNO080] Raw Roll: %.2f°, Calibrated Heel: %.2f°\n", roll, zeroedTilt);
+        if (levelCalibrated) {
+          Serial.printf("[BNO080] Accel-based - Raw: R=%.2f° P=%.2f° → Heel: %.2f° Pitch: %.2f°\n", 
+                       rawRoll, rawPitch, roll, pitch);
+        } else {
+          Serial.printf("[BNO080] Uncalibrated - Heel: %.2f° Pitch: %.2f°\n", roll, pitch);
+        }
         #endif
         
-        // Improved compass calculation with lighter filtering
-        static float lastRawHeading = 0;
-        static unsigned long lastCompassUpdate = 0;
-        static bool compassInitialized = false;
+        // Compass calculation - only update when magnetometer actually changes
+        // **USE ROTATION VECTOR FOR TILT-COMPENSATED COMPASS**
+        // BNO080's rotation vector fuses gyro + accel + mag - heading is tilt-compensated!
+        float quatI = imu.getQuatI();
+        float quatJ = imu.getQuatJ();
+        float quatK = imu.getQuatK();
+        float quatReal = imu.getQuatReal();
         
-        // Update compass every 100ms for better responsiveness (10Hz)
-        if (millis() - lastCompassUpdate >= 100) {
-          lastCompassUpdate = millis();
+        // Check if quaternion is valid (non-zero)
+        float quatMag = sqrt(quatI*quatI + quatJ*quatJ + quatK*quatK + quatReal*quatReal);
+        
+        if (quatMag > 0.1) {
+          // Extract ONLY heading (yaw) from quaternion
+          // This is the magnetic north-referenced heading, tilt-compensated by sensor fusion
+          float heading = atan2(2.0f * (quatI*quatJ + quatReal*quatK),
+                               quatReal*quatReal + quatI*quatI - quatJ*quatJ - quatK*quatK);
+          heading = heading * 180.0f / PI;
+          if (heading < 0) heading += 360.0f;
           
-          // Get fresh magnetometer readings
-          float magX = imu.getMagX();
-          float magY = imu.getMagY();
-          float magZ = imu.getMagZ();
+          // Apply calibration offset
+          if (northCalibrated) {
+            heading = heading - headingOffset;
+            if (heading < 0) heading += 360.0f;
+            if (heading >= 360) heading -= 360.0f;
+          }
           
-          // Validate magnetometer readings
-          float magMagnitude = sqrt(magX * magX + magY * magY + magZ * magZ);
+          currentData.HDM = (int)round(heading);
           
           #ifdef DEBUG_BNO080
-          Serial.printf("[BNO080] Mag: X=%.2f Y=%.2f Z=%.2f (magnitude=%.2f)\n", 
-                        magX, magY, magZ, magMagnitude);
+          Serial.printf("[BNO080] Heading from rotation vector: %.1f° → Calibrated: %d°\n", 
+                       heading + (northCalibrated ? headingOffset : 0), currentData.HDM);
           #endif
-          
-          // Only proceed if we have reasonable magnetometer readings
-          if (magMagnitude > 0.1 && magMagnitude < 200.0) { // Reasonable range for BNO080
-            
-            // Calculate raw heading from magnetometer with light tilt compensation
-            // Get pitch and roll for tilt compensation
-            float pitch = atan2(2.0f * (real * j - k * i), 1.0f - 2.0f * (j * j + i * i)) * 180.0f / PI;
-            float pitchRad = pitch * PI / 180.0f;
-            float rollRad = roll * PI / 180.0f;
-            
-            // Simple tilt compensation (only apply if tilt is significant)
-            float magXComp = magX;
-            float magYComp = magY;
-            
-            if (abs(pitch) > 5 || abs(roll) > 5) { // Only compensate for significant tilt
-              magXComp = magX * cos(pitchRad) + magZ * sin(pitchRad);
-              magYComp = magX * sin(rollRad) * sin(pitchRad) + magY * cos(rollRad) - magZ * sin(rollRad) * cos(pitchRad);
-            }
-            
-            // Calculate RAW heading (before calibration)
-            float rawHeading = atan2(magYComp, magXComp) * 180.0f / PI;
-            if (rawHeading < 0) rawHeading += 360.0f; // Normalize to 0-360
-            
-            // Apply smoothing to RAW heading first (before calibration)
-            if (!compassInitialized) {
-              lastRawHeading = rawHeading;
-              compassInitialized = true;
-              
-              #ifdef DEBUG_BNO080
-              Serial.printf("[BNO080] Compass initialized with raw heading %.1f°\n", rawHeading);
-              #endif
-            } else {
-              // Simple exponential smoothing on RAW heading with high responsiveness
-              float alpha = 0.8; // Very high responsiveness (80% new value, 20% old)
-              
-              // Handle compass wrap-around for smoothing (359° to 1° transition)
-              float headingDiff = rawHeading - lastRawHeading;
-              float adjustedRawHeading = rawHeading;
-              
-              if (headingDiff > 180) {
-                adjustedRawHeading = rawHeading - 360;
-              } else if (headingDiff < -180) {
-                adjustedRawHeading = rawHeading + 360;
-              }
-              
-              // Apply exponential smoothing to raw heading
-              float smoothedRawHeading = alpha * adjustedRawHeading + (1 - alpha) * lastRawHeading;
-              
-              // Normalize back to 0-360 range
-              while (smoothedRawHeading < 0) smoothedRawHeading += 360;
-              while (smoothedRawHeading >= 360) smoothedRawHeading -= 360;
-              
-              // Store the smoothed raw heading
-              lastRawHeading = smoothedRawHeading;
-            }
-            
-            // Now apply compass calibration to the smoothed raw heading
-            float calibratedHeading = lastRawHeading - compassOffsetDelta;
-            if (calibratedHeading < 0) calibratedHeading += 360.0f;
-            if (calibratedHeading >= 360) calibratedHeading -= 360.0f;
-            
-            // Update compass reading
-            currentData.HDM = (int)round(calibratedHeading);
-            
-            #ifdef DEBUG_BNO080
-            Serial.printf("[BNO080] Compass: Raw=%.1f° Smoothed=%.1f° Offset=%.1f° Final=%d°\n", 
-                          rawHeading, lastRawHeading, compassOffsetDelta, currentData.HDM);
-            #endif
-          } else {
-            #ifdef DEBUG_BNO080
-            Serial.printf("[BNO080] Invalid magnetometer reading (magnitude=%.2f)\n", magMagnitude);
-            #endif
-          }
+        } else {
+          #ifdef DEBUG_BNO080
+          Serial.println("[BNO080] Rotation vector not ready");
+          #endif
         }
         
         // Read accelerometer data
@@ -2141,6 +2091,11 @@ String getSensorDataJson() {
   // Heel angle - only include if IMU is available
   if (imuAvailable && !isnan(currentData.tilt)) {
     doc["heel"] = round(currentData.tilt * 10) / 10.0; // Vessel heel angle (1 decimal)
+  }
+  
+  // Pitch angle - only include if IMU is available
+  if (imuAvailable && !isnan(currentData.pitch)) {
+    doc["pitch"] = round(currentData.pitch * 10) / 10.0; // Vessel pitch angle (1 decimal)
   }
   
   // Magnetic heading - only include if IMU is available and has valid data
