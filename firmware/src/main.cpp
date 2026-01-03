@@ -11,7 +11,7 @@
 #include <esp_ota_ops.h>
 
 // Firmware version
-#define FIRMWARE_VERSION "0.0.27"
+#define FIRMWARE_VERSION "0.0.28"
 
 // Simple base64 decoding table
 const char base64_chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
