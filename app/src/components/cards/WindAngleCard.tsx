@@ -70,9 +70,9 @@ export default function WindAngleCard({
             const isMajor = angle % 30 === 0;
             const radius = isCardinal ? 165 : isMajor ? 170 : 175; // Start inside outer circle
             const endRadius = 180; // End at outer circle
-            const x1 = 250 + radius * Math.sin((angle * Math.PI) / 180);
+            const x1 = 250 - radius * Math.sin((angle * Math.PI) / 180);
             const y1 = 250 - radius * Math.cos((angle * Math.PI) / 180);
-            const x2 = 250 + endRadius * Math.sin((angle * Math.PI) / 180);
+            const x2 = 250 - endRadius * Math.sin((angle * Math.PI) / 180);
             const y2 = 250 - endRadius * Math.cos((angle * Math.PI) / 180);
             
             return (
@@ -100,7 +100,7 @@ export default function WindAngleCard({
             
             if (angle <= 180) {
               // Starboard side (right)
-              const x1 = 250 + radius * Math.sin((angle * Math.PI) / 180);
+              const x1 = 250 - radius * Math.sin((angle * Math.PI) / 180);
               const y1 = 250 - radius * Math.cos((angle * Math.PI) / 180);
               labels.push(
                 <text
@@ -116,9 +116,9 @@ export default function WindAngleCard({
                 </text>
               );
               
-              // Port side (left) - mirror the angle
+              // Port side (left) - mirror the angle (use +Math.sin)
               if (angle !== 180) { // Don't duplicate 180° (stern)
-                const x2 = 250 - radius * Math.sin((angle * Math.PI) / 180);
+                const x2 = 250 + radius * Math.sin((angle * Math.PI) / 180);
                 const y2 = 250 - radius * Math.cos((angle * Math.PI) / 180);
                 labels.push(
                   <text
