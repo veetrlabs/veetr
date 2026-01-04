@@ -233,6 +233,29 @@ class DataStorageManager {
     })
   }
 
+  async getLastReading(): Promise<AveragedReading | null> {
+    if (!this.db) throw new Error('Database not initialized')
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([STORE_NAME], 'readonly')
+      const store = transaction.objectStore(STORE_NAME)
+      const index = store.index('timestamp')
+      
+      // Open cursor in reverse order to get the most recent
+      const request = index.openCursor(null, 'prev')
+      
+      request.onsuccess = () => {
+        const cursor = request.result
+        if (cursor) {
+          resolve(cursor.value as AveragedReading)
+        } else {
+          resolve(null)
+        }
+      }
+      request.onerror = () => reject(request.error)
+    })
+  }
+
   async clearAllData(): Promise<void> {
     if (!this.db) throw new Error('Database not initialized')
 
@@ -294,3 +317,8 @@ class DataStorageManager {
 
 // Singleton instance
 export const dataStorage = new DataStorageManager()
+
+// Helper function to get last reading
+export async function getLastReading(): Promise<AveragedReading | null> {
+  return dataStorage.getLastReading()
+}
