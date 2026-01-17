@@ -196,7 +196,7 @@ class DataStorageManager {
     return avgDeg
   }
 
-  async getReadings(startTime?: number, endTime?: number): Promise<AveragedReading[]> {
+  async getReadings(startTime?: number, endTime?: number, limit?: number): Promise<AveragedReading[]> {
     if (!this.db) throw new Error('Database not initialized')
 
     return new Promise((resolve, reject) => {
@@ -213,10 +213,36 @@ class DataStorageManager {
         range = IDBKeyRange.upperBound(endTime)
       }
 
-      const request = range ? index.getAll(range) : store.getAll()
-      
-      request.onsuccess = () => resolve(request.result)
-      request.onerror = () => reject(request.error)
+      // If limit is specified, use cursor to get last N records
+      if (limit && !startTime && !endTime) {
+        const results: AveragedReading[] = []
+        const request = index.openCursor(null, 'prev') // Open cursor in reverse order
+        
+        request.onsuccess = (event) => {
+          const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result
+          if (cursor && results.length < limit) {
+            results.push(cursor.value)
+            cursor.continue()
+          } else {
+            // Reverse to get chronological order
+            resolve(results.reverse())
+          }
+        }
+        request.onerror = () => reject(request.error)
+      } else {
+        const request = range ? index.getAll(range) : store.getAll()
+        
+        request.onsuccess = () => {
+          const results = request.result
+          // If limit specified, return last N records
+          if (limit && results.length > limit) {
+            resolve(results.slice(-limit))
+          } else {
+            resolve(results)
+          }
+        }
+        request.onerror = () => reject(request.error)
+      }
     })
   }
 
@@ -321,4 +347,9 @@ export const dataStorage = new DataStorageManager()
 // Helper function to get last reading
 export async function getLastReading(): Promise<AveragedReading | null> {
   return dataStorage.getLastReading()
+}
+
+// Helper function to get all readings
+export async function getAllReadings(limit?: number): Promise<AveragedReading[]> {
+  return dataStorage.getReadings(undefined, undefined, limit)
 }

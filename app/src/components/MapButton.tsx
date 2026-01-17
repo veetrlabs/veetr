@@ -1,15 +1,18 @@
+import { useBLE } from '../context/BLEContext'
 import './MapButton.css'
 
-interface MapButtonProps {
-  onClick: () => void
-  hasGPS: boolean
-}
+export default function MapButton() {
+  const { data } = useBLE()
+  const hasGPS = !!(data?.lat && data?.lon && data.lat !== 0 && data.lon !== 0)
 
-export default function MapButton({ onClick, hasGPS }: MapButtonProps) {
+  const handleClick = () => {
+    window.dispatchEvent(new CustomEvent('navigate', { detail: 'map' }))
+  }
+
   return (
     <button 
       className={`map-button ${!hasGPS ? 'no-gps' : ''}`}
-      onClick={onClick}
+      onClick={handleClick}
       title={hasGPS ? 'Open navigation map' : 'Open map (no GPS signal)'}
     >
       <svg 

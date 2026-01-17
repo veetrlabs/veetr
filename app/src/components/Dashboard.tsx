@@ -13,15 +13,12 @@ import SatelliteButton from './SatelliteButton'
 import BluetoothButton from './BluetoothButton'
 import Settings from './Settings'
 import DataChartModal from './modals/DataChartModal'
-import MapModal from './modals/MapModal'
-import MapButton from './MapButton'
 import './Dashboard.css'
 
 export default function Dashboard() {
   const { state } = useBLE()
   const { sailingData } = state
   const [showChart, setShowChart] = useState(false)
-  const [showMap, setShowMap] = useState(false)
 
   return (
     <div className="dashboard">
@@ -73,21 +70,7 @@ export default function Dashboard() {
         </div>
       </div>
       
-      <MapButton 
-        onClick={() => setShowMap(true)}
-        hasGPS={sailingData.gpsSatellites > 0 && sailingData.lat !== 0 && sailingData.lon !== 0}
-      />
-      
       {showChart && <DataChartModal onClose={() => setShowChart(false)} />}
-      {showMap && (
-        <MapModal 
-          isOpen={showMap}
-          onClose={() => setShowMap(false)}
-          lat={sailingData.lat}
-          lon={sailingData.lon}
-          hdm={sailingData.heading}
-        />
-      )}
     </div>
   )
 }
