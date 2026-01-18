@@ -191,6 +191,10 @@ export default function Settings() {
     }
   }
 
+  // Track stored coordinates locally
+  const [portCoords, setPortCoords] = useState<{lat: number, lon: number} | null>(null)
+  const [starboardCoords, setStarboardCoords] = useState<{lat: number, lon: number} | null>(null)
+
   const handleRegattaSetPort = async () => {
     if (!state.isConnected) {
       alert('Please connect to Veetr device first')
@@ -208,13 +212,39 @@ export default function Settings() {
     setActionInProgress('regattaPort')
     try {
       const success = await sendCommand({ action: 'regattaSetPort' })
-      if (!success) {
+      if (success) {
+        const coords = {lat: state.sailingData.lat, lon: state.sailingData.lon}
+        setPortCoords(coords)
+        // No alert - we'll show coordinates in the UI
+      } else {
         console.error('Failed to set port position')
         alert('Failed to set port position. Please ensure GPS has a valid fix and try again.')
       }
     } catch (error) {
       console.error('Failed to set port marker:', error)
       alert('Error setting port position. Please check GPS connection and try again.')
+    } finally {
+      setActionInProgress(null)
+    }
+  }
+
+  const handleRegattaClearPort = async () => {
+    if (!state.isConnected) {
+      alert('Please connect to Veetr device first')
+      return
+    }
+
+    setActionInProgress('regattaClearPort')
+    try {
+      const success = await sendCommand({ action: 'regattaClearPort' })
+      if (success) {
+        setPortCoords(null)
+      } else {
+        alert('Failed to clear port position. Please try again.')
+      }
+    } catch (error) {
+      console.error('Failed to clear port marker:', error)
+      alert('Error clearing port position')
     } finally {
       setActionInProgress(null)
     }
@@ -237,13 +267,39 @@ export default function Settings() {
     setActionInProgress('regattaStarboard')
     try {
       const success = await sendCommand({ action: 'regattaSetStarboard' })
-      if (!success) {
+      if (success) {
+        const coords = {lat: state.sailingData.lat, lon: state.sailingData.lon}
+        setStarboardCoords(coords)
+        // No alert - we'll show coordinates in the UI
+      } else {
         console.error('Failed to set starboard position')
         alert('Failed to set starboard position. Please ensure GPS has a valid fix and try again.')
       }
     } catch (error) {
       console.error('Failed to set starboard marker:', error)
       alert('Error setting starboard position. Please check GPS connection and try again.')
+    } finally {
+      setActionInProgress(null)
+    }
+  }
+
+  const handleRegattaClearStarboard = async () => {
+    if (!state.isConnected) {
+      alert('Please connect to Veetr device first')
+      return
+    }
+
+    setActionInProgress('regattaClearStarboard')
+    try {
+      const success = await sendCommand({ action: 'regattaClearStarboard' })
+      if (success) {
+        setStarboardCoords(null)
+      } else {
+        alert('Failed to clear starboard position. Please try again.')
+      }
+    } catch (error) {
+      console.error('Failed to clear starboard marker:', error)
+      alert('Error clearing starboard position')
     } finally {
       setActionInProgress(null)
     }
@@ -539,32 +595,84 @@ export default function Settings() {
               </div>
               
               <div className="menu-section">
-                <h4>Starting Line Setup</h4>
-                <div className="button-group">
-                  <button 
-                    className={`menu-item half-width ${state.sailingData.hasStartLine ? 'position-set' : ''}`}
-                    onClick={handleRegattaSetPort}
-                    disabled={actionInProgress !== null || !state.isConnected}
-                    style={state.sailingData.hasStartLine ? { backgroundColor: '#2196F3', color: 'white' } : {}}
-                  >
-                    {actionInProgress === 'regattaPort' ? 'Setting...' : state.sailingData.hasStartLine ? 'Port Set ✓' : 'Set Port Line'}
-                  </button>
-                  
-                  <button 
-                    className={`menu-item half-width ${state.sailingData.hasStartLine ? 'position-set' : ''}`}
-                    onClick={handleRegattaSetStarboard}
-                    disabled={actionInProgress !== null || !state.isConnected}
-                    style={state.sailingData.hasStartLine ? { backgroundColor: '#2196F3', color: 'white' } : {}}
-                  >
-                    {actionInProgress === 'regattaStarboard' ? 'Setting...' : state.sailingData.hasStartLine ? 'Starboard Set ✓' : 'Set Starboard Line'}
-                  </button>
+                <h4>Start Line Setup</h4>
+                
+                {/* Port Line */}
+                <div style={{ marginBottom: '16px' }}>
+                  {!portCoords ? (
+                    <>
+                      <button 
+                        className="menu-item"
+                        onClick={handleRegattaSetPort}
+                        disabled={actionInProgress !== null || !state.isConnected}
+                      >
+                        {actionInProgress === 'regattaPort' ? 'Setting...' : 'Set Port Line'}
+                      </button>
+                      <p className="help-text">Navigate to the port mark and press the button to set its position.</p>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ padding: '12px', backgroundColor: 'var(--card-bg)', borderRadius: '8px', marginBottom: '8px' }}>
+                        <p style={{ margin: '0 0 4px 0', fontWeight: 'bold' }}>✓ Port Line Set</p>
+                        <p style={{ margin: 0, fontSize: '0.9em', color: 'var(--text-secondary)' }}>
+                          {portCoords.lat.toFixed(6)}, {portCoords.lon.toFixed(6)}
+                        </p>
+                      </div>
+                      <button 
+                        className="menu-item"
+                        onClick={handleRegattaClearPort}
+                        disabled={actionInProgress !== null || !state.isConnected}
+                        style={{ backgroundColor: '#f44336', color: 'white' }}
+                      >
+                        {actionInProgress === 'regattaClearPort' ? 'Clearing...' : 'Clear Port Line'}
+                      </button>
+                    </>
+                  )}
                 </div>
-                <p className="help-text">
-                  {state.sailingData.hasStartLine 
-                    ? 'Start line configured! Both port and starboard positions are set.' 
-                    : 'Set both port and starboard markers to configure the starting line for race timing'}
-                </p>
+
+                {/* Starboard Line */}
+                <div>
+                  {!starboardCoords ? (
+                    <>
+                      <button 
+                        className="menu-item"
+                        onClick={handleRegattaSetStarboard}
+                        disabled={actionInProgress !== null || !state.isConnected}
+                      >
+                        {actionInProgress === 'regattaStarboard' ? 'Setting...' : 'Set Starboard Line'}
+                      </button>
+                      <p className="help-text">Navigate to the starboard mark and press the button to set its position.</p>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ padding: '12px', backgroundColor: 'var(--card-bg)', borderRadius: '8px', marginBottom: '8px' }}>
+                        <p style={{ margin: '0 0 4px 0', fontWeight: 'bold' }}>✓ Starboard Line Set</p>
+                        <p style={{ margin: 0, fontSize: '0.9em', color: 'var(--text-secondary)' }}>
+                          {starboardCoords.lat.toFixed(6)}, {starboardCoords.lon.toFixed(6)}
+                        </p>
+                      </div>
+                      <button 
+                        className="menu-item"
+                        onClick={handleRegattaClearStarboard}
+                        disabled={actionInProgress !== null || !state.isConnected}
+                        style={{ backgroundColor: '#f44336', color: 'white' }}
+                      >
+                        {actionInProgress === 'regattaClearStarboard' ? 'Clearing...' : 'Clear Starboard Line'}
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                {portCoords && starboardCoords && state.sailingData.regattaMode && (
+                  <div className="regatta-status" style={{ marginTop: '16px' }}>
+                    <p style={{ color: '#4CAF50', fontWeight: 'bold', margin: '0 0 8px 0' }}>✓ Start line active</p>
+                    <p className="help-text" style={{ margin: 0 }}>
+                      Both marks are set. Distance to line is being tracked.
+                    </p>
+                  </div>
+                )}
               </div>
+
 
               <div className="menu-section">
                 <h4>Starting Procedure</h4>

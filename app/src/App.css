@@ -107,11 +107,6 @@ code {
 
 /* Back button for map page */
 .back-button {
-  position: fixed;
-  top: 20px;
-  left: 20px;
-  z-index: 1000;
-  padding: 12px 20px;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 8px;
