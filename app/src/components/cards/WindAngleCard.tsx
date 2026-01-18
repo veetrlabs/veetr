@@ -45,8 +45,8 @@ export default function WindAngleCard({
             strokeWidth="2"
           />
           
-          {/* North pointer on inner ring - rotates opposite to boat heading to always point north */}
-          <g transform={`rotate(${-smoothHeading} 250 250)`}>
+          {/* North pointer on inner ring - rotates with boat heading to show compass direction */}
+          <g transform={`rotate(${smoothHeading} 250 250)`}>
             <path
               d="M 245,99 L 250,84 L 255,99 Z"
               className="compass-north-pointer"
