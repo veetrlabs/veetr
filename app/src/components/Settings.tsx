@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useBLE } from '../context/BLEContext'
+import { hasValidGPSFix } from '../utils/gpsValidation'
 import { FirmwareUpdateCard } from './cards/FirmwareUpdateCard'
 import DataManager from './DataManager'
 import ThemeToggle from './ThemeToggle'
@@ -191,9 +192,23 @@ export default function Settings() {
     }
   }
 
-  // Track stored coordinates locally
-  const [portCoords, setPortCoords] = useState<{lat: number, lon: number} | null>(null)
-  const [starboardCoords, setStarboardCoords] = useState<{lat: number, lon: number} | null>(null)
+  // Get regatta coordinates from BLE state
+  const portCoords = state.sailingData.portLat !== null && state.sailingData.portLon !== null
+    ? { lat: state.sailingData.portLat, lon: state.sailingData.portLon }
+    : null
+  const starboardCoords = state.sailingData.starboardLat !== null && state.sailingData.starboardLon !== null
+    ? { lat: state.sailingData.starboardLat, lon: state.sailingData.starboardLon }
+    : null
+
+  // Request regatta line from ESP when regatta view is opened (only once)
+  useEffect(() => {
+    if (state.isConnected && currentView === 'regatta') {
+      sendCommand({ action: 'regattaGet' }).catch(error => {
+        console.error('Failed to request regatta coordinates:', error)
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.isConnected, currentView]) // Intentionally exclude sendCommand to prevent infinite loop
 
   const handleRegattaSetPort = async () => {
     if (!state.isConnected) {
@@ -202,7 +217,7 @@ export default function Settings() {
     }
 
     // Check GPS status from sailing data
-    const hasGPS = state.sailingData.gpsSatellites > 0 && state.sailingData.lat !== 0 && state.sailingData.lon !== 0
+    const hasGPS = hasValidGPSFix(state.sailingData)
 
     if (!hasGPS) {
       alert('GPS fix required to set regatta line positions.\n\nPlease wait for GPS satellite acquisition (need at least 3 satellites) and try again.')
@@ -213,8 +228,7 @@ export default function Settings() {
     try {
       const success = await sendCommand({ action: 'regattaSetPort' })
       if (success) {
-        const coords = {lat: state.sailingData.lat, lon: state.sailingData.lon}
-        setPortCoords(coords)
+        // Coordinates will be updated via BLE state automatically
         // No alert - we'll show coordinates in the UI
       } else {
         console.error('Failed to set port position')
@@ -238,7 +252,7 @@ export default function Settings() {
     try {
       const success = await sendCommand({ action: 'regattaClearPort' })
       if (success) {
-        setPortCoords(null)
+        // Coordinates will be cleared via BLE state automatically
       } else {
         alert('Failed to clear port position. Please try again.')
       }
@@ -257,7 +271,7 @@ export default function Settings() {
     }
 
     // Check GPS status from sailing data
-    const hasGPS = state.sailingData.gpsSatellites > 0 && state.sailingData.lat !== 0 && state.sailingData.lon !== 0
+    const hasGPS = hasValidGPSFix(state.sailingData)
 
     if (!hasGPS) {
       alert('GPS fix required to set regatta line positions.\n\nPlease wait for GPS satellite acquisition (need at least 3 satellites) and try again.')
@@ -268,8 +282,7 @@ export default function Settings() {
     try {
       const success = await sendCommand({ action: 'regattaSetStarboard' })
       if (success) {
-        const coords = {lat: state.sailingData.lat, lon: state.sailingData.lon}
-        setStarboardCoords(coords)
+        // Coordinates will be updated via BLE state automatically
         // No alert - we'll show coordinates in the UI
       } else {
         console.error('Failed to set starboard position')
@@ -293,7 +306,7 @@ export default function Settings() {
     try {
       const success = await sendCommand({ action: 'regattaClearStarboard' })
       if (success) {
-        setStarboardCoords(null)
+        // Coordinates will be cleared via BLE state automatically
       } else {
         alert('Failed to clear starboard position. Please try again.')
       }
@@ -663,7 +676,7 @@ export default function Settings() {
                   )}
                 </div>
 
-                {portCoords && starboardCoords && state.sailingData.regattaMode && (
+                {portCoords && starboardCoords && state.sailingData.hasStartLine && (
                   <div className="regatta-status" style={{ marginTop: '16px' }}>
                     <p style={{ color: '#4CAF50', fontWeight: 'bold', margin: '0 0 8px 0' }}>✓ Start line active</p>
                     <p className="help-text" style={{ margin: 0 }}>

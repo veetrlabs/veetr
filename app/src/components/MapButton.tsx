@@ -1,9 +1,11 @@
 import { useBLE } from '../context/BLEContext'
+import { hasGPSCoordinates } from '../utils/gpsValidation'
 import './MapButton.css'
 
 export default function MapButton() {
-  const { data } = useBLE()
-  const hasGPS = !!(data?.lat && data?.lon && data.lat !== 0 && data.lon !== 0)
+  const { state } = useBLE()
+  const data = state.sailingData
+  const hasGPS = hasGPSCoordinates(data?.lat, data?.lon)
 
   const handleClick = () => {
     window.dispatchEvent(new CustomEvent('navigate', { detail: 'map' }))

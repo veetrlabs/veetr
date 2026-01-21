@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useBLE } from '../context/BLEContext';
 import { getAllReadings } from '../utils/dataStorage';
+import { isValidCoordinates } from '../utils/gpsValidation';
 import '../styles/Map.css';
 
 // Leaflet types will be loaded dynamically
@@ -15,7 +16,10 @@ export default function Map() {
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
   const polylinesRef = useRef<any[]>([]);
-  const { data } = useBLE();
+  const startLineMarkersRef = useRef<any[]>([]);
+  const startLineRef = useRef<any>(null);
+  const { state } = useBLE();
+  const data = state.sailingData;
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -56,7 +60,7 @@ export default function Map() {
         // Fallback to database if no live GPS
         if ((lat === 0 || lon === 0) && trackReadings.length > 0) {
           // Find most recent valid GPS reading (already in chronological order)
-          const validReading = [...trackReadings].reverse().find(r => r.lat && r.lon && r.lat !== 0 && r.lon !== 0);
+          const validReading = [...trackReadings].reverse().find(r => isValidCoordinates(r.lat, r.lon));
           if (validReading) {
             lat = validReading.lat;
             lon = validReading.lon;
@@ -77,7 +81,7 @@ export default function Map() {
       console.log('[Map] Final map center:', { lat, lon });
 
       // Create map
-      const map = L.map(mapRef.current, {
+      const map = window.L.map(mapRef.current, {
         center: [lat, lon],
         zoom: lat === 50.0 && lon === 14.0 ? 5 : 20,
         zoomControl: true,
@@ -87,17 +91,16 @@ export default function Map() {
         scrollWheelZoom: true,
         boxZoom: true,
         keyboard: true,
-        tap: true,
       });
 
       // Add OpenStreetMap base layer
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors',
         maxZoom: 19,
       }).addTo(map);
 
       // Add OpenSeaMap overlay
-      L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', {
+      window.L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', {
         attribution: '© OpenSeaMap contributors',
         maxZoom: 19,
       }).addTo(map);
@@ -116,7 +119,7 @@ export default function Map() {
         // Use the readings passed from initMap
         
         // Filter valid GPS coordinates
-        const validPoints = readings.filter(r => r.lat && r.lon && r.lat !== 0 && r.lon !== 0);
+        const validPoints = readings.filter(r => isValidCoordinates(r.lat, r.lon));
         
         if (validPoints.length === 0) {
           console.log('[Map] No track history to display');
@@ -154,7 +157,7 @@ export default function Map() {
         segments.forEach((segment) => {
           if (segment.length > 1) {
             const coordinates = segment.map(p => [p.lat!, p.lon!]);
-            const polyline = L.polyline(coordinates, {
+            const polyline = window.L.polyline(coordinates, {
               color: '#3388ff',
               weight: 3,
               opacity: 0.7,
@@ -167,7 +170,7 @@ export default function Map() {
 
         // Draw each point as a small circle
         validPoints.forEach(point => {
-          const marker = L.circleMarker([point.lat!, point.lon!], {
+          const marker = window.L.circleMarker([point.lat!, point.lon!], {
             radius: 3,
             fillColor: '#666',
             color: '#666',
@@ -206,6 +209,14 @@ export default function Map() {
       polylinesRef.current.forEach(line => line.remove());
       polylinesRef.current = [];
       
+      // Clean up start line markers and line
+      startLineMarkersRef.current.forEach(marker => marker.remove());
+      startLineMarkersRef.current = [];
+      if (startLineRef.current) {
+        startLineRef.current.remove();
+        startLineRef.current = null;
+      }
+      
       if (mapInstanceRef.current) {
         console.log('[Map] Cleaning up map instance');
         mapInstanceRef.current.off();
@@ -220,6 +231,80 @@ export default function Map() {
       }
     };
   }, []);
+
+  // Update start line markers when regatta data changes
+  useEffect(() => {
+    if (!mapInstanceRef.current || !window.L) return;
+
+    // Clean up existing start line markers and line
+    startLineMarkersRef.current.forEach(marker => marker.remove());
+    startLineMarkersRef.current = [];
+    if (startLineRef.current) {
+      startLineRef.current.remove();
+      startLineRef.current = null;
+    }
+
+    // Get regatta coordinates from BLE context data
+    const portLat = data?.portLat;
+    const portLon = data?.portLon;
+    const starboardLat = data?.starboardLat;
+    const starboardLon = data?.starboardLon;
+
+    if (!portLat && !starboardLat) return;
+
+    try {
+      if (portLat && portLon) {
+        // Add port marker (red)
+        const portMarker = window.L.circleMarker([portLat, portLon], {
+          radius: 8,
+          fillColor: '#ff0000',
+          color: '#fff',
+          weight: 2,
+          opacity: 1,
+          fillOpacity: 0.8,
+          pane: 'markerPane' // Ensure it's on top
+        }).addTo(mapInstanceRef.current);
+        
+        portMarker.bindTooltip('Port Line', { permanent: true, direction: 'top' });
+        startLineMarkersRef.current.push(portMarker);
+      }
+
+      if (starboardLat && starboardLon) {
+        // Add starboard marker (green)
+        const starboardMarker = window.L.circleMarker([starboardLat, starboardLon], {
+          radius: 8,
+          fillColor: '#00ff00',
+          color: '#fff',
+          weight: 2,
+          opacity: 1,
+          fillOpacity: 0.8,
+          pane: 'markerPane' // Ensure it's on top
+        }).addTo(mapInstanceRef.current);
+        
+        starboardMarker.bindTooltip('Starboard Line', { permanent: true, direction: 'top' });
+        startLineMarkersRef.current.push(starboardMarker);
+      }
+
+      // If both points are set, draw the start line
+      if (portLat && portLon && starboardLat && starboardLon) {
+        const startLine = window.L.polyline(
+          [[portLat, portLon], [starboardLat, starboardLon]],
+          {
+            color: '#ff0000',
+            weight: 4,
+            opacity: 1,
+            dashArray: '10, 5',
+            pane: 'markerPane' // Render on top
+          }
+        ).addTo(mapInstanceRef.current);
+        
+        startLineRef.current = startLine;
+        console.log('[Map] Start line drawn between port and starboard');
+      }
+    } catch (error) {
+      console.error('[Map] Error adding regatta markers:', error);
+    }
+  }, [data?.portLat, data?.portLon, data?.starboardLat, data?.starboardLon]); // Re-run when coordinates change
 
   const handleBack = () => {
     // Use state update instead of history.back()

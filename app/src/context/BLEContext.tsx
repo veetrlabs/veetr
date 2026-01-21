@@ -31,6 +31,10 @@ export interface SailingData {
   // Regatta data
   hasStartLine: boolean
   distanceToLine: number
+  portLat: number | null
+  portLon: number | null
+  starboardLat: number | null
+  starboardLon: number | null
 }
 
 // Firmware update state
@@ -101,6 +105,7 @@ type BLEAction =
   | { type: 'UPDATE_FIRMWARE_PROGRESS'; payload: FirmwareUpdateProgress }
   | { type: 'FIRMWARE_UPDATE_COMPLETE' }
   | { type: 'FIRMWARE_UPDATE_ERROR'; payload: string }
+  | { type: 'UPDATE_REGATTA_LINE'; payload: { portLat: number; portLon: number; starboardLat: number; starboardLon: number } }
 
 // Initial state
 const initialState: BLEState = {
@@ -140,7 +145,11 @@ const initialState: BLEState = {
     heading: 0,
     // Regatta data
     hasStartLine: false,
-    distanceToLine: -1
+    distanceToLine: -1,
+    portLat: null,
+    portLon: null,
+    starboardLat: null,
+    starboardLon: null
   },
   firmwareInfo: {
     currentVersion: 'Unknown',
@@ -216,7 +225,11 @@ function bleReducer(state: BLEState, action: BLEAction): BLEState {
           heading: 0,
           // Regatta data
           hasStartLine: false,
-          distanceToLine: -1
+          distanceToLine: -1,
+          portLat: null,
+          portLon: null,
+          starboardLat: null,
+          starboardLon: null
         }
       }
     case 'UPDATE_DATA':
@@ -297,6 +310,18 @@ function bleReducer(state: BLEState, action: BLEAction): BLEState {
           updateProgress: null
         },
         error: action.payload
+      }
+    case 'UPDATE_REGATTA_LINE':
+      return {
+        ...state,
+        sailingData: {
+          ...state.sailingData,
+          portLat: action.payload.portLat,
+          portLon: action.payload.portLon,
+          starboardLat: action.payload.starboardLat,
+          starboardLon: action.payload.starboardLon,
+          hasStartLine: !!(action.payload.portLat && action.payload.portLon && action.payload.starboardLat && action.payload.starboardLon)
+        }
       }
     default:
       return state
@@ -461,6 +486,11 @@ export function BLEProvider({ children }: { children: ReactNode }) {
           const encoder = new TextEncoder()
           await commandCharacteristic.writeValue(encoder.encode(command))
           console.log('Firmware version requested')
+          
+          // Also request regatta line coordinates
+          const regattaCommand = JSON.stringify({ cmd: 'GET_REGATTA_LINE' })
+          await commandCharacteristic.writeValue(encoder.encode(regattaCommand))
+          console.log('[Regatta] Line coordinates requested')
         } catch (error) {
           console.error('Failed to request firmware version:', error)
         }
@@ -560,6 +590,21 @@ export function BLEProvider({ children }: { children: ReactNode }) {
       if (data.type === 'firmware_version') {
         dispatch({ type: 'UPDATE_FIRMWARE_VERSION', payload: data.version })
         console.log('Received firmware version:', data.version)
+        return
+      }
+      
+      // Handle regatta line coordinates response
+      if (data.type === 'regatta_coords') {
+        dispatch({ 
+          type: 'UPDATE_DATA', 
+          payload: { 
+            portLat: data.portLat || null, 
+            portLon: data.portLon || null,
+            starboardLat: data.starboardLat || null,
+            starboardLon: data.starboardLon || null
+          } 
+        })
+        console.log('[BLE] Received regatta coords:', data)
         return
       }
       

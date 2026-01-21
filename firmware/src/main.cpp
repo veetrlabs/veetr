@@ -143,6 +143,7 @@ RegattaData regattaData = {false, 0.0, 0.0, 0.0, 0.0, -1.0};
 float haversineDistance(double lat1, double lon1, double lat2, double lon2);
 float distanceToLine(double px, double py, double x1, double y1, double x2, double y2);
 void calculateRegattaData();
+bool isValidGPSCoordinates(double lat, double lon);
 
 // Function prototypes (declared early for use in callbacks)
 bool safeBLESend(const String& data, bool isCommand = false);
@@ -368,32 +369,130 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
           }
           else if (action == "regattaSetPort") {
             if (gps.location.isValid()) {
-              regattaData.portLat = gps.location.lat();
-              regattaData.portLon = gps.location.lng();
+              double lat = gps.location.lat();
+              double lon = gps.location.lng();
               
-              // Check if we now have both ends of the line
-              if (regattaData.starboardLat != 0.0 && regattaData.starboardLon != 0.0) {
-                regattaData.hasStartLine = true;
+              // Validate coordinates are within valid ranges
+              if (!isValidGPSCoordinates(lat, lon)) {
+                Serial.println("Cannot set regatta port position - GPS coordinates out of valid range");
+              } else {
+                regattaData.portLat = lat;
+                regattaData.portLon = lon;
+                
+                // Save to NVS
+                preferences.begin("veetr", false);
+                preferences.putDouble("portLat", regattaData.portLat);
+                preferences.putDouble("portLon", regattaData.portLon);
+                preferences.end();
+                
+                // Check if we now have both ends of the line
+                if (regattaData.starboardLat != 0.0 && regattaData.starboardLon != 0.0) {
+                  regattaData.hasStartLine = true;
+                }
+                
+                Serial.printf("Regatta port position set and saved: %.6f, %.6f\n", regattaData.portLat, regattaData.portLon);
+                
+                // Send updated coordinates back to PWA
+                DynamicJsonDocument response(256);
+                response["type"] = "regatta_coords";
+                response["portLat"] = regattaData.portLat;
+                response["portLon"] = regattaData.portLon;
+                response["starboardLat"] = regattaData.starboardLat;
+                response["starboardLon"] = regattaData.starboardLon;
+                
+                String responseStr;
+                serializeJson(response, responseStr);
+                safeBLESend(responseStr, true);
               }
-              
-              Serial.printf("Regatta port position set: %.6f, %.6f\n", regattaData.portLat, regattaData.portLon);
             } else {
               Serial.println("Cannot set regatta port position - GPS fix not available");
             }
           }
           else if (action == "regattaSetStarboard") {
             if (gps.location.isValid()) {
-              regattaData.starboardLat = gps.location.lat();
-              regattaData.starboardLon = gps.location.lng();
+              double lat = gps.location.lat();
+              double lon = gps.location.lng();
               
-              // Check if we now have both ends of the line
-              if (regattaData.portLat != 0.0 && regattaData.portLon != 0.0) {
-                regattaData.hasStartLine = true;
+              // Validate coordinates are within valid ranges
+              if (!isValidGPSCoordinates(lat, lon)) {
+                Serial.println("Cannot set regatta starboard position - GPS coordinates out of valid range");
+              } else {
+                regattaData.starboardLat = lat;
+                regattaData.starboardLon = lon;
+                
+                // Save to NVS
+                preferences.begin("veetr", false);
+                preferences.putDouble("starboardLat", regattaData.starboardLat);
+                preferences.putDouble("starboardLon", regattaData.starboardLon);
+                preferences.end();
+                
+                // Check if we now have both ends of the line
+                if (regattaData.portLat != 0.0 && regattaData.portLon != 0.0) {
+                  regattaData.hasStartLine = true;
+                }
+                
+                Serial.printf("Regatta starboard position set and saved: %.6f, %.6f\n", regattaData.starboardLat, regattaData.starboardLon);
+                
+                // Send updated coordinates back to PWA
+                DynamicJsonDocument response(256);
+                response["type"] = "regatta_coords";
+                response["portLat"] = regattaData.portLat;
+                response["portLon"] = regattaData.portLon;
+                response["starboardLat"] = regattaData.starboardLat;
+                response["starboardLon"] = regattaData.starboardLon;
+                
+                String responseStr;
+                serializeJson(response, responseStr);
+                safeBLESend(responseStr, true);
               }
-              
-              Serial.printf("Regatta starboard position set: %.6f, %.6f\n", regattaData.starboardLat, regattaData.starboardLon);
             } else {
               Serial.println("Cannot set regatta starboard position - GPS fix not available");
+            }
+          }
+          else if (action == "regattaClearPort") {
+            regattaData.portLat = 0.0;
+            regattaData.portLon = 0.0;
+            regattaData.hasStartLine = false;
+            
+            // Clear from NVS
+            preferences.begin("veetr", false);
+            preferences.remove("portLat");
+            preferences.remove("portLon");
+            preferences.end();
+            
+            Serial.println("Regatta port position cleared");
+          }
+          else if (action == "regattaClearStarboard") {
+            regattaData.starboardLat = 0.0;
+            regattaData.starboardLon = 0.0;
+            regattaData.hasStartLine = false;
+            
+            // Clear from NVS
+            preferences.begin("veetr", false);
+            preferences.remove("starboardLat");
+            preferences.remove("starboardLon");
+            preferences.end();
+            
+            Serial.println("Regatta starboard position cleared");
+          }
+          else if (action == "regattaGet") {
+            // Send current regatta line coordinates
+            DynamicJsonDocument response(256);
+            response["type"] = "regatta_coords";
+            response["portLat"] = regattaData.portLat;
+            response["portLon"] = regattaData.portLon;
+            response["starboardLat"] = regattaData.starboardLat;
+            response["starboardLon"] = regattaData.starboardLon;
+            
+            String responseStr;
+            serializeJson(response, responseStr);
+            
+            if (safeBLESend(responseStr, true)) {
+              Serial.printf("Sent regatta coordinates: port(%.6f,%.6f) starboard(%.6f,%.6f)\n",
+                           regattaData.portLat, regattaData.portLon,
+                           regattaData.starboardLat, regattaData.starboardLon);
+            } else {
+              Serial.println("Failed to send regatta coordinates");
             }
           }
           else if (action == "setRefreshRate") {
@@ -489,6 +588,23 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
               Serial.printf("Sent firmware version: %s\n", FIRMWARE_VERSION);
             } else {
               Serial.println("Failed to send firmware version response");
+            }
+          }
+          else if (doc["cmd"] == "GET_REGATTA_LINE") {
+            // Send regatta line coordinates response
+            DynamicJsonDocument response(256);
+            response["type"] = "regatta_line";
+            response["portLat"] = regattaData.portLat;
+            response["portLon"] = regattaData.portLon;
+            response["starboardLat"] = regattaData.starboardLat;
+            response["starboardLon"] = regattaData.starboardLon;
+            String responseStr;
+            serializeJson(response, responseStr);
+            
+            if (safeBLESend(responseStr, true)) {
+              Serial.println("[Regatta] Sent start line coordinates");
+            } else {
+              Serial.println("[Regatta] Failed to send start line coordinates");
             }
           }
           else if (doc["cmd"] == "START_FW_UPDATE") {
@@ -1181,6 +1297,23 @@ void setup() {
   Serial.println(refreshRateSeconds);
   Serial.print("[Boot] Loaded deviceName from NVS: ");
   Serial.println(deviceName);
+  
+  // Load regatta line coordinates from NVS
+  regattaData.portLat = preferences.getDouble("portLat", 0.0);
+  regattaData.portLon = preferences.getDouble("portLon", 0.0);
+  regattaData.starboardLat = preferences.getDouble("starboardLat", 0.0);
+  regattaData.starboardLon = preferences.getDouble("starboardLon", 0.0);
+  
+  // Check if we have a complete start line
+  if (regattaData.portLat != 0.0 && regattaData.portLon != 0.0 && 
+      regattaData.starboardLat != 0.0 && regattaData.starboardLon != 0.0) {
+    regattaData.hasStartLine = true;
+    Serial.printf("[Boot] Loaded regatta start line from NVS - Port: %.6f,%.6f Starboard: %.6f,%.6f\n",
+                  regattaData.portLat, regattaData.portLon,
+                  regattaData.starboardLat, regattaData.starboardLon);
+  } else {
+    Serial.println("[Boot] No saved regatta start line");
+  }
   
   // Update refresh rate from loaded value
   updateRefreshRate();
@@ -2039,7 +2172,7 @@ void readSensors() {
 
 // Generate JSON string with current sensor data using marine standard terminology
 String getSensorDataJson() {
-  DynamicJsonDocument doc(400); // Larger size to accommodate all fields including acceleration and device name
+  DynamicJsonDocument doc(512); // Increased size for regatta data and all telemetry fields
   
   // Core sailing data (rounded to reduce JSON size)
   doc["SOG"] = round((isnan(currentData.speed) ? 0.0 : currentData.speed) * 10) / 10.0; // Speed Over Ground
@@ -2344,6 +2477,30 @@ bool readGPS() {
 }
 
 // Regatta Functions
+
+// Validate GPS coordinates are within valid ranges
+// Latitude: -90 to +90 degrees
+// Longitude: -180 to +180 degrees
+bool isValidGPSCoordinates(double lat, double lon) {
+  // Check if coordinates are non-zero (0,0 is typically invalid/uninitialized)
+  if (lat == 0.0 && lon == 0.0) {
+    return false;
+  }
+  
+  // Validate latitude range: -90 to +90
+  if (lat < -90.0 || lat > 90.0) {
+    Serial.printf("[GPS Validation] Invalid latitude: %.6f (must be -90 to +90)\n", lat);
+    return false;
+  }
+  
+  // Validate longitude range: -180 to +180
+  if (lon < -180.0 || lon > 180.0) {
+    Serial.printf("[GPS Validation] Invalid longitude: %.6f (must be -180 to +180)\n", lon);
+    return false;
+  }
+  
+  return true;
+}
 
 // Calculate distance between two GPS coordinates using Haversine formula
 float haversineDistance(double lat1, double lon1, double lat2, double lon2) {
