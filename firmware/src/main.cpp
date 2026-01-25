@@ -66,6 +66,9 @@ const unsigned long OTA_STATUS_INTERVAL_MS = 5000; // Status check every 5 secon
 #define SERVICE_UUID        "12345678-1234-1234-1234-123456789abc"
 #define SENSOR_DATA_UUID    "87654321-4321-4321-4321-cba987654321"
 #define COMMAND_UUID        "11111111-2222-3333-4444-555555555555"
+// Conservatively sized maximum BLE notification payload to avoid MTU fragmentation
+// Common Web Bluetooth stacks negotiate MTU ~= 185 bytes (payload ~182). Keep a safe margin.
+#define MAX_BLE_PACKET_SIZE 180
 
 NimBLEServer* pServer = NULL;
 NimBLECharacteristic* pSensorDataCharacteristic = NULL;
@@ -1127,6 +1130,9 @@ void setupBLE() {
   
   // Initialize NimBLE with device name
   NimBLEDevice::init(deviceName.c_str());
+  // Request a larger MTU to support bigger notifications; client decides final value
+  // Using 185 aligns with widely supported browser stacks
+  NimBLEDevice::setMTU(185);
   
   // Use random address type to help bypass client cache on name changes
   NimBLEDevice::setOwnAddrType(BLE_OWN_ADDR_RANDOM);
@@ -1156,6 +1162,8 @@ void restartBLE() {
   Serial.printf("[BLE Restart] Max connections configured: %d\n", CONFIG_BT_NIMBLE_MAX_CONNECTIONS);
   
   NimBLEDevice::init(deviceName.c_str());
+  // Request larger MTU after re-init as well
+  NimBLEDevice::setMTU(185);
   
   // Set TX power for balance between range and power consumption
   NimBLEDevice::setPower(ESP_PWR_LVL_P3); // +3dBm for better range
@@ -1212,12 +1220,44 @@ void updateBLEData() {
   if (deviceConnected && pSensorDataCharacteristic) {
     String jsonData = getSensorDataJson();
     
-    // Check if JSON is valid and not too large for BLE
-    const int MAX_BLE_PACKET_SIZE = 300; // Increased for marine standard JSON
-    
+    // Ensure payload fits within conservative BLE MTU limits; if not, try reducing optional fields
     if (jsonData.length() > MAX_BLE_PACKET_SIZE) {
-      Serial.printf("[BLE] ERROR: JSON too large (%d bytes, max %d)\n", jsonData.length(), MAX_BLE_PACKET_SIZE);
-      return; // Don't send invalid data
+      Serial.printf("[BLE] JSON %d bytes exceeds safe limit %d; reducing optional fields...\n", jsonData.length(), MAX_BLE_PACKET_SIZE);
+      
+      // Attempt to shrink by removing low-priority fields
+      StaticJsonDocument<1024> tmpDoc; // use static for deterministic stack allocation
+      DeserializationError dErr = deserializeJson(tmpDoc, jsonData.c_str());
+      if (!dErr) {
+        // Remove least critical fields first
+        tmpDoc.remove("accelX");
+        tmpDoc.remove("accelY");
+        tmpDoc.remove("accelZ");
+        tmpDoc.remove("pitch");
+        
+        // Re-serialize and check
+        String reduced;
+        serializeJson(tmpDoc, reduced);
+        
+        if (reduced.length() > MAX_BLE_PACKET_SIZE) {
+          // Remove additional optional identifiers if still too large
+          tmpDoc.remove("deviceName");
+          tmpDoc.remove("rssi");
+          tmpDoc.remove("hdop");
+          reduced = String();
+          serializeJson(tmpDoc, reduced);
+        }
+        
+        if (reduced.length() <= MAX_BLE_PACKET_SIZE) {
+          jsonData = reduced;
+          Serial.printf("[BLE] Reduced JSON to %d bytes\n", jsonData.length());
+        } else {
+          Serial.printf("[BLE] ERROR: Unable to reduce JSON below %d bytes (now %d)\n", MAX_BLE_PACKET_SIZE, reduced.length());
+          return; // Skip sending to avoid fragmentation/corruption
+        }
+      } else {
+        Serial.println("[BLE] ERROR: Failed to deserialize JSON for reduction");
+        return;
+      }
     }
     
     // Validate JSON format
@@ -2172,7 +2212,7 @@ void readSensors() {
 
 // Generate JSON string with current sensor data using marine standard terminology
 String getSensorDataJson() {
-  DynamicJsonDocument doc(512); // Increased size for regatta data and all telemetry fields
+  DynamicJsonDocument doc(512); // Enough for full telemetry and regatta fields
   
   // Core sailing data (rounded to reduce JSON size)
   doc["SOG"] = round((isnan(currentData.speed) ? 0.0 : currentData.speed) * 10) / 10.0; // Speed Over Ground
@@ -2263,6 +2303,7 @@ String getSensorDataJson() {
   
   String output;
   serializeJson(doc, output);
+  // If output still exceeds safe limit, caller will attempt reduction
   return output;
 }
 
