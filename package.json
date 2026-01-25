@@ -3,9 +3,6 @@
   "version": "0.0.28",
   "description": "Veetr - hardware and web dashboard",
   "private": true,
-  "workspaces": [
-    "app"
-  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/veetrlabs/veetr.git"
