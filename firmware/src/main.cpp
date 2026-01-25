@@ -2248,7 +2248,7 @@ String getSensorDataJson() {
   }
   
   // GPS quality indicators
-  doc["satellites"] = (gps.charsProcessed() > 10 && gps.satellites.isValid()) ? gps.satellites.value() : 0;
+  doc["sat"] = (gps.charsProcessed() > 10 && gps.satellites.isValid()) ? gps.satellites.value() : 0;
   
   if (gps.hdop.isValid()) {
     doc["hdop"] = round(gps.hdop.hdop() * 10) / 10.0; // 1 decimal place
@@ -2278,7 +2278,7 @@ String getSensorDataJson() {
   
   // Heel angle - only include if IMU is available
   if (imuAvailable && !isnan(currentData.tilt)) {
-    doc["heel"] = round(currentData.tilt * 10) / 10.0; // Vessel heel angle (1 decimal)
+    doc["hl"] = round(currentData.tilt); // Vessel heel angle (integer)
   }
   
   // Pitch angle - only include if IMU is available
@@ -2301,15 +2301,10 @@ String getSensorDataJson() {
   // BLE connection quality (smoothed RSSI for stable readings)
   doc["rssi"] = bleRSSIFiltered;
   
-  // Regatta data - only include if start line is configured
-  if (regattaData.hasStartLine) {
-    doc["regatta"] = true;
-    
-    if (regattaData.distanceToLine >= 0) {
-      doc["distanceToLine"] = round(regattaData.distanceToLine * 10) / 10.0; // Distance in meters (1 decimal)
-    }
-  } else {
-    doc["regatta"] = false;
+  // Regatta data - send ln if start line is configured and GPS valid
+  // Negative = behind line (pre-start), Positive = crossed line, Zero = on line
+  if (regattaData.hasStartLine && !isnan(regattaData.distanceToLine)) {
+    doc["ln"] = round(regattaData.distanceToLine); // Distance in meters (integer)
   }
   
   String output;
@@ -2599,7 +2594,7 @@ float distanceToLine(double px, double py, double x1, double y1, double x2, doub
 // Calculate current distance to regatta start line
 void calculateRegattaData() {
   if (!regattaData.hasStartLine || !gps.location.isValid()) {
-    regattaData.distanceToLine = -1.0; // Invalid
+    regattaData.distanceToLine = NAN; // Invalid - no line set or no GPS
     return;
   }
   

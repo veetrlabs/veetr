@@ -58,22 +58,22 @@ The Veetr Sailing Dashboard transmits data via BLE notifications using a standar
 ```json
 {
   "SOG": 4.2,
-  "COG": 185.5,
+  "COG": 185,
   "lat": 37.7749,
   "lon": -122.4194,
-  "satellites": 8,
+  "sat": 8,
   "hdop": 1.2,
   "AWS": 12.5,
-  "AWA": 45.5,
+  "AWA": 45,
   "TWS": 10.8,
-  "TWA": 52.3,
-  "heel": -5.2,
-  "HDM": 185.5,
+  "TWA": 52,
+  "hl": -5,
+  "HDM": 185,
   "accelX": 0.12,
   "accelY": -0.05,
   "accelZ": 9.81,
   "rssi": -65,
-  "deviceName": "Luna_Port_Side"
+  "ln": -8
 }
 ```
 
@@ -82,38 +82,56 @@ The Veetr Sailing Dashboard transmits data via BLE notifications using a standar
 | Field | Type | Unit | Description | Marine Standard |
 |-------|------|------|-------------|-----------------|
 | `SOG` | float | knots | Speed Over Ground from GPS | ✓ |
-| `COG` | float | degrees | Course Over Ground from GPS (0-360°) | ✓ |
+| `COG` | integer | degrees | Course Over Ground from GPS (0-360°) | ✓ |
 | `lat` | float | decimal degrees | GPS Latitude (WGS84) | ✓ |
 | `lon` | float | decimal degrees | GPS Longitude (WGS84) | ✓ |
-| `satellites` | integer | count | Number of GPS satellites in use | ✓ |
+| `sat` | integer | count | Number of GPS satellites in use | ✓ |
 | `hdop` | float | dimensionless | Horizontal Dilution of Precision | ✓ |
 | `AWS` | float | knots | Apparent Wind Speed | ✓ |
-| `AWA` | float | degrees | Apparent Wind Angle (0-360°) relative to bow | ✓ |
+| `AWA` | integer | degrees | Apparent Wind Angle (0-360°) relative to bow | ✓ |
 | `TWS` | float | knots | True Wind Speed (calculated) | ✓ |
-| `TWA` | float | degrees | True Wind Angle (0-360°) relative to bow | ✓ |
-| `heel` | float | degrees | Vessel heel angle (+ = starboard, - = port) | ✓ |
-| `HDM` | float | degrees | Heading Magnetic from magnetometer (0-360°) | ✓ |
+| `TWA` | integer | degrees | True Wind Angle (0-360°) relative to bow | ✓ |
+| `hl` | integer | degrees | Vessel heel angle (+ = starboard, - = port) | ✓ |
+| `HDM` | integer | degrees | Heading Magnetic from magnetometer (0-360°) | ✓ |
 | `accelX` | float | m/s² | Acceleration along X-axis (fore/aft) | ✓ |
 | `accelY` | float | m/s² | Acceleration along Y-axis (port/starboard) | ✓ |
 | `accelZ` | float | m/s² | Acceleration along Z-axis (up/down) | ✓ |
 | `rssi` | integer | dBm | BLE signal strength (more negative = weaker) | - |
-| `deviceName` | string | - | BLE device name for multi-device identification | - |
+| `ln` | integer | meters | Distance to regatta start line (negative = behind, positive = crossed) | ✓ |
 
 ### Field Behavior
 
 **Always Present:**
-- `SOG`, `COG`, `lat`, `lon`, `satellites`, `hdop` - GPS data (0 values if no GPS fix)
+- `SOG`, `COG`, `lat`, `lon`, `sat`, `hdop` - GPS data (0 values if no GPS fix)
 - `rssi` - BLE signal strength
-- `deviceName` - BLE device name for multi-device identification
 
 **Conditionally Present:**
 - `AWS` - Only present if wind sensor is connected and working
 - `AWA` - Only present if wind sensor is connected and working
 - `TWS` - Only present if wind sensor and GPS are working (calculated from AWS, AWA, SOG)
 - `TWA` - Only present if wind sensor and GPS are working (calculated from AWA, SOG)  
-- `heel` - Only present if BNO080 IMU sensor is detected and working
+- `hl` - Only present if BNO080 IMU sensor is detected and working
 - `HDM` - Only present if BNO080 magnetometer is working and has valid data
 - `accelX`, `accelY`, `accelZ` - Only present if BNO080 accelerometer is working and has valid data
+- `ln` - Only present if regatta start line is configured AND GPS has valid fix
+
+### BLE MTU and Payload Optimization
+
+The system negotiates a larger MTU (Maximum Transmission Unit) with the client to accommodate comprehensive telemetry data:
+
+**MTU Configuration:**
+- **Negotiated MTU:** 185 bytes (from default 23 bytes)
+- **Payload Limit:** 180 bytes (conservative safety margin)
+- **Field Optimization:** Shortened field names and integer values to minimize JSON size
+
+**Graceful Payload Reduction:**
+If a telemetry message exceeds 180 bytes, the firmware automatically removes optional fields in this order:
+1. Acceleration data (`accelX`, `accelY`, `accelZ`)
+2. Pitch angle (`pitch`)
+3. RSSI signal strength (`rssi`)
+4. HDOP precision (`hdop`)
+
+This ensures critical sailing data (speed, wind, position, heel, heading) is always transmitted even with MTU constraints.
 
 ### GPS Speed Filtering
 
@@ -183,7 +201,22 @@ The Veetr Sailing Dashboard supports bidirectional communication via a dedicated
 ```
 Calibrates the heel angle sensor by setting the current tilt as the new zero point. Useful for adjusting when the boat is level.
 
-**2. Set Device Name**
+**2. Get Device Name**
+```json
+{
+  "cmd": "GET_DEVICE_NAME"
+}
+```
+Requests the current BLE device name. The device responds with:
+```json
+{
+  "type": "device_name",
+  "deviceName": "Veetr"
+}
+```
+Device name is fetched on-demand rather than included in every telemetry message to save bandwidth.
+
+**3. Set Device Name**
 ```json
 {
   "action": "setDeviceName",
@@ -192,7 +225,7 @@ Calibrates the heel angle sensor by setting the current tilt as the new zero poi
 ```
 Sets the BLE device name used for Bluetooth discovery. This is essential for distinguishing between multiple ESP32 devices. Limited to 1-20 characters, alphanumeric, underscore, hyphen, and space only.
 
-**3. Regatta Line Markers (Future)**
+**4. Regatta Line Configuration**
 ```json
 {
   "action": "regattaSetPort"
@@ -203,7 +236,24 @@ Sets the BLE device name used for Bluetooth discovery. This is essential for dis
   "action": "regattaSetStarboard"
 }
 ```
-Placeholder commands for future regatta timing functionality.
+Sets the port and starboard ends of the regatta start line at current GPS position. The device calculates distance to line and includes `ln` field in telemetry (negative = behind line, positive = crossed).
+
+**5. Get Regatta Line Coordinates**
+```json
+{
+  "cmd": "GET_REGATTA_LINE"
+}
+```
+Requests stored regatta line coordinates. The device responds with:
+```json
+{
+  "type": "regatta_coords",
+  "portLat": 37.7749,
+  "portLon": -122.4194,
+  "starboardLat": 37.7750,
+  "starboardLon": -122.4195
+}
+```
 
 #### Multi-Device Management
 

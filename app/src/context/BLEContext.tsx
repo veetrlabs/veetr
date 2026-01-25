@@ -30,7 +30,7 @@ export interface SailingData {
   heading: number
   // Regatta data
   hasStartLine: boolean
-  distanceToLine: number
+  distanceToLine: number | null
   portLat: number | null
   portLon: number | null
   starboardLat: number | null
@@ -145,7 +145,7 @@ const initialState: BLEState = {
     heading: 0,
     // Regatta data
     hasStartLine: false,
-    distanceToLine: -1,
+    distanceToLine: null,
     portLat: null,
     portLon: null,
     starboardLat: null,
@@ -225,7 +225,7 @@ function bleReducer(state: BLEState, action: BLEAction): BLEState {
           heading: 0,
           // Regatta data
           hasStartLine: false,
-          distanceToLine: -1,
+          distanceToLine: null,
           portLat: null,
           portLon: null,
           starboardLat: null,
@@ -784,19 +784,19 @@ Please try the update again or contact support.`, '❌ Firmware Apply Failed')
         trueWindSpeedMax: data.TWSMax || 0,
         trueWindSpeedAvg: data.TWSAvg || 0,
         trueWindAngle: convertToSailingAngle(data.TWA || 0),    // Convert 360° to 180° sailing angle
-        tilt: data.heel || 0,            // Heel angle
+        tilt: data.hl || 0,            // Heel angle
         tiltPortMax: data.heelPortMax || 0,
         tiltStarboardMax: data.heelStarboardMax || 0,
         deadWindAngle: data.deadWind || 40,
         gpsSpeed: data.SOG || 0,         // GPS Speed (same as SOG)
-        gpsSatellites: data.satellites || 0,
+        gpsSatellites: data.sat || 0,
         hdop: data.hdop || 0,            // Horizontal Dilution of Precision
         lat: data.lat || 0,              // Latitude
         lon: data.lon || 0,              // Longitude
         heading: data.HDM || 0,          // Heading Magnetic (compass direction)
-        // Regatta data
-        hasStartLine: data.regatta || false,          // Whether start line is configured
-        distanceToLine: data.distanceToLine || -1    // Distance to start line in meters (-1 = invalid)
+        // ln field only present when line is set AND GPS is valid
+        hasStartLine: data.ln !== undefined,
+        distanceToLine: data.ln ?? null    // Negative = behind line, Positive = crossed, null = no line or no GPS
       }
 
       // Set windDirection to the same value as converted windAngle (both now 0-180°)
