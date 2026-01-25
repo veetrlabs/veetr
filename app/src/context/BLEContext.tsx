@@ -616,7 +616,7 @@ export function BLEProvider({ children }: { children: ReactNode }) {
       }
       
       // Handle regatta line coordinates response
-      if (data.type === 'regatta_coords') {
+      if (data.type === 'regatta_coords' || data.type === 'regatta_line') {
         dispatch({ 
           type: 'UPDATE_DATA', 
           payload: { 

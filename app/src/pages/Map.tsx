@@ -22,6 +22,17 @@ export default function Map() {
   const data = state.sailingData;
   const [isLoading, setIsLoading] = useState(true);
 
+  // Debug: Log regatta data whenever it changes
+  useEffect(() => {
+    console.log('[Map] Sailing data update:', {
+      portLat: data?.portLat,
+      portLon: data?.portLon,
+      starboardLat: data?.starboardLat,
+      starboardLon: data?.starboardLon,
+      hasStartLine: data?.hasStartLine
+    });
+  }, [data?.portLat, data?.portLon, data?.starboardLat, data?.starboardLon, data?.hasStartLine]);
+
   useEffect(() => {
     let mounted = true;
 
@@ -51,10 +62,10 @@ export default function Map() {
 
       console.log('[Map] Initial GPS from BLE:', { lat, lon, hasData: !!data });
 
-      // Load last 1000 readings for track and fallback position
+      // Load last 50 readings for track and fallback position
       let trackReadings: any[] = [];
       try {
-        trackReadings = await getAllReadings(1000);
+        trackReadings = await getAllReadings(50);
         console.log('[Map] Loaded track readings:', trackReadings.length);
         
         // Fallback to database if no live GPS
@@ -168,15 +179,21 @@ export default function Map() {
           }
         });
 
-        // Draw each point as a small circle
-        validPoints.forEach(point => {
+        // Draw each point as a small circle with gradient opacity
+        validPoints.forEach((point, index) => {
+          const isLatest = index === validPoints.length - 1;
+          // Calculate opacity: latest point = 1.0, oldest = 0.0, decrease by 2% per point
+          const opacity = Math.max(0, 1 - ((validPoints.length - 1 - index) * 0.02));
+          
           const marker = window.L.circleMarker([point.lat!, point.lon!], {
-            radius: 3,
-            fillColor: '#666',
-            color: '#666',
-            weight: 1,
-            opacity: 0.8,
-            fillOpacity: 0.6,
+            radius: isLatest ? 5 : 3,
+            fillColor: isLatest ? '#00bfff' : '#666', // Light blue for latest, grey for others
+            color: isLatest ? '#fff' : '#666',
+            weight: isLatest ? 2 : 1,
+            opacity: opacity,
+            fillOpacity: opacity,
+            pane: isLatest ? 'markerPane' : 'overlayPane', // Latest on top
+            zIndexOffset: isLatest ? 1000 : 0
           }).addTo(map);
 
           // Add tooltip with sensor data
@@ -234,7 +251,27 @@ export default function Map() {
 
   // Update start line markers when regatta data changes
   useEffect(() => {
-    if (!mapInstanceRef.current || !window.L) return;
+    console.log('[Map] Regatta effect check:', { 
+      hasMap: !!mapInstanceRef.current, 
+      hasLeaflet: !!window.L,
+      portLat: data?.portLat,
+      portLon: data?.portLon,
+      starboardLat: data?.starboardLat,
+      starboardLon: data?.starboardLon
+    });
+
+    if (!mapInstanceRef.current || !window.L) {
+      console.log('[Map] Regatta effect: Map not ready yet');
+      return;
+    }
+
+    // Get regatta coordinates from BLE context data
+    const portLat = data?.portLat;
+    const portLon = data?.portLon;
+    const starboardLat = data?.starboardLat;
+    const starboardLon = data?.starboardLon;
+
+    console.log('[Map] Regatta effect triggered:', { portLat, portLon, starboardLat, starboardLon, hasData: !!data });
 
     // Clean up existing start line markers and line
     startLineMarkersRef.current.forEach(marker => marker.remove());
@@ -244,13 +281,10 @@ export default function Map() {
       startLineRef.current = null;
     }
 
-    // Get regatta coordinates from BLE context data
-    const portLat = data?.portLat;
-    const portLon = data?.portLon;
-    const starboardLat = data?.starboardLat;
-    const starboardLon = data?.starboardLon;
-
-    if (!portLat && !starboardLat) return;
+    if (!portLat && !starboardLat) {
+      console.log('[Map] No regatta coordinates available');
+      return;
+    }
 
     try {
       if (portLat && portLon) {
@@ -265,7 +299,6 @@ export default function Map() {
           pane: 'markerPane' // Ensure it's on top
         }).addTo(mapInstanceRef.current);
         
-        portMarker.bindTooltip('Port Line', { permanent: true, direction: 'top' });
         startLineMarkersRef.current.push(portMarker);
       }
 
@@ -281,7 +314,6 @@ export default function Map() {
           pane: 'markerPane' // Ensure it's on top
         }).addTo(mapInstanceRef.current);
         
-        starboardMarker.bindTooltip('Starboard Line', { permanent: true, direction: 'top' });
         startLineMarkersRef.current.push(starboardMarker);
       }
 
@@ -304,7 +336,7 @@ export default function Map() {
     } catch (error) {
       console.error('[Map] Error adding regatta markers:', error);
     }
-  }, [data?.portLat, data?.portLon, data?.starboardLat, data?.starboardLon]); // Re-run when coordinates change
+  }, [data?.portLat, data?.portLon, data?.starboardLat, data?.starboardLon, isLoading]); // Re-run when coordinates change OR map becomes ready
 
   const handleBack = () => {
     // Use state update instead of history.back()
