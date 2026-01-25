@@ -593,6 +593,21 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
               Serial.println("Failed to send firmware version response");
             }
           }
+          else if (doc["cmd"] == "GET_DEVICE_NAME") {
+            // Send device name response
+            String deviceName = preferences.getString("deviceName", "Veetr");
+            DynamicJsonDocument response(128);
+            response["type"] = "device_name";
+            response["deviceName"] = deviceName;
+            String responseStr;
+            serializeJson(response, responseStr);
+            
+            if (safeBLESend(responseStr, true)) {
+              Serial.printf("Sent device name: %s\n", deviceName.c_str());
+            } else {
+              Serial.println("Failed to send device name response");
+            }
+          }
           else if (doc["cmd"] == "GET_REGATTA_LINE") {
             // Send regatta line coordinates response
             DynamicJsonDocument response(256);
@@ -2286,7 +2301,6 @@ String getSensorDataJson() {
   // BLE connection quality (smoothed RSSI for stable readings)
   doc["rssi"] = bleRSSIFiltered;
   
-  // Device identification (proper device name)
   // Regatta data - only include if start line is configured
   if (regattaData.hasStartLine) {
     doc["regatta"] = true;
@@ -2297,9 +2311,6 @@ String getSensorDataJson() {
   } else {
     doc["regatta"] = false;
   }
-  
-  String deviceName = preferences.getString("deviceName", "Veetr");
-  doc["deviceName"] = deviceName;
   
   String output;
   serializeJson(doc, output);

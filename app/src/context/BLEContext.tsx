@@ -406,6 +406,7 @@ const BLEContext = createContext<{
   connect: () => Promise<void>
   disconnect: () => void
   sendCommand: (command: any) => Promise<boolean>
+  getDeviceName: () => Promise<void>
   checkForUpdates: () => Promise<void>
   startFirmwareUpdate: () => Promise<void>
   refreshPWA: () => void
@@ -565,6 +566,20 @@ export function BLEProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const getDeviceName = async (): Promise<void> => {
+    if (!state.isConnected || !state.commandCharacteristic) {
+      console.error('Cannot get device name: BLE not connected')
+      return
+    }
+
+    try {
+      await sendCommand({ cmd: 'GET_DEVICE_NAME' })
+      console.log('[BLE] Requested device name')
+    } catch (error) {
+      console.error('[BLE] Failed to request device name:', error)
+    }
+  }
+
   const handleSensorData = (event: Event) => {
     try {
       const target = event.target as BluetoothRemoteGATTCharacteristic
@@ -590,6 +605,13 @@ export function BLEProvider({ children }: { children: ReactNode }) {
       if (data.type === 'firmware_version') {
         dispatch({ type: 'UPDATE_FIRMWARE_VERSION', payload: data.version })
         console.log('Received firmware version:', data.version)
+        return
+      }
+      
+      // Handle device name response
+      if (data.type === 'device_name') {
+        dispatch({ type: 'UPDATE_DEVICE_NAME', payload: data.deviceName })
+        console.log('Received device name:', data.deviceName)
         return
       }
       
@@ -991,7 +1013,8 @@ Please try the update again or contact support.`, '❌ Firmware Apply Failed')
       state, 
       connect, 
       disconnect, 
-      sendCommand, 
+      sendCommand,
+      getDeviceName, 
       checkForUpdates, 
       startFirmwareUpdate,
       refreshPWA,

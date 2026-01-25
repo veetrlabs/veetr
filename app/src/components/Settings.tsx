@@ -15,7 +15,14 @@ export default function Settings() {
   const [deviceName, setDeviceName] = useState('')
   const [refreshRate, setRefreshRate] = useState(1.0) // Default 1 second
   const menuRef = useRef<HTMLDivElement>(null)
-  const { state, sendCommand, connect, disconnect } = useBLE()
+  const { state, sendCommand, getDeviceName, connect, disconnect } = useBLE()
+
+  // Request device name when Settings component mounts and is connected
+  useEffect(() => {
+    if (state.isConnected && !state.deviceName) {
+      getDeviceName()
+    }
+  }, [state.isConnected, state.deviceName, getDeviceName])
 
   // Pre-fill device name when connected device name is available
   useEffect(() => {
