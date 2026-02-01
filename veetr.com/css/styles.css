@@ -22,6 +22,16 @@ body {
     background: #ffffff;
 }
 
+a {
+    color: #ffffff;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
 .container {
     max-width: 1200px;
     margin: 0 auto;
@@ -98,6 +108,18 @@ header {
 
 .hero p {
     font-size: 1.3rem;
+}
+
+.hero a {
+    color: white;
+    font-weight: 600;
+    text-decoration: none;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.5);
+    transition: border-color 0.3s;
+}
+
+.hero a:hover {
+    border-bottom-color: white;
     margin-bottom: 1rem;
     opacity: 0.95;
 }
