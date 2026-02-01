@@ -33,8 +33,8 @@ Some of the parts listed below use affiliate links. If you choose to purchase th
 ### 🔧 Main Controller:
 
 #### ESP32 DevKitC WROOM-32U Development Board
-[![ESP32 DevKitC WROOM-32U Development Board](https://ae01.alicdn.com/kf/S4861b771e79a4f84b64bdf01a1442c872.jpg_350x350.jpg)](https://s.click.aliexpress.com/e/_onsyWtH)
-- **Purchase Link:** https://s.click.aliexpress.com/e/_onsyWtH
+[![ESP32 DevKitC WROOM-32U Development Board](https://ae01.alicdn.com/kf/S250575627f2447fb9e62a1423cb00496w.jpg_350x350.jpg)](https://s.click.aliexpress.com/e/_c3ctWFj9)
+- **Purchase Link:** https://s.click.aliexpress.com/e/_c3ctWFj9
 - **Product Name:** ESP32 DevKitC WIFI+Bluetooth Development Board WROOM & WIFI Module with 2.4G Antenna Optional ESP32-WROOM-32U Development Board
 - **Board Type:** ESP32 DevKitC WROOM-32U
 - **Module:** ESP32-WROOM-32U (with external antenna connector)
