@@ -16,7 +16,7 @@
     <link rel="icon" type="image/svg+xml" href="img/veetr-logo.svg">
     
     <!-- Styles -->
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
     <header>
@@ -27,10 +27,10 @@
                     VEETR SHOP
                 </a>
                 <nav class="main-nav">
-                    <a href="#kits">Kits</a>
-                    <a href="#components">Components</a>
+                    <a href="#pricing">Pricing</a>
+                    <a href="#parts">Parts</a>
                     <a href="#shipping">Shipping</a>
-                    <a href="https://veetr.org">About Veetr</a>
+                    <a href="https://veetr.org">The Project</a>
                 </nav>
             </div>
         </div>
@@ -39,74 +39,99 @@
     <section class="hero">
         <div class="container">
             <div class="hero-content">
-                <h1>Get Your Veetr Kit</h1>
-                <p>Skip the DIY hassle. Pre-assembled, tested, and ready to sail in minutes.</p>
-                <p class="hero-subtitle">Free worldwide shipping • 30-day returns • 1-year warranty</p>
+                <h1>Veetr kit</h1>
+                <p>More than real time wind and other data for your sailing journey.</p>
+                <p class="hero-subtitle">Quality components • Open hardware design • Global community support • No lock-in</p>
             </div>
         </div>
     </section>
 
-    <section id="kits" class="products">
+
+    <section id="pricing" class="products">
         <div class="container">
-            <h2>Complete Kits</h2>
-            <p class="section-intro">Everything you need to start tracking wind, GPS, and vessel data. Fully assembled and tested.</p>
+            <h2>Pricing</h2>
             
-            <div class="product-grid">
-                <div class="product-card featured">
-                    <div class="product-badge">Most Popular</div>
-                    <div class="product-image">
-                        <div class="placeholder-image">📦</div>
-                    </div>
-                    <div class="product-content">
-                        <h3>Veetr Complete Kit</h3>
-                        <p class="product-description">Complete sailing instrument system with ultrasonic wind sensor, GPS, compass, and tilt sensors. Pre-assembled and tested.</p>
-                        <ul class="product-features">
-                            <li>✓ Ultrasonic wind sensor (0-40 knots)</li>
-                            <li>✓ ESP32 main unit with BLE</li>
-                            <li>✓ GPS module</li>
-                            <li>✓ 9-axis IMU sensor</li>
-                            <li>✓ All cables and mounting hardware</li>
-                            <li>✓ Quick start guide</li>
-                        </ul>
-                        <div class="product-pricing">
-                            <span class="price">$500</span>
-                            <span class="price-note">USD</span>
-                        </div>
-                        <a href="#contact" class="btn btn-primary">Pre-Order Now</a>
-                        <p class="delivery-note">Ships in 2-3 weeks</p>
-                    </div>
-                </div>
-
-                <div class="product-card">
-                    <div class="product-image">
-                        <div class="placeholder-image">🔧</div>
-                    </div>
-                    <div class="product-content">
-                        <h3>Veetr DIY Kit</h3>
-                        <p class="product-description">All components needed for assembly. Perfect for electronics enthusiasts. Basic soldering required.</p>
-                        <ul class="product-features">
-                            <li>✓ All electronic components</li>
-                            <li>✓ PCB boards (unpopulated)</li>
-                            <li>✓ Wind sensor</li>
-                            <li>✓ Cables and connectors</li>
-                            <li>✓ Detailed assembly guide</li>
-                        </ul>
-                        <div class="product-pricing">
-                            <span class="price">$250</span>
-                            <span class="price-note">USD</span>
-                        </div>
-                        <a href="#contact" class="btn btn-secondary">Pre-Order Now</a>
-                        <p class="delivery-note">Ships in 2-3 weeks</p>
-                    </div>
-                </div>
+            <p class="section-intro">Choose your path: ready-to-use kit or build from scratch. Either way, the open-source design means you're never locked in.</p>
+            
+            <div class="comparison-table-wrapper">
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>What You Get</th>
+                            <th>Complete Kit<br><span class="price">€600</span></th>
+                            <th>Build It Yourself<br><span class="price">~€300</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Setup Time</td>
+                            <td class="advantage">10 minutes</td>
+                            <td class="disadvantage">Days</td>
+                        </tr>
+                        <tr>
+                            <td>Parts Sourcing</td>
+                            <td class="advantage">Done</td>
+                            <td class="disadvantage">Months</td>
+                        </tr>
+                        <tr>
+                            <td>Soldering Required</td>
+                            <td class="advantage">No</td>
+                            <td class="disadvantage">Yes</td>
+                        </tr>
+                        <tr>
+                            <td>3D Printer Needed</td>
+                            <td class="advantage">No</td>
+                            <td class="disadvantage">Yes</td>
+                        </tr>
+                        <tr>
+                            <td>Firmware</td>
+                            <td class="advantage">Pre-flashed & tested</td>
+                            <td class="disadvantage">Flash yourself</td>
+                        </tr>
+                        <tr>
+                            <td>Quality Testing</td>
+                            <td class="advantage">Fully tested system</td>
+                            <td class="disadvantage">Self-debug & test</td>
+                        </tr>
+                        <tr>
+                            <td>Technical Skills</td>
+                            <td class="advantage">Minimal</td>
+                            <td class="disadvantage">Advanced</td>
+                        </tr>
+                        <tr>
+                            <td>Support channels</td>
+                            <td class="advantage">Community + email</td>
+                            <td class="disadvantage">Community only</td>
+                        </tr>
+                        <tr>
+                            <td>Boost development</td>
+                            <td class="advantage">Beam reach, 20 knots</td>
+                            <td class="disadvantage">Close-hauled, 6 knots</td>
+                        </tr>
+                        <tr>
+                            <td></td>
+                            <td><a href="#contact" class="btn btn-primary">Order the Veetr Kit</a></td>
+                            <td><a href="#parts" class="btn btn-secondary">Get your parts</a></td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
+            
+            
+            <p class="open-source-message">
+                The design is fully open-source. PCB files, firmware, enclosure models—everything is on <a href="https://github.com/veetrlabs/veetr" target="_blank" rel="noopener">GitHub</a>. The community holds all the keys. There's no bus factor, no vendor lock-in, no proprietary trap. Build it, modify it, sell it. That's the point.
+            </p>
+            
+            <p class="delivery-info">
+                <strong>Delivery:</strong> Kits ship in 6-12 weeks (we're still early-stage). Join our early-adopter program and help shape Veetr's development.
+            </p>
         </div>
     </section>
 
-    <section id="components" class="components">
+    <section id="parts" class="components">
         <div class="container">
-            <h2>Replacement Parts</h2>
-            <p class="section-intro">Need a replacement or upgrade? Individual components available at the source.</p>
+            <h2>Parts</h2>
+            <p class="section-intro">Want to build from scratch or need a replacement part? Here's everything you need. All components are standard off-the-shelf parts from reputable manufacturers. No proprietary lock-in.</p>
             
             <div class="component-grid">
                 <div class="component-card">
@@ -238,33 +263,68 @@
                     <a href="https://printables.com" class="btn btn-secondary btn-sm" target="_blank" rel="noopener">Coming Soon</a>
                 </div>
             </div>
-            <p class="component-note">These are affiliate links supporting Veetr development. Products available directly from suppliers.</p>
+            <p class="component-note">These are affiliate links supporting Veetr development. All components from reputable manufacturers. You get professional performance without the device-level certification markup.</p>
+            <p class="component-note">⚠️ Pay attention to purchase the right parts as described. There are usually several options.</p>
         </div>
     </section>
 
     <section id="shipping" class="shipping-info">
         <div class="container">
-            <h2>Shipping & Returns</h2>
+            <h2>Shipping is free.</h2>
+            <p class="section-intro">Not as much a brilliant marketing move but rather because this is an early stage project and we need to keep things simple even if it eats our margins • Worldwide shipping included</p>
+            <p class="section-intro">Shipping calculations are coming soon. So be faster! 😉</p>
+            <p class="section-intro">Delivery time: up to 12 weeks. At this stage we don't have the capital for a stock reserve and mass production. Everything is done by hand. With love. In the heart of Europe.</p>
+        </div>
+    </section>
+
+    <section id="why" class="shipping-info">
+        <div class="container">
+            <h2>Why Buy the Veetr Kit?</h2>
+            <p class="section-intro">This project is in the very beginning of its journey</p>
             <div class="info-grid">
                 <div class="info-card">
-                    <span class="info-icon">🌍</span>
-                    <h3>Free Worldwide Shipping</h3>
-                    <p>All orders ship free via tracked international mail. Delivery in 7-21 business days depending on location.</p>
+                    <span class="info-icon">✅</span>
+                    <h3>Professional Components</h3>
+                    <p>Every component—ESP32, GPS, sensors—is the same professional-grade part used in commercial marine products. Quality without the markup.</p>
                 </div>
                 <div class="info-card">
-                    <span class="info-icon">↩️</span>
-                    <h3>30-Day Returns</h3>
-                    <p>Not satisfied? Return unused items within 30 days for a full refund. Return shipping at buyer's expense.</p>
+                    <span class="info-icon">💰</span>
+                    <h3>Massive Cost Savings</h3>
+                    <p>Device-level certification costs $20,000-50,000+ and gets passed to you. By assembling quality components yourself, you get equivalent functionality at 10-20% of the price.</p>
                 </div>
                 <div class="info-card">
-                    <span class="info-icon">🛡️</span>
-                    <h3>1-Year Warranty</h3>
-                    <p>All kits include a 1-year warranty covering manufacturing defects. Open hardware means you can repair anything yourself.</p>
+                    <span class="info-icon">🔓</span>
+                    <h3>True Ownership</h3>
+                    <p>No proprietary ecosystem. Open schematics, open firmware, open case designs. Modify anything, source your own parts, repair forever. This is YOUR instrument.</p>
                 </div>
                 <div class="info-card">
-                    <span class="info-icon">💬</span>
-                    <h3>Support Included</h3>
-                    <p>Email and GitHub support. Active community forum. Comprehensive documentation and video guides.</p>
+                    <span class="info-icon">🎓</span>
+                    <h3>Learn & Customize</h3>
+                    <p>Understand how everything works. Add features, integrate with other systems, share improvements with the community. Sailor-designed, maker-approved.</p>
+                </div>
+            </div>
+            <h2 style="margin-top: 3rem;">Join the Early-Adopter Program</h2>
+            <p class="section-intro">This project is in the very beginning of its journey. We've built this for our own needs and are now inviting others to join us in shaping its future.</p>
+            <div class="info-grid">
+                <div class="info-card">
+                    <span class="info-icon">🎓</span>
+                    <h3>Shape the Product</h3>
+                    <p>We're looking for sailors who'll test Veetr in real-world conditions and share honest feedback. Your experience will directly influence the next iterations. Be part of building something better.</p>
+                </div>
+                <div class="info-card">
+                    <span class="info-icon">💸</span>
+                    <h3>Special Pricing</h3>
+                    <p>Early-adopter pricing reflects this partnership. You get a fully functional sailing instrument at a fraction of commercial prices. Worldwide shipping included. No hidden fees.</p>
+                </div>
+                <div class="info-card">
+                    <span class="info-icon">🚀</span>
+                    <h3>Made to Order</h3>
+                    <p>We source and assemble each kit individually. Current lead time is 6-12 weeks from order to delivery. Worth the wait for a product built with your input.</p>
+                </div>
+                <div class="info-card">
+                    <span class="info-icon">🔧</span>
+                    <h3>Full Support</h3>
+                    <p>Direct access to the development team via email and GitHub. Active <a href="https://github.com/veetrlabs/veetr/discussions" target="_blank" rel="noopener">community forum</a>. You're not just a customer—you're a partner, a contributor.</p>
                 </div>
             </div>
         </div>
@@ -273,9 +333,9 @@
     <section id="contact" class="contact">
         <div class="container">
             <div class="contact-content">
-                <h2>Ready to Order?</h2>
-                <p>Pre-orders are now open! We're building the first production batch.</p>
-                <p>Contact us to reserve your kit or ask questions:</p>
+                <h2>Become an Early Adopter</h2>
+                <p>Join sailors worldwide who are helping shape the future of open-source marine instruments.</p>
+                <p>Ready to pre-order or have questions? Get in touch:</p>
                 <div class="contact-methods">
                     <a href="mailto:hello@veetr.com" class="contact-button">
                         📧 hello@veetr.com
@@ -284,7 +344,6 @@
                         💬 GitHub Discussions
                     </a>
                 </div>
-                <p class="contact-note">Expected ship date: Q1 2025</p>
             </div>
         </div>
     </section>
