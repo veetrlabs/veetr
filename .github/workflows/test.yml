@@ -58,11 +58,15 @@ jobs:
 
     - name: Test firmware build
       run: |
-        pio run --project-dir . --environment esp32doit-devkit-v1
+        pio run --project-dir . --environment esp32dev
+
+    - name: Run firmware unit tests (native)
+      run: |
+        pio test --project-dir . --environment native
 
     - name: Check firmware size
       run: |
-        size_bytes=$(stat -c%s .pio/build/esp32doit-devkit-v1/firmware.bin)
+        size_bytes=$(stat -c%s .pio/build/esp32dev/firmware.bin)
         size_kb=$((size_bytes / 1024))
         echo "Firmware size: ${size_kb} KB (${size_bytes} bytes)"
         
