@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Veetr Kit E-shop</title>
+    <title>Veetr Kit</title>
     <meta name="description" content="Purchase Veetr sailing instruments kits. Professional wind sensors, GPS, and compass systems for your boat.">
     
     <!-- Open Graph -->
@@ -24,7 +24,7 @@
             <div class="header-content">
                 <a href="#top" class="logo">
                     <img src="img/veetr-logo.svg" alt="Veetr Logo" class="logo-image">
-                    Veetr Kit E-shop
+                    Veetr Kit
                 </a>
                 <nav class="main-nav">
                     <a href="#pricing">Pricing</a>
@@ -40,8 +40,7 @@
     <section class="hero">
         <div class="container">
             <div class="hero-content">
-                <h1>Veetr kit</h1>
-                <p>More than real time wind and other data for your sailing journey. Visit <a href="https://veetr.org" target="_blank" rel="noopener">Veetr.org</a> for more details.</p>
+                <h1>Build your <a href="https://veetr.org" target="_blank" rel="noopener">Veetr</a></h1>
                 <p class="hero-subtitle">Quality components • Open hardware design • Global community support • No lock-in</p>
             </div>
         </div>
@@ -125,6 +124,16 @@
             <p class="delivery-info">
                 The payment is done safely through Stripe where you can choose the best payment method for you. After the order is placed, we will contact you via email to confirm the shipping details and estimated delivery time.
             </p>
+
+        </div>
+    </section>
+
+    <section id="newsletter" class="newsletter">
+        <div class="container">
+            <div class="newsletter-content">
+                <h2>Get notified about updates to the Veetr kit</h2>
+                <script type="text/javascript" src="https://m.veetr.com/form/generate.js?id=4"></script>
+            </div>
         </div>
     </section>
 
@@ -333,15 +342,10 @@
         <div class="container">
             <div class="contact-content">
                 <h2>Contact</h2>
-                <p>Ahoy, I'm Jan Linhart, the leader of the Veetr labs team. I'm an engineer, open source advocate, and passionate sailor. Feel free to reach out with any questions or to discuss how Veetr can enhance your sailing experience.</p>
-                <p>At this point you are interested as you read all the way to the bottom. But can you trust us? You can stalk me at <a href="https://github.com/escopecz" target="_blank" rel="noopener">GitHub</a> or <a href="https://www.linkedin.com/in/jan-linhart-80aa0352/" target="_blank" rel="noopener">Linkedin</a> to see my work in the past.</p>
-                <p>Ready to pre-order or have questions? Get in touch:</p>
+                <script type="text/javascript" src="https://m.veetr.com/form/generate.js?id=3"></script>
                 <div class="contact-methods">
-                    <a href="mailto:hello@veetr.com" class="contact-button">
-                        📧 hello@veetr.com
-                    </a>
                     <a href="https://github.com/veetrlabs/veetr/discussions" class="contact-button" target="_blank">
-                        💬 GitHub Discussions
+                        💬 or join our forum
                     </a>
                 </div>
             </div>
@@ -363,9 +367,16 @@
                 </div>
                 <div class="footer-section">
                     <h3>Legal</h3>
-                    <a href="#terms">Terms of Service</a>
-                    <a href="#privacy">Privacy Policy</a>
+                    <a href="terms.html">Terms of Service</a>
+                    <a href="privacy.html">Privacy Policy</a>
                     <a href="#shipping">Shipping Policy</a>
+                </div>
+                <div class="footer-section">
+                    <h3>Business ID</h3>
+                    <p>Jan Linhart (natural person)</p>
+                    <p>ICO: 75412551</p>
+                    <p>City: Prague</p>
+                    <p>Email: veetr@linhart.email</p>
                 </div>
             </div>
             <div class="footer-bottom">
@@ -373,5 +384,88 @@
             </div>
         </div>
     </footer>
+
+    <div id="cookie-banner" class="cookie-banner" role="dialog" aria-live="polite" aria-label="Cookie consent">
+        <p>Analytics cookies? Accept to help us improve.</p>
+        <div class="cookie-actions">
+            <button type="button" class="btn btn-primary btn-sm" id="cookie-accept">Accept</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="cookie-decline">Decline</button>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            var consentKey = 'veetr_cookie_consent';
+            var banner = document.getElementById('cookie-banner');
+            var acceptBtn = document.getElementById('cookie-accept');
+            var declineBtn = document.getElementById('cookie-decline');
+
+            function loadMautic() {
+                if (window.MauticTrackingObject) return;
+                (function (w, d, t, u, n, a, m) {
+                    w['MauticTrackingObject'] = n;
+                    w[n] = w[n] || function () { (w[n].q = w[n].q || []).push(arguments); };
+                    a = d.createElement(t);
+                    m = d.getElementsByTagName(t)[0];
+                    a.async = 1;
+                    a.src = u;
+                    m.parentNode.insertBefore(a, m);
+                })(window, document, 'script', 'https://m.veetr.com/mtc.js', 'mt');
+
+                window.mt('send', 'pageview');
+            }
+
+            function setConsent(value) {
+                try {
+                    localStorage.setItem(consentKey, value);
+                } catch (e) {
+                    // If storage is blocked, keep banner visible and do nothing.
+                }
+            }
+
+            function hideBanner() {
+                if (banner) {
+                    banner.setAttribute('data-hidden', 'true');
+                }
+            }
+
+            function showBanner() {
+                if (banner) {
+                    banner.removeAttribute('data-hidden');
+                }
+            }
+
+            var consent = null;
+            try {
+                consent = localStorage.getItem(consentKey);
+            } catch (e) {
+                consent = null;
+            }
+
+            if (consent === 'accepted') {
+                hideBanner();
+                loadMautic();
+            } else if (consent === 'declined') {
+                hideBanner();
+            } else {
+                showBanner();
+            }
+
+            if (acceptBtn) {
+                acceptBtn.addEventListener('click', function () {
+                    setConsent('accepted');
+                    hideBanner();
+                    loadMautic();
+                });
+            }
+
+            if (declineBtn) {
+                declineBtn.addEventListener('click', function () {
+                    setConsent('declined');
+                    hideBanner();
+                });
+            }
+        })();
+    </script>
 </body>
 </html>

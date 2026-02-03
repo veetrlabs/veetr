@@ -23,7 +23,7 @@ body {
 }
 
 a {
-    color: #ffffff;
+    color: var(--fresh-sky);
     font-weight: 600;
     text-decoration: none;
 }
@@ -135,7 +135,7 @@ header {
     background: white;
 }
 
-.products h2 {
+body:not(.legal-page) section h2 {
     text-align: center;
     font-size: 2.5rem;
     margin-bottom: 1rem;
@@ -305,14 +305,6 @@ header {
     background: linear-gradient(135deg, var(--bright-snow) 0%, var(--alice-blue) 100%);
 }
 
-.components h2 {
-    text-align: center;
-    font-size: 2.5rem;
-    margin-bottom: 1rem;
-    color: var(--oxford-navy);
-    font-weight: 600;
-}
-
 .component-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -396,14 +388,6 @@ header {
     background: white;
 }
 
-.shipping-info h2 {
-    text-align: center;
-    font-size: 2.5rem;
-    margin-bottom: 3rem;
-    color: var(--oxford-navy);
-    font-weight: 600;
-}
-
 .info-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -434,11 +418,38 @@ header {
     opacity: 0.8;
 }
 
+/* Newsletter Section */
+.newsletter {
+    padding: 6rem 0;
+    background: linear-gradient(135deg, var(--alice-blue) 0%, #ffffff 100%);
+}
+
+.newsletter-content {
+    text-align: center;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.newsletter p {
+    font-size: 1.1rem;
+    color: var(--oxford-navy);
+    opacity: 0.85;
+    margin-bottom: 2rem;
+}
+
 /* Contact Section */
 .contact {
     padding: 6rem 0;
     background: linear-gradient(135deg, var(--fresh-sky) 0%, var(--oxford-navy) 100%);
     color: white;
+}
+
+.contact a {
+    color: white;
+}
+
+.contact .contact-button {
+    color: var(--fresh-sky);
 }
 
 .contact-content {
@@ -448,9 +459,7 @@ header {
 }
 
 .contact h2 {
-    font-size: 2.5rem;
-    margin-bottom: 1.5rem;
-    font-weight: 600;
+    color: white;
 }
 
 .contact p {
@@ -490,6 +499,254 @@ header {
     font-size: 1rem;
     opacity: 0.85;
     font-style: italic;
+}
+
+/* Mautic Form */
+.contact .mauticform_wrapper {
+    margin: 2.5rem auto 2rem;
+    padding: 2rem;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+    backdrop-filter: blur(6px);
+}
+
+.contact .mauticform-row {
+    text-align: left;
+    margin-bottom: 1.25rem;
+}
+
+.contact .mauticform-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: white;
+}
+
+.contact .mauticform-input,
+.contact .mauticform-textarea {
+    width: 100%;
+    padding: 0.9rem 1rem;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    background: rgba(255, 255, 255, 0.92);
+    color: var(--oxford-navy);
+    font-size: 1rem;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+.contact .mauticform-textarea {
+    min-height: 140px;
+    resize: vertical;
+}
+
+.contact .mauticform-input:focus,
+.contact .mauticform-textarea:focus {
+    outline: none;
+    border-color: white;
+    box-shadow: 0 0 0 3px rgba(229, 244, 254, 0.6);
+    background: white;
+}
+
+.contact .mauticform-button-wrapper {
+    text-align: center;
+    margin-top: 1.5rem;
+}
+
+/* Newsletter form inline layout */
+#mauticform_wrapper_newsletterveetrcom .mauticform-page-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+#mauticform_wrapper_newsletterveetrcom .mauticform-row {
+    margin-bottom: 0;
+    flex: 0 1 auto;
+}
+
+#mauticform_wrapper_newsletterveetrcom .mauticform-button-wrapper {
+    flex: 0 0 auto;
+    margin-top: 0;
+}
+
+#mauticform_wrapper_newsletterveetrcom .mauticform-label {
+    display: inline-block;
+    margin: 0 0.5rem 0 0;
+    font-weight: 600;
+    color: var(--oxford-navy);
+    white-space: nowrap;
+}
+
+#mauticform_wrapper_newsletterveetrcom .mauticform-input {
+    border-radius: 10px;
+    min-height: 44px;
+    width: 320px;
+}
+
+#mauticform_wrapper_newsletterveetrcom .mauticform-button {
+    min-height: 44px;
+    padding: 0.4rem 1rem;
+}
+
+#mauticform_wrapper_newsletterveetrcom .mauticform-button.btn-ghost {
+    background: var(--fresh-sky);
+    color: white;
+    border: 2px solid var(--fresh-sky);
+}
+
+#mauticform_wrapper_newsletterveetrcom {
+    background: white;
+    padding: 2rem;
+    border-radius: 18px;
+    box-shadow: 0 16px 40px rgba(16, 47, 86, 0.12);
+}
+
+@media (max-width: 600px) {
+    #mauticform_wrapper_newsletterveetrcom .mauticform-page-wrapper {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+
+.btn-ghost {
+    background: transparent;
+    color: white;
+    border: 2px solid white;
+}
+
+.btn-ghost:hover {
+    background: white;
+    color: var(--oxford-navy);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.contact .mauticform-error,
+.contact .mauticform-message {
+    margin-bottom: 1rem;
+    font-size: 0.95rem;
+}
+
+.contact .mauticform-errormsg {
+    display: block;
+    margin-top: 0.35rem;
+    font-size: 0.9rem;
+    color: #ffd1d1;
+}
+
+/* Legal Page */
+.legal-page {
+    background: var(--bright-snow);
+    color: var(--oxford-navy);
+}
+
+.legal-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 4rem 20px 6rem;
+}
+
+.legal-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--oxford-navy);
+    text-decoration: none;
+    font-weight: 600;
+    margin-bottom: 2rem;
+}
+
+.legal-logo:hover {
+    color: var(--fresh-sky);
+}
+
+.legal-container h1 {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+.legal-meta {
+    opacity: 0.7;
+    margin-bottom: 2rem;
+}
+
+.legal-section {
+    margin-bottom: 2rem;
+}
+
+.legal-section h2 {
+    font-size: 1.4rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+.legal-section p {
+    margin-bottom: 0.75rem;
+}
+
+.legal-actions {
+    margin-top: 2rem;
+}
+
+/* Cookie Banner */
+.cookie-banner {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    max-width: 300px;
+    z-index: 999;
+    background: rgba(16, 47, 86, 0.95);
+    color: white;
+    border-radius: 12px;
+    padding: 0.7rem 0.85rem;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.cookie-banner[data-hidden="true"] {
+    display: none;
+}
+
+.cookie-banner p {
+    margin: 0;
+    font-size: 0.8rem;
+    line-height: 1.35;
+}
+
+.cookie-actions {
+    display: flex;
+    gap: 0.4rem;
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+}
+
+.cookie-actions .btn {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+}
+
+@media (max-width: 600px) {
+    .cookie-banner {
+        right: 1rem;
+        bottom: 1rem;
+        left: 1rem;
+        max-width: none;
+    }
+
+    .cookie-actions {
+        justify-content: flex-end;
+    }
+
+    .cookie-actions .btn {
+        width: auto;
+        flex: 0 0 auto;
+    }
 }
 
 /* Footer */
