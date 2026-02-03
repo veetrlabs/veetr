@@ -1,5 +1,5 @@
 // Version configuration - single source of truth
-// This version is synced from the root package.json
+// This version is synced from app/package.json
 const VERSION = '0.0.28'
 export const APP_VERSION = `${VERSION}`
 

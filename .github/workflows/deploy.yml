@@ -5,8 +5,8 @@ on:
     branches: [ main ]
     paths: 
       - 'app/**'
-      - 'package.json'
-      - 'package-lock.json'
+      - 'app/package.json'
+      - 'app/package-lock.json'
   workflow_dispatch:  # Allow manual triggering
 
 jobs:
@@ -31,13 +31,15 @@ jobs:
       with:
         node-version: '20'
         cache: 'npm'
-        cache-dependency-path: 'package-lock.json'
+        cache-dependency-path: 'app/package-lock.json'
 
     - name: Install dependencies
       run: npm ci
+      working-directory: app
 
     - name: Build web app
-      run: npm run --workspace=app build
+      run: npm run build
+      working-directory: app
 
     - name: Setup Pages
       uses: actions/configure-pages@v4

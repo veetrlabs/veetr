@@ -29,10 +29,6 @@ jobs:
         VERSION="${{ steps.version.outputs.version }}"
         echo "🔍 Validating version consistency across all files..."
         
-        # Check root package.json
-        ROOT_VERSION=$(node -e "console.log(require('./package.json').version)")
-        echo "Root package.json version: $ROOT_VERSION"
-        
         # Check app package.json
         APP_VERSION=$(node -e "console.log(require('./app/package.json').version)")
         echo "App package.json version: $APP_VERSION"
@@ -47,11 +43,6 @@ jobs:
         
         # Validate all versions match the tag
         ERRORS=0
-        
-        if [ "$ROOT_VERSION" != "$VERSION" ]; then
-          echo "❌ Root package.json version ($ROOT_VERSION) doesn't match tag ($VERSION)"
-          ERRORS=$((ERRORS + 1))
-        fi
         
         if [ "$APP_VERSION" != "$VERSION" ]; then
           echo "❌ App package.json version ($APP_VERSION) doesn't match tag ($VERSION)"
@@ -83,9 +74,10 @@ jobs:
     - name: Install app dependencies and build
       run: |
         echo "📦 Installing app dependencies..."
-        npm install
+        npm ci
         echo "🏗️ Building web application..."
-        npm run --workspace=app build
+        npm run build
+      working-directory: app
     
     - name: Setup Python for PlatformIO
       uses: actions/setup-python@v4

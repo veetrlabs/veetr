@@ -101,10 +101,10 @@ function handleRelease(args) {
     process.exit(1)
   }
 
-  // Read current version
-  const rootPackageJsonPath = path.join(__dirname, 'package.json')
-  const rootPackageJson = JSON.parse(fs.readFileSync(rootPackageJsonPath, 'utf8'))
-  const currentVersion = rootPackageJson.version
+  // Read current version from app package.json
+  const appPackageJsonPath = path.join(__dirname, 'app/package.json')
+  const appPackageJson = JSON.parse(fs.readFileSync(appPackageJsonPath, 'utf8'))
+  const currentVersion = appPackageJson.version
 
   console.log(`${c.info('🚀 Veetr Release Manager')}`)
   console.log(`Starting release process: ${currentVersion} → ${targetVersion}`)
@@ -123,23 +123,6 @@ function handleRelease(args) {
   }
 
   console.log(`${c.success('✓')} Git status check passed`)
-
-  // Update root package.json version
-  rootPackageJson.version = targetVersion
-  fs.writeFileSync(rootPackageJsonPath, JSON.stringify(rootPackageJson, null, 2) + '\n')
-  console.log(`${c.success('✓')} Updated root package.json to ${targetVersion}`)
-
-  // Update root package-lock.json
-  const rootPackageLockPath = path.join(__dirname, 'package-lock.json')
-  if (fs.existsSync(rootPackageLockPath)) {
-    const lockPkg = JSON.parse(fs.readFileSync(rootPackageLockPath, 'utf8'))
-    lockPkg.version = targetVersion
-    if (lockPkg.packages && lockPkg.packages[""]) {
-      lockPkg.packages[""].version = targetVersion
-    }
-    fs.writeFileSync(rootPackageLockPath, JSON.stringify(lockPkg, null, 2) + '\n')
-    console.log(`${c.success('✓')} Updated root package-lock.json to ${targetVersion}`)
-  }
 
   // Sync all version references
   syncVersions(targetVersion)
@@ -241,7 +224,7 @@ function syncVersions(version) {
 }
 
 function handleVersion() {
-  const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'))
+  const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, 'app/package.json'), 'utf8'))
   console.log(`${c.info('📦')} Veetr v${packageJson.version}`)
   
   // Also show versions from other files for comparison

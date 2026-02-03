@@ -1,11 +1,11 @@
 # Version Management
 
-This project uses centralized version management with the root `package.json` as the single source of truth.
+This project uses centralized version management with the app `package.json` as the single source of truth.
 
 ## Current Version System
 
-- **Source of Truth**: `/package.json` version field
-- **Web App**: Synced to `/app/package.json` and `/app/src/utils/version.ts`
+- **Source of Truth**: `/app/package.json` version field
+- **Web App**: Synced to `/app/src/utils/version.ts`
 - **Firmware**: Synced to `#define FIRMWARE_VERSION` in `/firmware/src/main.cpp`
 
 ## How to Create a Release (Recommended)
