@@ -17,8 +17,26 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   </React.StrictMode>,
 )
 
+const isLocalhost = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname)
+
+if (isLocalhost && 'serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations()
+    .then((registrations) => Promise.all(registrations.map((registration) => registration.unregister())))
+    .catch((error) => {
+      console.error('[Main] Failed to unregister development SW:', error)
+    })
+
+  if ('caches' in window) {
+    caches.keys()
+      .then((cacheNames) => Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName))))
+      .catch((error) => {
+        console.error('[Main] Failed to clear development caches:', error)
+      })
+  }
+}
+
 // Register Service Worker for offline capability
-if ('serviceWorker' in navigator) {
+if (!isLocalhost && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
       .then((registration) => {
