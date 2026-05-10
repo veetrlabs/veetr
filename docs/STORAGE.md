@@ -40,6 +40,17 @@ The ESP32 uses EEPROM/NVS (Non-Volatile Storage) for persistent configuration:
 - **Log buffer** - Error logs and debug information
 - **Historical data** - Trip logs, max values, statistics
 
+#### Current Partition Layout:
+The current flash layout is defined in [`partitions.csv`](../partitions.csv):
+
+- **`nvs`**: `0x5000` = 20 KB
+- **`otadata`**: `0x2000` = 8 KB
+- **`app0`**: `0x150000` = 1,376,256 B (~1.31 MiB)
+- **`app1`**: `0x150000` = 1,376,256 B (~1.31 MiB)
+- **`spiffs`**: `0x150000` = 1,376,256 B (~1.31 MiB)
+
+With OTA enabled, the firmware must fit within one app slot. Unused space inside `app0` or `app1` is not available for logs unless the partition table is changed.
+
 #### Implementation:
 ```cpp
 // Location: firmware/src/main.cpp
@@ -66,9 +77,15 @@ The ESP32 uses EEPROM/NVS (Non-Volatile Storage) for persistent configuration:
 - **IndexedDB**: Available for future expansion (large data sets)
 
 ### ESP32 Firmware:
-- **NVS Partition**: 16KB (configurable in platformio.ini)
-- **SPIFFS**: 1.5MB available for file storage
+- **NVS Partition**: 20 KB
+- **OTA App Slots**: 2 x 1,376,256 B (~1.31 MiB each)
+- **SPIFFS**: 1,376,256 B (~1.31 MiB) available for file storage
 - **EEPROM**: 512 bytes (compatibility mode)
+
+### Current Usage:
+- **NVS / Preferences**: Used for persistent settings such as calibration, refresh rate, device name, and regatta line coordinates.
+- **SPIFFS**: Reserved by the partition table, but not currently used by the firmware for real-time sailing logs.
+- **Real-time sensor history**: Stored in the web app's IndexedDB, not on the ESP32.
 
 ## Data Privacy
 
