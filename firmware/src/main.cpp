@@ -9,41 +9,38 @@
 #include <ModbusMaster.h>
 #include <Update.h>
 #include <esp_ota_ops.h>
+#include "wind_sensor.h"
+#include "wind_math.h"
+#include "ble_payload.h"
+#include "ble_payload_validation.h"
+#include "discovery_button.h"
+#include "discovery_status.h"
+#include "ble_random_address.h"
+#include "ble_ota_handler.h"
+#include "ble_json.h"
+#include "ble_send.h"
+#include "ble_rssi.h"
+#include "ble_command.h"
+#include "ble_device_name.h"
+#include "sensor_data.h"
+#include "gps_validation.h"
+#include "imu_math.h"
+#include "regatta_math.h"
+#include "base64.h"
+#include "accel_movement.h"
+#include "gps_reader.h"
+#include "gps_math.h"
+#include "gps_movement.h"
+#include "gps_speed_smoothing.h"
+#include "gps_speed_filter.h"
+#include "ota_chunk.h"
+#include "ota_state.h"
+#include "ota_timeout.h"
+#include "refresh_rate.h"
+#include "refresh_rate_calc.h"
 
 // Firmware version
 #define FIRMWARE_VERSION "0.0.28"
-
-// Simple base64 decoding table
-const char base64_chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
-// Base64 decode function
-int base64_decode(const char* input, uint8_t* output) {
-  int input_len = strlen(input);
-  if (input_len % 4 != 0) return -1;
-  
-  int output_len = input_len / 4 * 3;
-  if (input[input_len - 1] == '=') output_len--;
-  if (input[input_len - 2] == '=') output_len--;
-  
-  int i, j;
-  uint32_t sextet_a, sextet_b, sextet_c, sextet_d;
-  uint32_t triple;
-  
-  for (i = 0, j = 0; i < input_len;) {
-    sextet_a = input[i] == '=' ? 0 & i++ : strchr(base64_chars, input[i++]) - base64_chars;
-    sextet_b = input[i] == '=' ? 0 & i++ : strchr(base64_chars, input[i++]) - base64_chars;
-    sextet_c = input[i] == '=' ? 0 & i++ : strchr(base64_chars, input[i++]) - base64_chars;
-    sextet_d = input[i] == '=' ? 0 & i++ : strchr(base64_chars, input[i++]) - base64_chars;
-    
-    triple = (sextet_a << 3 * 6) + (sextet_b << 2 * 6) + (sextet_c << 1 * 6) + (sextet_d << 0 * 6);
-    
-    if (j < output_len) output[j++] = (triple >> 2 * 8) & 0xFF;
-    if (j < output_len) output[j++] = (triple >> 1 * 8) & 0xFF;
-    if (j < output_len) output[j++] = (triple >> 0 * 8) & 0xFF;
-  }
-  
-  return output_len;
-}
 
 // Debug flags - uncomment for verbose output
 // #define DEBUG_BLE_DATA
@@ -55,8 +52,8 @@ int base64_decode(const char* input, uint8_t* output) {
 Preferences preferences;
 int deadWindAngle = 40; // default
 float refreshRateSeconds = 1.0f; // Default 1.0 second refresh rate
+int refreshRate = 1000; // Refresh rate in milliseconds
 bool otaInProgress = false; // Flag to pause sensor data during firmware updates
-unsigned long otaStartTime = 0; // Track when OTA started for timeout
 unsigned long lastOTAActivity = 0; // Track last OTA activity for debugging
 const unsigned long OTA_TIMEOUT_MS = 60000; // 1 minute timeout for OTA updates  
 const unsigned long OTA_ACTIVITY_TIMEOUT_MS = 15000; // 15 second activity timeout
@@ -81,9 +78,9 @@ uint16_t connectedDeviceCount = 0; // Track number of connected devices
 bool bleSending = false; // Prevent concurrent BLE transmissions
 
 // BLE-based OTA update variables
-static bool bleOTAActive = false;
-static size_t otaWritten = 0;
-static size_t otaSize = 0;
+static OtaState otaState;
+static BleOtaHandler otaHandler;
+extern OtaBackend otaBackend;
 
 // BNO080 IMU Sensor (I2C)
 #define BNO080_SDA 21
@@ -116,8 +113,7 @@ bool northCalibrated = false;
 
 bool discoveryModeActive = false;
 unsigned long discoveryModeStartTime = 0;
-bool lastButtonState = HIGH;
-unsigned long lastButtonDebounceTime = 0;
+DiscoveryButtonState discoveryButtonState;
 const unsigned long debounceDelay = 50;
 bool buttonProcessed = false;
 
@@ -143,10 +139,7 @@ struct RegattaData {
 RegattaData regattaData = {false, 0.0, 0.0, 0.0, 0.0, -1.0};
 
 // Regatta Functions (prototypes)
-float haversineDistance(double lat1, double lon1, double lat2, double lon2);
-float distanceToLine(double px, double py, double x1, double y1, double x2, double y2);
 void calculateRegattaData();
-bool isValidGPSCoordinates(double lat, double lon);
 
 // Function prototypes (declared early for use in callbacks)
 bool safeBLESend(const String& data, bool isCommand = false);
@@ -161,7 +154,18 @@ void handleDiscoveryButton();
 void startDiscoveryMode();
 void stopDiscoveryMode();
 void updateDiscoveryStatus();
-void updateRefreshRate();
+
+WindSensorReader<ModbusMaster, HardwareSerial, HardwareSerial> windReader(
+    windSensor,
+    rs485,
+    RS485_RX,
+    RS485_TX,
+    preTransmission,
+    postTransmission,
+    millis,
+    SERIAL_8E1,
+    SERIAL_8N1,
+    &Serial);
 
 
 
@@ -169,46 +173,41 @@ void updateRefreshRate();
 bool safeBLESend(const String& data, bool isCommand) {
   Serial.printf("[BLE DEBUG] Attempting to send %d chars, command=%s\n", 
                data.length(), isCommand ? "true" : "false");
-  
-  // Check if we have a valid connection and characteristic
-  if (!pServer || pServer->getConnectedCount() == 0 || !pSensorDataCharacteristic) {
-    Serial.println("[BLE DEBUG] FAILED: No server, connection, or characteristic");
-    return false;
-  }
-  
-  Serial.printf("[BLE DEBUG] Connected devices: %d\n", pServer->getConnectedCount());
-  
-  // Wait for any ongoing transmission to complete (max 100ms timeout)
-  unsigned long startTime = millis();
-  while (bleSending && (millis() - startTime) < 100) {
-    delay(1);
-  }
-  
-  // If still sending after timeout, skip this transmission
-  if (bleSending) {
-    Serial.println("[BLE DEBUG] FAILED: Transmission timeout, skipping...");
-    return false;
-  }
-  
-  // Set sending flag
-  bleSending = true;
-  try {
-    // Convert string to byte array to avoid encoding issues
-    std::vector<uint8_t> dataBytes(data.begin(), data.end());
-    
-    pSensorDataCharacteristic->setValue(dataBytes);
-    pSensorDataCharacteristic->notify();
-    // Small delay to ensure transmission completes
-    delay(isCommand ? 10 : 5);
+  Serial.printf("[BLE DEBUG] Connected devices: %d\n", pServer ? pServer->getConnectedCount() : 0);
+
+  auto setValueFn = [](void* characteristic, const uint8_t* value, size_t len) -> bool {
+    auto* ch = static_cast<NimBLECharacteristic*>(characteristic);
+    try {
+      ch->setValue(value, len);
+      return true;
+    } catch (...) {
+      return false;
+    }
+  };
+
+  auto notifyFn = [](void* characteristic) {
+    auto* ch = static_cast<NimBLECharacteristic*>(characteristic);
+    ch->notify();
+  };
+
+  bool ok = safeBleSendCore(pServer,
+                            pServer ? pServer->getConnectedCount() : 0,
+                            pSensorDataCharacteristic,
+                            bleSending,
+                            data,
+                            isCommand,
+                            millis,
+                            reinterpret_cast<void (*)(unsigned long)>(delay),
+                            setValueFn,
+                            notifyFn);
+
+  if (!ok) {
+    Serial.println("[BLE DEBUG] FAILED: Transmission skipped or failed");
+  } else {
     Serial.printf("[BLE DEBUG] Delay completed (%d ms)\n", isCommand ? 10 : 5);
-    
-    bleSending = false;
-    return true;
-  } catch (...) {
-    bleSending = false;
-    Serial.println("[BLE DEBUG] FAILED: Exception during transmission");
-    return false;
   }
+
+  return ok;
 }
 
 // BLE Server Callbacks
@@ -288,22 +287,21 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
         DeserializationError error = deserializeJson(doc, value.c_str());
         
         if (!error) {
-          String action = doc["action"];
-          String cmd = doc["cmd"];
+          BleCommand command;
+          parseBleCommandDoc(doc, command);
           
           Serial.printf("[BLE RECV] Parsed JSON - action: '%s', cmd: '%s'\n", 
-                       action.c_str(), cmd.c_str());
+                       command.action.c_str(), command.cmd.c_str());
           
           // Log OTA-related commands with extra detail
-          if (cmd == "START_FW_UPDATE" || cmd == "FW_CHUNK" || cmd == "VERIFY_FW" || cmd == "APPLY_FW") {
-            Serial.printf("[OTA CMD] Received: %s\n", cmd.c_str());
-            if (cmd == "FW_CHUNK") {
-              int chunkIndex = doc["index"];
-              Serial.printf("[OTA CMD] Chunk index: %d\n", chunkIndex);
+          if (command.cmd == "START_FW_UPDATE" || command.cmd == "FW_CHUNK" || command.cmd == "VERIFY_FW" || command.cmd == "APPLY_FW") {
+            Serial.printf("[OTA CMD] Received: %s\n", command.cmd.c_str());
+            if (command.cmd == "FW_CHUNK" && command.hasIndex) {
+              Serial.printf("[OTA CMD] Chunk index: %d\n", command.index);
             }
           }
           
-          if (action == "resetHeelAngle") {
+          if (command.action == "resetHeelAngle") {
             // Calibrate vessel level position (boat is level, any heading)
             if (imuAvailable) {
               if (imu.dataAvailable()) {
@@ -312,8 +310,9 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
                 float accelY = imu.getAccelY();
                 float accelZ = imu.getAccelZ();
                 
-                float currentRoll = atan2(accelX, sqrt(accelY * accelY + accelZ * accelZ)) * 180.0f / PI;
-                float currentPitch = atan2(accelY, sqrt(accelX * accelX + accelZ * accelZ)) * 180.0f / PI;
+                float currentRoll = 0.0f;
+                float currentPitch = 0.0f;
+                computeRollPitchDegrees(accelX, accelY, accelZ, currentRoll, currentPitch);
                 
                 // Store these as offsets
                 rollOffset = currentRoll;
@@ -333,7 +332,7 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
               Serial.println("Level calibration failed - IMU sensor not available");
             }
           }
-          else if (action == "resetCompassNorth") {
+          else if (command.action == "resetCompassNorth") {
             // Calibrate compass north (bow points north, any heel angle)
             if (imuAvailable) {
               if (imu.dataAvailable()) {
@@ -347,10 +346,12 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
                 
                 if (quatMag > 0.1) {
                   // Calculate current tilt-compensated heading from rotation vector quaternion
-                  float currentHeading = atan2(2.0f * (quatI*quatJ + quatReal*quatK),
-                                             quatReal*quatReal + quatI*quatI - quatJ*quatJ - quatK*quatK);
-                  currentHeading = currentHeading * 180.0f / PI;
-                  if (currentHeading < 0) currentHeading += 360.0f;
+                  float currentHeading = 0.0f;
+                  bool hasHeading = computeHeadingDegreesFromQuaternion(quatI, quatJ, quatK, quatReal, currentHeading);
+                  if (!hasHeading) {
+                    Serial.println("Compass calibration failed - rotation vector not ready");
+                    return;
+                  }
                   
                   // Store this as the heading offset (when bow points north, this should become 0°)
                   headingOffset = currentHeading;
@@ -370,13 +371,13 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
               Serial.println("Compass calibration failed - IMU sensor not available");
             }
           }
-          else if (action == "regattaSetPort") {
+          else if (command.action == "regattaSetPort") {
             if (gps.location.isValid()) {
               double lat = gps.location.lat();
               double lon = gps.location.lng();
               
               // Validate coordinates are within valid ranges
-              if (!isValidGPSCoordinates(lat, lon)) {
+              if (!isValidGpsCoordinates(lat, lon)) {
                 Serial.println("Cannot set regatta port position - GPS coordinates out of valid range");
               } else {
                 regattaData.portLat = lat;
@@ -411,13 +412,13 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
               Serial.println("Cannot set regatta port position - GPS fix not available");
             }
           }
-          else if (action == "regattaSetStarboard") {
+          else if (command.action == "regattaSetStarboard") {
             if (gps.location.isValid()) {
               double lat = gps.location.lat();
               double lon = gps.location.lng();
               
               // Validate coordinates are within valid ranges
-              if (!isValidGPSCoordinates(lat, lon)) {
+              if (!isValidGpsCoordinates(lat, lon)) {
                 Serial.println("Cannot set regatta starboard position - GPS coordinates out of valid range");
               } else {
                 regattaData.starboardLat = lat;
@@ -452,7 +453,7 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
               Serial.println("Cannot set regatta starboard position - GPS fix not available");
             }
           }
-          else if (action == "regattaClearPort") {
+          else if (command.action == "regattaClearPort") {
             regattaData.portLat = 0.0;
             regattaData.portLon = 0.0;
             regattaData.hasStartLine = false;
@@ -465,7 +466,7 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
             
             Serial.println("Regatta port position cleared");
           }
-          else if (action == "regattaClearStarboard") {
+          else if (command.action == "regattaClearStarboard") {
             regattaData.starboardLat = 0.0;
             regattaData.starboardLon = 0.0;
             regattaData.hasStartLine = false;
@@ -478,7 +479,7 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
             
             Serial.println("Regatta starboard position cleared");
           }
-          else if (action == "regattaGet") {
+          else if (command.action == "regattaGet") {
             // Send current regatta line coordinates
             DynamicJsonDocument response(256);
             response["type"] = "regatta_coords";
@@ -498,13 +499,14 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
               Serial.println("Failed to send regatta coordinates");
             }
           }
-          else if (action == "setRefreshRate") {
+          else if (command.action == "setRefreshRate") {
             float newRefreshRate = doc["refreshRate"];
-            if (newRefreshRate >= 0.5f && newRefreshRate <= 2.0f) {
-              refreshRateSeconds = newRefreshRate;
+            float nextRefreshRate = 0.0f;
+            if (validateRefreshRate(newRefreshRate, 0.5f, 2.0f, nextRefreshRate)) {
+              refreshRateSeconds = nextRefreshRate;
               preferences.putFloat("refreshRate", refreshRateSeconds);
-              updateRefreshRate();
-              Serial.printf("Refresh rate changed to %.1f seconds (%d ms)\n", refreshRateSeconds, (int)(refreshRateSeconds * 1000.0f));
+              refreshRate = clampRefreshRateMs(refreshRateSeconds, 500, 2000);
+              Serial.printf("Refresh rate changed to %.1f seconds (%lu ms)\n", refreshRateSeconds, refreshRateMs(refreshRateSeconds));
               
               // Send confirmation response
               DynamicJsonDocument response(128);
@@ -517,64 +519,50 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
               Serial.println("Invalid refresh rate - must be between 0.5 and 2.0 seconds");
             }
           }
-          else if (action == "setDeviceName") {
-            String newDeviceName = doc["deviceName"];
-            if (newDeviceName.length() > 0 && newDeviceName.length() <= 20) {
-              // Basic validation: remove leading/trailing spaces and validate characters
-              newDeviceName.trim();
-              
-              // Check for invalid characters that could break BLE device name
-              bool validName = true;
-              for (int i = 0; i < newDeviceName.length(); i++) {
-                char c = newDeviceName[i];
-                // Allow alphanumeric, underscore, hyphen, and space for device names
-                if (!((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || 
-                      (c >= '0' && c <= '9') || c == '_' || c == '-' || c == ' ')) {
-                  validName = false;
-                  break;
-                }
-              }
-              
-              if (validName && newDeviceName.length() > 0) {
-                // Get current device name for comparison
-                String currentDeviceName = preferences.getString("deviceName", "Veetr");
-                
-                // Save new device name to preferences
-                preferences.putString("deviceName", newDeviceName);
-                
-                // CRITICAL: Ensure preferences are committed to NVS before restart
-                preferences.end();  // Close preferences to force commit
-                delay(100);         // Give time for flash write
-                preferences.begin("settings", false);  // Reopen preferences
-                
-                // Verify the name was actually saved
-                String savedName = preferences.getString("deviceName", "Veetr");
-                Serial.printf("Device name changed from '%s' to '%s'\n", currentDeviceName.c_str(), newDeviceName.c_str());
-                Serial.printf("Verified saved name: '%s'\n", savedName.c_str());
-                
-                if (savedName != newDeviceName) {
-                  Serial.println("ERROR: Device name not saved properly to NVS!");
-                  return; // Don't restart if save failed
-                }
-                
-                // Send success response first before restarting
-                Serial.println("Device name saved successfully - ESP32 will restart to apply changes");
-                
-                // Reset BLE with new random address to bypass client cache
-                resetBLEForNewName(newDeviceName);
-                
-                // Restart ESP32 to apply new device name
-                Serial.println("ESP32 will restart in 1 second");
-                delay(200); // Brief delay to ensure BLE response is sent
-                ESP.restart();
-              } else {
-                Serial.println("Invalid device name - only alphanumeric, underscore, hyphen, and space allowed");
-              }
-            } else {
+          else if (command.action == "setDeviceName") {
+            String requestedDeviceName = doc["deviceName"];
+            char trimmedName[21];
+            size_t trimmedLen = trimDeviceName(requestedDeviceName.c_str(), trimmedName, sizeof(trimmedName));
+            if (trimmedLen == 0 || trimmedLen >= sizeof(trimmedName)) {
               Serial.println("Invalid device name - must be 1-20 characters");
+            } else if (!isValidDeviceName(trimmedName, trimmedLen, 20)) {
+              Serial.println("Invalid device name - only alphanumeric, underscore, hyphen, and space allowed");
+            } else {
+              String newDeviceName = String(trimmedName);
+              // Get current device name for comparison
+              String currentDeviceName = preferences.getString("deviceName", "Veetr");
+
+              // Save new device name to preferences
+              preferences.putString("deviceName", newDeviceName);
+
+              // CRITICAL: Ensure preferences are committed to NVS before restart
+              preferences.end();  // Close preferences to force commit
+              delay(100);         // Give time for flash write
+              preferences.begin("settings", false);  // Reopen preferences
+
+              // Verify the name was actually saved
+              String savedName = preferences.getString("deviceName", "Veetr");
+              Serial.printf("Device name changed from '%s' to '%s'\n", currentDeviceName.c_str(), newDeviceName.c_str());
+              Serial.printf("Verified saved name: '%s'\n", savedName.c_str());
+
+              if (savedName != newDeviceName) {
+                Serial.println("ERROR: Device name not saved properly to NVS!");
+                return; // Don't restart if save failed
+              }
+
+              // Send success response first before restarting
+              Serial.println("Device name saved successfully - ESP32 will restart to apply changes");
+
+              // Reset BLE with new random address to bypass client cache
+              resetBLEForNewName(newDeviceName);
+
+              // Restart ESP32 to apply new device name
+              Serial.println("ESP32 will restart in 1 second");
+              delay(200); // Brief delay to ensure BLE response is sent
+              ESP.restart();
             }
           }
-          else if (action == "restartWithNewName") {
+          else if (command.action == "restartWithNewName") {
             Serial.println("Restarting ESP32 to apply new device name...");
             delay(500); // Give time for response to be sent
             ESP.restart();
@@ -628,53 +616,33 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
           else if (doc["cmd"] == "START_FW_UPDATE") {
             Serial.println("[BLE OTA] Starting firmware update using ESP32 Update library");
             
-            // Get firmware size - required for Update.begin()
-            if (!doc.containsKey("size")) {
+            OtaResponse otaResponse;
+            bool started = otaHandler.handleStart(doc.as<JsonObjectConst>(), otaBackend, otaState, millis(), otaResponse);
+            if (doc.containsKey("size")) {
+              Serial.printf("[BLE OTA] Firmware size: %u bytes\n", otaState.size);
+              Serial.printf("[BLE OTA] Free heap: %u bytes\n", ESP.getFreeHeap());
+              Serial.printf("[BLE OTA] Flash size: %u bytes\n", ESP.getFlashChipSize());
+            } else {
               Serial.println("[BLE OTA] Error: Firmware size not provided");
-              DynamicJsonDocument response(128);
-              response["type"] = "error";
-              response["message"] = "Firmware size required";
-              String responseStr;
-              serializeJson(response, responseStr);
-              safeBLESend(responseStr, true);
-              return;
             }
-            
-            otaSize = doc["size"];
-            Serial.printf("[BLE OTA] Firmware size: %u bytes\n", otaSize);
-            
-            // Check available space and state
-            Serial.printf("[BLE OTA] Free heap: %u bytes\n", ESP.getFreeHeap());
-            Serial.printf("[BLE OTA] Flash size: %u bytes\n", ESP.getFlashChipSize());
-            
-            // Ensure clean state by aborting any previous update
-            if (Update.isRunning()) {
-              Serial.println("[BLE OTA] Aborting previous update operation");
-              Update.abort();
+
+            if (!started && otaResponse.hasMessage) {
+              uint8_t errorCode = otaBackend.getError ? otaBackend.getError() : 0;
+              if (errorCode != 0) {
+                Serial.printf("[BLE OTA] Update.begin() failed: %s (error code: %u)\n",
+                              otaBackend.errorString ? otaBackend.errorString() : "", errorCode);
+              }
             }
-            
-            // Begin OTA update
-            if (!Update.begin(otaSize)) {
-              uint8_t error = Update.getError();
-              Serial.printf("[BLE OTA] Update.begin() failed: %s (error code: %u)\n", Update.errorString(), error);
-              DynamicJsonDocument response(128);
-              response["type"] = "error";
-              response["message"] = "Failed to begin update";
-              String responseStr;
-              serializeJson(response, responseStr);
-              safeBLESend(responseStr, true);
-              return;
+
+            if (started) {
+              Serial.println("[BLE OTA] Ready to receive firmware data");
             }
-            
-            bleOTAActive = true;
-            otaStartTime = millis();
-            otaWritten = 0;
-            
-            Serial.println("[BLE OTA] Ready to receive firmware data");
-            
-            // Send acknowledgment
+
             DynamicJsonDocument response(128);
-            response["type"] = "update_ready";
+            response["type"] = otaResponse.type;
+            if (otaResponse.hasMessage) {
+              response["message"] = otaResponse.message;
+            }
             String responseStr;
             serializeJson(response, responseStr);
             safeBLESend(responseStr, true);
@@ -682,18 +650,11 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
           else if (doc["cmd"] == "STOP_FW_UPDATE") {
             Serial.println("[BLE OTA] Stopping firmware update");
             
-            if (bleOTAActive) {
-              Update.abort();
-              Serial.println("[BLE OTA] Update aborted");
-            }
-            
-            bleOTAActive = false;
-            otaStartTime = 0;
-            otaWritten = 0;
-            otaSize = 0;
-            
+            OtaResponse otaResponse;
+            otaHandler.handleStop(otaBackend, otaState, otaResponse);
+            Serial.println("[BLE OTA] Update aborted");
             DynamicJsonDocument response(128);
-            response["type"] = "update_stopped";
+            response["type"] = otaResponse.type;
             String responseStr;
             serializeJson(response, responseStr);
             safeBLESend(responseStr, true);
@@ -702,15 +663,17 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
             // Send OTA status response
             DynamicJsonDocument response(256);
             response["type"] = "ota_status";
-            response["active"] = bleOTAActive;
+            response["active"] = otaState.active;
             response["library"] = "ESP32 Update";
-            
-            if (bleOTAActive && otaStartTime > 0) {
-              response["elapsed_ms"] = millis() - otaStartTime;
-              response["written"] = otaWritten;
-              response["size"] = otaSize;
-              if (otaSize > 0) {
-                response["progress"] = (float)otaWritten / otaSize * 100.0;
+
+            OtaStatus status;
+            otaHandler.handleStatus(otaState, millis(), status);
+            if (status.active) {
+              response["elapsed_ms"] = status.elapsedMs;
+              response["written"] = status.written;
+              response["size"] = status.size;
+              if (status.hasProgress) {
+                response["progress"] = status.progress;
               }
             }
             
@@ -719,122 +682,65 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
             safeBLESend(responseStr, true);
           }
           else if (doc["cmd"] == "FW_CHUNK") {
-            if (!bleOTAActive) {
-              Serial.println("[BLE OTA] Error: Firmware update not active");
-              DynamicJsonDocument response(128);
-              response["type"] = "error";
-              response["message"] = "Update not active";
-              String responseStr;
-              serializeJson(response, responseStr);
-              safeBLESend(responseStr, true);
-              return;
+            OtaResponse otaResponse;
+            bool ok = otaHandler.handleChunk(doc.as<JsonObjectConst>(), otaBackend, otaState, otaResponse);
+            if (!ok) {
+              if (otaResponse.hasMessage) {
+                Serial.printf("[BLE OTA] Error: %s\n", otaResponse.message);
+              }
+            } else if (otaResponse.hasWritten && otaResponse.hasProgress) {
+              Serial.printf("[BLE OTA] Wrote %u bytes, total: %u/%u (%.1f%%)\n",
+                           otaResponse.written, otaState.written, otaState.size, otaResponse.progress);
             }
-            
-            // Get chunk index and data from base64
-            int chunkIndex = doc["index"];
-            if (!doc.containsKey("data")) {
-              Serial.println("[BLE OTA] Error: No data in chunk");
-              DynamicJsonDocument response(128);
-              response["type"] = "error";
-              response["message"] = "No chunk data";
-              String responseStr;
-              serializeJson(response, responseStr);
-              safeBLESend(responseStr, true);
-              return;
-            }
-            
-            // Decode base64 data
-            String dataB64 = doc["data"];
-            int expectedLen = (dataB64.length() * 3) / 4;
-            uint8_t* decodedData = (uint8_t*)malloc(expectedLen);
-            int actualLen = base64_decode(dataB64.c_str(), decodedData);
-            
-            if (actualLen <= 0) {
-              Serial.println("[BLE OTA] Base64 decode failed");
-              free(decodedData);
-              DynamicJsonDocument response(128);
-              response["type"] = "error";
-              response["message"] = "Base64 decode failed";
-              String responseStr;
-              serializeJson(response, responseStr);
-              safeBLESend(responseStr, true);
-              return;
-            }
-            
-            // Write chunk to flash
-            size_t written = Update.write(decodedData, actualLen);
-            free(decodedData);
-            
-            if (written != actualLen) {
-              Serial.printf("[BLE OTA] Write failed: %s\n", Update.errorString());
-              DynamicJsonDocument response(128);
-              response["type"] = "error";
-              response["message"] = "Write failed";
-              String responseStr;
-              serializeJson(response, responseStr);
-              safeBLESend(responseStr, true);
-              return;
-            }
-            
-            otaWritten += written;
-            Serial.printf("[BLE OTA] Wrote %u bytes, total: %u/%u (%.1f%%)\n", 
-                         written, otaWritten, otaSize, (float)otaWritten/otaSize*100.0);
-            
-            // Send chunk acknowledgment
+
             DynamicJsonDocument response(128);
-            response["type"] = "chunk_ack";
-            response["index"] = chunkIndex;
-            response["written"] = otaWritten;
-            response["progress"] = (float)otaWritten / otaSize * 100.0;
+            response["type"] = otaResponse.type;
+            if (otaResponse.hasMessage) {
+              response["message"] = otaResponse.message;
+            }
+            if (otaResponse.hasIndex) {
+              response["index"] = otaResponse.index;
+            }
+            if (otaResponse.hasWritten) {
+              response["written"] = otaResponse.written;
+            }
+            if (otaResponse.hasProgress) {
+              response["progress"] = otaResponse.progress;
+            }
             String responseStr;
             serializeJson(response, responseStr);
             safeBLESend(responseStr, true);
           }
           else if (doc["cmd"] == "VERIFY_FW") {
-            if (!bleOTAActive) {
-              Serial.println("[BLE OTA] Error: Firmware update not active");
-              DynamicJsonDocument response(128);
-              response["type"] = "error";
-              response["message"] = "Update not active";
-              String responseStr;
-              serializeJson(response, responseStr);
-              safeBLESend(responseStr, true);
-              return;
-            }
-            
-            // Finalize the update
-            if (Update.end(true)) {
+            OtaResponse otaResponse;
+            bool ok = otaHandler.handleVerify(otaBackend, otaState, otaResponse);
+            if (ok) {
               Serial.println("[BLE OTA] Firmware update completed successfully!");
-              
-              DynamicJsonDocument response(128);
-              response["type"] = "update_complete";
-              response["message"] = "Firmware verified and ready to apply";
-              String responseStr;
-              serializeJson(response, responseStr);
-              safeBLESend(responseStr, true);
             } else {
-              Serial.printf("[BLE OTA] Update failed: %s\n", Update.errorString());
-              
-              DynamicJsonDocument response(128);
-              response["type"] = "error";
-              response["message"] = "Verification failed";
-              String responseStr;
-              serializeJson(response, responseStr);
-              safeBLESend(responseStr, true);
+              Serial.printf("[BLE OTA] Update failed: %s\n",
+                           otaBackend.errorString ? otaBackend.errorString() : "");
             }
-            
-            bleOTAActive = false;
-            otaStartTime = 0;
-            otaWritten = 0;
-            otaSize = 0;
+
+            DynamicJsonDocument response(128);
+            response["type"] = otaResponse.type;
+            if (otaResponse.hasMessage) {
+              response["message"] = otaResponse.message;
+            }
+            String responseStr;
+            serializeJson(response, responseStr);
+            safeBLESend(responseStr, true);
           }
           else if (doc["cmd"] == "APPLY_FW") {
             Serial.println("[BLE OTA] Applying firmware update - restarting...");
             
             // Send response before restart
+            OtaResponse otaResponse;
+            otaHandler.handleApply(otaResponse);
             DynamicJsonDocument response(128);
-            response["type"] = "restarting";
-            response["message"] = "Applying firmware update";
+            response["type"] = otaResponse.type;
+            if (otaResponse.hasMessage) {
+              response["message"] = otaResponse.message;
+            }
             String responseStr;
             serializeJson(response, responseStr);
             safeBLESend(responseStr, true);
@@ -854,13 +760,10 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
 
 // Function to read BLE connection RSSI
 void updateBLERSSI() {
-  static unsigned long lastRSSIUpdate = 0;
-  static int rssiReadings[5] = {0}; // Sliding window for smoothing
-  static int rssiIndex = 0;
-  static bool rssiArrayInitialized = false;
+  static BleRssiState rssiState;
   
   // Only update RSSI every 3 seconds to reduce noise
-  if (millis() - lastRSSIUpdate < 3000) {
+  if (millis() - rssiState.lastUpdateMs < 3000) {
     return;
   }
   
@@ -874,30 +777,9 @@ void updateBLERSSI() {
       // Call the NimBLE function to read RSSI
       int8_t rssi = 0;
       if (ble_gap_conn_rssi(connHandle, &rssi) == 0) {
-        bleRSSI = rssi;
-        
-        // Initialize array with first reading
-        if (!rssiArrayInitialized) {
-          for (int i = 0; i < 5; i++) {
-            rssiReadings[i] = rssi;
-          }
-          rssiArrayInitialized = true;
-        }
-        
-        // Add new reading to sliding window
-        rssiReadings[rssiIndex] = rssi;
-        rssiIndex = (rssiIndex + 1) % 5;
-        
-        // Calculate smoothed average
-        int sum = 0;
-        for (int i = 0; i < 5; i++) {
-          sum += rssiReadings[i];
-        }
-        bleRSSIFiltered = sum / 5;
-        
+        updateBleRssiState(rssiState, millis(), true, true, true, rssi);
       } else {
-        bleRSSI = -50; // Fallback if RSSI read fails
-        bleRSSIFiltered = -50;
+        updateBleRssiState(rssiState, millis(), true, true, false, 0);
       }
       
       #ifdef DEBUG_BLE_DATA
@@ -915,46 +797,41 @@ void updateBLERSSI() {
       }
       #endif
     } else {
-      bleRSSI = 0; // No valid connection IDs
-      bleRSSIFiltered = 0;
+      updateBleRssiState(rssiState, millis(), true, false, false, 0);
     }
   } else {
-    bleRSSI = 0; // No connection
-    bleRSSIFiltered = 0;
+    updateBleRssiState(rssiState, millis(), false, false, false, 0);
   }
-  
-  lastRSSIUpdate = millis();
+
+  bleRSSI = rssiState.current;
+  bleRSSIFiltered = rssiState.filtered;
 }
 
 // Discovery Mode Functions
 void handleDiscoveryButton() {
   int reading = digitalRead(DISCOVERY_BUTTON_PIN);
-  
-  // Check for state change
-  if (reading != lastButtonState) {
-    lastButtonDebounceTime = millis();
-    Serial.printf("[DISCOVERY] Button state changed: %s (raw value: %d)\n", 
+
+  // Check for state change (for debug logging)
+  if (reading != discoveryButtonState.lastReading) {
+    Serial.printf("[DISCOVERY] Button state changed: %s (raw value: %d)\n",
                   reading == LOW ? "PRESSED" : "RELEASED", reading);
-    lastButtonState = reading;  // Update immediately on state change
   }
-  
-  // Check for stable button press after debounce delay
-  if ((millis() - lastButtonDebounceTime) > debounceDelay) {
-    if (reading == LOW && !buttonProcessed) {
-      // Button is pressed and stable, and we haven't processed this press yet
-      Serial.println("[DISCOVERY] *** BUTTON PRESS DETECTED! ***");
-      buttonProcessed = true;  // Mark as processed
-      
-      if (!discoveryModeActive) {
-        Serial.println("[DISCOVERY] Starting discovery mode...");
-        startDiscoveryMode();
-      } else {
-        Serial.println("[DISCOVERY] Stopping discovery mode...");
-        stopDiscoveryMode();
-      }
-    } else if (reading == HIGH) {
-      // Button is released, reset the processed flag
-      buttonProcessed = false;
+
+  bool pressed = handleDiscoveryButtonPress(
+    discoveryButtonState,
+    reading,
+    millis(),
+    debounceDelay
+  );
+
+  if (pressed) {
+    Serial.println("[DISCOVERY] *** BUTTON PRESS DETECTED! ***");
+    if (!discoveryModeActive) {
+      Serial.println("[DISCOVERY] Starting discovery mode...");
+      startDiscoveryMode();
+    } else {
+      Serial.println("[DISCOVERY] Stopping discovery mode...");
+      stopDiscoveryMode();
     }
   }
 }
@@ -997,18 +874,25 @@ void stopDiscoveryMode() {
 
 void updateDiscoveryStatus() {
   if (discoveryModeActive) {
-    // Check if discovery timeout has elapsed
-    if (millis() - discoveryModeStartTime > DISCOVERY_TIMEOUT_MS) {
+    static unsigned long lastBlink = 0;
+    unsigned long nowMs = millis();
+    DiscoveryBlinkStatus status = computeDiscoveryBlink(
+      discoveryModeStartTime,
+      nowMs,
+      DISCOVERY_TIMEOUT_MS,
+      3000,
+      1000,
+      lastBlink
+    );
+
+    if (status.timedOut) {
       stopDiscoveryMode();
-    } else {
-      // Blink LED to show discovery is active (after first 3 seconds)
-      if (millis() - discoveryModeStartTime > 3000) {
-        static unsigned long lastBlink = 0;
-        if (millis() - lastBlink > 1000) { // Blink every second
-          digitalWrite(DISCOVERY_LED_PIN, !digitalRead(DISCOVERY_LED_PIN));
-          lastBlink = millis();
-        }
-      }
+      return;
+    }
+
+    if (status.shouldToggle) {
+      digitalWrite(DISCOVERY_LED_PIN, !digitalRead(DISCOVERY_LED_PIN));
+      lastBlink = status.nextLastBlinkMs;
     }
   }
 }
@@ -1022,71 +906,11 @@ void postTransmission() {
   digitalWrite(RS485_DE, LOW); 
 }
 
-// Data structure to hold sensor readings
-struct SensorData {
-  float speed;          // Vessel speed in knots
-  float windSpeed;      // Apparent wind speed in knots
-  int windAngle;        // Apparent wind angle in degrees (0-360)
-  float trueWindSpeed;  // True wind speed in knots
-  int trueWindAngle;    // True wind angle in degrees (0-360)
-  float tilt;           // Vessel heel/tilt angle in degrees (roll)
-  float pitch;          // Vessel pitch/trim angle in degrees
-  int HDM;              // Magnetic heading in degrees (0-359)
-  float accelX;         // Acceleration X-axis in m/s²
-  float accelY;         // Acceleration Y-axis in m/s²
-  float accelZ;         // Acceleration Z-axis in m/s²
-};
-
-// Function to calculate true wind angle from apparent wind angle
-void calculateTrueWind(float vesselSpeed, int apparentWindAngle, float apparentWindSpeed, 
-                       float &trueWindSpeed, int &trueWindAngle) {
-  
-  // Convert apparent wind angle to radians (0-360° input)
-  float appWindAngleRad = apparentWindAngle * PI / 180.0;
-  
-  // Convert apparent wind to velocity components (relative to vessel)
-  // Apparent wind angle is measured clockwise from bow (0°=ahead, 90°=starboard, 180°=behind, 270°=port)
-  float appWindX = apparentWindSpeed * sin(appWindAngleRad);  // Cross-track component (positive = starboard)
-  float appWindY = apparentWindSpeed * cos(appWindAngleRad);  // Along-track component (positive = ahead)
-  
-  // True wind components = apparent wind - vessel velocity
-  // Vessel is moving forward (positive Y direction)
-  float trueWindX = appWindX;  // Cross-track component unchanged
-  float trueWindY = appWindY - vesselSpeed;  // Subtract vessel forward speed
-  
-  // Calculate true wind speed
-  trueWindSpeed = sqrt(trueWindX * trueWindX + trueWindY * trueWindY);
-  
-  // Calculate true wind angle (relative to vessel bow, 0-360°)
-  float trueWindAngleRad = atan2(trueWindX, trueWindY);
-  trueWindAngle = round(trueWindAngleRad * 180.0 / PI);
-  
-  // Normalize angle to 0-359° range
-  if (trueWindAngle < 0) trueWindAngle += 360;
-  if (trueWindAngle >= 360) trueWindAngle -= 360;
-  
-  // Ensure we don't have negative wind speeds
-  if (trueWindSpeed < 0) {
-    trueWindSpeed = 0;
-  }
-}
-
 // Current sensor data
 SensorData currentData = {0};
 
 // GPS status
 bool gpsDataValid = false;
-
-// Refresh rate in milliseconds
-int refreshRate = 1000;
-
-// Function to update refresh rate from seconds to milliseconds
-void updateRefreshRate() {
-  refreshRate = (int)(refreshRateSeconds * 1000.0f);
-  // Clamp to reasonable bounds (500ms to 2000ms)
-  if (refreshRate < 500) refreshRate = 500;
-  if (refreshRate > 2000) refreshRate = 2000;
-}
 
 // Timestamp for next update
 unsigned long nextUpdate = 0;
@@ -1102,10 +926,13 @@ String getSensorDataJson();
 void setupBLE();
 void updateBLEData();
 float filterGPSSpeed(float rawSpeed, int satellites, float hdop);
-
-// Wind Sensor Functions
-bool readWindSensor(float &windSpeed, int &windAngle);
-float regsToFloat(uint16_t lowReg, uint16_t highReg);
+static bool otaBegin(uint32_t size);
+static bool otaIsRunning();
+static void otaAbort();
+static size_t otaWrite(const uint8_t* data, size_t length);
+static bool otaEnd(bool evenIfRemaining);
+static const char* otaErrorString();
+static uint8_t otaGetError();
 
 // GPS Functions
 bool readGPS();
@@ -1119,7 +946,7 @@ void generateRandomBLEAddress() {
   esp_fill_random(randomAddr, 6);
   
   // Ensure it's a valid random address (first two bits should be '11')
-  randomAddr[5] |= 0xC0;
+  normalizeRandomBleAddress(randomAddr, sizeof(randomAddr));
   
   Serial.printf("[BLE] Generated random address: %02X:%02X:%02X:%02X:%02X:%02X\n",
                randomAddr[5], randomAddr[4], randomAddr[3], 
@@ -1135,6 +962,26 @@ void resetBLEForNewName(const String& newName) {
   
   Serial.println("[BLE] ESP32 will restart with new name and random address");
 }
+
+static bool otaBegin(uint32_t size) { return Update.begin(size); }
+static bool otaIsRunning() { return Update.isRunning(); }
+static void otaAbort() { Update.abort(); }
+static size_t otaWrite(const uint8_t* data, size_t length) {
+  return Update.write(const_cast<uint8_t*>(data), length);
+}
+static bool otaEnd(bool evenIfRemaining) { return Update.end(evenIfRemaining); }
+static const char* otaErrorString() { return Update.errorString(); }
+static uint8_t otaGetError() { return Update.getError(); }
+
+OtaBackend otaBackend = {
+  otaBegin,
+  otaIsRunning,
+  otaAbort,
+  otaWrite,
+  otaEnd,
+  otaErrorString,
+  otaGetError
+};
 
 // BLE Setup Function
 void setupBLE() {
@@ -1239,44 +1086,18 @@ void updateBLEData() {
     if (jsonData.length() > MAX_BLE_PACKET_SIZE) {
       Serial.printf("[BLE] JSON %d bytes exceeds safe limit %d; reducing optional fields...\n", jsonData.length(), MAX_BLE_PACKET_SIZE);
       
-      // Attempt to shrink by removing low-priority fields
-      StaticJsonDocument<1024> tmpDoc; // use static for deterministic stack allocation
-      DeserializationError dErr = deserializeJson(tmpDoc, jsonData.c_str());
-      if (!dErr) {
-        // Remove least critical fields first
-        tmpDoc.remove("accelX");
-        tmpDoc.remove("accelY");
-        tmpDoc.remove("accelZ");
-        tmpDoc.remove("pitch");
-        
-        // Re-serialize and check
-        String reduced;
-        serializeJson(tmpDoc, reduced);
-        
-        if (reduced.length() > MAX_BLE_PACKET_SIZE) {
-          // Remove additional optional identifiers if still too large
-          tmpDoc.remove("deviceName");
-          tmpDoc.remove("rssi");
-          tmpDoc.remove("hdop");
-          reduced = String();
-          serializeJson(tmpDoc, reduced);
-        }
-        
-        if (reduced.length() <= MAX_BLE_PACKET_SIZE) {
-          jsonData = reduced;
-          Serial.printf("[BLE] Reduced JSON to %d bytes\n", jsonData.length());
-        } else {
-          Serial.printf("[BLE] ERROR: Unable to reduce JSON below %d bytes (now %d)\n", MAX_BLE_PACKET_SIZE, reduced.length());
-          return; // Skip sending to avoid fragmentation/corruption
-        }
+      String reduced;
+      if (reduceBlePayload(jsonData, MAX_BLE_PACKET_SIZE, reduced)) {
+        jsonData = reduced;
+        Serial.printf("[BLE] Reduced JSON to %d bytes\n", jsonData.length());
       } else {
-        Serial.println("[BLE] ERROR: Failed to deserialize JSON for reduction");
-        return;
+        Serial.printf("[BLE] ERROR: Unable to reduce JSON below %d bytes (now %d)\n", MAX_BLE_PACKET_SIZE, jsonData.length());
+        return; // Skip sending to avoid fragmentation/corruption
       }
     }
     
     // Validate JSON format
-    if (!jsonData.startsWith("{") || !jsonData.endsWith("}")) {
+    if (!isBleJsonEnvelopeValid(jsonData.c_str(), jsonData.length())) {
       Serial.println("[BLE] ERROR: Invalid JSON format");
       return;
     }
@@ -1371,7 +1192,7 @@ void setup() {
   }
   
   // Update refresh rate from loaded value
-  updateRefreshRate();
+  refreshRate = clampRefreshRateMs(refreshRateSeconds, 500, 2000);
   Serial.printf("[Boot] Refresh rate set to %d ms (%.1f seconds)\n", refreshRate, refreshRateSeconds);
   
   // Initialize I2C for BNO080 with detection
@@ -1521,7 +1342,7 @@ void setup() {
   
   float testSpeed;
   int testDirection;
-  bool testResult = readWindSensor(testSpeed, testDirection);
+  bool testResult = windReader.read(testSpeed, testDirection);
   if (testResult) {
     Serial.printf("Wind sensor test PASSED: %.2f m/s (%.1f kt) @ %d°\n", 
                   testSpeed, testSpeed * 1.944, testDirection);
@@ -1538,30 +1359,30 @@ void loop() {
   updateDiscoveryStatus();
   
   // Handle OTA progress LED blinking using official component
-  if (bleOTAActive) {
+  if (otaState.active) {
     unsigned long currentTime = millis();
     
     // Periodic status reporting (every 5 seconds)
     static unsigned long lastStatusReport = 0;
     if (currentTime - lastStatusReport > 5000) {
-      unsigned long elapsedMinutes = (currentTime - otaStartTime) / 60000;
+      OtaTimeoutStatus status = computeOtaTimeoutStatus(otaState.startTimeMs, currentTime, 50, 60);
       Serial.printf("[BLE OTA] Status: Active for %lu ms (%lu minutes) using official Espressif component\n", 
-                   currentTime - otaStartTime, elapsedMinutes);
+                   status.elapsedMs, status.elapsedMinutes);
       
       // Warn when approaching timeout (at 50 minutes)
-      if (elapsedMinutes >= 50) {
-        Serial.printf("[BLE OTA] WARNING: Approaching timeout in %lu minutes\n", 60 - elapsedMinutes);
+      if (status.shouldWarn) {
+        Serial.printf("[BLE OTA] WARNING: Approaching timeout in %lu minutes\n", 60 - status.elapsedMinutes);
       }
       
       lastStatusReport = currentTime;
     }
     
     // Check for total OTA timeout (60 minutes - allow for very large firmware and slow BLE)
-    if (currentTime - otaStartTime > 3600000) { // 60 minutes
+    OtaTimeoutStatus status = computeOtaTimeoutStatus(otaState.startTimeMs, currentTime, 50, 60);
+    if (status.timedOut) {
       Serial.printf("[BLE OTA] Total timeout after %lu ms (%lu minutes). Component will handle cleanup.\n", 
-                   currentTime - otaStartTime, (currentTime - otaStartTime) / 60000);
-      bleOTAActive = false;
-      otaStartTime = 0;
+                   status.elapsedMs, status.elapsedMinutes);
+      resetOtaState(otaState);
       
       // Turn off LED and resume normal operation
       digitalWrite(DISCOVERY_LED_PIN, LOW);
@@ -1665,28 +1486,6 @@ static AccelPoint accelBuffer[ACCEL_BUFFER_SIZE];
 static int accelIndex = 0;
 static bool accelBufferFull = false;
 
-// Calculate distance between two GPS points in meters
-float calculateDistance(double lat1, double lon1, double lat2, double lon2) {
-  const float R = 6371000; // Earth's radius in meters
-  float dLat = (lat2 - lat1) * PI / 180.0;
-  float dLon = (lon2 - lon1) * PI / 180.0;
-  float a = sin(dLat/2) * sin(dLat/2) +
-            cos(lat1 * PI / 180.0) * cos(lat2 * PI / 180.0) *
-            sin(dLon/2) * sin(dLon/2);
-  float c = 2 * atan2(sqrt(a), sqrt(1-a));
-  return R * c;
-}
-
-// Calculate bearing between two GPS points in degrees
-float calculateBearing(double lat1, double lon1, double lat2, double lon2) {
-  float dLon = (lon2 - lon1) * PI / 180.0;
-  float y = sin(dLon) * cos(lat2 * PI / 180.0);
-  float x = cos(lat1 * PI / 180.0) * sin(lat2 * PI / 180.0) -
-            sin(lat1 * PI / 180.0) * cos(lat2 * PI / 180.0) * cos(dLon);
-  float bearing = atan2(y, x) * 180.0 / PI;
-  return fmod(bearing + 360.0, 360.0);
-}
-
 // Store accelerometer reading for movement analysis
 void storeAccelReading(float accelX, float accelY, float accelZ) {
   if (!imuAvailable) return;
@@ -1724,55 +1523,37 @@ bool isAccelerometerMovementDetected() {
   
   int validPoints = accelBufferFull ? ACCEL_BUFFER_SIZE : accelIndex;
   if (validPoints < 3) return false;
-  
-  // Calculate acceleration variance to detect movement
-  float totalMagnitude = 0.0;
-  float maxMagnitude = 0.0;
-  float minMagnitude = 1000.0;
-  
+
+  float magnitudes[ACCEL_BUFFER_SIZE];
+  int count = 0;
   for (int i = 0; i < validPoints; i++) {
     int idx = (accelIndex - validPoints + i + ACCEL_BUFFER_SIZE) % ACCEL_BUFFER_SIZE;
     if (!accelBuffer[idx].valid) continue;
-    
-    float mag = accelBuffer[idx].magnitude;
-    totalMagnitude += mag;
-    maxMagnitude = max(maxMagnitude, mag);
-    minMagnitude = min(minMagnitude, mag);
+    magnitudes[count++] = accelBuffer[idx].magnitude;
   }
-  
-  float avgMagnitude = totalMagnitude / validPoints;
-  float magnitudeRange = maxMagnitude - minMagnitude;
-  
-  // Calculate standard deviation of acceleration magnitude
-  float variance = 0.0;
-  for (int i = 0; i < validPoints; i++) {
-    int idx = (accelIndex - validPoints + i + ACCEL_BUFFER_SIZE) % ACCEL_BUFFER_SIZE;
-    if (!accelBuffer[idx].valid) continue;
-    
-    float diff = accelBuffer[idx].magnitude - avgMagnitude;
-    variance += diff * diff;
-  }
-  variance /= validPoints;
-  float stdDev = sqrt(variance);
-  
+
   // Movement detection thresholds
   const float MOVEMENT_STD_DEV_THRESHOLD = 0.5;  // m/s² - acceleration variation indicating movement
   const float MOVEMENT_RANGE_THRESHOLD = 1.0;    // m/s² - total acceleration range indicating movement
   const float MIN_AVERAGE_ACCEL = 8.0;           // m/s² - minimum for valid readings (gravity ~9.81)
   const float MAX_AVERAGE_ACCEL = 12.0;          // m/s² - maximum for valid readings
   
-  // Check if accelerometer readings are reasonable (detecting presence of gravity)
-  bool validAccelData = (avgMagnitude >= MIN_AVERAGE_ACCEL && avgMagnitude <= MAX_AVERAGE_ACCEL);
-  
-  // Movement detected if significant variation in acceleration
-  bool movementDetected = validAccelData && 
-                         (stdDev > MOVEMENT_STD_DEV_THRESHOLD || magnitudeRange > MOVEMENT_RANGE_THRESHOLD);
-  
+  AccelStats stats;
+  bool movementDetected = detectAccelMovement(
+    magnitudes,
+    count,
+    MOVEMENT_STD_DEV_THRESHOLD,
+    MOVEMENT_RANGE_THRESHOLD,
+    MIN_AVERAGE_ACCEL,
+    MAX_AVERAGE_ACCEL,
+    &stats
+  );
+
   #ifdef DEBUG_GPS
   static unsigned long lastAccelDebugTime = 0;
   if (millis() - lastAccelDebugTime > 2000) { // Debug every 2 seconds
     Serial.printf("[Accel Movement] Avg: %.2f m/s², StdDev: %.2f, Range: %.2f, Movement: %s\n",
-                  avgMagnitude, stdDev, magnitudeRange, movementDetected ? "YES" : "NO");
+                  stats.avgMagnitude, stats.stdDev, stats.range, movementDetected ? "YES" : "NO");
     lastAccelDebugTime = millis();
   }
   #endif
@@ -1803,68 +1584,24 @@ bool isMovementConsistent() {
     return false;
   }
   
-  // Calculate total distance and bearing changes
-  float totalDistance = 0.0;
-  float totalBearingChange = 0.0;
-  float lastBearing = 0.0;
-  bool firstBearing = true;
-  int consecutivePoints = 0;
-  
-  for (int i = 1; i < validPoints; i++) {
-    int prevIdx = (gpsTrackIndex - validPoints + i - 1 + GPS_TRACK_BUFFER_SIZE) % GPS_TRACK_BUFFER_SIZE;
-    int currIdx = (gpsTrackIndex - validPoints + i + GPS_TRACK_BUFFER_SIZE) % GPS_TRACK_BUFFER_SIZE;
-    
-    if (!gpsTrackBuffer[prevIdx].valid || !gpsTrackBuffer[currIdx].valid) continue;
-    
-    float distance = calculateDistance(
-      gpsTrackBuffer[prevIdx].lat, gpsTrackBuffer[prevIdx].lon,
-      gpsTrackBuffer[currIdx].lat, gpsTrackBuffer[currIdx].lon
-    );
-    
-    totalDistance += distance;
-    consecutivePoints++;
-    
-    if (distance > 2.0) { // Only calculate bearing for significant movement
-      float bearing = calculateBearing(
-        gpsTrackBuffer[prevIdx].lat, gpsTrackBuffer[prevIdx].lon,
-        gpsTrackBuffer[currIdx].lat, gpsTrackBuffer[currIdx].lon
-      );
-      
-      if (!firstBearing) {
-        float bearingDiff = fabs(bearing - lastBearing);
-        if (bearingDiff > 180) bearingDiff = 360 - bearingDiff;
-        totalBearingChange += bearingDiff;
-      }
-      
-      lastBearing = bearing;
-      firstBearing = false;
-    }
+  GpsTrackPoint ordered[GPS_TRACK_BUFFER_SIZE];
+  for (int i = 0; i < validPoints; i++) {
+    int idx = (gpsTrackIndex - validPoints + i + GPS_TRACK_BUFFER_SIZE) % GPS_TRACK_BUFFER_SIZE;
+    ordered[i].lat = gpsTrackBuffer[idx].lat;
+    ordered[i].lon = gpsTrackBuffer[idx].lon;
+    ordered[i].valid = gpsTrackBuffer[idx].valid;
   }
-  
-  if (consecutivePoints < 2) return false;
-  
-  // Calculate average distance per sample
-  float avgDistance = totalDistance / consecutivePoints;
-  
-  // If we're moving very little, check for GPS noise pattern
-  if (avgDistance < 3.0) { // Less than 3 meters per sample = likely stationary
-    return false;
-  }
-  
-  // If we're moving significantly, check for consistent track
-  if (avgDistance > 5.0) { // More than 5 meters per sample = likely real movement
-    // Check if bearing changes are reasonable (not jumping around randomly)
-    float avgBearingChange = totalBearingChange / max(1, consecutivePoints - 1);
-    
-    // Allow for reasonable course changes in sailing
-    if (avgBearingChange < 45.0) { // Less than 45° average change = consistent track
-      lastResult = true;
-      return true;
-    }
-  }
-  
-  lastResult = false;
-  return false;
+
+  bool movementDetected = isGpsMovementConsistentTrack(
+    ordered,
+    validPoints,
+    3.0f,
+    5.0f,
+    45.0f
+  );
+
+  lastResult = movementDetected;
+  return movementDetected;
 }
 
 // Enhanced GPS speed filtering with accelerometer data
@@ -1874,7 +1611,7 @@ float filterGPSSpeed(float rawSpeed, int satellites, float hdop) {
   
   // If GPS quality is very poor, don't trust readings
   if (!goodGPSQuality) {
-    return lastValidSpeed * 0.95; // Gradually decay speed if no GPS
+    return filterGpsSpeed(rawSpeed, false, imuAvailable, false, false, lastValidSpeed);
   }
   
   // Store current GPS point in track buffer
@@ -1894,80 +1631,30 @@ float filterGPSSpeed(float rawSpeed, int satellites, float hdop) {
   
   // Basic speed smoothing with smaller window
   const int SPEED_SMOOTH_SIZE = 3;
-  float speedSum = 0.0;
-  int speedCount = 0;
-  
-  for (int i = 0; i < SPEED_SMOOTH_SIZE && i < (gpsTrackBufferFull ? GPS_TRACK_BUFFER_SIZE : gpsTrackIndex); i++) {
+  float recentSpeeds[SPEED_SMOOTH_SIZE];
+  bool recentValid[SPEED_SMOOTH_SIZE];
+  int recentCount = 0;
+  int available = gpsTrackBufferFull ? GPS_TRACK_BUFFER_SIZE : gpsTrackIndex;
+
+  for (int i = 0; i < SPEED_SMOOTH_SIZE && i < available; i++) {
     int idx = (gpsTrackIndex - 1 - i + GPS_TRACK_BUFFER_SIZE) % GPS_TRACK_BUFFER_SIZE;
-    if (gpsTrackBuffer[idx].valid) {
-      speedSum += gpsTrackBuffer[idx].speed;
-      speedCount++;
-    }
+    recentSpeeds[recentCount] = gpsTrackBuffer[idx].speed;
+    recentValid[recentCount] = gpsTrackBuffer[idx].valid;
+    recentCount++;
   }
-  
-  float smoothedSpeed = speedCount > 0 ? speedSum / speedCount : rawSpeed;
+
+  float smoothedSpeed = smoothGpsSpeed(recentSpeeds, recentValid, recentCount, rawSpeed);
   
   // Enhanced movement detection combining GPS track and accelerometer
   bool gpsMovementDetected = isMovementConsistent();
   bool accelMovementDetected = isAccelerometerMovementDetected();
   
-  // Combined movement detection logic
-  bool realMovementDetected = false;
-  
-  if (imuAvailable) {
-    // When IMU is available, use both GPS and accelerometer
-    // Movement confirmed if EITHER sensor detects movement (OR logic for sensitivity)
-    // But both must agree for stationary state (AND logic for stability)
-    if (gpsMovementDetected || accelMovementDetected) {
-      realMovementDetected = true;
-    } else {
-      // Both sensors agree: no movement
-      realMovementDetected = false;
-    }
-  } else {
-    // Fall back to GPS-only detection when no IMU
-    realMovementDetected = gpsMovementDetected;
-  }
-  
-  // Adaptive noise threshold based on movement detection confidence
-  float noiseThreshold = 0.08; // Base threshold: 0.08 knots
-  
-  if (imuAvailable && accelMovementDetected && gpsMovementDetected) {
-    // Both sensors confirm movement - lower threshold for better sensitivity
-    noiseThreshold = 0.05; // More sensitive when movement is confirmed
-  } else if (imuAvailable && !accelMovementDetected && !gpsMovementDetected) {
-    // Both sensors confirm stationary - higher threshold to filter noise
-    noiseThreshold = 0.12; // Less sensitive when stationary is confirmed
-  }
-  
-  if (smoothedSpeed < noiseThreshold) {
-    if (realMovementDetected) {
-      // Movement detected by sensors, trust the GPS speed even if low
-      lastValidSpeed = smoothedSpeed;
-      return smoothedSpeed;
-    } else {
-      // No movement detected, likely stationary or GPS noise
-      lastValidSpeed = 0.0;
-      return 0.0;
-    }
-  }
-  
-  // For higher speeds, use lighter filtering with hysteresis
-  const float HYSTERESIS_FACTOR = 0.1; // 10% hysteresis
-  
-  if (lastValidSpeed < noiseThreshold) {
-    // Was stationary, need slightly higher speed to register movement
-    if (smoothedSpeed > (noiseThreshold + HYSTERESIS_FACTOR)) {
-      lastValidSpeed = smoothedSpeed;
-      return smoothedSpeed;
-    } else {
-      return 0.0;
-    }
-  } else {
-    // Was moving, use current speed with minimal filtering
-    lastValidSpeed = smoothedSpeed;
-    return smoothedSpeed;
-  }
+  return filterGpsSpeed(smoothedSpeed,
+                        true,
+                        imuAvailable,
+                        gpsMovementDetected,
+                        accelMovementDetected,
+                        lastValidSpeed);
 }
 
 // Read sensor data
@@ -2019,7 +1706,7 @@ void readSensors() {
   // Read wind sensor using ModbusMaster
   float sensorWindSpeed;
   int sensorWindAngle;
-  if (readWindSensor(sensorWindSpeed, sensorWindAngle)) {
+  if (windReader.read(sensorWindSpeed, sensorWindAngle)) {
     // Speed is already in m/s from the sensor, convert to knots (1 m/s = 1.944 knots)
     currentData.windSpeed = sensorWindSpeed * 1.944;
     
@@ -2116,10 +1803,9 @@ void readSensors() {
         // Calculate heel (roll) from gravity vector
         // When level: accelZ ≈ 9.8, accelX ≈ 0, accelY ≈ 0
         // When heeled right: accelX increases (positive), accelZ decreases
-        float rawRoll = atan2(accelX, sqrt(accelY * accelY + accelZ * accelZ)) * 180.0f / PI;
-        
-        // Calculate pitch from gravity vector  
-        float rawPitch = atan2(accelY, sqrt(accelX * accelX + accelZ * accelZ)) * 180.0f / PI;
+        float rawRoll = 0.0f;
+        float rawPitch = 0.0f;
+        computeRollPitchDegrees(accelX, accelY, accelZ, rawRoll, rawPitch);
         
         // Apply calibration offsets
         float roll = rawRoll - rollOffset;
@@ -2146,15 +1832,8 @@ void readSensors() {
         float quatReal = imu.getQuatReal();
         
         // Check if quaternion is valid (non-zero)
-        float quatMag = sqrt(quatI*quatI + quatJ*quatJ + quatK*quatK + quatReal*quatReal);
-        
-        if (quatMag > 0.1) {
-          // Extract ONLY heading (yaw) from quaternion
-          // This is the magnetic north-referenced heading, tilt-compensated by sensor fusion
-          float heading = atan2(2.0f * (quatI*quatJ + quatReal*quatK),
-                               quatReal*quatReal + quatI*quatI - quatJ*quatJ - quatK*quatK);
-          heading = heading * 180.0f / PI;
-          if (heading < 0) heading += 360.0f;
+        float heading = 0.0f;
+        if (computeHeadingDegreesFromQuaternion(quatI, quatJ, quatK, quatReal, heading)) {
           
           // Apply calibration offset
           if (northCalibrated) {
@@ -2227,381 +1906,66 @@ void readSensors() {
 
 // Generate JSON string with current sensor data using marine standard terminology
 String getSensorDataJson() {
-  DynamicJsonDocument doc(512); // Enough for full telemetry and regatta fields
-  
-  // Core sailing data (rounded to reduce JSON size)
-  doc["SOG"] = round((isnan(currentData.speed) ? 0.0 : currentData.speed) * 10) / 10.0; // Speed Over Ground
-  
-  // GPS coordinates (reduced precision for BLE efficiency)
-  if (gps.location.isValid()) {
-    doc["lat"] = round(gps.location.lat() * 100000) / 100000.0; // 5 decimal places
-    doc["lon"] = round(gps.location.lng() * 100000) / 100000.0; // 5 decimal places
-  } else {
-    doc["lat"] = 0.0;
-    doc["lon"] = 0.0;
-  }
-  
-  if (gps.course.isValid()) {
-    doc["COG"] = round(gps.course.deg()); // Course Over Ground (integer)
-  } else {
-    doc["COG"] = 0;
-  }
-  
-  // GPS quality indicators
-  doc["sat"] = (gps.charsProcessed() > 10 && gps.satellites.isValid()) ? gps.satellites.value() : 0;
-  
-  if (gps.hdop.isValid()) {
-    doc["hdop"] = round(gps.hdop.hdop() * 10) / 10.0; // 1 decimal place
-  } else {
-    doc["hdop"] = 99.9; // Invalid HDOP value
-  }
-  
-  // Wind data - only include if sensor is connected and working
-  if (!isnan(currentData.windSpeed)) {
-    doc["AWS"] = round(currentData.windSpeed * 10) / 10.0; // Apparent Wind Speed (1 decimal)
-  }
-  
-  // Wind angle data (apparent wind angle in full 360° range)
-  if (currentData.windAngle >= 0 && currentData.windAngle <= 359) {
-    doc["AWA"] = round(currentData.windAngle); // Apparent Wind Angle (integer, 0-359°)
-  }
-  
-  // True wind data - only include if calculated successfully
-  if (!isnan(currentData.trueWindSpeed)) {
-    doc["TWS"] = round(currentData.trueWindSpeed * 10) / 10.0; // True Wind Speed (1 decimal)
-  }
-  
-  // True wind angle data 
-  if (currentData.trueWindAngle >= 0 && currentData.trueWindAngle <= 359) {
-    doc["TWA"] = round(currentData.trueWindAngle); // True Wind Angle (integer, 0-359°)
-  }
-  
-  // Heel angle - only include if IMU is available
-  if (imuAvailable && !isnan(currentData.tilt)) {
-    doc["hl"] = round(currentData.tilt); // Vessel heel angle (integer)
-  }
-  
-  // Pitch angle - only include if IMU is available
-  if (imuAvailable && !isnan(currentData.pitch)) {
-    doc["pitch"] = round(currentData.pitch * 10) / 10.0; // Vessel pitch angle (1 decimal)
-  }
-  
-  // Magnetic heading - only include if IMU is available and has valid data
-  if (imuAvailable && currentData.HDM >= 0 && currentData.HDM <= 359) {
-    doc["HDM"] = round(currentData.HDM); // Magnetic heading in degrees (integer)
-  }
-  
-  // Acceleration data - only include if IMU is available and has valid data
-  if (imuAvailable && !isnan(currentData.accelX)) {
-    doc["accelX"] = round(currentData.accelX * 100) / 100.0; // Acceleration X-axis in m/s² (2 decimals)
-    doc["accelY"] = round(currentData.accelY * 100) / 100.0; // Acceleration Y-axis in m/s² (2 decimals)
-    doc["accelZ"] = round(currentData.accelZ * 100) / 100.0; // Acceleration Z-axis in m/s² (2 decimals)
-  }
-  
-  // BLE connection quality (smoothed RSSI for stable readings)
-  doc["rssi"] = bleRSSIFiltered;
-  
-  // Regatta data - send ln if start line is configured and GPS valid
-  // Negative = behind line (pre-start), Positive = crossed line, Zero = on line
-  if (regattaData.hasStartLine && !isnan(regattaData.distanceToLine)) {
-    doc["ln"] = round(regattaData.distanceToLine); // Distance in meters (integer)
-  }
-  
-  String output;
-  serializeJson(doc, output);
-  // If output still exceeds safe limit, caller will attempt reduction
-  return output;
-}
+  BleGpsSnapshot gpsSnapshot = {
+    gps.location.isValid(),
+    gps.location.lat(),
+    gps.location.lng(),
+    gps.course.isValid(),
+    gps.course.deg(),
+    static_cast<int>(gps.charsProcessed()),
+    gps.satellites.isValid(),
+    static_cast<int>(gps.satellites.value()),
+    gps.hdop.isValid(),
+    static_cast<float>(gps.hdop.hdop())
+  };
 
-// Wind Sensor Functions
+  BleRegattaSnapshot regattaSnapshot = {
+    regattaData.hasStartLine,
+    regattaData.distanceToLine
+  };
 
-// Convert two Modbus registers (32 bits) to float
-float regsToFloat(uint16_t lowReg, uint16_t highReg) {
-  uint32_t combined = ((uint32_t)highReg << 16) | lowReg;
-  float value;
-  memcpy(&value, &combined, sizeof(value));
-  return value;
-}
-
-// Read wind sensor data via RS485 using ModbusMaster
-bool readWindSensor(float &windSpeed, int &windAngle) {
-  static unsigned long lastAttempt = 0;
-  static bool sensorTypeDetected = false;
-  static bool useIEEE754Format = true; // true = IEEE754 float (9600,8E1), false = integer (4800,8N1)
-  
-  // Don't hammer the sensor - minimum 100ms between attempts
-  if (millis() - lastAttempt < 100) {
-    return false;
-  }
-  lastAttempt = millis();
-  
-  #ifdef DEBUG_WIND_SENSOR
-  Serial.print("[Wind Sensor] Reading ");
-  if (useIEEE754Format) {
-    Serial.print("IEEE754 format (9600,8E1,float)... ");
-  } else {
-    Serial.print("integer format (4800,8N1,int)... ");
-  }
-  unsigned long modbusStart = millis();
-  #endif
-  
-  // Clear any existing response data
-  windSensor.clearResponseBuffer();
-  
-  uint8_t result;
-  
-  if (useIEEE754Format) {
-    // IEEE754 ultrasonic sensor: Read registers 0x0001 for 4 registers (direction + speed float)
-    result = windSensor.readHoldingRegisters(0x0001, 4);
-  } else {
-    // Integer ultrasonic sensor: Read registers 0x0000 for 2 registers (speed int + direction)  
-    result = windSensor.readHoldingRegisters(0x0000, 2);
-  }
-
-  #ifdef DEBUG_WIND_SENSOR
-  unsigned long modbusTime = millis() - modbusStart;
-  Serial.printf("(took %lums) ", modbusTime);
-  #endif
-
-  if (result == windSensor.ku8MBSuccess) {
-    
-    if (useIEEE754Format) {
-      // IEEE754 ultrasonic anemometer format:
-      // reg0 = direction (0–359°)
-      // reg1 = speed float low word
-      // reg2 = speed float high word  
-      // reg3 = unused
-      
-      windAngle = windSensor.getResponseBuffer(0); // direction
-      uint16_t speedLow = windSensor.getResponseBuffer(1);
-      uint16_t speedHigh = windSensor.getResponseBuffer(2);
-      
-      // Convert registers to IEEE 754 float
-      windSpeed = regsToFloat(speedLow, speedHigh);
-      
-      #ifdef DEBUG_WIND_SENSOR
-      Serial.printf("SUCCESS - IEEE754 format: Direction=%d°, Speed=%.3f m/s (raw: low=%d, high=%d)\n", 
-                    windAngle, windSpeed, speedLow, speedHigh);
-      #endif
-      
-      // Validate data - if it looks wrong, try integer format
-      if (!sensorTypeDetected && (windAngle < 0 || windAngle > 359 || 
-          isnan(windSpeed) || windSpeed < 0 || windSpeed > 50)) {
-        #ifdef DEBUG_WIND_SENSOR
-        Serial.println("  IEEE754 format data invalid, will try integer format next");
-        #endif
-        useIEEE754Format = false;
-        
-        // Reconfigure RS485 for integer sensor
-        rs485.end();
-        rs485.begin(4800, SERIAL_8N1, RS485_RX, RS485_TX);
-        windSensor.begin(1, rs485);
-        windSensor.preTransmission(preTransmission);
-        windSensor.postTransmission(postTransmission);
-        
-        return false; // Try again with integer format
-      }
-      
-    } else {
-      // Integer ultrasonic anemometer format:
-      // reg0 = speed (expanded by 100, e.g., 125 = 1.25 m/s)
-      // reg1 = direction (0-359°)
-      
-      uint16_t speedRaw = windSensor.getResponseBuffer(0);
-      windSpeed = speedRaw / 100.0f;
-      windAngle = windSensor.getResponseBuffer(1);
-      
-      #ifdef DEBUG_WIND_SENSOR
-      Serial.printf("SUCCESS - integer format: Speed raw=%d (%.2f m/s), Direction=%d°\n", 
-                    speedRaw, windSpeed, windAngle);
-      #endif
-      
-      // Validate data - if it looks wrong, try IEEE754 format
-      if (!sensorTypeDetected && (windAngle < 0 || windAngle > 359 || windSpeed < 0 || windSpeed > 50)) {
-        #ifdef DEBUG_WIND_SENSOR
-        Serial.println("  Integer format data invalid, will try IEEE754 format next");
-        #endif
-        useIEEE754Format = true;
-        
-        // Reconfigure RS485 for IEEE754 sensor
-        rs485.end(); 
-        rs485.begin(9600, SERIAL_8E1, RS485_RX, RS485_TX);
-        windSensor.begin(1, rs485);
-        windSensor.preTransmission(preTransmission);
-        windSensor.postTransmission(postTransmission);
-        
-        return false; // Try again with IEEE754 format
-      }
-    }
-    
-    // If we get here with valid data, lock in the sensor type
-    if (!sensorTypeDetected && windAngle >= 0 && windAngle <= 359 && 
-        windSpeed >= 0 && windSpeed <= 50 && !isnan(windSpeed)) {
-      sensorTypeDetected = true;
-      Serial.printf("\n[Wind Sensor] Detected %s format and locked it in\n", 
-                    useIEEE754Format ? "IEEE754 float" : "integer");
-    }
-    
-    return true;
-    
-  } else {
-    #ifdef DEBUG_WIND_SENSOR
-    Serial.printf("ERROR %d - ", result);
-    
-    // Decode common Modbus error codes
-    switch(result) {
-      case 0xE0: Serial.println("Invalid slave ID"); break;
-      case 0xE1: Serial.println("Invalid function"); break;
-      case 0xE2: Serial.println("Response timeout"); break;
-      case 0xE3: Serial.println("Invalid CRC"); break;
-      default:   
-        if (result == 226) {
-          Serial.println("Communication timeout/no response");
-        } else {
-          Serial.printf("Unknown error code\n");
-        }
-        break;
-    }
-    
-    // If we haven't detected sensor type yet, try the other format
-    if (!sensorTypeDetected) {
-      useIEEE754Format = !useIEEE754Format;
-      #ifdef DEBUG_WIND_SENSOR
-      Serial.printf("  Switching to %s format for next attempt\n", 
-                    useIEEE754Format ? "IEEE754 float" : "integer");
-      #endif
-      
-      // Reconfigure RS485 for the other sensor type
-      rs485.end();
-      if (useIEEE754Format) {
-        rs485.begin(9600, SERIAL_8E1, RS485_RX, RS485_TX);
-      } else {
-        rs485.begin(4800, SERIAL_8N1, RS485_RX, RS485_TX);
-      }
-      windSensor.begin(1, rs485);
-      windSensor.preTransmission(preTransmission);
-      windSensor.postTransmission(postTransmission);
-    }
-    #endif
-    
-    return false;
-  }
+  return buildSensorDataJson(currentData, gpsSnapshot, imuAvailable, bleRSSIFiltered, regattaSnapshot);
 }
 
 // GPS Functions
 
 // Check if GPS has valid, recent data
 bool isGPSDataValid() {
-  // Require multiple conditions for valid GPS:
-  // 1. Must have processed characters (indicating actual serial data)
-  // 2. Must have valid sentences with fix data
-  // 3. Location must be valid
-  // 4. Data must be recent (less than 5 seconds old)
-  // 5. Must have reasonable satellite count (not just noise)
-  return gps.charsProcessed() > 10 &&        // Must have processed actual data
-         gps.sentencesWithFix() > 0 &&       // Must have valid NMEA sentences
-         gps.location.isValid() && 
-         gps.location.age() < 5000 && 
-         gps.satellites.isValid() &&
-         gps.satellites.value() >= 3;         // Minimum for any fix
+  GpsValidityInput input = {
+    static_cast<int>(gps.charsProcessed()),
+    static_cast<int>(gps.sentencesWithFix()),
+    gps.location.isValid(),
+    gps.location.age(),
+    gps.satellites.isValid(),
+    static_cast<int>(gps.satellites.value())
+  };
+
+  return isGpsDataValid(input);
 }
 
 // Read GPS data
 bool readGPS() {
-  bool newData = false;
-  int bytesRead = 0;
-  
-  // Read available GPS data (but limit to prevent infinite loops)
-  while (gpsSerial.available() > 0 && bytesRead < 256) {
-    if (gps.encode(gpsSerial.read())) {
-      newData = true;
-    }
-    bytesRead++;
-  }
-  
+  GpsReadResult readResult = readGpsStream(gpsSerial, gps, 256);
+
   // Return true only if we have valid, recent location data
-  return newData && isGPSDataValid();
+  return readResult.newData && isGPSDataValid();
 }
 
 // Regatta Functions
 
-// Validate GPS coordinates are within valid ranges
-// Latitude: -90 to +90 degrees
-// Longitude: -180 to +180 degrees
-bool isValidGPSCoordinates(double lat, double lon) {
-  // Check if coordinates are non-zero (0,0 is typically invalid/uninitialized)
-  if (lat == 0.0 && lon == 0.0) {
-    return false;
-  }
-  
-  // Validate latitude range: -90 to +90
-  if (lat < -90.0 || lat > 90.0) {
-    Serial.printf("[GPS Validation] Invalid latitude: %.6f (must be -90 to +90)\n", lat);
-    return false;
-  }
-  
-  // Validate longitude range: -180 to +180
-  if (lon < -180.0 || lon > 180.0) {
-    Serial.printf("[GPS Validation] Invalid longitude: %.6f (must be -180 to +180)\n", lon);
-    return false;
-  }
-  
-  return true;
-}
-
-// Calculate distance between two GPS coordinates using Haversine formula
-float haversineDistance(double lat1, double lon1, double lat2, double lon2) {
-  const double R = 6371000; // Earth radius in meters
-  
-  double dLat = (lat2 - lat1) * PI / 180.0;
-  double dLon = (lon2 - lon1) * PI / 180.0;
-  
-  double a = sin(dLat/2) * sin(dLat/2) + 
-             cos(lat1 * PI / 180.0) * cos(lat2 * PI / 180.0) * 
-             sin(dLon/2) * sin(dLon/2);
-  
-  double c = 2 * atan2(sqrt(a), sqrt(1-a));
-  
-  return R * c; // Distance in meters
-}
-
-// Calculate perpendicular distance from point to line segment
-float distanceToLine(double px, double py, double x1, double y1, double x2, double y2) {
-  // Convert GPS coordinates to meters using simple projection for short distances
-  // This is accurate enough for regatta start lines (typically < 1km)
-  double dx = x2 - x1;
-  double dy = y2 - y1;
-  
-  if (dx == 0 && dy == 0) {
-    // Line endpoints are the same, return distance to point
-    return haversineDistance(px, py, x1, y1);
-  }
-  
-  // Calculate the t parameter for the closest point on the line
-  double t = ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy);
-  
-  // Clamp t to [0,1] to stay within the line segment
-  t = max(0.0, min(1.0, t));
-  
-  // Calculate the closest point on the line segment
-  double closestX = x1 + t * dx;
-  double closestY = y1 + t * dy;
-  
-  // Return distance to closest point
-  return haversineDistance(px, py, closestX, closestY);
-}
-
 // Calculate current distance to regatta start line
 void calculateRegattaData() {
-  if (!regattaData.hasStartLine || !gps.location.isValid()) {
-    regattaData.distanceToLine = NAN; // Invalid - no line set or no GPS
-    return;
-  }
-  
-  double currentLat = gps.location.lat();
-  double currentLon = gps.location.lng();
-  
-  regattaData.distanceToLine = distanceToLine(currentLat, currentLon,
-                                             regattaData.portLat, regattaData.portLon,
-                                             regattaData.starboardLat, regattaData.starboardLon);
+  RegattaLine line;
+  line.hasStartLine = regattaData.hasStartLine;
+  line.portLat = regattaData.portLat;
+  line.portLon = regattaData.portLon;
+  line.starboardLat = regattaData.starboardLat;
+  line.starboardLon = regattaData.starboardLon;
+
+  GpsFix fix;
+  fix.valid = gps.location.isValid();
+  fix.lat = gps.location.lat();
+  fix.lon = gps.location.lng();
+
+  regattaData.distanceToLine = calculateRegattaDistance(line, fix);
 }
