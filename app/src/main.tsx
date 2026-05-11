@@ -17,9 +17,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   </React.StrictMode>,
 )
 
-const isLocalhost = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname)
-
-if (isLocalhost && 'serviceWorker' in navigator) {
+if (import.meta.env.DEV && 'serviceWorker' in navigator) {
   navigator.serviceWorker.getRegistrations()
     .then((registrations) => Promise.all(registrations.map((registration) => registration.unregister())))
     .catch((error) => {
@@ -36,7 +34,7 @@ if (isLocalhost && 'serviceWorker' in navigator) {
 }
 
 // Register Service Worker for offline capability
-if (!isLocalhost && 'serviceWorker' in navigator) {
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
       .then((registration) => {
