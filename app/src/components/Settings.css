@@ -1,7 +1,7 @@
 /* Settings Component Styles */
 .settings-container {
   position: relative;
-  z-index: 100;
+  z-index: 1000;
 }
 
 /* Hamburger Button */
@@ -48,6 +48,7 @@
 /* Settings Menu */
 .settings-menu {
   position: absolute;
+  z-index: 1001;
   top: 50px;
   right: 10px;
   background: var(--bg-card);

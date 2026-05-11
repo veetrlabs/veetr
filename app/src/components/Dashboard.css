@@ -1,106 +1,34 @@
-/* Base dashboard-layout moved above media queries to ensure correct override */
+.dashboard {
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
 .dashboard-layout {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   grid-template-areas: "wind cards";
-  gap: 0.1rem;
-  height: 100vh;
-  min-height: 100vh;
-  width: 100vw;
+  width: 100%;
+  height: 100%;
   box-sizing: border-box;
 }
 
 @media (orientation: portrait) {
   .dashboard-layout {
-    display: grid;
-    grid-template-columns: 1fr;
-    grid-template-rows: 50vh 50vh;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-areas:
       "wind"
       "cards";
-    height: 100vh;
-    min-height: 100vh;
-    width: 100vw;
-  }
-  .wind-direction-area {
-    grid-area: wind;
-    min-height: 0;
-    min-width: 0;
-    width: 100vw;
-    height: 50vh;
-    max-width: 100vw;
-    max-height: 50vh;
-    box-sizing: border-box;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 2;
-  }
-  .dashboard-cards-area {
-    grid-area: cards;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr));
-    grid-auto-rows: minmax(0, 1fr);
-    gap: 0.05rem;
-    padding: 0.1rem;
-    overflow-y: auto;
-    align-items: stretch;
-    justify-items: stretch;
-    width: 100vw;
-    height: 50vh;
-    max-width: 100vw;
-    max-height: 50vh;
-    min-height: 0;
-    z-index: 1;
   }
 }
+
 @media (orientation: landscape) {
-  .dashboard-layout {
-    display: grid;
-    grid-template-columns: 50vw 50vw;
-    grid-template-rows: 1fr;
-    grid-template-areas: "wind cards";
-    height: 100vh;
-    min-height: 100vh;
-    width: 100vw;
-  }
-  .wind-direction-area {
-    grid-area: wind;
-    min-height: 0;
-    min-width: 0;
-    width: 100%;
-    height: 100vh;
-    max-width: 50vw;
-    max-height: 100vh;
-    box-sizing: border-box;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 2;
-    overflow: hidden;
-  }
   .dashboard-cards-area {
-    grid-area: cards;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-auto-rows: minmax(0, 1fr);
-    gap: 0.05rem;
-    padding: 0.1rem;
-    overflow-y: auto;
-    align-items: stretch;
-    justify-items: stretch;
-    width: 100%;
-    height: 100vh;
-    min-height: 0;
-    z-index: 1;
+    padding-right: 58px;
   }
-}
-.dashboard {
-  width: 100%;
-  max-width: 1600px;
-  margin: 0 auto;
-  height: 100%;
 }
 
 .wind-direction-area {
@@ -108,20 +36,22 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100%;
-  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  container-type: size;
 }
 
 .dashboard-cards-area {
   grid-area: cards;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-auto-rows: minmax(0, 1fr);
-  gap: 0.05rem;
-  height: 100%;
-  width: 100%;
-  overflow-y: auto;
-  padding: 0.1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0 0 0 clamp(0.25rem, 1vw, 0.5rem);
   align-items: stretch;
   justify-items: stretch;
 }
@@ -162,6 +92,7 @@
   color: var(--text-primary);
   box-shadow: none;
   position: relative; /* For absolute positioned card-title */
+  container-type: size;
 }
 
 .card:hover {
@@ -171,40 +102,38 @@
 }
 
 .card-title {
-  font-size: clamp(0.6rem, 2vw, 0.8rem); /* Even smaller to save more space */
-  font-weight: 600;
-  opacity: 0.8;
+  position: static;
+  grid-column: 1;
+  justify-self: center;
+  align-self: center;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: clamp(0.72rem, min(13cqh, 8cqw), 1.25rem);
+  font-weight: 800;
+  opacity: 0.82;
   text-transform: uppercase;
-  letter-spacing: 0.3px;
+  letter-spacing: 0;
   color: var(--text-secondary);
-  position: absolute;
-  left: 0.2rem; /* Closer to edge to save space */
-  top: 50%;
-  transform: translateY(-50%) rotate(-90deg);
-  transform-origin: center;
   white-space: nowrap;
   z-index: 1;
 }
 
 .card-value {
-  font-size: clamp(1.8rem, min(12vh, 10vw), 5rem) !important; /* Much larger for distance reading */
+  width: 100%;
+  height: 100%;
+  font-size: clamp(2.4rem, min(68cqh, 29cqw), 7.5rem) !important;
   font-weight: 900;
   text-align: center;
   margin: 0;
-  flex: 1;
-  display: flex;
+  display: grid;
+  grid-template-columns: clamp(1.45rem, 13cqw, 2rem) minmax(0, 1fr);
   align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  line-height: 0.9;
-  margin-left: 1.2rem; /* Reduced space for rotated label */
-  margin-right: 0.2rem; /* Minimal right margin */
+  line-height: 0.82;
   text-shadow: 0 2px 8px var(--shadow-color);
-  padding: 0.05rem;
+  padding: 0 0.2rem 0 0;
   color: var(--text-primary);
   box-sizing: border-box;
   overflow: hidden;
-  max-width: calc(100% - 1.4rem); /* More space for numbers */
   z-index: 2;
 }
 
@@ -218,66 +147,33 @@
 }
 
 .value-unit-row {
+  grid-column: 2;
   display: flex;
   flex-direction: row;
   align-items: flex-start;
-  gap: 0.1em;
+  gap: 0.04em;
   justify-content: center;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .value-number {
-  /* font-size: 1.5em; */ /* Inherit from parent .card-value for dynamic scaling */
   font-weight: 900;
-  line-height: 1;
+  line-height: 0.86;
+  white-space: nowrap;
 }
 
 .card-unit {
-  font-size: clamp(0.4rem, min(2vh, 1.5vw), 0.8rem); /* Smaller units to give more space to numbers */
+  font-size: max(0.72rem, 0.18em);
   opacity: 0.9;
-  font-weight: 600;
+  font-weight: 700;
   align-self: flex-start;
   line-height: 1;
-  margin-top: 0.05em; /* Minimal top margin */
+  margin-top: 0.06em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
-}
-
-/* Tablet and larger screens - increased font sizes for readability */
-@media (min-width: 768px) {
-  .card-title {
-    left: 0.3rem; /* Keep close to edge to maximize space */
-    font-size: clamp(0.7rem, 2.5vw, 1rem); /* Slightly larger label */
-  }
-  
-  .card-value {
-    font-size: clamp(2.2rem, min(15vh, 12vw), 6rem) !important; /* Much larger numbers for tablets */
-    margin-left: 1.4rem; /* Adjust space for larger label */
-    max-width: calc(100% - 1.6rem);
-  }
-  
-  .card-unit {
-    font-size: clamp(0.5rem, min(3vh, 2vw), 1rem); /* Proportional units */
-  }
-}
-
-/* Large desktop screens - even bigger fonts */
-@media (min-width: 1200px) {
-  .card-title {
-    left: 0.4rem; /* Slightly more space for larger screens */
-    font-size: clamp(0.8rem, 3vw, 1.2rem); /* Larger labels */
-  }
-  
-  .card-value {
-    font-size: clamp(2.8rem, min(18vh, 15vw), 8rem) !important; /* Maximum readability for desktop */
-    margin-left: 1.6rem; /* Space for larger label */
-    max-width: calc(100% - 1.8rem);
-  }
-  
-  .card-unit {
-    font-size: clamp(0.6rem, min(4vh, 3vw), 1.4rem); /* Larger units on large screens */
-  }
 }
 
 /* GPS Grid Styles */
