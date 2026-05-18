@@ -19,8 +19,7 @@ export function convertToSailingAngle(windAngle360: number): number {
 
 export function getSignalQuality(rssi: number): 'excellent' | 'good' | 'fair' | 'poor' | 'unknown' {
   if (rssi >= -50) return 'excellent'
-  if (rssi >= -60) return 'good'
-  if (rssi >= -70) return 'fair'
-  if (rssi >= -80) return 'poor'
+  if (rssi >= -70) return 'good'
+  if (rssi >= -85) return 'fair'
   return 'poor'
 }
