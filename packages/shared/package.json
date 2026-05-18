@@ -1,0 +1,14 @@
+{
+  "name": "@veetr/shared",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types.ts",
+    "./utils/gpsValidation": "./src/utils/gpsValidation.ts",
+    "./utils/githubApi": "./src/utils/githubApi.ts",
+    "./utils/sailing": "./src/utils/sailing.ts",
+    "./utils/firmware": "./src/utils/firmware.ts"
+  }
+}

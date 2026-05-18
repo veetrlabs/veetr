@@ -1,11 +1,8 @@
-// Version configuration - single source of truth
-// This version is synced from app/package.json
-const VERSION = '0.0.28'
-export const APP_VERSION = `${VERSION}`
+import { version } from '../../package.json'
 
-// Helper function to get version for different contexts
+export const VERSION = version
+export const APP_VERSION = version
+
 export function getVersionString(includeAppName = true): string {
   return includeAppName ? APP_VERSION : VERSION
 }
-
-export { VERSION }

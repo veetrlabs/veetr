@@ -33,10 +33,6 @@ jobs:
         APP_VERSION=$(node -e "console.log(require('./app/package.json').version)")
         echo "App package.json version: $APP_VERSION"
         
-        # Check TypeScript version file
-        TS_VERSION=$(grep "const VERSION = " app/src/utils/version.ts | sed "s/.*const VERSION = '\\(.*\\)'.*/\\1/")
-        echo "TypeScript version.ts version: $TS_VERSION"
-        
         # Check firmware version
         FW_VERSION=$(grep "#define FIRMWARE_VERSION" firmware/src/main.cpp | sed 's/.*"\(.*\)".*/\1/')
         echo "Firmware main.cpp version: $FW_VERSION"
@@ -46,11 +42,6 @@ jobs:
         
         if [ "$APP_VERSION" != "$VERSION" ]; then
           echo "❌ App package.json version ($APP_VERSION) doesn't match tag ($VERSION)"
-          ERRORS=$((ERRORS + 1))
-        fi
-        
-        if [ "$TS_VERSION" != "$VERSION" ]; then
-          echo "❌ TypeScript version ($TS_VERSION) doesn't match tag ($VERSION)"
           ERRORS=$((ERRORS + 1))
         fi
         

@@ -18,7 +18,12 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+
+    "paths": {
+      "@veetr/shared": ["../packages/shared/src"],
+      "@veetr/shared/*": ["../packages/shared/src/*"]
+    }
   },
   "include": ["src", "src/types.d.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]

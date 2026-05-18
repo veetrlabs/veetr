@@ -2,52 +2,8 @@ import { createContext, useContext, useReducer, useEffect, useRef, ReactNode } f
 import { getLatestRelease, getFirmwareAsset, downloadFirmware, compareVersions } from '../utils/githubApi'
 import { BLEFirmwareUpdater, FirmwareUpdateProgress } from '../utils/firmwareUpdater'
 import { showSingleAlert } from '../utils/alertUtils'
-import { dataStorage, SensorReading } from '../utils/dataStorage'
-
-// Types for sailing data
-export interface SailingData {
-  speed: number
-  speedMax: number
-  speedAvg: number
-  windSpeed: number
-  windSpeedMax: number
-  windSpeedAvg: number
-  windAngle: number
-  windDirection: number
-  trueWindSpeed: number
-  trueWindSpeedMax: number
-  trueWindSpeedAvg: number
-  trueWindAngle: number
-  tilt: number
-  tiltPortMax: number
-  tiltStarboardMax: number
-  deadWindAngle: number
-  gpsSpeed: number
-  gpsSatellites: number
-  hdop: number
-  lat: number
-  lon: number
-  heading: number
-  // Regatta data
-  hasStartLine: boolean
-  distanceToLine: number | null
-  portLat: number | null
-  portLon: number | null
-  starboardLat: number | null
-  starboardLon: number | null
-}
-
-// Firmware update state
-export interface FirmwareInfo {
-  currentVersion: string
-  latestVersion: string | null
-  updateAvailable: boolean
-  updateProgress: number | null
-  isUpdating: boolean
-  elapsedTimeMs?: number
-  estimatedTotalTimeMs?: number
-  estimatedRemainingTimeMs?: number
-}
+import { dataStorage } from '../utils/dataStorage'
+import { SailingData, FirmwareInfo, DEFAULT_BLE_CONFIG, convertToSailingAngle, getSignalQuality, SensorReading } from '@veetr/shared'
 
 // BLE connection state
 export interface BLEState {
@@ -64,29 +20,6 @@ export interface BLEState {
   deviceName: string | null
   sailingData: SailingData
   firmwareInfo: FirmwareInfo
-}
-
-// BLE Service and Characteristic UUIDs (must match ESP32)
-export const BLE_CONFIG = {
-  SERVICE_UUID: '12345678-1234-1234-1234-123456789abc',
-  SENSOR_DATA_UUID: '87654321-4321-4321-4321-cba987654321',
-  COMMAND_UUID: '11111111-2222-3333-4444-555555555555',
-  DEVICE_NAME: 'Veetr'
-}
-
-// Convert 360° wind angle to ±180° sailing angle for display
-// In sailing: 0° = dead ahead, +90° = starboard beam, -90° = port beam, ±180° = astern
-function convertToSailingAngle(windAngle360: number): number {
-  // Ensure angle is in 0-359 range
-  let angle = windAngle360 % 360
-  if (angle < 0) angle += 360
-  
-  // Convert to ±180° sailing convention
-  if (angle <= 180) {
-    return angle  // 0° to 180° stays as positive (starboard side)
-  } else {
-    return angle - 360  // 181° to 359° becomes -179° to -1° (port side)
-  }
 }
 
 // Action types
@@ -158,15 +91,6 @@ const initialState: BLEState = {
     updateProgress: null,
     isUpdating: false
   }
-}
-
-// Helper function to determine signal quality from RSSI
-function getSignalQuality(rssi: number): 'excellent' | 'good' | 'fair' | 'poor' | 'unknown' {
-  if (rssi >= -50) return 'excellent'
-  if (rssi >= -60) return 'good'
-  if (rssi >= -70) return 'fair'
-  if (rssi >= -80) return 'poor'
-  return 'poor'
 }
 
 // Reducer
@@ -445,21 +369,31 @@ export function BLEProvider({ children }: { children: ReactNode }) {
       console.log('[BLE] Available memory:', (performance as any).memory ? 
         `${Math.round((performance as any).memory.usedJSHeapSize / 1048576)}MB used` : 'Unknown')
 
-      // Request BLE device - show all devices with our service
       const device = await navigator.bluetooth.requestDevice({
-        filters: [{ services: [BLE_CONFIG.SERVICE_UUID] }],
-        optionalServices: [BLE_CONFIG.SERVICE_UUID]
+        filters: [{ services: [DEFAULT_BLE_CONFIG.serviceUuid] }],
+        optionalServices: [DEFAULT_BLE_CONFIG.serviceUuid]
       })
 
-      // Connect to the device
       const server = await device.gatt!.connect()
       
-      // Get the service
-      const service = await server.getPrimaryService(BLE_CONFIG.SERVICE_UUID)
-      
-      // Get characteristics
-      const sensorDataCharacteristic = await service.getCharacteristic(BLE_CONFIG.SENSOR_DATA_UUID)
-      const commandCharacteristic = await service.getCharacteristic(BLE_CONFIG.COMMAND_UUID)
+      const service = await server.getPrimaryService(DEFAULT_BLE_CONFIG.serviceUuid)
+      const characteristics = await service.getCharacteristics()
+
+      let sensorDataCharacteristic: BluetoothRemoteGATTCharacteristic | null = null
+      let commandCharacteristic: BluetoothRemoteGATTCharacteristic | null = null
+
+      for (const char of characteristics) {
+        if (char.properties.notify && !sensorDataCharacteristic) {
+          sensorDataCharacteristic = char
+        }
+        if ((char.properties.write || char.properties.writeWithoutResponse) && !commandCharacteristic) {
+          commandCharacteristic = char
+        }
+      }
+
+      if (!sensorDataCharacteristic || !commandCharacteristic) {
+        throw new Error('Could not find required BLE characteristics on this device')
+      }
       
       // Start notifications for sensor data
       await sensorDataCharacteristic.startNotifications()
