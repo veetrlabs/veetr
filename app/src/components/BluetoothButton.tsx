@@ -13,21 +13,19 @@ export default function BluetoothButton() {
   }
 
   const getRssiColor = (rssi: number | null) => {
-    if (rssi === null) return '#6b7280' // Grey - no data
-    if (rssi >= -50) return '#22c55e'   // Green - excellent
-    if (rssi >= -60) return '#22c55e'   // Green - good  
-    if (rssi >= -70) return '#f97316'   // Orange - fair
-    if (rssi >= -80) return '#f97316'   // Orange - poor
-    return '#ef4444'                    // Red - very poor
+    if (rssi === null) return '#6b7280'
+    if (rssi >= -50) return '#22c55e'
+    if (rssi >= -70) return '#22c55e'
+    if (rssi >= -85) return '#f97316'
+    return '#ef4444'
   }
 
   const getRssiText = (rssi: number | null) => {
     if (rssi === null) return 'No Data'
     if (rssi >= -50) return 'Excellent'
-    if (rssi >= -60) return 'Good'
-    if (rssi >= -70) return 'Fair'
-    if (rssi >= -80) return 'Poor'
-    return 'Very Poor'
+    if (rssi >= -70) return 'Good'
+    if (rssi >= -85) return 'Fair'
+    return 'Poor'
   }
 
   const handleButtonClick = () => {

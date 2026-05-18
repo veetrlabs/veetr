@@ -31,11 +31,17 @@ export default function ConnectionStatus() {
 
   const getSignalBars = () => {
     if (!state.isConnected || state.rssi === null) return 0
-    if (state.rssi >= -50) return 4 // Excellent
-    if (state.rssi >= -60) return 3 // Good
-    if (state.rssi >= -70) return 2 // Fair
-    if (state.rssi >= -80) return 1 // Poor
-    return 0 // Very poor
+    if (state.rssi >= -50) return 4
+    if (state.rssi >= -70) return 3
+    if (state.rssi >= -85) return 2
+    return 1
+  }
+
+  const getSignalClass = () => {
+    const bars = getSignalBars()
+    if (bars >= 3) return 'strong'
+    if (bars === 2) return 'fair'
+    return 'weak'
   }
 
   const getTimeSinceLastMessage = () => {
@@ -65,7 +71,7 @@ export default function ConnectionStatus() {
         </div>
         {state.isConnected && state.rssi !== null && (
           <div className="signal-strength">
-            <div className="signal-bars">
+            <div className={`signal-bars ${getSignalClass()}`}>
               {[1, 2, 3, 4].map(bar => (
                 <div
                   key={bar}

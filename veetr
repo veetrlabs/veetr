@@ -170,20 +170,6 @@ function syncVersions(version) {
     }
   }
 
-  // Update TypeScript version file
-  const versionTsPath = path.join(__dirname, 'app/src/utils/version.ts')
-  if (fs.existsSync(versionTsPath)) {
-    let content = fs.readFileSync(versionTsPath, 'utf8')
-    content = content.replace(
-      /const VERSION = '.*'/,
-      `const VERSION = '${version}'`
-    )
-    fs.writeFileSync(versionTsPath, content)
-    console.log(`${c.success('✓')} Updated app/src/utils/version.ts to ${version}`)
-  } else {
-    console.log(`⚠️  app/src/utils/version.ts not found, skipping`)
-  }
-
   // Update Service Worker cache names for PWA cache invalidation
   const swPath = path.join(__dirname, 'app/public/sw.js')
   if (fs.existsSync(swPath)) {
@@ -245,15 +231,6 @@ function handleVersion() {
     console.log(`   Firmware: version not found`)
   }
   
-  try {
-    const versionTs = fs.readFileSync(path.join(__dirname, 'app/src/utils/version.ts'), 'utf8')
-    const versionMatch = versionTs.match(/const VERSION = '(.+)'/)
-    if (versionMatch) {
-      console.log(`   TypeScript: ${c.success('v' + versionMatch[1])}`)
-    }
-  } catch (e) {
-    console.log(`   TypeScript: version.ts not found`)
-  }
 }
 
 function handleBuild(args) {

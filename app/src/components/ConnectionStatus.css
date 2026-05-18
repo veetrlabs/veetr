@@ -192,6 +192,18 @@
   background-color: var(--success-color);
 }
 
+.signal-bars.strong .signal-bar.active {
+  background-color: var(--success-color);
+}
+
+.signal-bars.fair .signal-bar.active {
+  background-color: var(--warning-color);
+}
+
+.signal-bars.weak .signal-bar.active {
+  background-color: var(--error-color);
+}
+
 .signal-text {
   color: var(--text-primary);
   font-weight: 500;
