@@ -718,12 +718,12 @@ Please try the update again or contact support.`, '❌ Firmware Apply Failed')
         trueWindSpeedMax: data.TWSMax || 0,
         trueWindSpeedAvg: data.TWSAvg || 0,
         trueWindAngle: convertToSailingAngle(data.TWA || 0),    // Convert 360° to 180° sailing angle
-        tilt: data.hl || 0,            // Heel angle
+        tilt: data.heel ?? data.hl ?? 0,
         tiltPortMax: data.heelPortMax || 0,
         tiltStarboardMax: data.heelStarboardMax || 0,
         deadWindAngle: data.deadWind || 40,
         gpsSpeed: data.SOG || 0,         // GPS Speed (same as SOG)
-        gpsSatellites: data.sat || 0,
+        gpsSatellites: data.satellites ?? data.sat ?? 0,
         hdop: data.hdop || 0,            // Horizontal Dilution of Precision
         lat: data.lat || 0,              // Latitude
         lon: data.lon || 0,              // Longitude
