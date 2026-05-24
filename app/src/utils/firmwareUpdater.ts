@@ -1,24 +1,51 @@
-import { FirmwareUpdateProgress, FirmwareUpdateCallback, FIRMWARE_COMMANDS, formatTime } from '@veetr/shared'
+export interface FirmwareUpdateProgress {
+  percentage: number
+  bytesTransferred: number
+  totalBytes: number
+  stage: 'preparing' | 'transferring' | 'verifying' | 'complete' | 'error'
+  message: string
+  elapsedTimeMs?: number
+  estimatedTotalTimeMs?: number
+  estimatedRemainingTimeMs?: number
+}
 
-export type { FirmwareUpdateProgress, FirmwareUpdateCallback }
-export { FIRMWARE_COMMANDS, formatTime }
+export type FirmwareUpdateCallback = (progress: FirmwareUpdateProgress) => void
+
+export const FIRMWARE_COMMANDS = {
+  GET_VERSION: 'GET_FW_VERSION',
+  START_UPDATE: 'START_FW_UPDATE',
+  TRANSFER_CHUNK: 'FW_CHUNK',
+  VERIFY_UPDATE: 'VERIFY_FW',
+  APPLY_UPDATE: 'APPLY_FW',
+  STOP_UPDATE: 'STOP_FW_UPDATE',
+  GET_OTA_STATUS: 'GET_OTA_STATUS'
+} as const
+
+export function formatTime(ms: number): string {
+  if (ms < 1000) return `${Math.round(ms)}ms`
+  const seconds = Math.floor(ms / 1000)
+  const minutes = Math.floor(seconds / 60)
+  const hours = Math.floor(minutes / 60)
+  if (hours > 0) return `${hours}h ${minutes % 60}m ${seconds % 60}s`
+  if (minutes > 0) return `${minutes}m ${seconds % 60}s`
+  return `${seconds}s`
+}
 
 export class BLEFirmwareUpdater {
-  private characteristic: BluetoothRemoteGATTCharacteristic
   private onProgress: FirmwareUpdateCallback
   private chunkSize = 200
   private aborted = false
   private pendingAckResolve: ((value: any) => void) | null = null
   private expectedChunkIndex = 0
   private startTime = 0
+  private writeChunk: (chunkIndex: number, data: string) => Promise<void>
 
   constructor(
-    characteristic: BluetoothRemoteGATTCharacteristic,
+    writeChunk: (chunkIndex: number, data: string) => Promise<void>,
     onProgress: FirmwareUpdateCallback
   ) {
-    this.characteristic = characteristic
+    this.writeChunk = writeChunk
     this.onProgress = onProgress
-    this.aborted = false
   }
 
   handleChunkAck(data: any): void {
@@ -30,15 +57,11 @@ export class BLEFirmwareUpdater {
 
   abort(): void {
     this.aborted = true
-    if (this.pendingAckResolve) {
-      this.pendingAckResolve = null
-    }
+    this.pendingAckResolve = null
   }
 
   private checkAborted(): void {
-    if (this.aborted) {
-      throw new Error('Firmware update was aborted')
-    }
+    if (this.aborted) throw new Error('Firmware update was aborted')
   }
 
   private async waitForChunkAck(chunkIndex: number): Promise<any> {
@@ -47,7 +70,6 @@ export class BLEFirmwareUpdater {
         this.pendingAckResolve = null
         reject(new Error(`Timeout waiting for chunk ${chunkIndex} acknowledgment`))
       }, 5000)
-
       this.pendingAckResolve = (data: any) => {
         clearTimeout(timeout)
         resolve(data)
@@ -55,30 +77,13 @@ export class BLEFirmwareUpdater {
     })
   }
 
-  async getCurrentVersion(): Promise<string> {
-    try {
-      const command = JSON.stringify({ cmd: FIRMWARE_COMMANDS.GET_VERSION })
-      const encoder = new TextEncoder()
-      await this.characteristic.writeValue(encoder.encode(command))
-      return 'v1.0.0'
-    } catch (error) {
-      throw new Error('Could not retrieve current firmware version')
-    }
-  }
-
   async updateFirmware(firmwareData: ArrayBuffer): Promise<void> {
     try {
       this.startTime = Date.now()
-
       this.onProgress({
-        percentage: 0,
-        bytesTransferred: 0,
-        totalBytes: firmwareData.byteLength,
-        stage: 'preparing',
-        message: 'Preparing firmware update...',
-        elapsedTimeMs: 0,
-        estimatedTotalTimeMs: 0,
-        estimatedRemainingTimeMs: 0
+        percentage: 0, bytesTransferred: 0, totalBytes: firmwareData.byteLength,
+        stage: 'preparing', message: 'Preparing firmware update...',
+        elapsedTimeMs: 0, estimatedTotalTimeMs: 0, estimatedRemainingTimeMs: 0
       })
 
       await this.initializeUpdate(firmwareData.byteLength)
@@ -87,42 +92,28 @@ export class BLEFirmwareUpdater {
       await this.applyUpdate()
 
       this.onProgress({
-        percentage: 100,
-        bytesTransferred: firmwareData.byteLength,
-        totalBytes: firmwareData.byteLength,
-        stage: 'complete',
-        message: 'Firmware update sent successfully! Device is restarting. Please reconnect to verify new version.'
+        percentage: 100, bytesTransferred: firmwareData.byteLength,
+        totalBytes: firmwareData.byteLength, stage: 'complete',
+        message: 'Firmware update sent successfully! Device is restarting.'
       })
-
     } catch (error) {
       this.onProgress({
-        percentage: 0,
-        bytesTransferred: 0,
-        totalBytes: firmwareData.byteLength,
-        stage: 'error',
-        message: `Update failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        percentage: 0, bytesTransferred: 0, totalBytes: firmwareData.byteLength,
+        stage: 'error', message: `Update failed: ${error instanceof Error ? error.message : 'Unknown error'}`
       })
       throw error
     }
   }
 
   private async initializeUpdate(totalSize: number): Promise<void> {
-    const command = JSON.stringify({
-      cmd: FIRMWARE_COMMANDS.START_UPDATE,
-      size: totalSize
-    })
-
-    const encoder = new TextEncoder()
-
+    const command = JSON.stringify({ cmd: FIRMWARE_COMMANDS.START_UPDATE, size: totalSize })
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
-        await this.characteristic.writeValueWithoutResponse(encoder.encode(command))
+        await this.writeChunk(-1, command)
         await this.delay(2000)
-        break
+        return
       } catch (error) {
-        if (attempt === 3) {
-          throw new Error(`Failed to initialize update after 3 attempts: ${error}`)
-        }
+        if (attempt === 3) throw new Error(`Failed to initialize update: ${error}`)
         await this.delay(1000)
       }
     }
@@ -134,124 +125,57 @@ export class BLEFirmwareUpdater {
 
     for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
       this.checkAborted()
-
       const offset = chunkIndex * this.chunkSize
       const chunkSize = Math.min(this.chunkSize, firmwareData.byteLength - offset)
+      const chunkData = new Uint8Array(firmwareData, offset, chunkSize)
+      const base64Data = this.arrayBufferToBase64(chunkData.buffer)
 
-      const chunkData = new ArrayBuffer(chunkSize)
-      const chunkView = new Uint8Array(chunkData)
-
-      for (let i = 0; i < chunkSize; i++) {
-        chunkView[i] = dataView.getUint8(offset + i)
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          this.expectedChunkIndex = chunkIndex
+          const ackPromise = this.waitForChunkAck(chunkIndex)
+          const command = JSON.stringify({ cmd: FIRMWARE_COMMANDS.TRANSFER_CHUNK, index: chunkIndex, data: base64Data })
+          await this.writeChunk(chunkIndex, command)
+          await ackPromise
+          break
+        } catch (error) {
+          if (attempt === 3) throw new Error(`Failed to send chunk ${chunkIndex}: ${error}`)
+          await this.delay(500)
+        }
       }
-
-      await this.sendFirmwareChunkWithRetry(chunkIndex, chunkData)
 
       const bytesTransferred = offset + chunkSize
       const percentage = Math.round((bytesTransferred / firmwareData.byteLength) * 90)
-
-      const currentTime = Date.now()
-      const elapsedTimeMs = currentTime - this.startTime
+      const elapsedTimeMs = Date.now() - this.startTime
       const transferRate = bytesTransferred / elapsedTimeMs
       const remainingBytes = firmwareData.byteLength - bytesTransferred
       const estimatedRemainingTimeMs = remainingBytes / transferRate
       const estimatedTotalTimeMs = elapsedTimeMs + estimatedRemainingTimeMs
 
       this.onProgress({
-        percentage,
-        bytesTransferred,
-        totalBytes: firmwareData.byteLength,
-        stage: 'transferring',
-        message: `Transferring firmware... ${chunkIndex + 1}/${totalChunks} chunks`,
-        elapsedTimeMs,
-        estimatedTotalTimeMs,
-        estimatedRemainingTimeMs
+        percentage, bytesTransferred, totalBytes: firmwareData.byteLength,
+        stage: 'transferring', message: `Transferring... ${chunkIndex + 1}/${totalChunks}`,
+        elapsedTimeMs, estimatedTotalTimeMs, estimatedRemainingTimeMs
       })
     }
   }
 
-  private async sendFirmwareChunkWithRetry(chunkIndex: number, chunkData: ArrayBuffer): Promise<void> {
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      try {
-        this.expectedChunkIndex = chunkIndex
-        const ackPromise = this.waitForChunkAck(chunkIndex)
-        await this.sendFirmwareChunk(chunkIndex, chunkData)
-        await ackPromise
-        return
-      } catch (error) {
-        if (attempt === 3) {
-          throw new Error(`Failed to send chunk ${chunkIndex} after 3 attempts: ${error}`)
-        }
-        await this.delay(500)
-      }
-    }
-  }
-
-  private async sendFirmwareChunk(chunkIndex: number, chunkData: ArrayBuffer): Promise<void> {
-    const base64Data = this.arrayBufferToBase64(chunkData)
-
-    const command = JSON.stringify({
-      cmd: FIRMWARE_COMMANDS.TRANSFER_CHUNK,
-      index: chunkIndex,
-      data: base64Data
-    })
-
-    const encoder = new TextEncoder()
-    const encodedCommand = encoder.encode(command)
-
-    if (encodedCommand.length > 2048) {
-      throw new Error(`Command too large: ${encodedCommand.length} bytes (max 2048). Chunk ${chunkIndex} size: ${chunkData.byteLength}`)
-    }
-
-    await this.characteristic.writeValueWithoutResponse(encodedCommand)
-  }
-
   private async verifyFirmware(): Promise<void> {
-    this.onProgress({
-      percentage: 95,
-      bytesTransferred: 0,
-      totalBytes: 0,
-      stage: 'verifying',
-      message: 'Verifying firmware integrity...'
-    })
-
-    const command = JSON.stringify({ cmd: FIRMWARE_COMMANDS.VERIFY_UPDATE })
-    const encoder = new TextEncoder()
-
-    try {
-      await this.characteristic.writeValueWithoutResponse(encoder.encode(command))
-      await this.delay(8000)
-    } catch (error) {
-      throw new Error(`Verification failed: ${error}`)
-    }
+    this.onProgress({ percentage: 95, bytesTransferred: 0, totalBytes: 0, stage: 'verifying', message: 'Verifying firmware integrity...' })
+    await this.writeChunk(-1, JSON.stringify({ cmd: FIRMWARE_COMMANDS.VERIFY_UPDATE }))
+    await this.delay(8000)
   }
 
   private async applyUpdate(): Promise<void> {
-    this.onProgress({
-      percentage: 98,
-      bytesTransferred: 0,
-      totalBytes: 0,
-      stage: 'verifying',
-      message: 'Applying firmware update (device will restart)...'
-    })
-
-    const command = JSON.stringify({ cmd: FIRMWARE_COMMANDS.APPLY_UPDATE })
-    const encoder = new TextEncoder()
-
-    try {
-      await this.characteristic.writeValueWithoutResponse(encoder.encode(command))
-      await this.delay(8000)
-    } catch (error) {
-      throw error
-    }
+    this.onProgress({ percentage: 98, bytesTransferred: 0, totalBytes: 0, stage: 'verifying', message: 'Applying firmware update...' })
+    await this.writeChunk(-1, JSON.stringify({ cmd: FIRMWARE_COMMANDS.APPLY_UPDATE }))
+    await this.delay(8000)
   }
 
   private arrayBufferToBase64(buffer: ArrayBuffer): string {
     const bytes = new Uint8Array(buffer)
     let binary = ''
-    for (let i = 0; i < bytes.byteLength; i++) {
-      binary += String.fromCharCode(bytes[i])
-    }
+    for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i])
     return btoa(binary)
   }
 

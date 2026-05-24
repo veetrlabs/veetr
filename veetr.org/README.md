@@ -11,7 +11,7 @@ This folder contains the static website files for https://veetr.org
 
 ## Deployment
 
-The site is automatically mirrored to the [veetr-site repository](https://github.com/escopecz/veetr-site) via GitHub Actions when changes are made to this folder.
+The site is automatically mirrored to the [veetr-site repository](https://github.com/veetrlabs/veetr-site) via GitHub Actions when changes are made to this folder.
 
 ## Development
 
