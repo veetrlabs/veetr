@@ -80,7 +80,7 @@ code {
   flex: 1;
   display: flex;
   align-items: stretch;
-  min-height: 100vh;
+  padding-bottom: 60px;
 }
 
 /* Light theme specific optimizations for sunlight readability */
@@ -105,8 +105,49 @@ code {
   }
 }
 
+/* Bottom Tab Bar */
+.bottom-tab-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  background: var(--bg-card);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid var(--border-color);
+  padding: 6px 0;
+  padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+  z-index: 1000;
+  box-shadow: 0 -2px 8px var(--shadow-color);
+}
+
+.bottom-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: none;
+  border: none;
+  color: var(--text-accent);
+  cursor: pointer;
+  padding: 4px 8px;
+  min-width: 56px;
+  transition: color 0.2s;
+}
+
+.bottom-tab.active {
+  color: var(--text-primary);
+}
+
+.bottom-tab-label {
+  font-size: 10px;
+  font-weight: 600;
+}
+
 /* Back button for map page */
-.back-button {
+.map-back-button {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 8px;
@@ -118,12 +159,12 @@ code {
   transition: all 0.2s ease;
 }
 
-.back-button:hover {
+.map-back-button:hover {
   background: var(--bg-secondary);
   transform: translateX(-2px);
 }
 
-.back-button:active {
+.map-back-button:active {
   transform: translateX(-2px) scale(0.98);
 }
 
