@@ -10,7 +10,7 @@
     "deploy": "npm run build && gh-pages -d dist"
   },
   "dependencies": {
-    "@veetr/shared": "*",
+    "@veetr/shared": "file:../packages/shared",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.544.0",
     "react": "^18.2.0",

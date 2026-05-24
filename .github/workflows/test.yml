@@ -43,11 +43,9 @@ jobs:
       with:
         node-version: '20'
         cache: 'npm'
-        cache-dependency-path: 'packages/shared/package-lock.json'
 
     - name: Install dependencies
       run: npm ci
-      working-directory: packages/shared
 
     - name: Run tests
       run: npm test
@@ -111,12 +109,12 @@ jobs:
       with:
         node-version: '20'
         cache: 'npm'
-        cache-dependency-path: 'app/package-lock.json'
+        cache-dependency-path: 'pwa/package-lock.json'
 
     - name: Install dependencies
       run: npm ci
-      working-directory: app
+      working-directory: pwa
 
     - name: Build web app
       run: npm run build
-      working-directory: app
+      working-directory: pwa

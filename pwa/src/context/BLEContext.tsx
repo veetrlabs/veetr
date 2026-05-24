@@ -877,7 +877,7 @@ Please try the update again or contact support.`, '❌ Firmware Apply Failed')
 
   // Automatic PWA health monitoring for Android stability
   useEffect(() => {
-    let healthCheckInterval: number | null = null
+    let healthCheckInterval: ReturnType<typeof setInterval> | null = null
 
     // Only run health checks in PWA mode to avoid unnecessary overhead
     if (window.matchMedia('(display-mode: standalone)').matches) {
