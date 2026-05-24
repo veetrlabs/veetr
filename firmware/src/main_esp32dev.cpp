@@ -82,9 +82,8 @@ static OtaState otaState;
 static BleOtaHandler otaHandler;
 extern OtaBackend otaBackend;
 
-// BNO080 IMU Sensor (I2C)
-#define BNO080_SDA 21
-#define BNO080_SCL 22
+#include "board/pins_esp32dev.h"
+
 BNO080 imu;
 bool imuAvailable = false; // Track if IMU is working
 
@@ -94,22 +93,6 @@ float pitchOffset = 0.0;     // Pitch offset when level
 float headingOffset = 0.0;   // Heading offset when pointing north
 bool levelCalibrated = false;
 bool northCalibrated = false;
-
-// RS485 Wind Sensor Configuration
-#define RS485_DE 14
-#define RS485_RX 32
-#define RS485_TX 33
-#define RS485_UART 2
-
-// GPS Module Configuration (using UART1)
-#define GPS_RX 17
-#define GPS_TX 16
-#define GPS_UART 1
-
-// Discovery Mode Configuration
-#define DISCOVERY_BUTTON_PIN 0     // GPIO0 (BOOT button on ESP32 dev boards)
-#define DISCOVERY_LED_PIN 2        // GPIO2 for discovery status LED (built-in LED)
-#define DISCOVERY_TIMEOUT_MS (5 * 60 * 1000)  // 5 minutes timeout
 
 bool discoveryModeActive = false;
 unsigned long discoveryModeStartTime = 0;
