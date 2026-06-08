@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react'
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native'
 import { useBLE } from '../../context/BLEContext'
+import { useTheme } from '../../context/ThemeContext'
+import { themeColors } from '../../constants/colors'
 import { formatTime } from '../../utils/firmwareUpdater'
-import './FirmwareUpdateCard.css'
-import { showSingleAlert } from '../../utils/alertUtils'
 
 export function FirmwareUpdateCard() {
   const { state, checkForUpdates, startFirmwareUpdate } = useBLE()
+  const { theme } = useTheme()
+  const colors = themeColors[theme]
   const [isChecking, setIsChecking] = useState(false)
   const [lastChecked, setLastChecked] = useState<Date | null>(null)
 
@@ -21,29 +24,31 @@ export function FirmwareUpdateCard() {
     }
   }
 
-  const handleStartUpdate = async () => {
-    if (!window.confirm('Are you sure you want to update the firmware? The device will restart during this process.')) {
-      return
-    }
-
-    try {
-      await startFirmwareUpdate()
-      
-      // Show success message with next steps
-      showSingleAlert(`The device has restarted with the new firmware. Please:
-1. Wait 10-15 seconds for the device to fully boot
-2. Click "Connect to Veetr" to reconnect
-3. Check that the "Device Firmware" version has updated
-
-If you still see the old version, the update may have failed.`, '✅ Firmware Update Completed!')
-      
-    } catch (error) {
-      console.error('Firmware update failed:', error)
-      showSingleAlert(`${error instanceof Error ? error.message : 'Unknown error'}`, '❌ Firmware Update Failed')
-    }
+  const handleStartUpdate = () => {
+    Alert.alert(
+      'Update Firmware',
+      'Are you sure you want to update the firmware? The device will restart during this process.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Update',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await startFirmwareUpdate()
+              Alert.alert(
+                'Update Completed',
+                'The device has restarted with the new firmware. Please wait 10-15 seconds and reconnect.'
+              )
+            } catch (error) {
+              Alert.alert('Update Failed', error instanceof Error ? error.message : 'Unknown error')
+            }
+          }
+        }
+      ]
+    )
   }
 
-  // Auto-check for updates when connected
   useEffect(() => {
     if (state.isConnected && !lastChecked) {
       handleCheckForUpdates()
@@ -52,117 +57,115 @@ If you still see the old version, the update may have failed.`, '✅ Firmware Up
 
   if (!state.isConnected) {
     return (
-      <div className="firmware-update-card">
-        <div className="card-header">
-          <div className="status-badge status-disconnected">
-            Device Disconnected
-          </div>
-        </div>
-        <p>Connect to your sailing device to check for firmware updates.</p>
-      </div>
+      <View style={[styles.card, { backgroundColor: colors.cardBg }]}>
+        <View style={[styles.badge, { backgroundColor: colors.border }]}>
+          <Text style={[styles.badgeText, { color: colors.textSecondary }]}>Device Disconnected</Text>
+        </View>
+        <Text style={[styles.text, { color: colors.textSecondary }]}>Connect to your sailing device to check for firmware updates.</Text>
+      </View>
     )
   }
 
   return (
-    <div className="firmware-update-card">
-      <div className="firmware-info">
-        <div className="version-info">
-          <div className="version-item">
-            <label>Device Firmware:</label>
-            <span className="version-number">{state.firmwareInfo.currentVersion}</span>
-          </div>
-          
-          {state.firmwareInfo.latestVersion && (
-            <div className="version-item">
-              <label>Available Firmware:</label>
-              <span className="version-number">{state.firmwareInfo.latestVersion}</span>
-            </div>
-          )}
-        </div>
-
-        {state.firmwareInfo.latestVersion && !state.firmwareInfo.updateAvailable && (
-          <div className="status-message status-up-to-date">
-            ✅ Your device is running the latest firmware
-          </div>
+    <View style={[styles.card, { backgroundColor: colors.cardBg }]}>
+      <View style={styles.info}>
+        <View style={styles.versionItem}>
+          <Text style={[styles.label, { color: colors.textMuted }]}>Device Firmware:</Text>
+          <Text style={[styles.versionNumber, { color: colors.text }]}>{state.firmwareInfo.currentVersion}</Text>
+        </View>
+        {state.firmwareInfo.latestVersion && (
+          <View style={styles.versionItem}>
+            <Text style={[styles.label, { color: colors.textMuted }]}>Available Firmware:</Text>
+            <Text style={[styles.versionNumber, { color: colors.text }]}>{state.firmwareInfo.latestVersion}</Text>
+          </View>
         )}
+      </View>
 
-        {state.firmwareInfo.updateAvailable && (
-          <div className="status-message status-update-ready">
-            🔄 A newer firmware version is available
-          </div>
-        )}
+      {state.firmwareInfo.latestVersion && !state.firmwareInfo.updateAvailable && (
+        <Text style={styles.upToDate}>Your device is running the latest firmware</Text>
+      )}
 
-        {lastChecked && (
-          <div className="last-checked">
-            Last checked: {lastChecked.toLocaleTimeString()}
-          </div>
-        )}
-      </div>
+      {state.firmwareInfo.updateAvailable && (
+        <Text style={styles.updateReady}>A newer firmware version is available</Text>
+      )}
+
+      {lastChecked && (
+        <Text style={[styles.lastChecked, { color: colors.textSubtle }]}>Last checked: {lastChecked.toLocaleTimeString()}</Text>
+      )}
 
       {state.firmwareInfo.isUpdating && (
-        <div className="update-progress">
-          <div className="progress-info">
-            <span>Updating firmware...</span>
-            <span>{state.firmwareInfo.updateProgress}%</span>
-          </div>
-          <div className="progress-bar">
-            <div 
-              className="progress-fill" 
-              style={{ width: `${state.firmwareInfo.updateProgress}%` }}
-            />
-          </div>
-          {state.firmwareInfo.isUpdating && (
-            <div className="timing-info">
-              <div className="timing-row">
-                <span className="timing-label">Elapsed:</span>
-                <span className="timing-value">{formatTime(state.firmwareInfo.elapsedTimeMs || 0)}</span>
-              </div>
-              {state.firmwareInfo.estimatedRemainingTimeMs && (
-                <div className="timing-row">
-                  <span className="timing-label">Remaining:</span>
-                  <span className="timing-value">{formatTime(state.firmwareInfo.estimatedRemainingTimeMs)}</span>
-                </div>
-              )}
-              {state.firmwareInfo.estimatedTotalTimeMs && (
-                <div className="timing-row">
-                  <span className="timing-label">Total:</span>
-                  <span className="timing-value">{formatTime(state.firmwareInfo.estimatedTotalTimeMs)}</span>
-                </div>
-              )}
-            </div>
-          )}
-          <div className="update-warning">
-            ⚠️ Do not disconnect the device during update
-          </div>
-        </div>
+        <View style={styles.progress}>
+          <View style={styles.progressInfo}>
+            <Text style={{ color: colors.text }}>Updating firmware...</Text>
+            <Text style={{ color: colors.text }}>{state.firmwareInfo.updateProgress}%</Text>
+          </View>
+          <View style={[styles.progressBar, { backgroundColor: colors.border }]}>
+            <View style={[styles.progressFill, { width: `${Math.max(0, state.firmwareInfo.updateProgress ?? 0)}%` as any }]} />
+          </View>
+          <View style={styles.timingInfo}>
+            <Text style={{ color: colors.textMuted }}>Elapsed: {formatTime(state.firmwareInfo.elapsedTimeMs || 0)}</Text>
+            {state.firmwareInfo.estimatedRemainingTimeMs && (
+              <Text style={{ color: colors.textMuted }}>Remaining: {formatTime(state.firmwareInfo.estimatedRemainingTimeMs)}</Text>
+            )}
+          </View>
+          <Text style={styles.warning}>Do not disconnect the device during update</Text>
+        </View>
       )}
 
       {!state.firmwareInfo.isUpdating && (
-        <div className="action-buttons">
-          <button 
-            onClick={handleCheckForUpdates}
+        <View style={styles.actions}>
+          <TouchableOpacity
+            style={[styles.button, { backgroundColor: colors.textSubtle }]}
+            onPress={handleCheckForUpdates}
             disabled={isChecking}
-            className="btn btn-secondary"
           >
-            {isChecking ? 'Checking...' : 'Check for Updates'}
-          </button>
+            <Text style={styles.buttonText}>{isChecking ? 'Checking...' : 'Check for Updates'}</Text>
+          </TouchableOpacity>
 
           {state.firmwareInfo.updateAvailable && (
-            <button 
-              onClick={handleStartUpdate}
-              className="btn btn-primary"
-            >
-              Update Firmware
-            </button>
+            <TouchableOpacity style={[styles.button, { backgroundColor: colors.text }]} onPress={handleStartUpdate}>
+              <Text style={styles.buttonText}>Update Firmware</Text>
+            </TouchableOpacity>
           )}
-        </div>
+        </View>
       )}
-
-      {state.error && (
-        <div className="error-message">
-          Error: {state.error}
-        </div>
-      )}
-    </div>
+    </View>
   )
 }
+
+const styles = StyleSheet.create({
+  card: {
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+  },
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+    marginBottom: 8,
+  },
+  badgeText: { fontSize: 12, fontWeight: '600' },
+  text: { fontSize: 14 },
+  info: { marginBottom: 12 },
+  versionItem: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
+  label: { fontSize: 13 },
+  versionNumber: { fontSize: 13, fontWeight: '700' },
+  upToDate: { fontSize: 13, color: '#38a169', fontWeight: '600', marginBottom: 8 },
+  updateReady: { fontSize: 13, color: '#d69e2e', fontWeight: '600', marginBottom: 8 },
+  lastChecked: { fontSize: 11, marginBottom: 8 },
+  progress: { marginTop: 8 },
+  progressInfo: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
+  progressBar: {
+    height: 8, borderRadius: 4, overflow: 'hidden', marginBottom: 8,
+  },
+  progressFill: { height: '100%', backgroundColor: '#3182ce', borderRadius: 4 },
+  timingInfo: { gap: 2, marginBottom: 8 },
+  warning: { fontSize: 12, color: '#e53e3e', fontWeight: '600', textAlign: 'center' },
+  actions: { flexDirection: 'row', gap: 8, marginTop: 8 },
+  button: {
+    flex: 1, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, alignItems: 'center',
+  },
+  buttonText: { color: '#fff', fontWeight: '600', fontSize: 14 },
+})

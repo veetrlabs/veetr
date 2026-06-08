@@ -1,8 +1,5 @@
-import { version } from '../../package.json'
-
-export const VERSION = version
-export const APP_VERSION = version
+export const APP_VERSION = '0.0.28'
 
 export function getVersionString(includeAppName = true): string {
-  return includeAppName ? APP_VERSION : VERSION
+  return includeAppName ? `Veetr ${APP_VERSION}` : APP_VERSION
 }

@@ -1,6 +1,6 @@
 import { GitHubRelease, FirmwareAsset } from '../types'
 
-const GITHUB_REPO = 'escopecz/veetr'
+const GITHUB_REPO = 'veetrlabs/veetr'
 const GITHUB_API_BASE = 'https://api.github.com'
 
 export async function getLatestRelease(): Promise<GitHubRelease | null> {

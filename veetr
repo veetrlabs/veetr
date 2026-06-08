@@ -240,13 +240,13 @@ function handleBuild(args) {
   
   if (!target || target === 'all') {
     console.log('Building everything...')
-    runCommand('npm install', 'Installing app dependencies', { cwd: path.join(__dirname, 'app') })
-    runCommand('npm run build', 'Building web app', { cwd: path.join(__dirname, 'app') })
+    runCommand('npm install', 'Installing app dependencies', { cwd: path.join(__dirname, 'pwa') })
+    runCommand('npm run build', 'Building web app', { cwd: path.join(__dirname, 'pwa') })
     runCommand('pio run', 'Building firmware', { cwd: path.join(__dirname, 'firmware') })
   } else if (target === 'app') {
     console.log('Building web app...')
-    runCommand('npm install', 'Installing app dependencies', { cwd: path.join(__dirname, 'app') })
-    runCommand('npm run build', 'Building web app', { cwd: path.join(__dirname, 'app') })
+    runCommand('npm install', 'Installing app dependencies', { cwd: path.join(__dirname, 'pwa') })
+    runCommand('npm run build', 'Building web app', { cwd: path.join(__dirname, 'pwa') })
   } else if (target === 'firmware') {
     console.log('Building firmware...')
     runCommand('pio run', 'Building firmware', { cwd: path.join(__dirname, 'firmware') })
@@ -260,7 +260,7 @@ function handleBuild(args) {
 function handleDev() {
   console.log(`${c.info('🚀 Veetr Development Server')}`)
   console.log('Starting app development server...')
-  runCommand('npm run dev', null, { cwd: path.join(__dirname, 'app') })
+  runCommand('npm run dev', null, { cwd: path.join(__dirname, 'pwa') })
 }
 
 function handleHelp(args) {

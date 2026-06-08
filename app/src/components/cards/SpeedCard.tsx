@@ -1,23 +1,36 @@
-import '../Dashboard.css'
+import { memo } from 'react'
+import { View, Text } from 'react-native'
+import { useCardTextSize } from '../../hooks/useCardTextSize'
+import { useTheme } from '../../context/ThemeContext'
+import { themeColors } from '../../constants/colors'
+import { cardStyles } from './shared'
 
 interface SpeedCardProps {
   speed: number
-  satellites: number
-  onClick?: () => void
 }
 
-export default function SpeedCard({ speed, onClick }: SpeedCardProps) {
-  const displaySpeed = speed.toFixed(1)
+const SpeedCard = memo(function SpeedCard({ speed }: SpeedCardProps) {
+  const { fontSize, unitFontSize, titleFontSize, onCardLayout } = useCardTextSize()
+  const { theme } = useTheme()
+  const colors = themeColors[theme]
 
   return (
-    <div className="card speed-card" onClick={onClick} style={{ cursor: onClick ? 'pointer' : 'default' }}>
-      <div className="card-value">
-        <span className="card-title">SOG</span>
-        <span className="value-unit-row">
-          <span className="value-number">{displaySpeed}</span>
-          <span className="card-unit">kt</span>
-        </span>
-      </div>
-    </div>
+    <View style={[cardStyles.card, { backgroundColor: colors.cardBg }]} onLayout={onCardLayout}>
+      <View style={[cardStyles.titleCol, { width: titleFontSize }]}>
+        {'SOG'.split('').map((char, i) => (
+          <Text key={i} style={[cardStyles.title, { color: colors.textSecondary, fontSize: titleFontSize }]}>
+            {char}
+          </Text>
+        ))}
+      </View>
+      <View style={cardStyles.valueArea}>
+        <View style={cardStyles.valueRow}>
+          <Text style={[cardStyles.number, { color: colors.text, fontSize }]}>{speed.toFixed(1)}</Text>
+          <Text style={[cardStyles.unit, { color: colors.textMuted, fontSize: unitFontSize }]}>kt</Text>
+        </View>
+      </View>
+    </View>
   )
-}
+})
+
+export default SpeedCard

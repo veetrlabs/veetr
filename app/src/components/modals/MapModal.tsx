@@ -1,111 +1,86 @@
-import { useEffect, useRef, useState } from 'react'
-import { getLastReading } from '../../utils/dataStorage'
-import { isValidCoordinates } from '../../utils/gpsValidation'
-import './MapModal.css'
+import { useEffect, useRef } from 'react'
+import { View, Modal, TouchableOpacity, Text, StyleSheet } from 'react-native'
+import MapView, { Marker, Circle } from 'react-native-maps'
 
 interface MapModalProps {
-  isOpen: boolean
+  visible: boolean
   onClose: () => void
   lat: number
   lon: number
-  hdm: number
 }
 
-export default function MapModal({ isOpen, onClose, lat, lon }: MapModalProps) {
-  const mapRef = useRef<HTMLDivElement>(null)
-  const mapInstanceRef = useRef<any>(null)
-  const [displayLat, setDisplayLat] = useState(0)
-  const [displayLon, setDisplayLon] = useState(0)
+export default function MapModal({ visible, onClose, lat, lon }: MapModalProps) {
+  const mapRef = useRef<MapView>(null)
 
-  // Load coordinates when modal opens
+  const hasValidCoords = lat !== 0 && lon !== 0
+
   useEffect(() => {
-    if (!isOpen) return
-
-    const loadPosition = async () => {
-      if (isValidCoordinates(lat, lon)) {
-        setDisplayLat(lat)
-        setDisplayLon(lon)
-      } else {
-        const lastReading = await getLastReading()
-        if (lastReading?.lat && lastReading?.lon) {
-          setDisplayLat(lastReading.lat)
-          setDisplayLon(lastReading.lon)
-        }
-      }
+    if (visible && hasValidCoords && mapRef.current) {
+      mapRef.current.animateToRegion({
+        latitude: lat,
+        longitude: lon,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      }, 500)
     }
-
-    loadPosition()
-  }, [isOpen, lat, lon])
-
-  // Initialize map
-  useEffect(() => {
-    if (!isOpen || !mapRef.current || mapInstanceRef.current) return
-    if (displayLat === 0 || displayLon === 0) return
-
-    const initMap = async () => {
-      const L = (window as any).L
-      
-      if (!L) {
-        // Load Leaflet
-        const link = document.createElement('link')
-        link.rel = 'stylesheet'
-        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
-        document.head.appendChild(link)
-
-        await new Promise<void>((resolve) => {
-          const script = document.createElement('script')
-          script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
-          script.onload = () => resolve()
-          document.head.appendChild(script)
-        })
-      }
-
-      const mapInstance: any = (window as any).L.map(mapRef.current).setView([displayLat, displayLon], 13);
-      
-      (window as any).L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '© OpenStreetMap'
-      }).addTo(mapInstance);
-
-      (window as any).L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', {
-        attribution: '© OpenSeaMap'
-      }).addTo(mapInstance);
-
-      // Add marker after brief delay for map to fully render
-      setTimeout(() => {
-        (window as any).L.circleMarker([displayLat, displayLon], {
-          radius: 6,
-          fillColor: '#444',
-          fillOpacity: 1,
-          color: '#222',
-          weight: 2
-        }).addTo(mapInstance)
-      }, 200)
-
-      mapInstanceRef.current = mapInstance
-    }
-
-    initMap()
-  }, [isOpen, displayLat, displayLon])
-
-  // Cleanup
-  useEffect(() => {
-    return () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove()
-        mapInstanceRef.current = null
-      }
-    }
-  }, [isOpen])
-
-  if (!isOpen) return null
+  }, [visible, lat, lon, hasValidCoords])
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content map-modal" onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close" onClick={onClose}>×</button>
-        <div ref={mapRef} style={{ width: '100%', height: '80vh' }} />
-      </div>
-    </div>
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View style={styles.container}>
+        <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
+          <Text style={styles.closeText}>✕</Text>
+        </TouchableOpacity>
+        {hasValidCoords ? (
+          <MapView
+            ref={mapRef}
+            style={styles.map}
+            initialRegion={{
+              latitude: lat,
+              longitude: lon,
+              latitudeDelta: 0.01,
+              longitudeDelta: 0.01,
+            }}
+          >
+            <Marker
+              coordinate={{ latitude: lat, longitude: lon }}
+              title="Current Position"
+              pinColor="#e53e3e"
+            />
+            <Circle
+              center={{ latitude: lat, longitude: lon }}
+              radius={5}
+              fillColor="rgba(229,62,62,0.3)"
+              strokeColor="rgba(229,62,62,0.8)"
+              strokeWidth={2}
+            />
+          </MapView>
+        ) : (
+          <View style={styles.noData}>
+            <Text style={styles.noDataText}>No GPS data available</Text>
+          </View>
+        )}
+      </View>
+    </Modal>
   )
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#000' },
+  map: { flex: 1 },
+  closeBtn: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeText: { color: '#fff', fontSize: 20, fontWeight: '700' },
+  noData: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  noDataText: { color: '#fff', fontSize: 18 },
+})

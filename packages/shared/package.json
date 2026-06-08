@@ -2,6 +2,10 @@
   "name": "@veetr/shared",
   "version": "0.0.1",
   "private": true,
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch"
+  },
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
@@ -10,5 +14,12 @@
     "./utils/githubApi": "./src/utils/githubApi.ts",
     "./utils/sailing": "./src/utils/sailing.ts",
     "./utils/firmware": "./src/utils/firmware.ts"
+  },
+  "devDependencies": {
+    "@jest/globals": "^30.4.1",
+    "@types/jest": "^30.0.0",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.4.10",
+    "ts-node": "^10.9.2"
   }
 }
