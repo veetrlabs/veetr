@@ -1,0 +1,70 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageHero from '../components/PageHero.astro';
+import MarkdownSection from '../components/MarkdownSection.astro';
+import Newsletter from '../components/Newsletter.astro';
+import { frontmatter, Content } from '../content/pages/product.md';
+---
+
+<BaseLayout title={frontmatter.title} description={frontmatter.description}>
+  <PageHero
+    eyebrow={frontmatter.eyebrow}
+    title={frontmatter.heroTitle}
+    lead={frontmatter.heroLead}
+    support={frontmatter.heroSupport}
+    image="/img/veetr-tablet-light.png"
+    imageAlt="Veetr tablet dashboard"
+  />
+
+  <MarkdownSection Content={Content} />
+
+  <section class="section">
+    <div class="shell">
+      <div class="section-heading">
+        <p class="eyebrow">Measurements</p>
+        <h2>The data Veetr is designed to show</h2>
+      </div>
+      <div class="metric-grid">
+        <div><strong>AWS</strong><span>Apparent wind speed</span></div>
+        <div><strong>AWA</strong><span>Apparent wind angle</span></div>
+        <div><strong>TWS</strong><span>True wind speed</span></div>
+        <div><strong>TWA</strong><span>True wind angle</span></div>
+        <div><strong>SOG</strong><span>Speed over ground</span></div>
+        <div><strong>HDG</strong><span>Magnetic heading</span></div>
+        <div><strong>Heel</strong><span>Boat tilt angle</span></div>
+        <div><strong>GPS</strong><span>Position and signal quality</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-muted">
+    <div class="shell">
+      <div class="section-heading">
+        <p class="eyebrow">Fit</p>
+        <h2>Where Veetr makes the most sense</h2>
+      </div>
+      <div class="comparison-grid">
+        <article>
+          <h3>Best fit</h3>
+          <ul>
+            <li>Dinghies, daysailers, and small keelboats</li>
+            <li>Charter boats where you want your own instruments</li>
+            <li>Backup data independent from fixed boat electronics</li>
+            <li>Sailors who like repairable, inspectable hardware</li>
+          </ul>
+        </article>
+        <article>
+          <h3>Less ideal</h3>
+          <ul>
+            <li>Offshore installations needing certified equipment today</li>
+            <li>Boats already committed to a complete proprietary stack</li>
+            <li>Users who need a finished retail product immediately</li>
+            <li>Installations where DIY electronics are not acceptable</li>
+          </ul>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <Newsletter />
+</BaseLayout>

@@ -1,53 +1,53 @@
 # Veetr.org Website
 
-This folder contains the static website files for https://veetr.org
+This folder contains the source for the static website at https://veetr.org.
+
+The site is built with Astro so shared UI lives in components, page copy can live in Markdown, and the deployed output remains plain static HTML/CSS/JS.
 
 ## Structure
 
-- `index.html` - Main landing page
-- `styles.css` - Stylesheet with all CSS styling
-- `CNAME` - GitHub Pages custom domain configuration for veetr.org
-- Additional assets can be added here as needed
+- `src/pages/` - Astro routes for the generated pages
+- `src/content/pages/` - Markdown page copy and metadata
+- `src/components/` - shared header, footer, hero, newsletter, and utility components
+- `src/layouts/` - shared page layout
+- `src/styles/global.css` - global site styles
+- `public/` - static assets copied directly into the built site
+- `public/CNAME` - GitHub Pages custom domain configuration
+
+## Local Development
+
+From the repository root:
+
+```bash
+npm install
+npm run dev --workspace veetr.org
+```
+
+Then open the local URL printed by Astro, usually `http://localhost:4321`.
+
+To build and preview the static output:
+
+```bash
+npm run build --workspace veetr.org
+npm run preview --workspace veetr.org
+```
+
+The generated static site is written to `veetr.org/dist`.
+
+## Content Editing
+
+Most page copy lives in `src/content/pages/*.md`. Each file contains frontmatter used for titles, descriptions, and hero text. The route files in `src/pages/` combine that Markdown with structured sections such as feature cards, docs links, and roadmap milestones.
 
 ## Deployment
 
-The site is automatically mirrored to the [veetr-site repository](https://github.com/escopecz/veetr-site) via GitHub Actions when changes are made to this folder.
+Changes to `veetr.org/**`, `package.json`, or `package-lock.json` trigger `.github/workflows/mirror-site.yml`.
 
-## Development
+The workflow:
 
-To test the site locally:
-1. Open `index.html` directly in a web browser
-2. Or serve via a local web server:
-   ```bash
-   # Python 3
-   python3 -m http.server 8000
-   
-   # Node.js (if installed)
-   npx http-server
-   
-   # PHP (if installed)
-   php -S localhost:8000
-   
-   # macOS with Python 2 (legacy)
-   python -m SimpleHTTPServer 8000
-   ```
-3. Then visit `http://localhost:8000`
+1. Installs Node dependencies with `npm ci`
+2. Builds the site with `npm run build --workspace veetr.org`
+3. Clones the `veetrlabs/veetr-site` repository
+4. Copies `veetr.org/dist` into that repository
+5. Commits and pushes the generated static files
 
-## Features
-
-The landing page includes:
-- Hero section with project overview
-- Feature highlights
-- Technical specifications
-- Links to all documentation
-- Responsive design for mobile and desktop
-- Modern CSS with smooth animations
-- SEO optimized with meta tags
-
-## Customization
-
-The site uses external CSS for better maintainability. Key design elements:
-- Color scheme: Blue gradient (#667eea to #764ba2)
-- Font: System font stack for performance
-- Layout: CSS Grid and Flexbox for responsiveness
-- Icons: Unicode emoji for simplicity
+GitHub Pages serves the mirrored repository at https://veetr.org.

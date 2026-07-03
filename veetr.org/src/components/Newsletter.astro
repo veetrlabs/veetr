@@ -1,0 +1,26 @@
+---
+interface Props {
+  id?: number;
+  title?: string;
+  text?: string;
+}
+
+const {
+  id = 1,
+  title = 'Follow the project',
+  text = 'Get build notes, certification updates, and community milestones in your inbox.',
+} = Astro.props;
+---
+
+<section class="newsletter-band">
+  <div class="shell newsletter-grid">
+    <div>
+      <p class="eyebrow">Newsletter</p>
+      <h2>{title}</h2>
+      <p>{text}</p>
+    </div>
+    <div class="form-panel">
+      <script type="text/javascript" src={`https://m.veetr.com/form/generate.js?id=${id}`}></script>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,76 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageHero from '../components/PageHero.astro';
+import MarkdownSection from '../components/MarkdownSection.astro';
+import Newsletter from '../components/Newsletter.astro';
+import { frontmatter, Content } from '../content/pages/home.md';
+---
+
+<BaseLayout title="Veetr" description={frontmatter.description}>
+  <PageHero
+    eyebrow={frontmatter.eyebrow}
+    title={frontmatter.heroTitle}
+    lead={frontmatter.heroLead}
+    support={frontmatter.heroSupport}
+    image="/img/veetr-phone-tablet.png"
+    imageAlt="Veetr dashboard running on a phone and tablet"
+  />
+
+  <MarkdownSection Content={Content} />
+
+  <section class="section">
+    <div class="shell">
+      <div class="section-heading">
+        <p class="eyebrow">Why Veetr</p>
+        <h2>Built for sailors who value independence</h2>
+      </div>
+      <div class="feature-grid">
+        <article class="feature-card">
+          <h3>Real wind data</h3>
+          <p>Apparent and true wind, heading, heel, GPS position, and speed over ground with real-time updates.</p>
+        </article>
+        <article class="feature-card">
+          <h3>Runs on your devices</h3>
+          <p>The web app works on phones, tablets, and laptops, and can be installed without an app store.</p>
+        </article>
+        <article class="feature-card">
+          <h3>No boat rewiring</h3>
+          <p>Prototype hardware runs from USB-C power and is designed for boats without a permanent electrical system.</p>
+        </article>
+        <article class="feature-card">
+          <h3>Open by default</h3>
+          <p>Firmware, PCB files, app code, and documentation are available for builders and contributors.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="image-band">
+    <div class="shell image-band-grid">
+      <div>
+        <p class="eyebrow">App</p>
+        <h2>A dashboard made for repeated use on the water</h2>
+        <p>Large values, responsive layouts, offline install support, and Bluetooth connectivity keep the instrument practical on small boats.</p>
+        <a class="button button-secondary" href="/product/">Explore the product</a>
+      </div>
+      <img src="/img/veetr-tablet-phone-1024.png" alt="Veetr app shown on tablet and phone" />
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="shell split-panel">
+      <div>
+        <p class="eyebrow">Roadmap</p>
+        <h2>From open prototype to sustainable product</h2>
+        <p>Finished hardware is not sold yet. The current project phase is about builders, audience, feedback, and a certification fund that can make the first batch possible.</p>
+      </div>
+      <div class="milestone-list">
+        <div><strong>250 subscribers</strong><span>Publish sourced certification quotes and launch the fund campaign.</span></div>
+        <div><strong>EUR 45,000 target</strong><span>Cover testing, engineering fixes, documentation, and first-batch preparation.</span></div>
+        <div><strong>Certified batch</strong><span>Manufacture only after the final design passes the required checks.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <Newsletter />
+</BaseLayout>

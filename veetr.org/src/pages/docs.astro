@@ -1,0 +1,39 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageHero from '../components/PageHero.astro';
+import MarkdownSection from '../components/MarkdownSection.astro';
+import { frontmatter, Content } from '../content/pages/docs.md';
+
+const docs = [
+  ['Setup guide', 'Start here if you want to use the app with Veetr hardware.', 'https://github.com/veetrlabs/veetr/blob/main/docs/SETUP.md'],
+  ['Hardware guide', 'Components, wiring, sensors, and assembly notes.', 'https://github.com/veetrlabs/veetr/blob/main/docs/HARDWARE.md'],
+  ['Development guide', 'Local development workflow and contribution notes.', 'https://github.com/veetrlabs/veetr/blob/main/docs/DEVELOPMENT.md'],
+  ['Firmware update guide', 'How to update the ESP32 firmware.', 'https://github.com/veetrlabs/veetr/blob/main/docs/FIRMWARE_UPDATE.md'],
+  ['Compliance notes', 'Current compliance thinking and certification context.', 'https://github.com/veetrlabs/veetr/blob/main/docs/COMPLIANCE.md'],
+  ['PCB files', 'Manufacturing files and board documentation.', 'https://github.com/veetrlabs/veetr/tree/main/pcb'],
+];
+---
+
+<BaseLayout title={frontmatter.title} description={frontmatter.description}>
+  <PageHero
+    compact
+    eyebrow={frontmatter.eyebrow}
+    title={frontmatter.heroTitle}
+    lead={frontmatter.heroLead}
+    support={frontmatter.heroSupport}
+  />
+
+  <MarkdownSection Content={Content} />
+
+  <section class="section">
+    <div class="shell docs-grid">
+      {docs.map(([title, text, href]) => (
+        <a class="doc-card" href={href}>
+          <h2>{title}</h2>
+          <p>{text}</p>
+          <span>Open resource</span>
+        </a>
+      ))}
+    </div>
+  </section>
+</BaseLayout>

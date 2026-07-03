@@ -1,0 +1,70 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageHero from '../components/PageHero.astro';
+import MarkdownSection from '../components/MarkdownSection.astro';
+import Newsletter from '../components/Newsletter.astro';
+import { frontmatter, Content } from '../content/pages/get-your-veetr.md';
+---
+
+<BaseLayout title={frontmatter.title} description={frontmatter.description}>
+  <PageHero
+    eyebrow={frontmatter.eyebrow}
+    title={frontmatter.heroTitle}
+    lead={frontmatter.heroLead}
+    support={frontmatter.heroSupport}
+    image="/img/veetr-tablet-phone-1024.png"
+    imageAlt="Veetr dashboard on tablet and phone"
+  />
+
+  <MarkdownSection Content={Content} />
+
+  <section class="section section-muted">
+    <div class="shell">
+      <div class="section-heading">
+        <p class="eyebrow">Campaign model</p>
+        <h2>A practical path to the first product batch</h2>
+      </div>
+      <div class="timeline">
+        <article>
+          <span>1</span>
+          <h3>Audience proof</h3>
+          <p>Reach 250 newsletter subscribers and collect enough builder feedback to know which product configuration should be certified.</p>
+        </article>
+        <article>
+          <span>2</span>
+          <h3>Quote the work</h3>
+          <p>Get lab and manufacturing quotes for the final configuration, including EU and US requirements, packaging, labeling, manuals, and retest reserve.</p>
+        </article>
+        <article>
+          <span>3</span>
+          <h3>Open fund campaign</h3>
+          <p>Run a transparent campaign with the provisional EUR 45,000 target replaced by sourced quotes before launch.</p>
+        </article>
+        <article>
+          <span>4</span>
+          <h3>Certify, then batch</h3>
+          <p>Complete testing, fix issues, publish the lessons, and prepare the first batch only after the hardware passes.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="shell budget-grid">
+      <div>
+        <p class="eyebrow">Planning budget</p>
+        <h2>What EUR 45,000 is meant to cover</h2>
+        <p>This number is deliberately conservative for planning. It should become a public budget before the campaign starts.</p>
+      </div>
+      <dl>
+        <div><dt>Pre-compliance and engineering</dt><dd>EUR 8,000</dd></div>
+        <div><dt>Final lab testing and filings</dt><dd>EUR 15,000</dd></div>
+        <div><dt>Design fixes and retesting reserve</dt><dd>EUR 8,000</dd></div>
+        <div><dt>Manuals, labeling, legal, accounting</dt><dd>EUR 5,000</dd></div>
+        <div><dt>Pilot manufacturing preparation</dt><dd>EUR 9,000</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <Newsletter id={4} title="Help unlock the certified batch" text="The first milestone is 250 people who want Veetr to become a real open source product." />
+</BaseLayout>

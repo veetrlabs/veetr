@@ -1,0 +1,71 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PageHero from '../components/PageHero.astro';
+import MarkdownSection from '../components/MarkdownSection.astro';
+import Newsletter from '../components/Newsletter.astro';
+import { frontmatter, Content } from '../content/pages/build.md';
+
+const parts = [
+  ['Microcontroller', 'ESP32 dual-core WiFi and BLE development board with external antenna support.'],
+  ['9-axis sensor', 'BNO080/BNO085 IMU for heading, heel, and motion data.'],
+  ['Wind sensor', 'RS485 ultrasonic wind sensor for apparent wind speed and direction.'],
+  ['GPS module', 'Multi-GNSS receiver for position and speed over ground.'],
+  ['RS485 interface', 'TTL converter module for connecting the wind sensor to the ESP32.'],
+  ['Custom PCB', 'Open source breakout board for reliable wiring and assembly.'],
+  ['Enclosure', 'A printable or adaptable housing for real-world testing.'],
+  ['Cables and hardware', 'Connectors, shielded cable, screws, LEDs, and basic assembly parts.'],
+];
+---
+
+<BaseLayout title={frontmatter.title} description={frontmatter.description}>
+  <PageHero
+    eyebrow={frontmatter.eyebrow}
+    title={frontmatter.heroTitle}
+    lead={frontmatter.heroLead}
+    support={frontmatter.heroSupport}
+    image="/img/3d-veetr-pcb.png"
+    imageAlt="Veetr custom PCB render"
+  />
+
+  <MarkdownSection Content={Content} />
+
+  <section class="section">
+    <div class="shell">
+      <div class="section-heading">
+        <p class="eyebrow">Hardware</p>
+        <h2>Main parts</h2>
+      </div>
+      <div class="parts-grid">
+        {parts.map(([name, text]) => (
+          <article class="part-card">
+            <h3>{name}</h3>
+            <p>{text}</p>
+          </article>
+        ))}
+      </div>
+      <div class="notice">
+        <strong>Builder responsibility</strong>
+        <p>Open hardware gives you freedom, but finished hardware you assemble is your responsibility. Check the docs, use the right parts, and verify safety before use on the water.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-muted">
+    <div class="shell resource-grid">
+      <a href="https://github.com/veetrlabs/veetr/blob/main/docs/HARDWARE.md">
+        <span>Hardware guide</span>
+        Wiring, sensors, and sourcing notes
+      </a>
+      <a href="https://github.com/veetrlabs/veetr/tree/main/pcb">
+        <span>PCB files</span>
+        Manufacturing files and board documentation
+      </a>
+      <a href="https://github.com/veetrlabs/veetr/blob/main/docs/FIRMWARE_UPDATE.md">
+        <span>Firmware updates</span>
+        Flashing and update instructions
+      </a>
+    </div>
+  </section>
+
+  <Newsletter title="Build with the community" text="Follow design updates, sourcing notes, and testing milestones." />
+</BaseLayout>
