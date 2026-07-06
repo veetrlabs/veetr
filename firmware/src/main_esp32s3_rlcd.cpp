@@ -45,7 +45,7 @@
 // Debug flags - uncomment for verbose output
 // #define DEBUG_BLE_DATA
 #define DEBUG_WIND_SENSOR
-// #define DEBUG_GPS
+#define DEBUG_GPS
 #define DEBUG_BNO080
 
 // Persistent storage for settings
@@ -1191,7 +1191,7 @@ void setup() {
   // Initialize I2C for BNO080 with detection
   Wire.begin(BNO080_SDA, BNO080_SCL);
   Wire.setClock(400000); // Set I2C to 400kHz Fast mode (BNO08X supports up to 400kHz)
-  Wire.setTimeout(100); // Set I2C timeout to 100ms to prevent long blocking
+  Wire.setTimeOut(100); // Prevent I2C peripheral hangs on ESP32-S3 when device NACKs
   
   Serial.print("Testing BNO080 connection... ");
   Serial.printf("I2C SDA=%d, SCL=%d\n", BNO080_SDA, BNO080_SCL);
@@ -1204,14 +1204,13 @@ void setup() {
   if (imu.begin()) {
     Serial.println("BNO080 begin() successful, configuring sensor...");
     
-    // Enable accelerometer for fast heel/pitch (50ms = 20Hz)
-    imu.enableAccelerometer(50);
-    Serial.println("Accelerometer configuration sent (20Hz)");
-    
-    // Enable rotation vector (gyro + accel + mag fusion with tilt compensation)
-    // This includes magnetometer, so heading will be tilt-compensated
-    imu.enableRotationVector(100); // 100ms = 10Hz for stable heading
+    // Enable rotation vector (gyro+accel+mag fusion, tilt-compensated heading).
+    // IMPORTANT: Must NOT enable any other sensor reports (accel, gyro, mag)
+    // or the rotation vector will stop producing data on this hardware revision.
+    // The rotation vector internally uses all three sensors.
+    imu.enableRotationVector(100); // 100ms = 10Hz
     Serial.println("Rotation vector configuration sent (10Hz)");
+    delay(500); // Give sensor time to process the command
     
     // Give sensor more time to initialize and start providing data
     Serial.println("Waiting for sensor data...");
@@ -1790,12 +1789,31 @@ void readSensors() {
   // Read tilt from BNO080 (only if available)
   if (imuAvailable) {
     static unsigned long lastIMURead = 0;
-    const unsigned long IMU_READ_INTERVAL = 20; // Read IMU every 20ms (50Hz to match magnetometer)
+    const unsigned long IMU_READ_INTERVAL = 50; // Read IMU every 50ms (20Hz to match accel rate)
     
     if (millis() - lastIMURead >= IMU_READ_INTERVAL) {
       lastIMURead = millis();
-      
+
+      // Re-enable sensor features if no data received for a while
+      static unsigned long lastRvReEnable = 0;
+      static bool rvEverWorked = false;
+      static unsigned long lastDataReceived = 0;
+      unsigned long now_ = millis();
+      // Trigger recovery if: data stopped for 3s, OR no data ever after 10s
+      bool needRecovery = (rvEverWorked && lastDataReceived > 0 && now_ - lastDataReceived > 3000)
+                       || (!rvEverWorked && lastDataReceived == 0 && now_ - lastRvReEnable > 10000);
+      if (needRecovery && now_ - lastRvReEnable > 5000) {
+        lastRvReEnable = now_;
+        Wire.end();
+        Wire.begin(BNO080_SDA, BNO080_SCL);
+        Wire.setClock(400000);
+        Wire.setTimeOut(100);
+        delay(5);
+        imu.enableGameRotationVector(100);
+      }
+
       if (imu.dataAvailable()) {
+        lastDataReceived = millis();
         // dataAvailable() processes incoming sensor reports from BNO080
         // It updates internal variables: rawAccelX/Y/Z, rawMagX/Y/Z, rawQuatI/J/K/Real
         
@@ -1803,17 +1821,18 @@ void readSensors() {
         // The rotation vector (quaternion) updates too slowly (~4-6 seconds)
         // Accelerometer updates fast and reliably every cycle
         
-        // Get accelerometer readings (in m/s²)
+        // Get accelerometer readings (in m/s²) — only valid after enableAccelerometer is called
         float accelX = imu.getAccelX();
         float accelY = imu.getAccelY();
         float accelZ = imu.getAccelZ();
         
         // Calculate heel (roll) from gravity vector
-        // When level: accelZ ≈ 9.8, accelX ≈ 0, accelY ≈ 0
-        // When heeled right: accelX increases (positive), accelZ decreases
         float rawRoll = 0.0f;
         float rawPitch = 0.0f;
-        computeRollPitchDegrees(accelX, accelY, accelZ, rawRoll, rawPitch);
+        // Only compute if we have valid accel data (non-zero gravity)
+        if (fabsf(accelZ) > 1.0f) {
+          computeRollPitchDegrees(accelX, accelY, accelZ, rawRoll, rawPitch);
+        }
         
         // Apply calibration offsets
         float roll = rawRoll - rollOffset;
@@ -1831,17 +1850,29 @@ void readSensors() {
         }
         #endif
         
-        // Compass calculation - only update when magnetometer actually changes
-        // **USE ROTATION VECTOR FOR TILT-COMPENSATED COMPASS**
-        // BNO080's rotation vector fuses gyro + accel + mag - heading is tilt-compensated!
+        // Compass calculation — use rotation vector for tilt-compensated heading
+        // BNO080's rotation vector internally fuses gyro + accel + mag
         float quatI = imu.getQuatI();
         float quatJ = imu.getQuatJ();
         float quatK = imu.getQuatK();
         float quatReal = imu.getQuatReal();
         
-        // Check if quaternion is valid (non-zero)
         float heading = 0.0f;
-        if (computeHeadingDegreesFromQuaternion(quatI, quatJ, quatK, quatReal, heading)) {
+          if (computeHeadingDegreesFromQuaternion(quatI, quatJ, quatK, quatReal, heading)) {
+          rvEverWorked = true;
+          
+          // After rotation vector converges, enable accelerometer for heel/pitch.
+          // IMPORTANT: On this hardware, enabling accel BEFORE rotation vector
+          // prevents rotvec from producing data. But enabling it after works.
+          static bool accelEnabled = false;
+          if (!accelEnabled) {
+            delay(50); // Brief pause before sending command
+            imu.enableAccelerometer(50);
+            accelEnabled = true;
+            #ifdef DEBUG_BNO080
+            Serial.println("[BNO080] Accelerometer enabled (20Hz) after rotation vector convergence");
+            #endif
+          }
           
           // Apply calibration offset
           if (northCalibrated) {
@@ -1858,16 +1889,17 @@ void readSensors() {
           #endif
         } else {
           #ifdef DEBUG_BNO080
-          Serial.println("[BNO080] Rotation vector not ready");
+          float qMag = sqrtf(quatI*quatI + quatJ*quatJ + quatK*quatK + quatReal*quatReal);
+          float radAcc = imu.getQuatRadianAccuracy();
+          Serial.printf("[BNO080] Rotation vector not ready (i=%.4f j=%.4f k=%.4f real=%.4f mag=%.4f acc=%.4f)\n",
+                        quatI, quatJ, quatK, quatReal, qMag, radAcc);
           #endif
         }
         
-        // Read accelerometer data
+        // Read and store accelerometer data
         currentData.accelX = imu.getAccelX();
         currentData.accelY = imu.getAccelY();
         currentData.accelZ = imu.getAccelZ();
-        
-        // Store accelerometer data for movement analysis
         storeAccelReading(currentData.accelX, currentData.accelY, currentData.accelZ);
         
         #ifdef DEBUG_BNO080
@@ -1910,6 +1942,66 @@ void readSensors() {
     lastTimingReport = millis();
   }
   #endif
+
+  // Comprehensive all-sensors debug dump (every 2 seconds)
+  static unsigned long lastSensorDump = 0;
+  if (millis() - lastSensorDump > 2000) {
+    lastSensorDump = millis();
+
+    // --- GPS Diagnostics ---
+    int gpsAvail = gpsSerial.available();
+    Serial.printf("[DIAG] GPS serial avail=%d charsProcessed=%d failedCS=%d\n",
+                  gpsAvail, gps.charsProcessed(), gps.failedChecksum());
+
+    // --- IMU Diagnostics ---
+    if (!imuAvailable) {
+      Serial.println("[DIAG] IMU: NOT AVAILABLE (begin() failed or I2C no response)");
+    } else {
+      int reportCount = 0;
+      for (int i = 0; i < 10; i++) {
+        if (imu.dataAvailable()) {
+          reportCount++;
+          // Update currentData with values from the last drained report
+          currentData.accelX = imu.getAccelX();
+          currentData.accelY = imu.getAccelY();
+          currentData.accelZ = imu.getAccelZ();
+          float qI = imu.getQuatI(), qJ = imu.getQuatJ(), qK = imu.getQuatK(), qR = imu.getQuatReal();
+          float hdg = 0.0f;
+          if (computeHeadingDegreesFromQuaternion(qI, qJ, qK, qR, hdg)) {
+            if (northCalibrated) { hdg -= headingOffset; if (hdg < 0) hdg += 360; if (hdg >= 360) hdg -= 360; }
+            currentData.HDM = (int)round(hdg);
+          }
+          float rawRoll, rawPitch;
+          computeRollPitchDegrees(currentData.accelX, currentData.accelY, currentData.accelZ, rawRoll, rawPitch);
+          currentData.tilt = rawRoll - rollOffset;
+          currentData.pitch = rawPitch - pitchOffset;
+        } else break;
+      }
+
+      // Probe I2C bus health
+      auto i2cProbe = [](int addr) -> int {
+        Wire.beginTransmission(addr);
+        return Wire.endTransmission();
+      };
+      int p4B = i2cProbe(0x4B);
+      Serial.printf("[DIAG] IMU: I2C probe 0x4B=%d\n", p4B);
+
+      bool hasAccel = (currentData.accelX != 0.0f || currentData.accelY != 0.0f || currentData.accelZ != 0.0f);
+      Serial.printf("[DIAG] IMU: drained=%d accel=%s heading=%d\n",
+                    reportCount, hasAccel ? "YES" : "NO", currentData.HDM);
+    }
+
+    Serial.println("=== SENSOR READINGS ===");
+    Serial.printf("GPS: Lat=%.6f Lon=%.6f SOG=%.2fkt COG=%.1f Sats=%d HDOP=%.1f\n",
+                  gps.location.lat(), gps.location.lng(),
+                  currentData.speed, gps.course.deg(),
+                  gps.satellites.value(), gps.hdop.hdop());
+    Serial.printf("Wind (Apparent): %.1fkt @ %d\n", currentData.windSpeed, currentData.windAngle);
+    Serial.printf("Wind (True): %.1fkt @ %d\n", currentData.trueWindSpeed, currentData.trueWindAngle);
+    Serial.printf("IMU: Heel=%.1f Pitch=%.1f Heading=%d\n", currentData.tilt, currentData.pitch, currentData.HDM);
+    Serial.printf("Accel: X=%.2f Y=%.2f Z=%.2f m/s²\n", currentData.accelX, currentData.accelY, currentData.accelZ);
+    Serial.println("=======================");
+  }
 }
 
 // Generate JSON string with current sensor data using marine standard terminology
