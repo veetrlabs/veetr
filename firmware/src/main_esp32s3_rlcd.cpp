@@ -898,8 +898,11 @@ void startDiscoveryMode() {
   
   // Start BLE advertising if not already active
   if (!NimBLEDevice::getAdvertising()->isAdvertising()) {
-    NimBLEDevice::startAdvertising();
-    Serial.println("[DISCOVERY] BLE advertising started");
+    if (NimBLEDevice::startAdvertising()) {
+      Serial.println("[DISCOVERY] BLE advertising started");
+    } else {
+      Serial.println("[DISCOVERY] ERROR: BLE advertising failed to start");
+    }
   } else {
     Serial.println("[DISCOVERY] BLE advertising already active");
   }
@@ -1046,9 +1049,6 @@ void setupBLE() {
   // Request a larger MTU to support bigger notifications; client decides final value
   // Using 185 aligns with widely supported browser stacks
   NimBLEDevice::setMTU(185);
-  
-  // Use random address type to help bypass client cache on name changes
-  NimBLEDevice::setOwnAddrType(BLE_OWN_ADDR_RANDOM);
   
   // Set TX power for good range
   NimBLEDevice::setPower(ESP_PWR_LVL_P3); // +3dBm
@@ -1329,25 +1329,6 @@ void setup() {
     Serial.println("BNO080 IMU sensor enabled");
   } else {
     Serial.println("BNO080 IMU sensor disabled - tilt will be set to 0");
-  }
-  
-  // Scan I2C bus for all devices
-  Serial.println("Scanning I2C bus...");
-  int devicesFound = 0;
-  for (byte address = 1; address < 127; address++) {
-    Wire.beginTransmission(address);
-    byte error = Wire.endTransmission();
-    
-    if (error == 0) {
-      Serial.printf("I2C device found at address 0x%02X\n", address);
-      devicesFound++;
-    }
-  }
-  
-  if (devicesFound == 0) {
-    Serial.println("No I2C devices found. Check wiring and power.");
-  } else {
-    Serial.printf("Found %d I2C device(s)\n", devicesFound);
   }
   
   // Initialize BLE with the loaded device name
