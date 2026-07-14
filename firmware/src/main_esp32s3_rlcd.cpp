@@ -109,6 +109,7 @@ ModbusMaster windSensor;
 // GPS Module
 HardwareSerial gpsSerial(GPS_UART);
 TinyGPSPlus gps;
+DisplayStatus displayStatus = {0, 0, 0.0f, 0.0f, 0, 0, 0, false, false};
 
 // Regatta start line data structure
 struct RegattaData {
@@ -138,6 +139,70 @@ void resetBLEForNewName(const String& newName);
 void handleDiscoveryButton();
 void startDiscoveryMode();
 void stopDiscoveryMode();
+
+static int bcdToDecimal(uint8_t value) {
+  return ((value >> 4) * 10) + (value & 0x0F);
+}
+
+static void startRtcClock() {
+  // PCF85063A Control_1 bit 5 is STOP; clear it so the oscillator advances.
+  Wire.beginTransmission(0x51);
+  Wire.write(0x00);
+  if (Wire.endTransmission(false) != 0 || Wire.requestFrom(0x51, 1) != 1) return;
+
+  uint8_t control1 = Wire.read();
+  Wire.beginTransmission(0x51);
+  Wire.write(0x00);
+  Wire.write(control1 & ~(1 << 5));
+  Wire.endTransmission();
+}
+
+static void updateDisplayStatus() {
+  displayStatus.satellites = gps.satellites.isValid() ? gps.satellites.value() : 0;
+
+  float batteryVoltage = analogReadMilliVolts(4) * 0.003f;
+  displayStatus.batteryPercent = constrain((int)roundf((batteryVoltage - 2.5f) * 100.0f / 1.7f), 0, 100);
+
+  Wire.beginTransmission(0x70);
+  Wire.write(0x35);
+  Wire.write(0x17);
+  if (Wire.endTransmission() == 0) {
+    delay(1);
+    Wire.beginTransmission(0x70);
+    Wire.write(0x7C);
+    Wire.write(0xA2);
+    if (Wire.endTransmission() == 0) {
+      delay(15);
+      if (Wire.requestFrom(0x70, 6) == 6) {
+        uint16_t rawTemperature = ((uint16_t)Wire.read() << 8) | Wire.read();
+        Wire.read();
+        uint16_t rawHumidity = ((uint16_t)Wire.read() << 8) | Wire.read();
+        Wire.read();
+        displayStatus.temperatureC = -45.0f + 175.0f * rawTemperature / 65535.0f;
+        displayStatus.humidityPercent = 100.0f * rawHumidity / 65535.0f;
+        displayStatus.environmentValid = true;
+      }
+    }
+    Wire.beginTransmission(0x70);
+    Wire.write(0xB0);
+    Wire.write(0x98);
+    Wire.endTransmission();
+  }
+
+  Wire.beginTransmission(0x51);
+  Wire.write(0x04);
+  if (Wire.endTransmission(false) == 0 && Wire.requestFrom(0x51, 3) == 3) {
+    int second = bcdToDecimal(Wire.read() & 0x7F);
+    int minute = bcdToDecimal(Wire.read() & 0x7F);
+    int hour = bcdToDecimal(Wire.read() & 0x3F);
+    if (hour < 24 && minute < 60 && second < 60) {
+      displayStatus.hour = hour;
+      displayStatus.minute = minute;
+      displayStatus.second = second;
+      displayStatus.clockValid = true;
+    }
+  }
+}
 void updateDiscoveryStatus();
 
 WindSensorReader<ModbusMaster, HardwareSerial, HardwareSerial> windReader(
@@ -1111,8 +1176,14 @@ void updateBLEData() {
 }
 
 void setup() {
-  // Initialize serial communication first
+  // Show feedback immediately while serial and peripheral initialization proceeds.
+  display_boot_splash();
+  delay(300);
+
+  // Initialize serial communication after the splash has reached the panel.
   Serial.begin(115200);
+  analogReadResolution(12);
+  analogSetPinAttenuation(4, ADC_11db);
   delay(1000); // Give serial time to initialize
 
 #ifdef ARDUINO_USB_CDC_ON_BOOT
@@ -1192,6 +1263,7 @@ void setup() {
   Wire.begin(BNO080_SDA, BNO080_SCL);
   Wire.setClock(400000); // Set I2C to 400kHz Fast mode (BNO08X supports up to 400kHz)
   Wire.setTimeOut(100); // Prevent I2C peripheral hangs on ESP32-S3 when device NACKs
+  startRtcClock();
   
   Serial.print("Testing BNO080 connection... ");
   Serial.printf("I2C SDA=%d, SCL=%d\n", BNO080_SDA, BNO080_SCL);
@@ -1417,9 +1489,6 @@ void loop() {
     // Update BLE clients with sensor data
     updateBLEData();
     
-    // Update RLCD display with sensor data via LVGL
-    display_lvgl_update(currentData);
-    
     // Set next update time
     nextUpdate = millis() + refreshRate;
     
@@ -1462,6 +1531,13 @@ void loop() {
       Serial.println();
       lastStatusTime = millis();
     }
+  }
+
+  // Animate the RLCD independently of the 1 Hz sensor acquisition cycle.
+  static unsigned long nextDisplayFrame = 0;
+  if (millis() >= nextDisplayFrame) {
+    display_lvgl_update(currentData, displayStatus);
+    nextDisplayFrame = millis() + 80;  // 12.5 Hz animation
   }
 }
 
@@ -1672,6 +1748,7 @@ void readSensors() {
   
   // Read GPS data first
   bool gpsDataValid = readGPS();
+  updateDisplayStatus();
   
   #ifdef DEBUG_BLE_DATA
   unsigned long gpsTime = millis();

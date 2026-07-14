@@ -76,6 +76,8 @@ static const st7305_cmd init_sequence[] = {
 };
 
 bool display_init() {
+    if (framebuffer) return true;
+
     framebuffer = (uint8_t*)malloc(ST7305_BUFFER_SIZE);
     if (!framebuffer) {
         Serial.println("[Display] Failed to allocate framebuffer");

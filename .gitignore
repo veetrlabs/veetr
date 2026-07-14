@@ -8,12 +8,32 @@ out/
 
 # Vite
 .vite/
+.astro/
 *.local
 
 # PlatformIO
 .pio/
 .pioenvs/
 .piolibdeps/
+
+# LVGL Editor generated preview output
+/firmware/preview-bin/
+/firmware/preview-build/
+/firmware/file_list_gen.cmake
+/firmware/firmware_gen.c
+/firmware/firmware_gen.h
+/firmware/fonts/*_data.c
+/firmware/fonts/veetr_annotation_12
+/firmware/fonts/veetr_value_48
+/firmware/fonts/veetr_value_64
+/firmware/fonts/veetr_value_83
+/firmware/images/*_data.c
+/firmware/screens/*_gen.c
+/firmware/screens/*_gen.h
+/firmware/screens/screen_main_screenshots/
+/firmware/ui/backup/
+/firmware/ui/assets/*.bin
+/firmware/ui/assets/Montserrat-Medium.ttf
 
 # VS Code (user-specific settings)
 .vscode/

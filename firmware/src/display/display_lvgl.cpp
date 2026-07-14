@@ -1,21 +1,21 @@
 #include "display_lvgl.h"
 #include "display_driver.h"
-#include "font_6x8.h"
+#include "../screens/screen_main.h"
 #include <lvgl.h>
 #include <math.h>
+
+static screen_main_t ui;
 
 static lv_disp_draw_buf_t draw_buf;
 static lv_disp_drv_t disp_drv;
 static lv_color_t buf1[400 * 20];
 static lv_color_t buf2[400 * 20];
+static bool lvgl_initialized = false;
 
-enum {
-    VALUE_DIGIT_W = 30,
-    VALUE_DIGIT_H = 76,
-    VALUE_STROKE = 5,
-    VALUE_GAP = 3,
-    VALUE_DOT_W = 7,
-};
+extern const lv_font_t veetr_logo_48;
+extern const lv_font_t veetr_annotation_12;
+
+// ─── Compass geometry helpers (used for custom overlay on top of LVGL meter) ───
 
 static void draw_filled_triangle(int x0, int y0, int x1, int y1, int x2, int y2, bool black) {
     int xs[3] = {x0, x1, x2};
@@ -42,29 +42,42 @@ static void draw_filled_triangle(int x0, int y0, int x1, int y1, int x2, int y2,
     }
 }
 
-static void draw_arrowhead(int tip_x, int tip_y, float ux, float uy, int len, bool black) {
-    int blx = tip_x - (int)(len * ux) - (int)(len * 0.5f * uy);
-    int bly = tip_y - (int)(len * uy) + (int)(len * 0.5f * ux);
-    int brx = tip_x - (int)(len * ux) + (int)(len * 0.5f * uy);
-    int bry = tip_y - (int)(len * uy) - (int)(len * 0.5f * ux);
-    draw_filled_triangle(tip_x, tip_y, blx, bly, brx, bry, black);
+static void draw_dithered_triangle(int x0, int y0, int x1, int y1, int x2, int y2, bool black) {
+    int xs[3] = {x0, x1, x2};
+    int ys[3] = {y0, y1, y2};
+    int min_y = ys[0], max_y = ys[0];
+    for (int i = 1; i < 3; i++) {
+        if (ys[i] < min_y) min_y = ys[i];
+        if (ys[i] > max_y) max_y = ys[i];
+    }
+    for (int y = min_y; y <= max_y; y++) {
+        int left = 9999, right = -1;
+        for (int e = 0; e < 3; e++) {
+            int x_a = xs[e], y_a = ys[e];
+            int x_b = xs[(e + 1) % 3], y_b = ys[(e + 1) % 3];
+            if (y_a == y_b) continue;
+            if ((y_a <= y && y < y_b) || (y_b <= y && y < y_a)) {
+                int x = x_a + (int)((float)(x_b - x_a) * (float)(y - y_a) / (float)(y_b - y_a));
+                if (x < left) left = x;
+                if (x > right) right = x;
+            }
+        }
+        for (int x = left; x <= right; x++)
+            if (((x + y) & 1) == 0) display_set_pixel(x, y, black);
+    }
 }
 
-static void draw_dot(int x, int y, int size, bool black) {
-    int half = size / 2;
-    for (int dy = -half; dy <= half; dy++)
-        for (int dx = -half; dx <= half; dx++)
-            display_set_pixel(x + dx, y + dy, black);
+static void draw_dithered_rect(int x, int y, int w, int h, bool black) {
+    for (int py = y; py < y + h; py++)
+        for (int px = x; px < x + w; px++)
+            if (((px + py) & 1) == 0) display_set_pixel(px, py, black);
 }
 
 static void draw_disc(int cx, int cy, int r, bool black) {
-    for (int y = -r; y <= r; y++) {
-        for (int x = -r; x <= r; x++) {
-            if (x * x + y * y <= r * r) {
+    for (int y = -r; y <= r; y++)
+        for (int x = -r; x <= r; x++)
+            if (x * x + y * y <= r * r)
                 display_set_pixel(cx + x, cy + y, black);
-            }
-        }
-    }
 }
 
 static void draw_round_line(int x0, int y0, int x1, int y1, int stroke, bool black) {
@@ -84,173 +97,20 @@ static void draw_round_line(int x0, int y0, int x1, int y1, int stroke, bool bla
     draw_disc(x1, y1, half, black);
 }
 
-static void draw_segment(int x0, int y0, int x1, int y1, bool black) {
-    draw_round_line(x0, y0, x1, y1, VALUE_STROKE, black);
-}
+static void draw_dashed_line(int x0, int y0, int x1, int y1, bool black) {
+    float dx = (float)(x1 - x0);
+    float dy = (float)(y1 - y0);
+    float len = sqrtf(dx * dx + dy * dy);
+    if (len < 1.0f) return;
 
-static void draw_label_char(int x, int y, char c, int scale, int stroke, bool black) {
-    const int l = x;
-    const int r = x + 5 * scale;
-    const int t = y;
-    const int m = y + 3 * scale;
-    const int b = y + 7 * scale;
-    const int cx = x + (5 * scale) / 2;
-
-    switch (c) {
-        case 'A':
-            draw_round_line(l, b, cx, t, stroke, black);
-            draw_round_line(cx, t, r, b, stroke, black);
-            draw_round_line(l + scale, m + scale, r - scale, m + scale, stroke, black);
-            break;
-        case 'G':
-            draw_round_line(r, t + scale, cx, t, stroke, black);
-            draw_round_line(cx, t, l, t + scale, stroke, black);
-            draw_round_line(l, t + scale, l, b - scale, stroke, black);
-            draw_round_line(l, b - scale, cx, b, stroke, black);
-            draw_round_line(cx, b, r, b - scale, stroke, black);
-            draw_round_line(r, b - scale, r, m + scale, stroke, black);
-            draw_round_line(cx, m + scale, r, m + scale, stroke, black);
-            break;
-        case 'N':
-            draw_round_line(l, b, l, t, stroke, black);
-            draw_round_line(l, t, r, b, stroke, black);
-            draw_round_line(r, b, r, t, stroke, black);
-            break;
-        case 'O':
-            draw_round_line(l, t + scale, l, b - scale, stroke, black);
-            draw_round_line(l, t + scale, cx, t, stroke, black);
-            draw_round_line(cx, t, r, t + scale, stroke, black);
-            draw_round_line(r, t + scale, r, b - scale, stroke, black);
-            draw_round_line(r, b - scale, cx, b, stroke, black);
-            draw_round_line(cx, b, l, b - scale, stroke, black);
-            break;
-        case 'S':
-            draw_round_line(r, t, l + scale, t, stroke, black);
-            draw_round_line(l + scale, t, l, m, stroke, black);
-            draw_round_line(l, m, r - scale, m, stroke, black);
-            draw_round_line(r - scale, m, r, b, stroke, black);
-            draw_round_line(r, b, l, b, stroke, black);
-            break;
-        case 'T':
-            draw_round_line(l, t, r, t, stroke, black);
-            draw_round_line(cx, t, cx, b, stroke, black);
-            break;
-        case 'W':
-            draw_round_line(l, t, l + scale, b, stroke, black);
-            draw_round_line(l + scale, b, cx, m + scale, stroke, black);
-            draw_round_line(cx, m + scale, r - scale, b, stroke, black);
-            draw_round_line(r - scale, b, r, t, stroke, black);
-            break;
-        default:
-            break;
+    for (float start = 0.0f; start < len; start += 7.0f) {
+        float end = fminf(start + 3.0f, len);
+        int sx = x0 + (int)roundf(dx * start / len);
+        int sy = y0 + (int)roundf(dy * start / len);
+        int ex = x0 + (int)roundf(dx * end / len);
+        int ey = y0 + (int)roundf(dy * end / len);
+        display_draw_line(sx, sy, ex, ey, black);
     }
-}
-
-static void draw_label_text(int x, int y, const char *text, int scale, int stroke, bool black) {
-    int cx = x;
-    while (*text) {
-        draw_label_char(cx, y, *text, scale, stroke, black);
-        cx += 6 * scale;
-        text++;
-    }
-}
-
-static void draw_bitmap_char_scaled(int x, int y, unsigned char c, int scale, bool black) {
-    if (c < FONT_FIRST_CHAR || c > FONT_LAST_CHAR) return;
-    int idx = c - FONT_FIRST_CHAR;
-    for (int col = 0; col < FONT_WIDTH; col++) {
-        uint8_t byte = font_6x8[idx][col];
-        for (int row = 0; row < FONT_HEIGHT; row++) {
-            if (byte & (1 << row)) {
-                for (int sx = 0; sx < scale; sx++) {
-                    for (int sy = 0; sy < scale; sy++) {
-                        display_set_pixel(x + col * scale + sx, y + row * scale + sy, black);
-                    }
-                }
-            }
-        }
-    }
-}
-
-static void draw_bitmap_text_scaled(int x, int y, const char *text, int scale, bool black) {
-    int cx = x;
-    while (*text) {
-        draw_bitmap_char_scaled(cx, y, (unsigned char)*text, scale, black);
-        cx += (FONT_WIDTH + 1) * scale;
-        text++;
-    }
-}
-
-static void draw_bitmap_text_vertical(int x, int y, const char *text, int scale, bool black) {
-    int cy = y;
-    while (*text) {
-        draw_bitmap_char_scaled(x, cy, (unsigned char)*text, scale, black);
-        cy += (FONT_HEIGHT + 1) * scale;
-        text++;
-    }
-}
-
-static void draw_value_digit(int x, int y, char c, bool black) {
-    const int l = x + 2;
-    const int r = x + VALUE_DIGIT_W - 3;
-    const int t = y + 2;
-    const int m = y + VALUE_DIGIT_H / 2;
-    const int b = y + VALUE_DIGIT_H - 3;
-
-    bool a = false, bseg = false, cseg = false, d = false, e = false, f = false, g = false;
-    switch (c) {
-        case '0': a = bseg = cseg = d = e = f = true; break;
-        case '1': bseg = cseg = true; break;
-        case '2': a = bseg = g = e = d = true; break;
-        case '3': a = bseg = cseg = d = g = true; break;
-        case '4': f = g = bseg = cseg = true; break;
-        case '5': a = f = g = cseg = d = true; break;
-        case '6': a = f = e = d = cseg = g = true; break;
-        case '7': a = bseg = cseg = true; break;
-        case '8': a = bseg = cseg = d = e = f = g = true; break;
-        case '9': a = bseg = cseg = d = f = g = true; break;
-        default: return;
-    }
-
-    if (a) draw_segment(l, t, r, t, black);
-    if (bseg) draw_segment(r, t, r, m, black);
-    if (cseg) draw_segment(r, m, r, b, black);
-    if (d) draw_segment(l, b, r, b, black);
-    if (e) draw_segment(l, m, l, b, black);
-    if (f) draw_segment(l, t, l, m, black);
-    if (g) draw_segment(l, m, r, m, black);
-}
-
-static void draw_value_text(int x, int y, const char *text) {
-    int cx = x;
-    while (*text) {
-        if (*text == '.') {
-            draw_disc(cx + VALUE_DOT_W / 2, y + VALUE_DIGIT_H - 4, 3, true);
-            cx += VALUE_DOT_W + VALUE_GAP;
-        } else {
-            draw_value_digit(cx, y, *text, true);
-            cx += VALUE_DIGIT_W + VALUE_GAP;
-        }
-        text++;
-    }
-}
-
-static void format_speed(float value, char *buf, size_t len) {
-    if (isnan(value) || value < 0.0f) value = 0.0f;
-    if (value < 10.0f) {
-        snprintf(buf, len, "%.1f", value);
-    } else {
-        snprintf(buf, len, "%.0f", value > 999.0f ? 999.0f : value);
-    }
-}
-
-static void draw_speed_readout(int y, const char *label, float value) {
-    char buf[16];
-    format_speed(value, buf, sizeof(buf));
-    const int value_y = y + 10;
-    draw_value_text(296, value_y, buf);
-    draw_bitmap_text_vertical(376, y + 2, label, 2, true);
-    draw_bitmap_text_scaled(374, value_y + VALUE_DIGIT_H - 8, "kt", 1, true);
 }
 
 static void draw_thick_line(int x0, int y0, int x1, int y1, float ux, float uy, int half_width, bool black) {
@@ -259,40 +119,6 @@ static void draw_thick_line(int x0, int y0, int x1, int y1, float ux, float uy, 
         int py = (int)roundf(-ux * off);
         display_draw_line(x0 + px, y0 + py, x1 + px, y1 + py, black);
     }
-}
-
-static void draw_dashed_line(int x0, int y0, float ux, float uy, int len, int dash, int gap, int half_width, bool black) {
-    for (int start = 0; start < len; start += dash + gap) {
-        int end = start + dash;
-        if (end > len) end = len;
-        int sx = x0 + (int)(ux * start);
-        int sy = y0 + (int)(uy * start);
-        int ex = x0 + (int)(ux * end);
-        int ey = y0 + (int)(uy * end);
-        draw_thick_line(sx, sy, ex, ey, ux, uy, half_width, black);
-    }
-}
-
-static int normalize_angle(int deg, int fallback) {
-    if (deg < 0 || deg > 360) return fallback;
-    return deg % 360;
-}
-
-static void draw_outline_triangle(int x0, int y0, int x1, int y1, int x2, int y2, bool black) {
-    display_draw_line(x0, y0, x1, y1, black);
-    display_draw_line(x1, y1, x2, y2, black);
-    display_draw_line(x2, y2, x0, y0, black);
-}
-
-static void draw_outline_triangle_thick(int x0, int y0, int x1, int y1, int x2, int y2, int stroke, bool black) {
-    draw_round_line(x0, y0, x1, y1, stroke, black);
-    draw_round_line(x1, y1, x2, y2, stroke, black);
-    draw_round_line(x2, y2, x0, y0, stroke, black);
-}
-
-static void draw_open_wedge(int tip_x, int tip_y, int b1x, int b1y, int b2x, int b2y, int stroke, bool black) {
-    draw_round_line(tip_x, tip_y, b1x, b1y, stroke, black);
-    draw_round_line(tip_x, tip_y, b2x, b2y, stroke, black);
 }
 
 static void draw_wedge_chevron(int base_cx, int base_cy, float ux, float uy, int depth, int half_base, bool black) {
@@ -306,89 +132,166 @@ static void draw_wedge_chevron(int base_cx, int base_cy, float ux, float uy, int
     draw_round_line(inner_x, inner_y, bot_x, bot_y, 2, black);
 }
 
-static void draw_compass(const SensorData &data) {
+static void draw_open_wedge(int tip_x, int tip_y, int b1x, int b1y, int b2x, int b2y, int stroke, bool black) {
+    draw_round_line(tip_x, tip_y, b1x, b1y, stroke, black);
+    draw_round_line(tip_x, tip_y, b2x, b2y, stroke, black);
+}
+
+static int normalize_angle(int deg, int fallback) {
+    if (deg < 0 || deg > 360) return fallback;
+    return deg % 360;
+}
+
+static float move_angle_toward(float current, float target, float max_step) {
+    float delta = fmodf(target - current + 540.0f, 360.0f) - 180.0f;
+    if (fabsf(delta) <= max_step) return target;
+    current += delta > 0.0f ? max_step : -max_step;
+    if (current < 0.0f) current += 360.0f;
+    if (current >= 360.0f) current -= 360.0f;
+    return current;
+}
+
+// ─── Custom compass overlay drawn on top of LVGL meter ───
+
+static void draw_compass_overlay(const SensorData &data) {
     const bool BLACK = true;
-    const int cx = 139, cy = 150, cr = 118;
+    const int cx = 122, cy = 157, cr = 111;
 
-    int heading = normalize_angle(data.HDM, 0);
-    int awa = normalize_angle(data.windAngle, 135);
-    int twa = normalize_angle(data.trueWindAngle, 90);
+    static int lastAwa = 135;
+    static int lastTwa = 90;
+    static bool hasAwa = false;
+    static bool hasTwa = false;
+    static float shownHeading = 0.0f;
+    static float shownAwa = 135.0f;
+    static float shownTwa = 90.0f;
+    static unsigned long lastFrameMs = 0;
+    static bool animationInitialized = false;
 
-    bool showTwa = true;
-    int diff = abs(awa - twa);
+    int targetHeading = normalize_angle(data.HDM, 0);
+    if (!isnan(data.windSpeed) && data.windSpeed > 0.05f) {
+        lastAwa = normalize_angle(data.windAngle, lastAwa);
+        hasAwa = true;
+    }
+    if (!isnan(data.trueWindSpeed) && data.trueWindSpeed > 0.05f) {
+        lastTwa = normalize_angle(data.trueWindAngle, lastTwa);
+        hasTwa = true;
+    }
+
+    unsigned long now = millis();
+    float dt = lastFrameMs == 0 ? 0.0f : (now - lastFrameMs) / 1000.0f;
+    if (dt > 0.1f) dt = 0.1f;
+    lastFrameMs = now;
+    if (!animationInitialized) {
+        shownHeading = targetHeading;
+        shownAwa = lastAwa;
+        shownTwa = lastTwa;
+        animationInitialized = true;
+    } else {
+        shownHeading = move_angle_toward(shownHeading, targetHeading, 220.0f * dt);
+        shownAwa = move_angle_toward(shownAwa, lastAwa, 240.0f * dt);
+        shownTwa = move_angle_toward(shownTwa, lastTwa, 240.0f * dt);
+    }
+
+    float heading = shownHeading;
+    float awa = shownAwa;
+    float twa = shownTwa;
+    bool showAwa = hasAwa;
+    bool showTwa = hasTwa;
+    int diff = abs((int)roundf(awa - twa));
     if (diff > 180) diff = 360 - diff;
     if (diff < 8) showTwa = false;
 
-    for (int r = cr - 2; r <= cr; r++)
-        display_draw_circle(cx, cy, r, BLACK);
+    // A single clean stroke reads better than a simulated thick ring at 1-bit.
+    display_draw_circle(cx, cy, cr, BLACK);
 
-    draw_bitmap_text_scaled(10, 10, "VEETR", 2, BLACK);
-
-    for (int deg = 0; deg < 360; deg += 30) {
-        float rad = deg * 3.14159265f / 180.0f;
-        int dx = (int)((cr - 4) * sinf(rad));
-        int dy = (int)((cr - 4) * cosf(rad));
-        draw_dot(cx + dx, cy - dy, deg % 90 == 0 ? 5 : 3, BLACK);
-    }
-
-    // North/heading reference: a hollow triangle outside the rose.
+    // Heading reference: filled north marker outside the ring.
     {
         float rad = heading * 3.14159265f / 180.0f;
         float ux = sinf(rad), uy = -cosf(rad);
-        int base_cx = cx + (int)((cr + 1) * ux);
-        int base_cy = cy + (int)((cr + 1) * uy);
-        int tip_x = cx + (int)((cr + 25) * ux);
-        int tip_y = cy + (int)((cr + 25) * uy);
-        int half_base = 11;
+        int base_cx = cx + (int)(cr * ux);
+        int base_cy = cy + (int)(cr * uy);
+        int tip_x = cx + (int)((cr + 16) * ux);
+        int tip_y = cy + (int)((cr + 16) * uy);
+        int half_base = 8;
         int b1x = base_cx + (int)(half_base * uy);
         int b1y = base_cy - (int)(half_base * ux);
         int b2x = base_cx - (int)(half_base * uy);
         int b2y = base_cy + (int)(half_base * ux);
-        draw_outline_triangle(tip_x, tip_y, b1x, b1y, b2x, b2y, BLACK);
-        draw_wedge_chevron(base_cx, base_cy, ux, uy, -12, half_base, BLACK);
+        draw_filled_triangle(tip_x, tip_y, b1x, b1y, b2x, b2y, BLACK);
     }
 
-    // TWA is the secondary cue: same direction language as AWA, but hollow and smaller.
-    if (showTwa) {
-        float rad = twa * 3.14159265f / 180.0f;
-        float ux = sinf(rad), uy = -cosf(rad);
-
-        int base_cx = cx + (int)((cr - 18) * ux);
-        int base_cy = cy + (int)((cr - 18) * uy);
-        int half_base = 13;
-        int b1x = base_cx + (int)(half_base * uy);
-        int b1y = base_cy - (int)(half_base * ux);
-        int b2x = base_cx - (int)(half_base * uy);
-        int b2y = base_cy + (int)(half_base * ux);
-        int tip_x = cx + (int)(0.55f * cr * ux);
-        int tip_y = cy + (int)(0.55f * cr * uy);
-        draw_open_wedge(tip_x, tip_y, b1x, b1y, b2x, b2y, 2, BLACK);
-        draw_wedge_chevron(base_cx, base_cy, ux, uy, 10, half_base, BLACK);
+    // Outer-ring marks every 30 degrees.
+    for (int deg = 0; deg < 360; deg += 30) {
+        float rad = deg * 3.14159265f / 180.0f;
+        int x = cx + (int)((cr - 2) * sinf(rad));
+        int y = cy - (int)((cr - 2) * cosf(rad));
+        display_set_pixel(x, y, BLACK);
     }
 
-    // AWA is the primary cue: dark wedge from wind origin on the rose into the boat center.
+    // No-sail boundaries: fixed +/-40 degrees from the bow.
+    for (int side = -1; side <= 1; side += 2) {
+        float rad = side * 40.0f * 3.14159265f / 180.0f;
+        int tip_x = cx + (int)((cr - 3) * sinf(rad));
+        int tip_y = cy - (int)((cr - 3) * cosf(rad));
+        draw_dashed_line(cx, cy, tip_x, tip_y, BLACK);
+    }
+
+    // Center boat: simple filled silhouette, matching the preview's hierarchy.
     {
+        draw_dithered_triangle(cx, cy - 30, cx - 8, cy, cx + 8, cy, BLACK);
+        draw_dithered_triangle(cx - 8, cy, cx + 8, cy, cx + 6, cy + 23, BLACK);
+        draw_dithered_triangle(cx - 8, cy, cx + 6, cy + 23, cx - 6, cy + 23, BLACK);
+    }
+
+    // AWA: filled wedge from the boat toward the wind origin.
+    if (showAwa) {
         float rad = awa * 3.14159265f / 180.0f;
         float ux = sinf(rad), uy = -cosf(rad);
-
-        int base_cx = cx + (int)((cr - 16) * ux);
-        int base_cy = cy + (int)((cr - 16) * uy);
-        int half_base = 22;
+        int base_cx = cx + (int)((cr - 1) * ux);
+        int base_cy = cy + (int)((cr - 1) * uy);
+        int half_base = 7;
         int b1x = base_cx + (int)(half_base * uy);
         int b1y = base_cy - (int)(half_base * ux);
         int b2x = base_cx - (int)(half_base * uy);
         int b2y = base_cy + (int)(half_base * ux);
         draw_filled_triangle(cx, cy, b1x, b1y, b2x, b2y, BLACK);
 
-        int notch_x = base_cx - (int)(18 * ux);
-        int notch_y = base_cy - (int)(18 * uy);
-        int tail_x = base_cx + (int)(30 * uy);
-        int tail_y = base_cy - (int)(30 * ux);
-        draw_filled_triangle(notch_x, notch_y, b1x, b1y, tail_x, tail_y, BLACK);
-        draw_wedge_chevron(base_cx, base_cy, ux, uy, 14, half_base, false);
+        // Keep the A label beside the filled wedge instead of obscuring it.
+        float label_radius = 0.65f * (cr - 1);
+        int label_x = cx + (int)(label_radius * ux + 13.0f * uy) - 3;
+        int label_y = cy + (int)(label_radius * uy - 13.0f * ux) - 4;
+        display_draw_char(label_x, label_y, 'A', BLACK);
     }
 
-    draw_dot(cx, cy, 5, BLACK);
+    // TWA: clean filled wedge, distinct from the lighter/dithered boat hull.
+    if (showTwa) {
+        float rad = twa * 3.14159265f / 180.0f;
+        float ux = sinf(rad), uy = -cosf(rad);
+        int base_cx = cx + (int)((cr - 1) * ux);
+        int base_cy = cy + (int)((cr - 1) * uy);
+        int half_base = 8;
+        int b1x = base_cx + (int)(half_base * uy);
+        int b1y = base_cy - (int)(half_base * ux);
+        int b2x = base_cx - (int)(half_base * uy);
+        int b2y = base_cy + (int)(half_base * ux);
+        int tip_x = cx + (int)(0.72f * cr * ux);
+        int tip_y = cy + (int)(0.72f * cr * uy);
+        draw_filled_triangle(tip_x, tip_y, b1x, b1y, b2x, b2y, BLACK);
+        display_draw_char(base_cx - 10, base_cy - 12, 'T', BLACK);
+    }
+
+    // Mast reference, kept above both wind indicators.
+    draw_disc(cx, cy, 2, BLACK);
+}
+
+// ─── Helper to format speed as a short string ───
+
+static void format_speed(float value, char *buf, size_t len) {
+    if (isnan(value) || value < 0.0f) value = 0.0f;
+    if (value < 10.0f)
+        snprintf(buf, len, "%.1f", value);
+    else
+        snprintf(buf, len, "%.0f", value > 999.0f ? 999.0f : value);
 }
 
 // ─── LVGL flush callback ───
@@ -404,17 +307,12 @@ static void flush_cb(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *colo
     lv_disp_flush_ready(drv);
 }
 
-// ─── Public API ───
-
-void display_lvgl_init() {
-    if (!display_init()) return;
-
-    display_clear();
+static bool init_lvgl_display() {
+    if (!display_init()) return false;
+    if (lvgl_initialized) return true;
 
     lv_init();
-
     lv_disp_draw_buf_init(&draw_buf, buf1, buf2, 400 * 20);
-
     lv_disp_drv_init(&disp_drv);
     disp_drv.hor_res = 400;
     disp_drv.ver_res = 300;
@@ -422,20 +320,85 @@ void display_lvgl_init() {
     disp_drv.flush_cb = flush_cb;
     disp_drv.color_chroma_key = lv_color_white();
     lv_disp_drv_register(&disp_drv);
+    lvgl_initialized = true;
+    return true;
+}
 
-    lv_obj_set_style_bg_color(lv_scr_act(), lv_color_white(), 0);
+// ─── Public API ───
+
+void display_boot_splash() {
+    if (!init_lvgl_display()) return;
+
+    display_clear();
+    lv_obj_t *splash = lv_obj_create(NULL);
+    lv_obj_set_style_bg_color(splash, lv_color_white(), 0);
+    lv_obj_set_style_border_width(splash, 0, 0);
+
+    lv_obj_t *logo = lv_label_create(splash);
+    lv_label_set_text(logo, "VEETR");
+    lv_obj_set_style_text_color(logo, lv_color_black(), 0);
+    lv_obj_set_style_text_font(logo, &veetr_logo_48, 0);
+    lv_obj_align(logo, LV_ALIGN_CENTER, 0, -18);
+
+    lv_obj_t *status = lv_label_create(splash);
+    lv_label_set_text(status, "STARTING");
+    lv_obj_set_style_text_color(status, lv_color_black(), 0);
+    lv_obj_set_style_text_font(status, &veetr_annotation_12, 0);
+    lv_obj_align(status, LV_ALIGN_CENTER, 0, 30);
+
+    lv_scr_load(splash);
+    lv_task_handler();
+    display_update();
+}
+
+void display_lvgl_init() {
+    if (!init_lvgl_display()) return;
+
+    display_clear();
+
+    ui = screen_main_create();
+    lv_scr_load(ui.screen);
 
     display_update();
 }
 
-void display_lvgl_update(const SensorData& data) {
+void display_lvgl_update(const SensorData& data, const DisplayStatus& status) {
     display_clear();
 
-    draw_compass(data);
+    char buf[16];
+    format_speed(data.windSpeed, buf, sizeof(buf));
+    lv_label_set_text(ui.aws_value, buf);
 
-    draw_speed_readout(0, "AWS", data.windSpeed);
-    draw_speed_readout(100, "TWS", data.trueWindSpeed);
-    draw_speed_readout(200, "SOG", data.speed);
+    format_speed(data.trueWindSpeed, buf, sizeof(buf));
+    lv_label_set_text(ui.tws_value, buf);
+
+    format_speed(data.speed, buf, sizeof(buf));
+    lv_label_set_text(ui.sog_value, buf);
+
+    int heading = normalize_angle(data.HDM, 0);
+    int heel = isnan(data.tilt) ? 0 : (int)roundf(fabsf(data.tilt));
+    snprintf(buf, sizeof(buf), "HDG %03d", heading);
+    lv_label_set_text(ui.heading_status, buf);
+    snprintf(buf, sizeof(buf), "HEEL %d", heel);
+    lv_label_set_text(ui.heel_status, buf);
+
+    snprintf(buf, sizeof(buf), "SAT %d  TMP %.0fC", status.satellites, status.environmentValid ? status.temperatureC : 0.0f);
+    lv_label_set_text(ui.gps_status, buf);
+    snprintf(buf, sizeof(buf), "%02d:%02d:%02d", status.clockValid ? status.hour : 0, status.clockValid ? status.minute : 0, status.clockValid ? status.second : 0);
+    lv_label_set_text(ui.time_status, buf);
+    snprintf(buf, sizeof(buf), "%d%%", status.batteryPercent);
+    lv_label_set_text(ui.battery_status, buf);
+    snprintf(buf, sizeof(buf), "HUM %.0f%%", status.environmentValid ? status.humidityPercent : 0.0f);
+    lv_label_set_text(ui.humidity_status, buf);
+
+    // The full framebuffer was cleared above; force static widgets to redraw too.
+    lv_obj_invalidate(ui.screen);
+
+    // Process LVGL rendering (flush callback writes to framebuffer)
+    lv_task_handler();
+
+    // Custom overlay drawn directly on framebuffer on top of LVGL content
+    draw_compass_overlay(data);
 
     display_update();
 }
