@@ -168,7 +168,7 @@ static void draw_compass_overlay(const SensorData &data) {
     static bool animationInitialized = false;
 
     int targetHeading = normalize_angle(data.HDM, 0);
-    if (!isnan(data.windSpeed) && data.windSpeed > 0.05f) {
+    if (data.windAngle >= 0 && data.windAngle <= 359) {
         lastAwa = normalize_angle(data.windAngle, lastAwa);
         hasAwa = true;
     }
