@@ -11,6 +11,7 @@ struct DisplayStatus {
     int second;
     bool environmentValid;
     bool clockValid;
+    bool usbConnected;
 };
 
 void display_lvgl_init();

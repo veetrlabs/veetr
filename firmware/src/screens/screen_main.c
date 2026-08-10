@@ -47,36 +47,36 @@ screen_main_t screen_main_create(void) {
     lv_obj_set_style_text_font(ui.time_status, &veetr_annotation_12, 0);
     lv_obj_set_style_text_color(ui.time_status, lv_color_black(), 0);
 
-    lv_obj_t *battery_outline = lv_obj_create(scr);
-    lv_obj_set_pos(battery_outline, 8, 31);
-    lv_obj_set_size(battery_outline, 18, 9);
-    lv_obj_set_style_bg_opa(battery_outline, LV_OPA_TRANSP, 0);
-    lv_obj_set_style_border_width(battery_outline, 1, 0);
-    lv_obj_set_style_border_color(battery_outline, lv_color_black(), 0);
+    ui.battery_outline = lv_obj_create(scr);
+    lv_obj_set_pos(ui.battery_outline, 8, 31);
+    lv_obj_set_size(ui.battery_outline, 18, 9);
+    lv_obj_set_style_bg_opa(ui.battery_outline, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_border_width(ui.battery_outline, 1, 0);
+    lv_obj_set_style_border_color(ui.battery_outline, lv_color_black(), 0);
 
-    lv_obj_t *battery_terminal = lv_obj_create(scr);
-    lv_obj_set_pos(battery_terminal, 26, 34);
-    lv_obj_set_size(battery_terminal, 2, 3);
-    lv_obj_set_style_bg_color(battery_terminal, lv_color_black(), 0);
-    lv_obj_set_style_bg_opa(battery_terminal, LV_OPA_COVER, 0);
-    lv_obj_set_style_border_width(battery_terminal, 0, 0);
+    ui.battery_terminal = lv_obj_create(scr);
+    lv_obj_set_pos(ui.battery_terminal, 26, 34);
+    lv_obj_set_size(ui.battery_terminal, 2, 3);
+    lv_obj_set_style_bg_color(ui.battery_terminal, lv_color_black(), 0);
+    lv_obj_set_style_bg_opa(ui.battery_terminal, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_width(ui.battery_terminal, 0, 0);
 
-    lv_obj_t *battery_fill = lv_obj_create(scr);
-    lv_obj_set_pos(battery_fill, 10, 33);
-    lv_obj_set_size(battery_fill, 12, 5);
-    lv_obj_set_style_bg_color(battery_fill, lv_color_black(), 0);
-    lv_obj_set_style_bg_opa(battery_fill, LV_OPA_COVER, 0);
-    lv_obj_set_style_border_width(battery_fill, 0, 0);
+    ui.battery_fill = lv_obj_create(scr);
+    lv_obj_set_pos(ui.battery_fill, 10, 33);
+    lv_obj_set_size(ui.battery_fill, 12, 5);
+    lv_obj_set_style_bg_color(ui.battery_fill, lv_color_black(), 0);
+    lv_obj_set_style_bg_opa(ui.battery_fill, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_width(ui.battery_fill, 0, 0);
 
     const int bolt_x[] = {16, 14, 16};
     const int bolt_y[] = {33, 35, 37};
     for (int i = 0; i < 3; i++) {
-        lv_obj_t *bolt = lv_obj_create(scr);
-        lv_obj_set_pos(bolt, bolt_x[i], bolt_y[i]);
-        lv_obj_set_size(bolt, 3, 2);
-        lv_obj_set_style_bg_color(bolt, lv_color_white(), 0);
-        lv_obj_set_style_bg_opa(bolt, LV_OPA_COVER, 0);
-        lv_obj_set_style_border_width(bolt, 0, 0);
+        ui.battery_bolts[i] = lv_obj_create(scr);
+        lv_obj_set_pos(ui.battery_bolts[i], bolt_x[i], bolt_y[i]);
+        lv_obj_set_size(ui.battery_bolts[i], 3, 2);
+        lv_obj_set_style_bg_color(ui.battery_bolts[i], lv_color_white(), 0);
+        lv_obj_set_style_bg_opa(ui.battery_bolts[i], LV_OPA_COVER, 0);
+        lv_obj_set_style_border_width(ui.battery_bolts[i], 0, 0);
     }
 
     ui.heading_status = lv_label_create(scr);

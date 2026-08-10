@@ -11,6 +11,10 @@ typedef struct {
     lv_obj_t * compass;
     lv_obj_t * gps_status;
     lv_obj_t * battery_status;
+    lv_obj_t * battery_outline;
+    lv_obj_t * battery_terminal;
+    lv_obj_t * battery_fill;
+    lv_obj_t * battery_bolts[3];
     lv_obj_t * time_status;
     lv_obj_t * humidity_status;
     lv_obj_t * heading_status;

@@ -386,8 +386,19 @@ void display_lvgl_update(const SensorData& data, const DisplayStatus& status) {
     lv_label_set_text(ui.gps_status, buf);
     snprintf(buf, sizeof(buf), "%02d:%02d:%02d", status.clockValid ? status.hour : 0, status.clockValid ? status.minute : 0, status.clockValid ? status.second : 0);
     lv_label_set_text(ui.time_status, buf);
-    snprintf(buf, sizeof(buf), "%d%%", status.batteryPercent);
+    snprintf(buf, sizeof(buf), status.usbConnected ? "USB" : "%d%%", status.batteryPercent);
     lv_label_set_text(ui.battery_status, buf);
+    if (status.usbConnected) {
+        lv_obj_add_flag(ui.battery_outline, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(ui.battery_terminal, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(ui.battery_fill, LV_OBJ_FLAG_HIDDEN);
+        for (int i = 0; i < 3; i++) lv_obj_add_flag(ui.battery_bolts[i], LV_OBJ_FLAG_HIDDEN);
+    } else {
+        lv_obj_clear_flag(ui.battery_outline, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(ui.battery_terminal, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(ui.battery_fill, LV_OBJ_FLAG_HIDDEN);
+        for (int i = 0; i < 3; i++) lv_obj_clear_flag(ui.battery_bolts[i], LV_OBJ_FLAG_HIDDEN);
+    }
     snprintf(buf, sizeof(buf), "HUM %.0f%%", status.environmentValid ? status.humidityPercent : 0.0f);
     lv_label_set_text(ui.humidity_status, buf);
 

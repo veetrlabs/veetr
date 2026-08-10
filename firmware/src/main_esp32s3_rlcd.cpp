@@ -109,7 +109,9 @@ ModbusMaster windSensor;
 // GPS Module
 HardwareSerial gpsSerial(GPS_UART);
 TinyGPSPlus gps;
-DisplayStatus displayStatus = {0, 0, 0.0f, 0.0f, 0, 0, 0, false, false};
+DisplayStatus displayStatus = {0, 0, 0.0f, 0.0f, 0, 0, 0, false, false, false};
+static unsigned long lastClockTickMs = 0;
+static volatile bool usbSerialConnected = false;
 
 // Regatta start line data structure
 struct RegattaData {
@@ -157,9 +159,27 @@ static void startRtcClock() {
   Wire.endTransmission();
 }
 
+static void handleUsbCdcEvent(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
+  (void)arg;
+  (void)event_data;
+  if (event_base != ARDUINO_USB_CDC_EVENTS) return;
+
+  switch (event_id) {
+    case ARDUINO_USB_CDC_CONNECTED_EVENT:
+      usbSerialConnected = true;
+      break;
+    case ARDUINO_USB_CDC_DISCONNECTED_EVENT:
+      usbSerialConnected = false;
+      break;
+    default:
+      break;
+  }
+}
+
 static void updateDisplayStatus() {
   displayStatus.satellites = gps.satellites.isValid() ? gps.satellites.value() : 0;
 
+  displayStatus.usbConnected = usbSerialConnected;
   float batteryVoltage = analogReadMilliVolts(4) * 0.003f;
   displayStatus.batteryPercent = constrain((int)roundf((batteryVoltage - 2.5f) * 100.0f / 1.7f), 0, 100);
 
@@ -195,11 +215,34 @@ static void updateDisplayStatus() {
     int second = bcdToDecimal(Wire.read() & 0x7F);
     int minute = bcdToDecimal(Wire.read() & 0x7F);
     int hour = bcdToDecimal(Wire.read() & 0x3F);
-    if (hour < 24 && minute < 60 && second < 60) {
+    static int lastRtcHour = -1;
+    static int lastRtcMinute = -1;
+    static int lastRtcSecond = -1;
+    if (hour < 24 && minute < 60 && second < 60 &&
+        (hour != lastRtcHour || minute != lastRtcMinute || second != lastRtcSecond)) {
       displayStatus.hour = hour;
       displayStatus.minute = minute;
       displayStatus.second = second;
       displayStatus.clockValid = true;
+      lastRtcHour = hour;
+      lastRtcMinute = minute;
+      lastRtcSecond = second;
+      lastClockTickMs = millis();
+    }
+  }
+}
+
+static void tickDisplayClock() {
+  unsigned long now = millis();
+  if (lastClockTickMs == 0) lastClockTickMs = now;
+  while (displayStatus.clockValid && now - lastClockTickMs >= 1000) {
+    lastClockTickMs += 1000;
+    if (++displayStatus.second == 60) {
+      displayStatus.second = 0;
+      if (++displayStatus.minute == 60) {
+        displayStatus.minute = 0;
+        displayStatus.hour = (displayStatus.hour + 1) % 24;
+      }
     }
   }
 }
@@ -1182,6 +1225,9 @@ void setup() {
 
   // Initialize serial communication after the splash has reached the panel.
   Serial.begin(115200);
+#ifdef ARDUINO_USB_CDC_ON_BOOT
+  Serial.onEvent(handleUsbCdcEvent);
+#endif
   analogReadResolution(12);
   analogSetPinAttenuation(4, ADC_11db);
   delay(1000); // Give serial time to initialize
@@ -1190,6 +1236,7 @@ void setup() {
   // USB CDC needs host enumeration; wait up to 3s for serial to be ready
   unsigned long serialTimeout = millis() + 3000;
   while (!Serial && millis() < serialTimeout) { delay(100); }
+  usbSerialConnected = static_cast<bool>(Serial);
 #endif
 
   Serial.println("\n=== Veetr Starting ===");
@@ -1515,6 +1562,7 @@ void loop() {
   }
 
   // Animate the RLCD independently of the 1 Hz sensor acquisition cycle.
+  tickDisplayClock();
   static unsigned long nextDisplayFrame = 0;
   if (millis() >= nextDisplayFrame) {
     display_lvgl_update(currentData, displayStatus);
