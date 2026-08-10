@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="238" height="238" viewBox="0 0 238 238">
+  <!-- Outer-ring marks every 30 degrees. -->
+  <g fill="#888888">
+    <circle cx="119" cy="3" r="1.5" /><circle cx="177" cy="19" r="1.5" />
+    <circle cx="219" cy="61" r="1.5" /><circle cx="235" cy="119" r="1.5" />
+    <circle cx="219" cy="177" r="1.5" /><circle cx="177" cy="219" r="1.5" />
+    <circle cx="119" cy="235" r="1.5" /><circle cx="61" cy="219" r="1.5" />
+    <circle cx="19" cy="177" r="1.5" /><circle cx="3" cy="119" r="1.5" />
+    <circle cx="19" cy="61" r="1.5" /><circle cx="61" cy="19" r="1.5" />
+  </g>
+  <!-- Dead-wind boundaries at +/-40 degrees from the bow. -->
+  <line x1="119" y1="119" x2="43" y2="29" stroke="#888888" stroke-width="1" />
+  <line x1="119" y1="119" x2="195" y2="29" stroke="#888888" stroke-width="1" />
+  <!-- Boat: grey silhouette below both wind wedges. -->
+  <path d="M119 87 L128 119 L125 144 L113 144 L110 119 Z" fill="#888888" />
+  <!-- AWA: smaller filled wedge at 135 degrees, reaching the outer ring. -->
+  <path d="M119 119 L197 206 L206 197 Z" fill="#888888" />
+  <!-- TWA: larger wedge at 90 degrees, reaching the outer ring. -->
+  <path d="M119 119 L237 114 L237 124 Z" fill="#000000" />
+  <!-- Mast at the shared origin, drawn above all indicators. -->
+  <circle cx="119" cy="119" r="2.4" fill="#000000" />
+</svg>

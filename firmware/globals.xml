@@ -1,0 +1,28 @@
+<globals>
+	<consts>
+		<color name="black" value="0x000000" />
+		<color name="white" value="0xffffff" />
+		<color name="bg" value="0xffffff" />
+		<color name="text" value="0x000000" />
+
+		<int name="unit_sm" value="4" />
+		<int name="unit_md" value="8" />
+		<int name="unit_lg" value="16" />
+	</consts>
+
+	<styles>
+		<style name="style_reset" width="content" height="content" bg_opa="0" border_width="0" radius="0" pad_all="0" />
+		<style name="style_label" text_color="#text" />
+	</styles>
+
+	<images>
+		<data name="compass_wind_art" src_path="images/compass_wind_preview.png" color_format="argb8888" />
+	</images>
+
+	<fonts>
+		<bin name="veetr_value_83" as_file="false" src_path="fonts/VeetrDigits.ttf"
+			 size="83" bpp="1" symbols="0123456789.-" />
+		<bin name="veetr_annotation_12" as_file="false" src_path="fonts/VeetrSans.ttf"
+			 size="12" bpp="1" symbols="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789:%+-[]" />
+	</fonts>
+</globals>

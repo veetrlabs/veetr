@@ -1,0 +1,7 @@
+<project>
+    <targets>
+        <target name="rlcd">
+            <display width="400" height="300"/>
+        </target>
+    </targets>
+</project>
