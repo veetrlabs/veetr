@@ -100,7 +100,3 @@ We will explicitly separate:
 - **Hardware adapters** (mocked in CI, validated on device)
 
 When adding new features, prefer adding tests at the core logic layer so they can run in CI.
-
-## Related Docs
-- [PlatformIO setup and commands](https://veetr.org/docs/platformio/)
-- [Development workflow](https://veetr.org/docs/development/)

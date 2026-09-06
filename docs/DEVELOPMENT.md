@@ -6,15 +6,7 @@ editUrl: https://github.com/veetrlabs/veetr/edit/main/docs/DEVELOPMENT.md
 
 Development workflow and setup instructions for contributors and developers working on the Veetr project.
 
-## Related Documentation
-
-This development guide is the primary resource for contributors. For specific technical details, also see:
-
-- **[Setup Guide](https://veetr.org/docs/)** - User-focused hardware and software setup
-- **[Hardware Guide](https://veetr.org/docs/hardware/)** - ESP32 wiring, sensor specifications, and pin assignments
-- **[PlatformIO Guide](https://veetr.org/docs/platformio/)** - PlatformIO configuration and troubleshooting
-- **[Firmware Documentation](https://github.com/veetrlabs/veetr/blob/main/firmware/readme.md)** - ESP32 implementation details and BLE protocol
-- **[Version Management](https://veetr.org/docs/version-management/)** - Release process and automated workflows
+For ESP32 implementation details and the BLE protocol, see the [firmware README](https://github.com/veetrlabs/veetr/blob/main/firmware/readme.md).
 
 ## Quick Development Setup ⚡
 
