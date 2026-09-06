@@ -128,8 +128,13 @@
 
 .site-footer { margin-top: 4rem; padding-top: 3rem; border-top: 1px solid var(--sl-color-hairline); font-size: .875rem; }
 .footer-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2rem; }
-.footer-brand img { width: 2.5rem; height: 2.5rem; object-fit: contain; }
-.footer-brand p { margin-top: .75rem; line-height: 1.7; max-width: 26ch; }
+.footer-brand { grid-column: 1 / -1; }
+.footer-brand-lockup { display: inline-flex !important; align-items: center; gap: .75rem; padding: 0 !important; color: var(--sl-color-white) !important; }
+.footer-brand-lockup img { width: 3.75rem; height: 3.75rem; object-fit: contain; }
+.footer-brand-lockup span { font-size: 1.65rem; font-weight: 750; letter-spacing: -.035em; }
+.footer-brand-lockup:hover { text-decoration: none !important; }
+.footer-brand-lockup:hover span { color: var(--sl-color-text-accent); }
+.footer-brand p { margin-top: 1rem; line-height: 1.7; max-width: 32ch; color: var(--sl-color-gray-2); }
 .site-footer h2 { font-size: .875rem; color: var(--sl-color-white); margin: 0 0 1rem; }
 .site-footer a { display: block; width: fit-content; padding-block: .35rem; text-decoration: none; color: var(--sl-color-gray-2); }
 .site-footer a:hover { color: var(--sl-color-text-accent); text-decoration: underline; }
@@ -141,6 +146,11 @@
 .cookie-actions button { min-height: 2.75rem; padding: .5rem .85rem; border: 1px solid var(--sl-color-gray-4); border-radius: .5rem; background: var(--sl-color-accent); color: var(--veetr-accent-ink); font: inherit; font-weight: 600; cursor: pointer; }
 .cookie-actions .button-secondary { background: var(--sl-color-bg-nav); color: var(--sl-color-white); }
 
+/* Keep Starlight's documentation drawer visually distinct from the site navigation beside it. */
+.sl-menu-button { border: 1px solid var(--sl-color-hairline); border-radius: .6rem; background: var(--sl-color-bg-nav); color: var(--sl-color-white); box-shadow: none; }
+.sl-menu-button:hover { border-color: var(--sl-color-gray-4); background: var(--sl-color-gray-6); }
+.sl-menu-button:focus-visible { outline: 2px solid var(--sl-color-text-accent); outline-offset: 4px; }
+
 @media (min-width: 50rem) {
   .resource-grid, .stats-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .image-band-grid, .split-panel, .budget-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -149,6 +159,7 @@
   .product-measurements { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .newsletter-grid { grid-template-columns: 1.1fr 1fr; gap: 3rem; }
   .footer-grid { grid-template-columns: 1.3fr repeat(3, 1fr); }
+  .footer-brand { grid-column: auto; }
 }
 @media (max-width: 49.99rem) {
   .hero .stack { order: -1; text-align: left; }
