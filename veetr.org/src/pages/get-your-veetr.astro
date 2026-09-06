@@ -3,6 +3,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import dashboard from '../assets/veetr-tablet-phone-1024.png';
 import MarkdownSection from '../components/MarkdownSection.astro';
 import Newsletter from '../components/Newsletter.astro';
+import { LinkCard } from '@astrojs/starlight/components';
 import { frontmatter, Content } from '../content/pages/get-your-veetr.md';
 ---
 
@@ -55,6 +56,13 @@ import { frontmatter, Content } from '../content/pages/get-your-veetr.md';
         <div><dt>Manuals, labeling, legal, accounting</dt><dd>EUR 5,000</dd></div>
         <div><dt>Pilot manufacturing preparation</dt><dd>EUR 9,000</dd></div>
       </dl>
+    </div>
+  </section>
+
+  <section class="section section-muted">
+    <div class="shell resource-grid">
+      <LinkCard href="/kit/" title="Former Veetr kit offer" description="Preserved pricing, shipping, parts, and early-adopter information from veetr.com" />
+      <LinkCard href="/build/" title="Build Veetr today" description="Use the open files and current hardware documentation" />
     </div>
   </section>
 

@@ -8,11 +8,14 @@ const home = await readPage('');
 const routes = {
   '': 'home',
   'build/': 'build',
+  'kit/': 'kit',
   'get-your-veetr/': 'get-your-veetr',
   'about/': 'about',
   'contact/': 'contact',
   'legal/privacy/': 'privacy',
   'legal/terms/': 'terms',
+  'legal/kit-terms/': 'kit-terms',
+  'legal/kit-privacy/': 'kit-privacy',
 };
 const docsRoutes = [
   'docs/',
@@ -30,7 +33,7 @@ const docsRoutes = [
 ];
 const allRoutes = [...Object.keys(routes), ...docsRoutes];
 
-test('all nineteen website and documentation routes are generated', async () => {
+test('all twenty-two website and documentation routes are generated', async () => {
   for (const route of allRoutes) {
     assert.ok((await readPage(route)).includes('<html'), route);
   }
@@ -113,7 +116,10 @@ test('all Markdown copy, effective dates, descriptions, and canonical URLs survi
     const page = await readPage(route);
     const text = normalize(page.replace(/<[^>]+>/g, ' '));
     for (const paragraph of body.trim().split(/\n\s*\n/)) {
-      const plain = normalize(paragraph.replace(/^\s*(?:#{1,6}|\d+\.)\s+/gm, '').replace(/[*_]/g, ''));
+      const plain = normalize(paragraph
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+        .replace(/^\s*(?:#{1,6}|\d+\.|[-*>])\s+/gm, '')
+        .replace(/[*_]/g, ''));
       assert.ok(text.includes(plain), `${route} missing copy: ${plain}`);
     }
     for (const field of ['description', 'effectiveDate']) {
@@ -127,8 +133,8 @@ test('all Markdown copy, effective dates, descriptions, and canonical URLs survi
   }
 });
 
-test('newsletter, contact, and campaign forms retain their original destinations', async () => {
-  for (const [route, id] of Object.entries({ '': 1, 'build/': 1, 'about/': 1, 'contact/': 2, 'get-your-veetr/': 4 })) {
+test('newsletter, contact, campaign, and former kit forms retain their original destinations', async () => {
+  for (const [route, id] of Object.entries({ '': 1, 'build/': 1, 'about/': 1, 'contact/': 2, 'get-your-veetr/': 4, 'kit/': 3 })) {
     const page = await readPage(route);
     assert.ok(page.includes(`https://m.veetr.com/form/generate.js?id=${id}`), route);
     assert.equal((page.match(/form\/generate\.js/g) || []).length, 1, route);
@@ -181,6 +187,43 @@ test('hardware resources and campaign details remain available', async () => {
   }
 });
 
+test('the former veetr.com shop information and legal policies are preserved', async () => {
+  const kit = await readPage('kit/');
+  for (const detail of [
+    'Kit orders are paused', 'Complete kit · €600', 'Build it yourself · ~€300',
+    '10 minutes', 'Pre-flashed and tested', 'Beam reach, 20 knots',
+    'Worldwide shipping was included', '6–12 weeks', 'Stripe', 'IČO 75412551',
+    'Professional components', '$20,000–50,000+', '10–20%', 'True ownership',
+    'Shape the product', 'Full support',
+  ]) assert.ok(kit.includes(detail), detail);
+  for (const part of [
+    'Microcontroller', '9-axis sensor', 'Wind sensor', 'GPS module', 'GPS antenna',
+    'RS485 converter', 'Pin headers', 'RJ45 PCB socket', 'Self-tapping screws',
+    'Allen wrenches', 'RJ45 plugs', 'Data cable', '330 Ω resistor', 'Green LED',
+    'Veetr carrier PCB', 'Enclosure',
+  ]) assert.ok(kit.includes(part), part);
+
+  const terms = await readPage('legal/kit-terms/');
+  for (const detail of ['Right of withdrawal', '24 months', 'Czech Trade Inspection Authority', 'consumer-redress.ec.europa.eu']) {
+    assert.ok(terms.includes(detail), detail);
+  }
+  const privacy = await readPage('legal/kit-privacy/');
+  for (const detail of ['Payment processing', '10 years', 'DigitalOcean', 'Webglobe.cz', 'Shipping carriers such as DHL', 'Automated decision-making']) {
+    assert.ok(privacy.includes(detail), detail);
+  }
+
+  const formerShop = new URL('../../veetr.com/', import.meta.url);
+  for (const [file, destination] of Object.entries({
+    'index.html': 'https://veetr.org/',
+    'terms.html': 'https://veetr.org/legal/kit-terms/',
+    'privacy.html': 'https://veetr.org/legal/kit-privacy/',
+  })) {
+    const redirect = await readFile(new URL(file, formerShop), 'utf8');
+    assert.ok(redirect.includes(`rel="canonical" href="${destination}"`), file);
+    assert.ok(redirect.includes(`content="0; url=${destination}"`), file);
+  }
+});
+
 test('documentation has navigation, search data, source links, and clean cross-links', async () => {
   for (const route of docsRoutes) {
     const page = await readPage(route);
@@ -203,4 +246,11 @@ test('the former product URL redirects to the merged homepage', async () => {
   const redirect = await readPage('product/');
   assert.match(redirect, /http-equiv="refresh"/);
   assert.match(redirect, /url=\//);
+});
+
+test('legacy shop legal URLs redirect to their preserved policies', async () => {
+  const terms = await readPage('terms.html/');
+  assert.match(terms, /url=\/legal\/kit-terms\//);
+  const privacy = await readPage('privacy.html/');
+  assert.match(privacy, /url=\/legal\/kit-privacy\//);
 });

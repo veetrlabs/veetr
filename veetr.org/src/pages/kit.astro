@@ -1,0 +1,138 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+import MarkdownSection from '../components/MarkdownSection.astro';
+import Newsletter from '../components/Newsletter.astro';
+import hardware from '../assets/veetr-hardware-kit-v7.png';
+import { frontmatter, Content } from '../content/pages/kit.md';
+
+const comparison = [
+  ['Setup time', '10 minutes', 'Days'],
+  ['Parts sourcing', 'Done', 'Months'],
+  ['Soldering required', 'No', 'Yes'],
+  ['3D printer needed', 'No', 'Yes'],
+  ['Firmware', 'Pre-flashed and tested', 'Flash it yourself'],
+  ['Quality testing', 'Fully tested system', 'Self-debug and test'],
+  ['Technical skills needed', 'Minimal', 'Advanced'],
+  ['Support channels', 'Community and email', 'Community only'],
+  ['Boost development', 'Beam reach, 20 knots', 'Close-hauled, 6 knots'],
+];
+
+const parts = [
+  ['Microcontroller', 'ESP32 DevKitC WROOM-32U with external BLE antenna support.', 'https://s.click.aliexpress.com/e/_c3ctWFj9'],
+  ['9-axis sensor', 'BNO080/BNO085 accelerometer, magnetometer, and gyroscope with sensor fusion.', 'https://s.click.aliexpress.com/e/_okDR7nd'],
+  ['Wind sensor', 'Miniature RS485 ultrasonic sensor for wind speed and 360° direction.', 'https://s.click.aliexpress.com/e/_onkySgT'],
+  ['GPS module', 'Multi-GNSS GY-NEO8MV2-family receiver.', 'https://s.click.aliexpress.com/e/_onLOZmT'],
+  ['GPS antenna', 'External high-gain antenna for improved reception.', 'https://s.click.aliexpress.com/e/_oExx7iF'],
+  ['RS485 converter', 'RS485-to-TTL interface between the wind sensor and ESP32.', 'https://www.aliexpress.com/item/32688467460.html'],
+  ['Pin headers', '2.54 mm pitch 1×3, 2×5, 2×10, and 2×20 headers.', 'https://s.click.aliexpress.com/e/_c3x0pywP'],
+  ['RJ45 PCB socket', '8P8C PCB jack for the wind-sensor connection.', 'https://s.click.aliexpress.com/e/_c4r9khsR'],
+  ['Self-tapping screws', 'Stainless steel M2.6 × 6 mm screws for PCB and enclosure mounting.', 'https://s.click.aliexpress.com/e/_c3I7nVix'],
+  ['Allen wrenches', '2 mm and 2.5 mm hex keys for assembly and maintenance.', 'https://s.click.aliexpress.com/e/_c3hkuLF9'],
+  ['RJ45 plugs', 'Gold-plated CAT5e/CAT6 modular plug connectors.', 'https://s.click.aliexpress.com/e/_c35xAcRp'],
+  ['Data cable', 'Shielded 22 AWG LSZH cable for the wind sensor.', 'https://s.click.aliexpress.com/e/_c4bYPjR9'],
+  ['330 Ω resistor', 'Current-limiting resistor for the indicator LED and signal conditioning.', 'https://s.click.aliexpress.com/e/_c3N5JNnH'],
+  ['Green LED', '5 mm green status LED with 2.54 mm lead spacing.', 'https://s.click.aliexpress.com/e/_c3EvUu2r'],
+  ['Veetr carrier PCB', 'Open-source breakout board for the controller and sensor modules.', 'https://oshwlab.com/linhartescope/esp32-breakout-board'],
+  ['Enclosure', 'Custom 3D-printed housing; the former page marked its public listing as coming soon.', 'https://www.printables.com/'],
+];
+
+const benefits = [
+  ['Professional components', 'The former offer described the ESP32, GPS, and sensors as professional-grade parts also used in commercial marine products.'],
+  ['Massive cost savings', 'The former offer compared DIY component costs with device-level certification costs of $20,000–50,000+ and described equivalent functionality at 10–20% of the commercial price.'],
+  ['True ownership', 'Schematics, firmware, PCB files, and enclosure designs stay open, repairable, and adaptable.'],
+  ['Learn and customize', 'Builders can understand the system, add features, integrate other equipment, and share improvements.'],
+];
+
+const earlyAdopter = [
+  ['Shape the product', 'Sailors can test Veetr in real conditions and influence later iterations with honest feedback.'],
+  ['Special pricing', 'The former offer described early-adopter pricing with worldwide shipping included and no hidden fees.'],
+  ['Made to order', 'Each kit was to be sourced and assembled individually, with a stated 6–12 week lead time.'],
+  ['Full support', 'The offer included email access to the development team and the GitHub community forum.'],
+];
+---
+
+<BaseLayout title={frontmatter.title} description={frontmatter.description} hero={frontmatter} image={hardware} imageAlt="Closed blue Veetr controller with wind, Bluetooth, and GPS antennas">
+  <MarkdownSection Content={Content} />
+
+  <section class="section section-muted" id="pricing">
+    <div class="shell">
+      <div class="section-heading">
+        <p class="eyebrow">Former pricing</p>
+        <h2>Complete kit or build it yourself</h2>
+        <p>The storefront compared a €600 complete kit with a roughly €300 DIY build. These prices are historical reference points, not current offers.</p>
+      </div>
+      <div class="table-scroll" tabindex="0" aria-label="Former Veetr kit and DIY comparison">
+        <table class="offer-table">
+          <thead><tr><th>What you get</th><th>Complete kit · €600</th><th>Build it yourself · ~€300</th></tr></thead>
+          <tbody>{comparison.map(([item, kit, diy]) => <tr><th scope="row">{item}</th><td>{kit}</td><td>{diy}</td></tr>)}</tbody>
+        </table>
+      </div>
+      <div class="notice">
+        <strong>Orders are paused</strong>
+        <p>The former offer used Stripe for payment and email confirmation for shipping details. No finished kit can currently be ordered through this site.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="shipping">
+    <div class="shell split-panel">
+      <div>
+        <p class="eyebrow">Former shipping policy</p>
+        <h2>Worldwide shipping was included</h2>
+      </div>
+      <div class="prose">
+        <p>The early-stage offer described free worldwide shipping to keep ordering simple, even when that reduced project margins.</p>
+        <p>It stated delivery could take up to 12 weeks because kits were assembled by hand without a stock reserve or mass-production capital. The early-adopter section described the same estimate as 6–12 weeks.</p>
+        <p>These estimates are preserved for reference and will need to be confirmed again before any future offer.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-muted" id="parts">
+    <div class="shell">
+      <div class="section-heading">
+        <p class="eyebrow">Complete former parts list</p>
+        <h2>Standard parts, no proprietary lock-in</h2>
+        <p>Supplier listings and board options can change. Confirm each model, voltage, connector, and dimension against the current documentation before ordering.</p>
+      </div>
+      <div class="table-scroll" tabindex="0" aria-label="Veetr parts and supplier links">
+        <table class="parts-table">
+          <thead><tr><th>Part</th><th>Description</th><th>Former source</th></tr></thead>
+          <tbody>{parts.map(([part, description, href]) => <tr><th scope="row">{part}</th><td>{description}</td><td><a href={href}>Supplier link</a></td></tr>)}</tbody>
+        </table>
+      </div>
+      <p class="affiliate-note">Some supplier URLs are affiliate links that support Veetr development without changing the buyer’s price. The former storefront described these as reputable components offering professional performance without the device-level certification markup.</p>
+    </div>
+  </section>
+
+  <section class="section" id="benefits">
+    <div class="shell">
+      <div class="section-heading"><p class="eyebrow">Why the kit existed</p><h2>Freedom was the product</h2></div>
+      <CardGrid>{benefits.map(([title, text]) => <Card title={title}><p>{text}</p></Card>)}</CardGrid>
+    </div>
+  </section>
+
+  <section class="section section-muted" id="early-adopters">
+    <div class="shell">
+      <div class="section-heading">
+        <p class="eyebrow">Early-adopter program</p>
+        <h2>Sailors as partners and contributors</h2>
+        <p>The former offer invited early users to help shape a young project rather than buy a finished mass-market instrument.</p>
+      </div>
+      <CardGrid>{earlyAdopter.map(([title, text]) => <Card title={title}><p>{text}</p></Card>)}</CardGrid>
+      <div class="resource-grid kit-links">
+        <LinkCard href="/build/" title="Build from the open design" description="Use the supported DIY route today" />
+        <LinkCard href="https://github.com/veetrlabs/veetr/discussions" title="Join the forum" description="Ask questions and share field feedback" />
+        <LinkCard href="/legal/kit-terms/" title="Former kit terms" description="Archived purchase and delivery terms" />
+        <LinkCard href="/legal/kit-privacy/" title="Former kit privacy policy" description="Archived order-data and processor details" />
+      </div>
+      <div class="business-details">
+        <strong>Former storefront operator</strong>
+        <span>Jan Linhart (natural person) · IČO 75412551 · Prague · veetr@linhart.email</span>
+      </div>
+    </div>
+  </section>
+
+  <Newsletter id={3} title="Questions about Veetr hardware?" text="The former kit contact form remains available for questions. For project updates, join the newsletter on Get Your Veetr." />
+</BaseLayout>

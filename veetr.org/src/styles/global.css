@@ -615,6 +615,89 @@ h3 {
   font-weight: 900;
 }
 
+.table-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--white);
+  box-shadow: 0 10px 32px rgba(16, 47, 86, 0.06);
+}
+
+.table-scroll:focus-visible {
+  outline: 3px solid var(--sky);
+  outline-offset: 3px;
+}
+
+.offer-table,
+.parts-table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+  color: var(--muted);
+  text-align: left;
+}
+
+.offer-table th,
+.offer-table td,
+.parts-table th,
+.parts-table td {
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.offer-table thead th,
+.parts-table thead th {
+  background: var(--navy);
+  color: var(--white);
+  font-weight: 850;
+}
+
+.offer-table tbody th,
+.parts-table tbody th {
+  color: var(--navy);
+  font-weight: 800;
+}
+
+.offer-table tbody tr:last-child > *,
+.parts-table tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
+.parts-table td:nth-child(2) {
+  min-width: 360px;
+}
+
+.parts-table a {
+  color: var(--navy);
+  font-weight: 800;
+}
+
+.affiliate-note {
+  margin: 18px 0 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.kit-links {
+  margin-top: 34px;
+}
+
+.business-details {
+  display: grid;
+  gap: 8px;
+  margin-top: 24px;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--white);
+  color: var(--muted);
+}
+
+.business-details strong {
+  color: var(--navy);
+}
+
 .docs-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }

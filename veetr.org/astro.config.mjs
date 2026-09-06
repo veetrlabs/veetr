@@ -7,6 +7,8 @@ export default defineConfig({
   redirects: {
     '/product/': '/',
     '/docs/setup/': '/docs/',
+    '/terms.html': '/legal/kit-terms/',
+    '/privacy.html': '/legal/kit-privacy/',
   },
   // Keep the existing inline whitespace while migrating to the Astro 7 compiler.
   compressHTML: true,
