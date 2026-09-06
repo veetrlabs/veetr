@@ -142,7 +142,7 @@ test('newsletter, contact, campaign, and former kit forms retain their original 
   assert.ok((await readPage('contact/')).includes('mailto:veetr@linhart.email'));
 });
 
-test('all local links and image assets resolve in the generated site', async () => {
+test('all local links, fragment targets, and image assets resolve in the generated site', async () => {
   for (const route of allRoutes) {
     const page = await readPage(route);
     const references = [...page.matchAll(/(?:href|src)="(\/[^"#?]*)[^"]*"/g)];
@@ -150,6 +150,17 @@ test('all local links and image assets resolve in the generated site', async () 
       if (path.startsWith('//')) continue;
       const file = path.endsWith('/') ? `${path}index.html` : path;
       assert.ok((await stat(new URL(file.slice(1), dist))).isFile(), `${route}: ${path}`);
+    }
+    for (const [, href] of page.matchAll(/<a\b[^>]*href="([^"]+)"[^>]*>/g)) {
+      const targetUrl = new URL(href, `https://veetr.org/${route}`);
+      if (targetUrl.origin !== 'https://veetr.org') continue;
+      const pathname = decodeURIComponent(targetUrl.pathname).replace(/^\//, '');
+      const targetFile = pathname === '' ? 'index.html' : pathname.endsWith('/') ? `${pathname}index.html` : pathname;
+      const targetPage = await readFile(new URL(targetFile, dist), 'utf8');
+      if (targetUrl.hash) {
+        const id = decodeURIComponent(targetUrl.hash.slice(1));
+        assert.ok(targetPage.includes(`id="${id}"`), `${route}: ${href} has no matching fragment target`);
+      }
     }
     for (const image of page.matchAll(/<img\b[^>]*>/g)) {
       // Astro may serialize the decorative alt="" attribute as bare `alt`.
