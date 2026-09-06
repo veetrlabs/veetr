@@ -115,7 +115,7 @@ Module labels vary. Confirm the pin names against the board you receive before u
 
 The custom Veetr carrier PCB holds the modular boards and routes their power and signals. The **[PCB and Gerber guide](https://veetr.org/docs/pcb/)** provides the ready-to-fabricate download, editable design source, file descriptions, and ordering checklist.
 
-The enclosure is 3D printed and provides the RJ45, BLE antenna, USB-C, and GPS antenna openings. Verify the PCB revision and connector placement before printing it.
+The enclosure is 3D printed and provides the RJ45, BLE antenna, USB-C, and GPS antenna openings. Its wall rail makes the controller removable while returning it to a repeatable position, and an Allen key doubles as the lid’s hinge pin and disassembly tool. See **[Enclosure and mounting](https://veetr.org/docs/enclosure/)** before printing or installing it.
 
 The former Veetr kit page also listed the headers, RJ45 socket and plugs, shielded data cable, M2.6 screws, Allen keys, 330 Ω resistor, and green status LED used during assembly. Those supplier links and descriptions are preserved in the **[complete former parts list](https://veetr.org/kit/#parts)**.
 

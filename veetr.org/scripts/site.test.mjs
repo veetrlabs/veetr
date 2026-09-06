@@ -21,6 +21,7 @@ const docsRoutes = [
   'docs/hardware/',
   'docs/components/',
   'docs/pcb/',
+  'docs/enclosure/',
   'docs/wiring/',
   'docs/hardware-reference/',
   'docs/firmware-update/',
@@ -202,6 +203,14 @@ test('hardware resources and campaign details remain available', async () => {
     'Open the editable EasyEDA project', 'Gerber_TopLayer.GTL', 'Drill_NPTH_Through.DRL',
     'two-layer FR-4 board', '1.6 mm thickness', 'bare PCB',
   ]) assert.ok(pcb.includes(detail), detail);
+  const enclosure = await readPage('docs/enclosure/');
+  for (const detail of [
+    'Download the Veetr box from Printables', 'mounting bar', 'printed legs',
+    'same position and orientation', 'Allen key (hex key) as its hinge pin',
+    'RJ45 socket', 'External Bluetooth antenna', 'USB-C', 'External GPS antenna',
+    'Reset', 'Pairing',
+  ]) assert.ok(enclosure.includes(detail), detail);
+  assert.match(enclosure, /https:\/\/www\.printables\.com\/model\/1589439-veetr-box/);
   const wiring = await readPage('docs/wiring/');
   for (const connection of ['Enclosure connections', 'Veetr pin map', 'GPIO21', 'GPIO22', 'GPIO16', 'GPIO17', 'GPIO32', 'GPIO33', 'GPIO14', 'Lid controls', 'First power-on checklist']) {
     assert.ok(wiring.includes(connection), connection);

@@ -36,6 +36,7 @@ export default defineConfig({
                 { label: 'Overview', slug: 'docs/hardware' },
                 'docs/components',
                 'docs/pcb',
+                'docs/enclosure',
                 'docs/wiring',
                 'docs/hardware-reference',
                 'docs/storage',

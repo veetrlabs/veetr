@@ -50,6 +50,7 @@ The two flexible controls in the lid press the ESP32’s onboard buttons. One re
 
 - **[Components](https://veetr.org/docs/components/):** choose the controller, sensors, antennas, converter, PCB, and enclosure.
 - **[PCB and Gerber files](https://veetr.org/docs/pcb/):** download or modify the carrier PCB and prepare a prototype order.
+- **[Enclosure and mounting](https://veetr.org/docs/enclosure/):** print the box, install its removable wall rail, and assemble the Allen-key hinge.
 - **[Wiring](https://veetr.org/docs/wiring/):** connect the modules and check each signal before applying power.
 - **[Hardware reference](https://veetr.org/docs/hardware-reference/):** prototype interfaces, update rates, power estimates, and environmental limits.
 - **[Data storage](https://veetr.org/docs/storage/):** understand configuration and filesystem behavior.
