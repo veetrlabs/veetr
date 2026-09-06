@@ -13,12 +13,17 @@ interface Props {
   };
   image?: ImageMetadata;
   imageAlt?: string;
+  heroActions?: boolean;
+  imageCutout?: boolean;
 }
 
-const { title, description, hero, image, imageAlt = '' } = Astro.props;
+const { title, description, hero, image, imageAlt = '', heroActions = false, imageCutout = false } = Astro.props;
 const siteTitle = title === 'Veetr' ? title : `${title} | Veetr`;
 const optimizedImage = image && await getImage({ src: image, width: Math.min(image.width, 1200), format: 'webp' });
 const escapeAttribute = (value: string) => value.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;');
+const heroImage = optimizedImage
+  ? `<img src="${escapeAttribute(optimizedImage.src)}" width="${optimizedImage.attributes.width}" height="${optimizedImage.attributes.height}" alt="${escapeAttribute(imageAlt)}" loading="eager" decoding="async" fetchpriority="high" />`
+  : '';
 ---
 
 <StarlightPage frontmatter={{
@@ -33,12 +38,12 @@ const escapeAttribute = (value: string) => value.replaceAll('&', '&amp;').replac
     title: hero.heroTitle,
     tagline: hero.heroLead,
     image: optimizedImage ? {
-      html: `<img src="${escapeAttribute(optimizedImage.src)}" width="${optimizedImage.attributes.width}" height="${optimizedImage.attributes.height}" alt="${escapeAttribute(imageAlt)}" loading="eager" decoding="async" fetchpriority="high" />`,
+      html: imageCutout ? `<div class="hero-product-surface">${heroImage}</div>` : heroImage,
     } : undefined,
-    actions: [
+    actions: heroActions ? [
       { text: 'Open Live App', link: 'https://app.veetr.org/', icon: 'right-arrow', variant: 'primary' },
       { text: 'Get Your Veetr', link: '/get-your-veetr/', variant: 'secondary' },
-    ],
+    ] : undefined,
   },
 }}>
   <div class="site-content not-content">

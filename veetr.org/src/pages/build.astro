@@ -1,6 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import pcb from '../assets/3d-veetr-pcb.png';
+import pcb from '../assets/3d-veetr-pcb-transparent.png';
 import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
 import MarkdownSection from '../components/MarkdownSection.astro';
 import Newsletter from '../components/Newsletter.astro';
@@ -18,7 +18,7 @@ const parts = [
 ];
 ---
 
-<BaseLayout title={frontmatter.title} description={frontmatter.description} hero={frontmatter} image={pcb} imageAlt="Veetr custom PCB render">
+<BaseLayout title={frontmatter.title} description={frontmatter.description} hero={frontmatter} image={pcb} imageAlt="Veetr custom PCB render" imageCutout>
 
   <MarkdownSection Content={Content} />
 

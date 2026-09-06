@@ -61,6 +61,14 @@ test('the homepage contains the complete product story and existing destinations
   assert.doesNotMatch(home, />Product<\/a>/);
 });
 
+test('only the homepage carries the global hero actions', async () => {
+  assert.ok((home.match(/class="[^"]*sl-link-button[^"]*"/g) || []).length >= 2);
+  for (const route of Object.keys(routes).filter(Boolean)) {
+    const page = await readPage(route);
+    assert.equal((page.match(/class="[^"]*sl-link-button[^"]*"/g) || []).length, 0, route);
+  }
+});
+
 test('dashboard is optimized without losing its landscape proportions', async () => {
   const image = home.match(/<img[^>]*alt="Veetr app shown on tablet and phone"[^>]*>/)?.[0];
   assert.ok(image);
@@ -79,6 +87,16 @@ test('hardware is the primary homepage image', async () => {
   const src = homeHardware.match(/src="([^"]+)"/)[1];
   assert.ok((await stat(new URL(src.replace(/^\//, ''), dist))).size > 0);
   assert.ok(home.includes('A portable sensor unit measures wind'));
+});
+
+test('the build hero uses a transparent PCB cutout with a contrast surface', async () => {
+  const build = await readPage('build/');
+  assert.match(build, /class="hero-product-surface"/);
+  const image = build.match(/<img[^>]*alt="Veetr custom PCB render"[^>]*>/)?.[0];
+  assert.ok(image);
+  const src = image.match(/src="([^"]+)"/)[1];
+  assert.match(src, /\.webp$/);
+  assert.ok((await stat(new URL(src.replace(/^\//, ''), dist))).size > 0);
 });
 
 test('every page shares Starlight, accessible navigation, and exactly one title and footer', async () => {
