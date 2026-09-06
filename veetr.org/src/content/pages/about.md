@@ -1,6 +1,6 @@
 ---
 title: "About"
-description: "The origin story and open source philosophy behind Veetr."
+description: "The origin story, open source philosophy, and contact details behind Veetr."
 eyebrow: "About"
 heroTitle: "Born on the water, built in the open"
 heroLead: "Veetr started as a practical sailing project by Jan Linhart in the Czech Republic."

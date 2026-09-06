@@ -5,6 +5,7 @@ export default defineConfig({
   site: 'https://veetr.org',
   output: 'static',
   redirects: {
+    '/contact/': '/about/#contact',
     '/product/': '/',
     '/docs/setup/': '/docs/',
     '/terms.html': '/legal/kit-terms/',

@@ -1,21 +1,25 @@
 ---
 interface Props {
   id?: number;
+  anchorId?: string;
+  eyebrow?: string;
   title?: string;
   text?: string;
 }
 
 const {
   id = 1,
+  anchorId,
+  eyebrow = 'Newsletter',
   title = 'Follow the project',
   text = 'Get build notes, certification updates, and community milestones in your inbox.',
 } = Astro.props;
 ---
 
-<section class="newsletter-band">
+<section class="newsletter-band" id={anchorId}>
   <div class="shell newsletter-grid">
     <div>
-      <p class="eyebrow">Newsletter</p>
+      <p class="eyebrow">{eyebrow}</p>
       <h2>{title}</h2>
       <p>{text}</p>
     </div>

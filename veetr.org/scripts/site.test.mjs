@@ -11,7 +11,6 @@ const routes = {
   'kit/': 'kit',
   'get-your-veetr/': 'get-your-veetr',
   'about/': 'about',
-  'contact/': 'contact',
   'legal/privacy/': 'privacy',
   'legal/terms/': 'terms',
   'legal/kit-terms/': 'kit-terms',
@@ -33,7 +32,7 @@ const docsRoutes = [
 ];
 const allRoutes = [...Object.keys(routes), ...docsRoutes];
 
-test('all twenty-two website and documentation routes are generated', async () => {
+test('all website and documentation routes are generated', async () => {
   for (const route of allRoutes) {
     assert.ok((await readPage(route)).includes('<html'), route);
   }
@@ -134,12 +133,21 @@ test('all Markdown copy, effective dates, descriptions, and canonical URLs survi
 });
 
 test('newsletter, contact, campaign, and former kit forms retain their original destinations', async () => {
-  for (const [route, id] of Object.entries({ '': 1, 'build/': 1, 'about/': 1, 'contact/': 2, 'get-your-veetr/': 4, 'kit/': 3 })) {
+  for (const [route, id] of Object.entries({ '': 1, 'build/': 1, 'about/': 2, 'get-your-veetr/': 4, 'kit/': 3 })) {
     const page = await readPage(route);
     assert.ok(page.includes(`https://m.veetr.com/form/generate.js?id=${id}`), route);
     assert.equal((page.match(/form\/generate\.js/g) || []).length, 1, route);
   }
-  assert.ok((await readPage('contact/')).includes('mailto:veetr@linhart.email'));
+  const about = await readPage('about/');
+  assert.ok(about.includes('id="contact"'));
+  assert.ok(about.includes('mailto:veetr@linhart.email'));
+  assert.ok(about.includes('https://github.com/veetrlabs/veetr/discussions'));
+});
+
+test('the footer keeps project links without duplicating documentation navigation', () => {
+  assert.doesNotMatch(home, /<h2>Documentation<\/h2>/);
+  assert.match(home, /<h2>Project<\/h2>/);
+  assert.match(home, /href="https:\/\/github\.com\/veetrlabs\/veetr\/discussions"/);
 });
 
 test('all local links, fragment targets, and image assets resolve in the generated site', async () => {
@@ -259,6 +267,12 @@ test('the former product URL redirects to the merged homepage', async () => {
   const redirect = await readPage('product/');
   assert.match(redirect, /http-equiv="refresh"/);
   assert.match(redirect, /url=\//);
+});
+
+test('the former contact URL redirects to the merged About contact section', async () => {
+  const redirect = await readPage('contact/');
+  assert.match(redirect, /http-equiv="refresh"/);
+  assert.match(redirect, /url=\/about\/#contact/);
 });
 
 test('legacy shop legal URLs redirect to their preserved policies', async () => {
