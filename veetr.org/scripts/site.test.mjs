@@ -232,7 +232,9 @@ test('the former veetr.com shop information and legal policies are preserved', a
     const redirect = await readFile(new URL(file, formerShop), 'utf8');
     assert.ok(redirect.includes(`rel="canonical" href="${destination}"`), file);
     assert.ok(redirect.includes(`content="0; url=${destination}"`), file);
+    assert.doesNotMatch(redirect, /\b(?:has|have) moved\b/i, file);
   }
+  assert.ok((await readFile(new URL('index.html', formerShop), 'utf8')).includes('<title>Veetr is not ready for sale yet</title>'));
 });
 
 test('documentation has navigation, search data, source links, and clean cross-links', async () => {
