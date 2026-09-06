@@ -69,10 +69,10 @@ The individual modules may carry wide temperature or humidity figures in their v
 
 See **[Compliance and certifications](https://veetr.org/docs/compliance/)** before describing or distributing a completed unit.
 
-## Development tools
+## Software and development tools
 
 - VS Code with PlatformIO
 - PlatformIO build, upload, and serial-monitor commands
 - The Veetr web app for BLE integration testing
 
-Continue to the **[development guide](https://veetr.org/docs/development/)** and **[PlatformIO configuration](https://veetr.org/docs/platformio/)** for the software workflow.
+See the **[software overview](https://veetr.org/docs/software/)** for how the firmware and PWA divide the work. Continue to the **[development guide](https://veetr.org/docs/development/)** and **[PlatformIO configuration](https://veetr.org/docs/platformio/)** to work on the code.

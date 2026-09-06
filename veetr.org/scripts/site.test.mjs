@@ -26,6 +26,9 @@ const docsRoutes = [
   'docs/hardware-reference/',
   'docs/firmware-update/',
   'docs/compliance/',
+  'docs/software/',
+  'docs/firmware/',
+  'docs/pwa/',
   'docs/development/',
   'docs/platformio/',
   'docs/firmware-testing/',
@@ -220,6 +223,30 @@ test('hardware resources and campaign details remain available', async () => {
   for (const detail of ['Audience proof', 'Quote the work', 'Open fund campaign', 'Certify, then batch', 'EUR 15,000', 'EUR 9,000']) {
     assert.ok(campaign.includes(detail), detail);
   }
+});
+
+test('software documentation covers both firmware and the PWA', async () => {
+  const overview = await readPage('docs/software/');
+  for (const detail of [
+    'The two parts', 'Firmware', 'Progressive Web App', 'From sensor to screen',
+    'No account or cloud connection required', '/docs/firmware/', '/docs/pwa/',
+  ]) assert.ok(overview.includes(detail), detail);
+  assert.match(overview, />Software</);
+  assert.doesNotMatch(overview, />Development<\/span>\s*<svg/);
+
+  const firmware = await readPage('docs/firmware/');
+  for (const detail of [
+    'What the firmware does', 'RS485 / Modbus', 'GPIO32', 'GPIO16', 'GPIO21',
+    'BLE data and commands', 'Pairing and discovery', 'five minutes',
+    'Updating the firmware', 'firmware/src/main.cpp',
+  ]) assert.ok(firmware.includes(detail), detail);
+
+  const pwa = await readPage('docs/pwa/');
+  for (const detail of [
+    'app.veetr.org', 'Web Bluetooth API', 'Browser requirements', 'IndexedDB',
+    'ten-second records', 'Offline support has practical limits',
+    'Map tiles', 'app/src/context/BLEContext.tsx',
+  ]) assert.ok(pwa.includes(detail), detail);
 });
 
 test('the former veetr.com shop information and legal policies are preserved', async () => {

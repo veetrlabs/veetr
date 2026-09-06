@@ -36,6 +36,9 @@ export const collections = {
         'PLATFORMIO.md',
         'FIRMWARE_TESTING.md',
         'STORAGE.md',
+        'SOFTWARE.md',
+        'FIRMWARE.md',
+        'PWA.md',
         'VERSION_MANAGEMENT.md',
       ],
       generateId: ({ entry }) => {

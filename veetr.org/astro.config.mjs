@@ -44,8 +44,16 @@ export default defineConfig({
               ],
             },
             {
-              label: 'Development',
-              items: ['docs/development', 'docs/platformio', 'docs/firmware-testing', 'docs/version-management'],
+              label: 'Software',
+              items: [
+                { label: 'Overview', slug: 'docs/software' },
+                'docs/firmware',
+                'docs/pwa',
+                'docs/development',
+                'docs/platformio',
+                'docs/firmware-testing',
+                'docs/version-management',
+              ],
             },
           ],
         },
