@@ -1,16 +1,12 @@
-# Veetr - Development Guide
+---
+title: Development guide
+description: Set up a Veetr development environment and work on the web application or firmware.
+editUrl: https://github.com/veetrlabs/veetr/edit/main/docs/DEVELOPMENT.md
+---
 
 Development workflow and setup instructions for contributors and developers working on the Veetr project.
 
-## Related Documentation
-
-This development guide is the primary resource for contributors. For specific technical details, also see:
-
-- **[Setup Guide](./SETUP.md)** - User-focused hardware and software setup
-- **[Hardware Guide](./HARDWARE.md)** - ESP32 wiring, sensor specifications, and pin assignments
-- **[PlatformIO Guide](./PLATFORMIO.md)** - PlatformIO configuration and troubleshooting
-- **[Firmware Documentation](../firmware/readme.md)** - ESP32 implementation details and BLE protocol
-- **[Version Management](./VERSION_MANAGEMENT.md)** - Release process and automated workflows
+For ESP32 implementation details and the BLE protocol, see the [firmware README](https://github.com/veetrlabs/veetr/blob/main/firmware/readme.md).
 
 ## Quick Development Setup ⚡
 
@@ -64,7 +60,7 @@ pio device monitor         # Serial monitor
 #### ESP32 Firmware (`/firmware`)
 - **Arduino Framework** via PlatformIO
 - **NimBLE** for Bluetooth Low Energy
-- **Sensor Integration**: GPS, IMU, Wind sensors ([hardware specs](./HARDWARE.md))
+- **Sensor Integration**: GPS, IMU, Wind sensors ([hardware specs](https://veetr.org/docs/hardware/))
 - **Communication**: UART/I2C/RS485 protocols
 
 ### PWA Health Monitoring System

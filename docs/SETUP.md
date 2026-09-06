@@ -1,11 +1,15 @@
-# Veetr Sailing Dashboard - User Setup Guide
+---
+title: User setup guide
+description: Connect a phone, tablet, or laptop to Veetr and calibrate the sailing dashboard.
+editUrl: https://github.com/veetrlabs/veetr/edit/main/docs/SETUP.md
+---
 
 Step-by-step instructions for sailors to get their Veetr sailing dashboard up and running.
 
 ## What You Need 🛒
 
 ### Required Hardware:
-See the **[Hardware Guide](./HARDWARE.md)** for detailed specifications and purchase links.
+See the **[Hardware Guide](https://veetr.org/docs/hardware/)** for detailed specifications and purchase links.
 
 ### Supported Devices:
 - **iPhone/iPad**: Must use [Bluefy - Web BLE Browser](https://apps.apple.com/app/bluefy-web-ble-browser/id1492822055) (Safari doesn't support Bluetooth)

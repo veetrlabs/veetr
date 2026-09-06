@@ -1,0 +1,19 @@
+---
+import Footer from '../Footer.astro';
+import CookieBanner from '../CookieBanner.astro';
+import EditLink from '@astrojs/starlight/components/EditLink.astro';
+import Pagination from '@astrojs/starlight/components/Pagination.astro';
+---
+
+<div class="docs-page-footer">
+  <div class="docs-page-meta"><EditLink /></div>
+  <Pagination />
+</div>
+<Footer />
+<CookieBanner />
+
+<style>
+  .docs-page-footer { display: grid; gap: 1.5rem; margin-top: 3rem; }
+  .docs-page-meta { display: flex; justify-content: flex-end; font-size: var(--sl-text-sm); }
+  .docs-page-meta:empty { display: none; }
+</style>

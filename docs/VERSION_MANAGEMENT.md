@@ -1,4 +1,8 @@
-# Version Management
+---
+title: Version management
+description: Create, validate, and troubleshoot Veetr releases.
+editUrl: https://github.com/veetrlabs/veetr/edit/main/docs/VERSION_MANAGEMENT.md
+---
 
 This project uses centralized version management with the app `package.json` as the single source of truth.
 

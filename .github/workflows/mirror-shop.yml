@@ -3,7 +3,9 @@ name: Mirror Shop to veetr.com Repository
 on:
   push:
     branches: [main]
-    paths: ['veetr.com/**']
+    paths:
+      - 'veetr.com/**'
+      - '.github/workflows/mirror-shop.yml'
   workflow_dispatch:
 
 jobs:
@@ -20,6 +22,19 @@ jobs:
       run: |
         git config --global user.name 'GitHub Actions'
         git config --global user.email 'actions@github.com'
+
+    - name: Wait for preserved shop content on veetr.org
+      run: |
+        for attempt in {1..30}; do
+          if curl --fail --silent --show-error https://veetr.org/kit/ | grep -q 'Kit orders are paused'; then
+            echo "Preserved shop content is live on veetr.org"
+            exit 0
+          fi
+          echo "Waiting for veetr.org deployment (attempt ${attempt}/30)"
+          sleep 10
+        done
+        echo "veetr.org/kit/ did not become ready; refusing to publish the redirect"
+        exit 1
 
     - name: Clone target repository
       run: |
@@ -60,6 +75,10 @@ jobs:
       run: |
         cd target-repo
         git add .
+        if git diff --cached --quiet; then
+          echo "No redirect changes to commit"
+          exit 0
+        fi
         git commit -m "Update shop from veetr@${GITHUB_SHA:0:7}
         
         Source: https://github.com/veetrlabs/veetr/commit/${{ github.sha }}"

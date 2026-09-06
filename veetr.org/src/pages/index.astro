@@ -1,0 +1,115 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import hardwareKit from '../assets/veetr-hardware-kit-v7.png';
+import appDashboard from '../assets/veetr-tablet-phone-1024.png';
+import { Image } from 'astro:assets';
+import { Card, CardGrid } from '@astrojs/starlight/components';
+import MarkdownSection from '../components/MarkdownSection.astro';
+import Newsletter from '../components/Newsletter.astro';
+import { frontmatter, Content } from '../content/pages/home.md';
+
+const measurements = [
+  ['AWS', 'Apparent wind speed'],
+  ['AWA', 'Apparent wind angle'],
+  ['TWS', 'True wind speed'],
+  ['TWA', 'True wind angle'],
+  ['SOG', 'Speed over ground'],
+  ['HDG', 'Magnetic heading'],
+  ['Heel', 'Boat tilt angle'],
+  ['GPS', 'Position and signal quality'],
+];
+---
+
+<BaseLayout title="Veetr" description={frontmatter.description} hero={frontmatter} image={hardwareKit} imageAlt="Veetr hardware unit with wind sensor, Bluetooth antenna, and GPS antenna">
+
+  <MarkdownSection Content={Content} />
+
+  <section class="section">
+    <div class="shell">
+      <div class="section-heading">
+        <p class="eyebrow">Why Veetr</p>
+        <h2>Built for sailors who value independence</h2>
+      </div>
+      <CardGrid>
+        <Card title="Real wind data">
+          <p>Apparent and true wind, heading, heel, GPS position, and speed over ground with real-time updates.</p>
+        </Card>
+        <Card title="Runs on your devices">
+          <p>The web app works on phones, tablets, and laptops, and can be installed without an app store.</p>
+        </Card>
+        <Card title="No boat rewiring">
+          <p>Prototype hardware runs from USB-C power and is designed for boats without a permanent electrical system.</p>
+        </Card>
+        <Card title="Open by default">
+          <p>Firmware, PCB files, app code, and documentation are available for builders and contributors.</p>
+        </Card>
+      </CardGrid>
+    </div>
+  </section>
+
+  <section class="section" id="measurements" aria-labelledby="measurements-title">
+    <div class="shell">
+      <p class="product-eyebrow">Measurements</p>
+      <h2 id="measurements-title">The sailing data Veetr is designed to show</h2>
+      <dl class="product-measurements">
+        {measurements.map(([label, description]) => (
+          <div><dt>{label}</dt><dd>{description}</dd></div>
+        ))}
+      </dl>
+    </div>
+  </section>
+
+  <section class="image-band">
+    <div class="shell image-band-grid">
+      <div>
+        <p class="eyebrow">App</p>
+        <h2>A dashboard made for repeated use on the water</h2>
+        <p>Large values, responsive layouts, offline installation, and Bluetooth connectivity keep the instrument practical on small boats. Because it is a Progressive Web App, it runs on phones, tablets, and laptops without an app store.</p>
+        <a class="button button-secondary" href="https://app.veetr.org/">Open the live app</a>
+      </div>
+      <Image src={appDashboard} width={960} format="webp" alt="Veetr app shown on tablet and phone" loading="lazy" />
+    </div>
+  </section>
+
+  <section class="section product-fit" aria-labelledby="fit-title">
+    <div class="shell">
+      <p class="product-eyebrow">Fit</p>
+      <h2 id="fit-title">Where Veetr makes the most sense</h2>
+      <CardGrid>
+        <Card title="Best fit" icon="approve-check">
+          <ul>
+            <li>Dinghies, daysailers, and small keelboats</li>
+            <li>Charter boats where you want your own instruments</li>
+            <li>Backup data independent from fixed boat electronics</li>
+            <li>Sailors who like repairable, inspectable hardware</li>
+          </ul>
+        </Card>
+        <Card title="Less ideal" icon="information">
+          <ul>
+            <li>Offshore installations needing certified equipment today</li>
+            <li>Boats already committed to a complete proprietary stack</li>
+            <li>Users who need a finished retail product immediately</li>
+            <li>Installations where DIY electronics are not acceptable</li>
+          </ul>
+        </Card>
+      </CardGrid>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="shell split-panel">
+      <div>
+        <p class="eyebrow">Roadmap</p>
+        <h2>From open prototype to sustainable product</h2>
+        <p>Finished hardware is not sold yet. The current project phase is about builders, audience, feedback, and a certification fund that can make the first batch possible.</p>
+      </div>
+      <div class="milestone-list">
+        <div><strong>250 subscribers</strong><span>Publish sourced certification quotes and launch the fund campaign.</span></div>
+        <div><strong>EUR 45,000 target</strong><span>Cover testing, engineering fixes, documentation, and first-batch preparation.</span></div>
+        <div><strong>Certified batch</strong><span>Manufacture only after the final design passes the required checks.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <Newsletter />
+</BaseLayout>

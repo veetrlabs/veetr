@@ -1,0 +1,82 @@
+---
+const navItems = [
+  { href: '/build/', label: 'Build' },
+  { href: '/get-your-veetr/', label: 'Get Your Veetr' },
+  { href: '/docs/', label: 'Docs' },
+  { href: '/about/', label: 'About' },
+];
+
+const pathname = Astro.url.pathname;
+---
+
+<header class="site-header">
+  <div class="shell header-shell">
+    <a class="brand" href="/" aria-label="Veetr home">
+      <img src="/img/veetr-logo.svg" alt="" width="40" height="40" />
+      <span>Veetr</span>
+    </a>
+
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav">
+      <span class="sr-only">Open menu</span>
+      <span aria-hidden="true"></span>
+      <span aria-hidden="true"></span>
+      <span aria-hidden="true"></span>
+    </button>
+
+    <nav class="site-nav" id="site-nav" aria-label="Main navigation">
+      {navItems.map((item) => (
+        <a href={item.href} aria-current={pathname === item.href ? 'page' : undefined}>
+          {item.label}
+        </a>
+      ))}
+    </nav>
+
+    <div class="header-actions">
+      <a class="text-link" href="https://github.com/veetrlabs/veetr">GitHub</a>
+      <a class="button button-small" href="https://app.veetr.org/">Live App</a>
+    </div>
+  </div>
+</header>
+
+<script>
+  const header = document.querySelector<HTMLElement>('.site-header');
+  const toggle = header?.querySelector<HTMLButtonElement>('.nav-toggle');
+  const nav = header?.querySelector<HTMLElement>('.site-nav');
+  const label = toggle?.querySelector('.sr-only');
+
+  if (header && toggle && nav && label) {
+    const setOpen = (open: boolean) => {
+      toggle.setAttribute('aria-expanded', String(open));
+      label.textContent = open ? 'Close menu' : 'Open menu';
+      nav.classList.toggle('is-open', open);
+    };
+
+    toggle.addEventListener('click', () => {
+      setOpen(toggle.getAttribute('aria-expanded') !== 'true');
+    });
+
+    nav.querySelectorAll('a').forEach((link) => {
+      link.addEventListener('click', () => setOpen(false));
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && toggle.getAttribute('aria-expanded') === 'true') {
+        setOpen(false);
+        toggle.focus();
+      }
+    });
+
+    document.addEventListener('click', (event) => {
+      if (event.target instanceof Node && !header.contains(event.target)) setOpen(false);
+    });
+
+    header.addEventListener('focusout', (event) => {
+      if (event.relatedTarget instanceof Node && !header.contains(event.relatedTarget)) setOpen(false);
+    });
+
+    window.matchMedia('(max-width: 980px)').addEventListener('change', (event) => {
+      if (event.matches && nav.contains(document.activeElement)) toggle.focus();
+      setOpen(false);
+    });
+  }
+</script>

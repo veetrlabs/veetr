@@ -1,0 +1,75 @@
+<div id="cookie-banner" class="cookie-banner" role="dialog" aria-live="polite" aria-label="Cookie consent" data-hidden>
+  <p>Analytics cookies help improve Veetr.</p>
+  <div class="cookie-actions">
+    <button type="button" class="button button-small" id="cookie-accept">Accept</button>
+    <button type="button" class="button button-small button-secondary" id="cookie-decline">Decline</button>
+  </div>
+</div>
+
+<script>
+  (function () {
+    const consentKey = 'veetr_cookie_consent';
+    const banner = document.getElementById('cookie-banner');
+    const acceptBtn = document.getElementById('cookie-accept');
+    const declineBtn = document.getElementById('cookie-decline');
+
+    function loadMautic() {
+      if (window.MauticTrackingObject) return;
+      (function (w, d, t, u, n, a, m) {
+        w.MauticTrackingObject = n;
+        w[n] = w[n] || function () { (w[n].q = w[n].q || []).push(arguments); };
+        a = d.createElement(t);
+        m = d.getElementsByTagName(t)[0];
+        a.async = 1;
+        a.src = u;
+        m.parentNode.insertBefore(a, m);
+      })(window, document, 'script', 'https://m.veetr.com/mtc.js', 'mt');
+
+      window.mt('send', 'pageview');
+    }
+
+    function setConsent(value) {
+      try {
+        localStorage.setItem(consentKey, value);
+      } catch (error) {
+        return false;
+      }
+      return true;
+    }
+
+    function hideBanner() {
+      banner?.setAttribute('data-hidden', 'true');
+    }
+
+    function showBanner() {
+      banner?.removeAttribute('data-hidden');
+    }
+
+    let consent = null;
+    try {
+      consent = localStorage.getItem(consentKey);
+    } catch (error) {
+      consent = null;
+    }
+
+    if (consent === 'accepted') {
+      hideBanner();
+      loadMautic();
+    } else if (consent === 'declined') {
+      hideBanner();
+    } else {
+      showBanner();
+    }
+
+    acceptBtn?.addEventListener('click', () => {
+      setConsent('accepted');
+      hideBanner();
+      loadMautic();
+    });
+
+    declineBtn?.addEventListener('click', () => {
+      setConsent('declined');
+      hideBanner();
+    });
+  })();
+</script>

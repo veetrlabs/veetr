@@ -1,0 +1,21 @@
+{
+  "name": "@veetr/site",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "test": "npm run build && node --test scripts/site.test.mjs"
+  },
+  "engines": {
+    "node": ">=22.19.0",
+    "npm": ">=9.6.5"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "0.42.0",
+    "astro": "7.3.1",
+    "sharp": "^0.35.4"
+  }
+}

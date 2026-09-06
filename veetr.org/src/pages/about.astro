@@ -1,0 +1,35 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import sailing from '../assets/jan-steering.jpg';
+import MarkdownSection from '../components/MarkdownSection.astro';
+import Newsletter from '../components/Newsletter.astro';
+import { frontmatter, Content } from '../content/pages/about.md';
+---
+
+<BaseLayout title={frontmatter.title} description={frontmatter.description} hero={frontmatter} image={sailing} imageAlt="Jan steering a sailboat">
+
+  <MarkdownSection Content={Content} />
+
+  <section class="section section-muted">
+    <div class="shell stats-row">
+      <div><strong>100%</strong><span>Open source direction</span></div>
+      <div><strong>Prague</strong><span>Project home</span></div>
+      <div><strong>Water-tested</strong><span>Born from actual sailing</span></div>
+    </div>
+  </section>
+
+  <Newsletter
+    id={2}
+    anchorId="contact"
+    eyebrow="Contact"
+    title="Contact Veetr"
+    text="Veetr is looking for sailors, builders, testers, and contributors. Send a note about building, testing, contributing, or the certification roadmap. For product updates, use the newsletter on the homepage."
+  />
+
+  <section class="section">
+    <div class="shell contact-links">
+      <a href="https://github.com/veetrlabs/veetr/discussions">Join GitHub Discussions</a>
+      <a href="mailto:veetr@linhart.email">Email veetr@linhart.email</a>
+    </div>
+  </section>
+</BaseLayout>

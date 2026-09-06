@@ -1,0 +1,18 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { frontmatter, Content } from '../../content/pages/terms.md';
+---
+
+<BaseLayout title={frontmatter.title} description={frontmatter.description}>
+  <section class="legal-hero">
+    <div class="shell">
+      <p class="eyebrow">Legal</p>
+      <p>Effective date: {frontmatter.effectiveDate}</p>
+    </div>
+  </section>
+  <section class="content-section">
+    <div class="shell prose legal-prose">
+      <Content />
+    </div>
+  </section>
+</BaseLayout>

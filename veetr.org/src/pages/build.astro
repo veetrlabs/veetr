@@ -1,0 +1,54 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import pcb from '../assets/3d-veetr-pcb.png';
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+import MarkdownSection from '../components/MarkdownSection.astro';
+import Newsletter from '../components/Newsletter.astro';
+import { frontmatter, Content } from '../content/pages/build.md';
+
+const parts = [
+  ['Microcontroller', 'ESP32 dual-core WiFi and BLE development board with external antenna support.'],
+  ['9-axis sensor', 'BNO080/BNO085 IMU for heading, heel, and motion data.'],
+  ['Wind sensor', 'RS485 ultrasonic wind sensor for apparent wind speed and direction.'],
+  ['GPS module', 'Multi-GNSS receiver for position and speed over ground.'],
+  ['RS485 interface', 'TTL converter module for connecting the wind sensor to the ESP32.'],
+  ['Custom PCB', 'Open source breakout board for reliable wiring and assembly.'],
+  ['Enclosure', 'A printable or adaptable housing for real-world testing.'],
+  ['Cables and hardware', 'Connectors, shielded cable, screws, LEDs, and basic assembly parts.'],
+];
+---
+
+<BaseLayout title={frontmatter.title} description={frontmatter.description} hero={frontmatter} image={pcb} imageAlt="Veetr custom PCB render">
+
+  <MarkdownSection Content={Content} />
+
+  <section class="section">
+    <div class="shell">
+      <div class="section-heading">
+        <p class="eyebrow">Hardware</p>
+        <h2>Main parts</h2>
+      </div>
+      <CardGrid>
+        {parts.map(([name, text]) => (
+          <Card title={name}>
+            <p>{text}</p>
+          </Card>
+        ))}
+      </CardGrid>
+      <div class="notice">
+        <strong>Builder responsibility</strong>
+        <p>Open hardware gives you freedom, but finished hardware you assemble is your responsibility. Check the docs, use the right parts, and verify safety before use on the water.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-muted">
+    <div class="shell resource-grid">
+      <LinkCard href="/docs/enclosure/" title="3D-printed enclosure" description="Model download, removable mount, and assembly guide" />
+      <LinkCard href="/docs/pcb/" title="PCB and Gerber files" description="Design source, fabrication download, and ordering checklist" />
+      <LinkCard href="/docs/firmware-update/" title="Firmware updates" description="Flashing and update instructions" />
+    </div>
+  </section>
+
+  <Newsletter title="Build with the community" text="Follow design updates, sourcing notes, and testing milestones." />
+</BaseLayout>

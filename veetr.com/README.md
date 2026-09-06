@@ -1,19 +1,14 @@
-# Veetr Shop (veetr.com)
+# Veetr.com redirect
 
-E-commerce site for Veetr sailing instrument kits and components.
+Veetr.com now redirects visitors to the consolidated project site at https://veetr.org.
 
 ## Structure
 
-- `index.html` - Main shop page
-- `styles.css` - Styling with Veetr brand colors
-- `img/` - Images and assets
+- `index.html` redirects to `https://veetr.org/`
+- `terms.html` redirects to the archived kit terms on veetr.org
+- `privacy.html` redirects to the archived kit privacy policy on veetr.org
 
-## Features
-
-- **Complete Kits** - Pre-assembled and DIY options
-- **Replacement Parts** - Individual components
-- **Shipping Info** - Worldwide shipping details
-- **Contact** - Pre-order and inquiry form
+The former shop’s pricing, shipping, parts, early-adopter, business, contact, and legal information is preserved at https://veetr.org/kit/ and its linked legal pages.
 
 ## Local Development
 
@@ -43,11 +38,4 @@ Uses the same Veetr brand guidelines as veetr.org:
   - Alice Blue: #E5F4FE
   - Bright Snow: #F8F8F8
 
-## TODO
-
-- [ ] Add product images
-- [ ] Set up payment processing
-- [ ] Create terms of service
-- [ ] Create privacy policy
-- [ ] Add shipping calculator
-- [ ] Set up order management system
+The legacy styles and images remain in this source directory for history but are not loaded by the redirect pages.

@@ -1,4 +1,10 @@
-# Compliance and Certifications
+---
+title: Compliance and certifications
+description: Current regulatory context and certification considerations for Veetr hardware.
+editUrl: https://github.com/veetrlabs/veetr/edit/main/docs/COMPLIANCE.md
+---
+
+> **Important:** This page describes the project's current understanding and is not legal, regulatory, engineering, or certification advice.
 
 This document outlines the regulatory compliance and certifications for the Veetr device.
 
@@ -131,6 +137,6 @@ Le présent appareil est conforme aux CNR d'Industrie Canada applicables aux app
 ## References
 
 - [ESP32-WROOM-32U Datasheet](https://www.espressif.com/sites/default/files/documentation/esp32-wroom-32d_esp32-wroom-32u_datasheet_en.pdf)
-- [FCC Equipment Authorization Database](https://www.fcc.gov/oet/ea/fccid)
-- [ISED Equipment Database](https://sms-sgs.ic.gc.ca/equipmentSearch/searchRadioEquipments)
-- [EU Radio Equipment Database](https://ec.europa.eu/growth/tools-databases/radio-equipment-database/)
+- [FCC Equipment Authorization Search](https://apps.fcc.gov/oetcf/eas/reports/GenericSearch.cfm)
+- [ISED Spectrum Management System search](https://ised-isde.canada.ca/site/spectrum-management-system/en/search-sms-data)
+- [EU Radio Equipment Directive (RED)](https://single-market-economy.ec.europa.eu/sectors/electrical-and-electronic-engineering-industries-eei/radio-equipment-directive-red_en)
