@@ -153,6 +153,9 @@ test('the footer keeps project links without duplicating documentation navigatio
   assert.doesNotMatch(home, /<h2>Documentation<\/h2>/);
   assert.match(home, /<h2>Project<\/h2>/);
   assert.match(home, /href="https:\/\/github\.com\/veetrlabs\/veetr\/discussions"/);
+  assert.match(home, /href="\/about\/">About &amp; contact<\/a>/);
+  assert.doesNotMatch(home, />Former kit offer<\/a>/);
+  assert.doesNotMatch(home, /href="\/about\/#contact">Contact<\/a>/);
 });
 
 test('all local links, fragment targets, and image assets resolve in the generated site', async () => {
