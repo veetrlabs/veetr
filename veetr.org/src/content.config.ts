@@ -26,6 +26,7 @@ export const collections = {
         'SETUP.md',
         'HARDWARE.md',
         'COMPONENTS.md',
+        'PCB.md',
         'WIRING.md',
         'HARDWARE_REFERENCE.md',
         'FIRMWARE_UPDATE.md',

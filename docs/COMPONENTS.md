@@ -113,7 +113,7 @@ Module labels vary. Confirm the pin names against the board you receive before u
 
 ## PCB and enclosure
 
-The custom Veetr carrier PCB holds the modular boards and routes their power and signals. Manufacturing files are available in the repository’s **[PCB directory](https://github.com/veetrlabs/veetr/tree/main/pcb)**, including the **[Gerber files](https://github.com/veetrlabs/veetr/tree/main/pcb/gerbers)**.
+The custom Veetr carrier PCB holds the modular boards and routes their power and signals. The **[PCB and Gerber guide](https://veetr.org/docs/pcb/)** provides the ready-to-fabricate download, editable design source, file descriptions, and ordering checklist.
 
 The enclosure is 3D printed and provides the RJ45, BLE antenna, USB-C, and GPS antenna openings. Verify the PCB revision and connector placement before printing it.
 
