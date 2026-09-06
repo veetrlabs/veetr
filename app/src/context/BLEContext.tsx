@@ -883,7 +883,7 @@ Please try the update again or contact support.`, '❌ Firmware Apply Failed')
     if (window.matchMedia('(display-mode: standalone)').matches) {
       console.log('[PWA Health] Starting automatic health monitoring...')
 
-      healthCheckInterval = setInterval(() => {
+      healthCheckInterval = window.setInterval(() => {
         try {
           const healthStatus = checkPWAHealth()
           
