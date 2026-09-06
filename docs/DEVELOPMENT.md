@@ -1,4 +1,8 @@
-# Veetr - Development Guide
+---
+title: Development guide
+description: Set up a Veetr development environment and work on the web application or firmware.
+editUrl: https://github.com/veetrlabs/veetr/edit/main/docs/DEVELOPMENT.md
+---
 
 Development workflow and setup instructions for contributors and developers working on the Veetr project.
 
@@ -6,11 +10,11 @@ Development workflow and setup instructions for contributors and developers work
 
 This development guide is the primary resource for contributors. For specific technical details, also see:
 
-- **[Setup Guide](./SETUP.md)** - User-focused hardware and software setup
-- **[Hardware Guide](./HARDWARE.md)** - ESP32 wiring, sensor specifications, and pin assignments
-- **[PlatformIO Guide](./PLATFORMIO.md)** - PlatformIO configuration and troubleshooting
-- **[Firmware Documentation](../firmware/readme.md)** - ESP32 implementation details and BLE protocol
-- **[Version Management](./VERSION_MANAGEMENT.md)** - Release process and automated workflows
+- **[Setup Guide](https://veetr.org/docs/)** - User-focused hardware and software setup
+- **[Hardware Guide](https://veetr.org/docs/hardware/)** - ESP32 wiring, sensor specifications, and pin assignments
+- **[PlatformIO Guide](https://veetr.org/docs/platformio/)** - PlatformIO configuration and troubleshooting
+- **[Firmware Documentation](https://github.com/veetrlabs/veetr/blob/main/firmware/readme.md)** - ESP32 implementation details and BLE protocol
+- **[Version Management](https://veetr.org/docs/version-management/)** - Release process and automated workflows
 
 ## Quick Development Setup ⚡
 
@@ -64,7 +68,7 @@ pio device monitor         # Serial monitor
 #### ESP32 Firmware (`/firmware`)
 - **Arduino Framework** via PlatformIO
 - **NimBLE** for Bluetooth Low Energy
-- **Sensor Integration**: GPS, IMU, Wind sensors ([hardware specs](./HARDWARE.md))
+- **Sensor Integration**: GPS, IMU, Wind sensors ([hardware specs](https://veetr.org/docs/hardware/))
 - **Communication**: UART/I2C/RS485 protocols
 
 ### PWA Health Monitoring System

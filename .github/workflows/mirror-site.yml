@@ -3,7 +3,11 @@ name: Mirror Site to veetr-site Repository
 on:
   push:
     branches: [main]
-    paths: ['veetr.org/**']
+    paths:
+      - 'veetr.org/**'
+      - 'docs/**'
+      - 'package.json'
+      - 'package-lock.json'
   workflow_dispatch:
 
 jobs:
@@ -15,6 +19,24 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: 'npm'
+        cache-dependency-path: 'package-lock.json'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build site
+      run: npm run build --workspace veetr.org
+      env:
+        ASTRO_TELEMETRY_DISABLED: '1'
+
+    - name: Verify generated site
+      run: node --test veetr.org/scripts/site.test.mjs
 
     - name: Setup Git
       run: |
@@ -31,9 +53,10 @@ jobs:
       run: |
         # Remove existing files except .git and README
         find target-repo -type f ! -path "target-repo/.git/*" ! -name "README.md" -delete
+        find target-repo -type d -empty ! -path "target-repo/.git/*" -delete
         
-        # Copy new site files
-        cp -r veetr.org/* target-repo/
+        # Copy the complete build, including .nojekyll for GitHub Pages.
+        cp -a veetr.org/dist/. target-repo/
         
         # Create or update README if it doesn't exist
         if [ ! -f target-repo/README.md ]; then
@@ -60,6 +83,10 @@ jobs:
       run: |
         cd target-repo
         git add .
+        if git diff --cached --quiet; then
+          echo "No generated site changes to commit"
+          exit 0
+        fi
         git commit -m "Update site from veetr@${GITHUB_SHA:0:7}
         
         Source: https://github.com/veetrlabs/veetr/commit/${{ github.sha }}"

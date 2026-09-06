@@ -1,4 +1,10 @@
-# Compliance and Certifications
+---
+title: Compliance and certifications
+description: Current regulatory context and certification considerations for Veetr hardware.
+editUrl: https://github.com/veetrlabs/veetr/edit/main/docs/COMPLIANCE.md
+---
+
+> **Important:** This page describes the project's current understanding and is not legal, regulatory, engineering, or certification advice.
 
 This document outlines the regulatory compliance and certifications for the Veetr device.
 

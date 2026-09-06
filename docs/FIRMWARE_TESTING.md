@@ -1,4 +1,8 @@
-# Firmware Testing (CI Plan)
+---
+title: Firmware testing
+description: Planned continuous-integration and hardware testing boundaries for Veetr firmware.
+editUrl: https://github.com/veetrlabs/veetr/edit/main/docs/FIRMWARE_TESTING.md
+---
 
 This document describes the planned automated testing strategy for the ESP32 firmware. The goal is to run fast, deterministic unit tests in CI by simulating the ESP32 and sensors on a host machine, while still supporting hardware validation locally.
 
@@ -98,5 +102,5 @@ We will explicitly separate:
 When adding new features, prefer adding tests at the core logic layer so they can run in CI.
 
 ## Related Docs
-- PlatformIO setup and commands: `docs/PLATFORMIO.md`
-- Development workflow: `docs/DEVELOPMENT.md`
+- [PlatformIO setup and commands](https://veetr.org/docs/platformio/)
+- [Development workflow](https://veetr.org/docs/development/)

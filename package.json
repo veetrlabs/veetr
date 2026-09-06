@@ -1,4 +1,4 @@
 {
   "private": true,
-  "workspaces": ["app", "packages/*"]
+  "workspaces": ["app", "packages/*", "veetr.org"]
 }

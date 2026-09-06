@@ -1,4 +1,8 @@
-# Data Storage - Veetr
+---
+title: Data storage
+description: Browser and ESP32 storage architecture, limits, privacy, and configuration data.
+editUrl: https://github.com/veetrlabs/veetr/edit/main/docs/STORAGE.md
+---
 
 Documentation for data storage, persistence, and logging in the Veetr system.
 
@@ -41,7 +45,7 @@ The ESP32 uses EEPROM/NVS (Non-Volatile Storage) for persistent configuration:
 - **Historical data** - Trip logs, max values, statistics
 
 #### Current Partition Layout:
-The current flash layout is defined in [`partitions.csv`](../partitions.csv):
+The current flash layout is defined in [`partitions.csv`](https://github.com/veetrlabs/veetr/blob/main/partitions.csv):
 
 - **`nvs`**: `0x5000` = 20 KB
 - **`otadata`**: `0x2000` = 8 KB
@@ -60,7 +64,7 @@ With OTA enabled, the firmware must fit within one app slot. Unused space inside
 ## Data Flow
 
 ### Real-time Data:
-1. **ESP32 sensors** ([hardware details](./HARDWARE.md)) → **BLE transmission** → **Web dashboard**
+1. **ESP32 sensors** ([hardware details](https://veetr.org/docs/hardware/)) → **BLE transmission** → **Web dashboard**
 2. **Web storage** for immediate display and short-term buffering
 3. **No persistent logging** of real-time data (by design)
 

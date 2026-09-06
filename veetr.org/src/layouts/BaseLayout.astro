@@ -1,37 +1,51 @@
 ---
-import Header from '../components/Header.astro';
-import Footer from '../components/Footer.astro';
-import CookieBanner from '../components/CookieBanner.astro';
-import '../styles/global.css';
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import { getImage, type ImageMetadata } from 'astro:assets';
 
 interface Props {
   title: string;
   description: string;
+  hero?: {
+    heroTitle: string;
+    heroLead?: string;
+    heroSupport?: string;
+    eyebrow?: string;
+  };
+  image?: ImageMetadata;
+  imageAlt?: string;
 }
 
-const { title, description } = Astro.props;
+const { title, description, hero, image, imageAlt = '' } = Astro.props;
 const siteTitle = title === 'Veetr' ? title : `${title} | Veetr`;
+const optimizedImage = image && await getImage({ src: image, width: Math.min(image.width, 1200), format: 'webp' });
+const escapeAttribute = (value: string) => value.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;');
 ---
 
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{siteTitle}</title>
-    <meta name="description" content={description} />
-    <meta property="og:title" content={siteTitle} />
-    <meta property="og:description" content={description} />
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content={Astro.url.href} />
-    <link rel="icon" type="image/svg+xml" href="/img/veetr-logo.svg" />
-  </head>
-  <body>
-    <Header />
-    <main>
-      <slot />
-    </main>
-    <Footer />
-    <CookieBanner />
-  </body>
-</html>
+<StarlightPage frontmatter={{
+  title,
+  description,
+  head: [
+    { tag: 'title', content: siteTitle },
+    { tag: 'meta', attrs: { property: 'og:title', content: siteTitle } },
+  ],
+  template: 'splash',
+  hero: hero && {
+    title: hero.heroTitle,
+    tagline: hero.heroLead,
+    image: optimizedImage ? {
+      html: `<img src="${escapeAttribute(optimizedImage.src)}" width="${optimizedImage.attributes.width}" height="${optimizedImage.attributes.height}" alt="${escapeAttribute(imageAlt)}" loading="eager" decoding="async" fetchpriority="high" />`,
+    } : undefined,
+    actions: [
+      { text: 'Open Live App', link: 'https://app.veetr.org/', icon: 'right-arrow', variant: 'primary' },
+      { text: 'Get Your Veetr', link: '/get-your-veetr/', variant: 'secondary' },
+    ],
+  },
+}}>
+  <div class="site-content not-content">
+    {hero && <div class="page-intro">
+      <p class="eyebrow">{hero.eyebrow}</p>
+      <p class="page-support">{hero.heroSupport}</p>
+    </div>}
+    <slot />
+  </div>
+</StarlightPage>

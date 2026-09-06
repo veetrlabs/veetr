@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import PageHero from '../components/PageHero.astro';
+import pcb from '../assets/3d-veetr-pcb.png';
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
 import MarkdownSection from '../components/MarkdownSection.astro';
 import Newsletter from '../components/Newsletter.astro';
 import { frontmatter, Content } from '../content/pages/build.md';
@@ -17,15 +18,7 @@ const parts = [
 ];
 ---
 
-<BaseLayout title={frontmatter.title} description={frontmatter.description}>
-  <PageHero
-    eyebrow={frontmatter.eyebrow}
-    title={frontmatter.heroTitle}
-    lead={frontmatter.heroLead}
-    support={frontmatter.heroSupport}
-    image="/img/3d-veetr-pcb.png"
-    imageAlt="Veetr custom PCB render"
-  />
+<BaseLayout title={frontmatter.title} description={frontmatter.description} hero={frontmatter} image={pcb} imageAlt="Veetr custom PCB render">
 
   <MarkdownSection Content={Content} />
 
@@ -35,14 +28,13 @@ const parts = [
         <p class="eyebrow">Hardware</p>
         <h2>Main parts</h2>
       </div>
-      <div class="parts-grid">
+      <CardGrid>
         {parts.map(([name, text]) => (
-          <article class="part-card">
-            <h3>{name}</h3>
+          <Card title={name}>
             <p>{text}</p>
-          </article>
+          </Card>
         ))}
-      </div>
+      </CardGrid>
       <div class="notice">
         <strong>Builder responsibility</strong>
         <p>Open hardware gives you freedom, but finished hardware you assemble is your responsibility. Check the docs, use the right parts, and verify safety before use on the water.</p>
@@ -52,18 +44,9 @@ const parts = [
 
   <section class="section section-muted">
     <div class="shell resource-grid">
-      <a href="https://github.com/veetrlabs/veetr/blob/main/docs/HARDWARE.md">
-        <span>Hardware guide</span>
-        Wiring, sensors, and sourcing notes
-      </a>
-      <a href="https://github.com/veetrlabs/veetr/tree/main/pcb">
-        <span>PCB files</span>
-        Manufacturing files and board documentation
-      </a>
-      <a href="https://github.com/veetrlabs/veetr/blob/main/docs/FIRMWARE_UPDATE.md">
-        <span>Firmware updates</span>
-        Flashing and update instructions
-      </a>
+      <LinkCard href="/docs/hardware/" title="Hardware guide" description="Wiring, sensors, and sourcing notes" />
+      <LinkCard href="https://github.com/veetrlabs/veetr/tree/main/pcb" title="PCB files" description="Manufacturing files and board documentation" />
+      <LinkCard href="/docs/firmware-update/" title="Firmware updates" description="Flashing and update instructions" />
     </div>
   </section>
 

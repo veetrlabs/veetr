@@ -1,4 +1,8 @@
-# PlatformIO Configuration for Veetr
+---
+title: PlatformIO configuration
+description: Build, upload, monitor, and troubleshoot Veetr firmware with PlatformIO.
+editUrl: https://github.com/veetrlabs/veetr/edit/main/docs/PLATFORMIO.md
+---
 
 This project uses PlatformIO for ESP32 firmware development with a unified configuration at the root level.
 
@@ -19,7 +23,7 @@ veetr/
 ## Configuration Details
 
 ### Target Hardware:
-- **Board**: ESP32 DevKitC WROOM-32U ([detailed specs](./HARDWARE.md))
+- **Board**: ESP32 DevKitC WROOM-32U ([detailed specs](https://veetr.org/docs/hardware/))
 - **Platform**: Espressif32 v6.4.0+
 - **Framework**: Arduino
 - **Monitor Speed**: 115200 baud
@@ -39,7 +43,7 @@ veetr/
 
 ## Development Workflow
 
-For complete development setup and daily workflow, see the **[Development Guide](./DEVELOPMENT.md)**.
+For complete development setup and daily workflow, see the **[Development Guide](https://veetr.org/docs/development/)**.
 
 This document focuses on PlatformIO-specific configuration and troubleshooting.
 
@@ -66,7 +70,7 @@ Current firmware uses approximately:
 - **RAM**: 11.6% (38,076 / 327,680 bytes)
 - **Flash**: 52.1% (683,397 / 1,310,720 bytes)
 
-Plenty of space remaining for additional features and sensors ([see sensor options](./HARDWARE.md)).
+Plenty of space remaining for additional features and sensors ([see sensor options](https://veetr.org/docs/hardware/)).
 
 ## Adding New Libraries
 

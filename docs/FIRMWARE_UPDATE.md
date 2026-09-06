@@ -1,4 +1,8 @@
-# Firmware Update Guide
+---
+title: Firmware update guide
+description: Install, verify, and troubleshoot Veetr firmware updates.
+editUrl: https://github.com/veetrlabs/veetr/edit/main/docs/FIRMWARE_UPDATE.md
+---
 
 This guide explains how to update the Veetr sailing dashboard firmware to the latest version.
 

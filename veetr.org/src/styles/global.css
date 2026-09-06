@@ -143,12 +143,13 @@ a {
 
 .nav-toggle {
   display: none;
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--white);
+  cursor: pointer;
 }
 
 .nav-toggle span:not(.sr-only) {
@@ -158,6 +159,24 @@ a {
   margin: 4px auto;
   border-radius: 2px;
   background: var(--navy);
+}
+
+.nav-toggle[aria-expanded="true"] span:nth-child(2) {
+  transform: translateY(6px) rotate(45deg);
+}
+
+.nav-toggle[aria-expanded="true"] span:nth-child(3) {
+  opacity: 0;
+}
+
+.nav-toggle[aria-expanded="true"] span:nth-child(4) {
+  transform: translateY(-6px) rotate(-45deg);
+}
+
+.nav-toggle:focus-visible,
+.site-nav a:focus-visible {
+  outline: 3px solid var(--sky);
+  outline-offset: 3px;
 }
 
 .button {
@@ -649,11 +668,103 @@ h3 {
 }
 
 .form-panel {
+  min-width: 0;
   min-height: 220px;
   padding: 24px;
   border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.08);
+}
+
+/* Mautic injects these elements at runtime, so keep their styles global. */
+.form-panel .mauticform-row + .mauticform-row {
+  margin-top: 18px;
+}
+
+.form-panel .mauticform-label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--white);
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.form-panel .mauticform-input,
+.form-panel .mauticform-textarea,
+.form-panel .mauticform-selectbox {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--white);
+  color: var(--ink);
+  font: inherit;
+  line-height: 1.5;
+}
+
+.form-panel .mauticform-textarea {
+  min-height: 140px;
+  resize: vertical;
+}
+
+.form-panel .mauticform-input:focus,
+.form-panel .mauticform-textarea:focus,
+.form-panel .mauticform-selectbox:focus,
+.form-panel .mauticform-button:focus-visible {
+  outline: 3px solid var(--sky);
+  outline-offset: 3px;
+}
+
+.form-panel .mauticform-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 12px 24px;
+  border: 1px solid var(--sky);
+  border-radius: 8px;
+  background: var(--sky);
+  color: var(--navy);
+  font: inherit;
+  font-weight: 800;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.form-panel .mauticform-button:hover:not(:disabled) {
+  border-color: var(--sky-soft);
+  background: var(--sky-soft);
+}
+
+.form-panel .mauticform-button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.form-panel .mauticform-error,
+.form-panel .mauticform-errormsg {
+  color: #ffc2b5;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.form-panel .mauticform-errormsg {
+  display: block;
+  margin-top: 8px;
+}
+
+.form-panel .mauticform-message {
+  color: #a8edce;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.form-panel .mauticform-error:not(:empty),
+.form-panel .mauticform-message:not(:empty) {
+  margin-bottom: 18px;
 }
 
 .legal-hero {
@@ -761,8 +872,13 @@ h3 {
     font-size: 2rem;
   }
 
+  .site-header {
+    background: var(--paper);
+    backdrop-filter: none;
+  }
+
   .header-shell {
-    grid-template-columns: auto auto;
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 
   .nav-toggle {
@@ -772,16 +888,20 @@ h3 {
 
   .site-nav {
     position: absolute;
-    top: 76px;
-    left: 20px;
+    top: calc(100% + 8px);
     right: 20px;
+    width: min(400px, calc(100% - 40px));
+    max-height: calc(100dvh - 100px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
     display: none;
     justify-self: stretch;
     flex-direction: column;
     align-items: stretch;
     padding: 12px;
-    border-radius: 8px;
-    box-shadow: var(--shadow);
+    border-radius: 12px;
+    background: var(--white);
+    box-shadow: 0 16px 40px rgba(7, 27, 51, 0.24);
   }
 
   .site-nav.is-open {
@@ -789,7 +909,12 @@ h3 {
   }
 
   .site-nav a {
+    min-height: 48px;
+    padding: 12px 16px;
     border-radius: 8px;
+    color: var(--navy);
+    font-size: 1rem;
+    line-height: 1.5;
   }
 
   .header-actions {
@@ -823,6 +948,11 @@ h3 {
     width: min(100% - 28px, 1120px);
   }
 
+  .site-nav {
+    right: 14px;
+    width: calc(100% - 28px);
+  }
+
   .page-hero {
     padding: 58px 0 54px;
   }
@@ -845,6 +975,10 @@ h3 {
   }
 
   .button {
+    width: 100%;
+  }
+
+  .form-panel .mauticform-button {
     width: 100%;
   }
 

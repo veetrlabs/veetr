@@ -1,20 +1,12 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import PageHero from '../components/PageHero.astro';
+import sailing from '../assets/jan-steering.jpg';
 import MarkdownSection from '../components/MarkdownSection.astro';
 import Newsletter from '../components/Newsletter.astro';
 import { frontmatter, Content } from '../content/pages/about.md';
 ---
 
-<BaseLayout title={frontmatter.title} description={frontmatter.description}>
-  <PageHero
-    eyebrow={frontmatter.eyebrow}
-    title={frontmatter.heroTitle}
-    lead={frontmatter.heroLead}
-    support={frontmatter.heroSupport}
-    image="/img/jan-steering.jpg"
-    imageAlt="Jan steering a sailboat"
-  />
+<BaseLayout title={frontmatter.title} description={frontmatter.description} hero={frontmatter} image={sailing} imageAlt="Jan steering a sailboat">
 
   <MarkdownSection Content={Content} />
 
