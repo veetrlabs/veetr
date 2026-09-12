@@ -2,8 +2,8 @@ import { createClient } from "@supabase/supabase-js";
 import { validateSeries, type Series } from "./domain";
 import type { Database, Json } from "./database.types";
 import type { LocalRecord } from "./storage";
-const url = import.meta.env.VITE_SUPABASE_URL,
-  key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const url = import.meta.env?.VITE_SUPABASE_URL,
+  key = import.meta.env?.VITE_SUPABASE_ANON_KEY;
 export const supabase =
   url && key
     ? createClient<Database>(url, key, {

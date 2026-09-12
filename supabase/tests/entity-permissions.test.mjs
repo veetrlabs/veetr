@@ -1,0 +1,68 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {readdir, readFile} from 'node:fs/promises';
+import {randomUUID as id} from 'node:crypto';
+import {PGlite} from '@electric-sql/pglite';
+
+test('organizer approval, series ownership and independent boat sharing enforce access at the database', async () => {
+ const db = new PGlite();
+ try {
+  await db.exec(`create role anon; create role authenticated; create schema auth; create table auth.users(id uuid primary key,email text); create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$; grant usage on schema auth to authenticated; grant execute on function auth.uid() to authenticated;`);
+  const dir = new URL('../migrations/', import.meta.url);
+  for (const f of (await readdir(dir)).filter(f=>f.endsWith('.sql')).sort()) await db.exec(await readFile(new URL(f,dir),'utf8'));
+  const owner=id(), editor=id(), other=id(), sid=id(), bid=id();
+  await db.query('insert into auth.users values($1,$2),($3,$4),($5,$6)', [owner,'owner@example.test',editor,'editor@example.test',other,'other@example.test']);
+  const login = async uid => {await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[uid]);await db.exec('set role authenticated');};
+  const doc={id:sid,name:'Private series',year:2026,status:'draft',description:'',categories:[{id:id(),name:'Fleet'}],boats:[],events:[],races:[]};
+  const save=(revision=0, payload=doc)=>db.query('select public.save_series($1,$2,$3)', [payload,revision,id()]);
+  await login(owner);
+  assert.equal((await db.query('select public.can_create_series() allowed')).rows[0].allowed,false);
+  await assert.rejects(save(), /Organizer approval/);
+  await assert.rejects(db.query('insert into public.series_creators values($1)',[owner]), /permission denied/);
+  await db.exec('reset role');await db.query('insert into public.series_creators values($1)',[owner]);await login(owner);
+  await save();
+  assert.equal((await db.query('select owner_id from public.series where id=$1',[sid])).rows[0].owner_id, owner);
+  await db.query("select public.set_series_member($1,'editor@example.test','official')",[sid]);
+  await assert.rejects(db.query("select public.set_series_member($1,'owner@example.test','remove')",[sid]),/owner/);
+  await db.exec('reset role');await db.query('delete from public.series_creators where user_id=$1',[owner]);await login(owner);
+  await save(1, {...doc,name:'Owner still edits'});
+  await assert.rejects(save(0,{...doc,id:id()}),/Organizer approval/);
+  await login(editor);await save(2, {...doc,name:'Shared editor'});
+  await assert.rejects(db.query("select public.set_series_member($1,'editor@example.test','admin')",[sid]),/admin/);
+  await assert.rejects(db.query('select public.series_team($1)',[sid]),/admin/);
+  await assert.rejects(save(0,{...doc,id:id()}),/Organizer approval/);
+  await login(other);
+  assert.equal((await db.query('select * from public.series')).rows.length,0);
+  await assert.rejects(save(3),/official|authorized|Forbidden/i);
+  await login(owner);
+  await db.query("select public.create_boat($1,'Shared boat','',null)",[bid]);
+  await db.query("select public.set_boat_member($1,'other@example.test','editor')",[bid]);
+  await assert.rejects(db.query("select public.set_boat_member($1,'owner@example.test','remove')",[bid]),/owner/);
+  await assert.rejects(db.query("select public.set_boat_member($1,'editor@example.test','owner')",[bid]),/Invalid/);
+  // Include the boat in the private series; its editor still cannot read the series.
+  await save(3,{...doc,boats:[{id:bid,name:'Shared boat',sailNumber:'',className:'',categoryId:doc.categories[0].id}]});
+  await login(editor);
+  assert.equal((await db.query('select public.can_edit_boat($1) allowed',[bid])).rows[0].allowed,false);
+  await login(other);
+  assert.equal((await db.query('select * from public.series')).rows.length,0);
+  assert.equal((await db.query('select public.can_edit_boat($1) allowed',[bid])).rows[0].allowed,true);
+  await db.query("select public.update_boat($1,'New boat name','',null,$2)",[bid,{id:bid,name:'Shared boat',className:''}]);
+  assert.equal((await db.query('select * from public.series')).rows.length,0);
+  await assert.rejects(db.query('select public.boat_team($1)',[bid]),/owner/);
+  await assert.rejects(db.query("select public.set_boat_member($1,'editor@example.test','editor')",[bid]),/owner/);
+  await assert.rejects(db.query('select public.delete_boat($1)',[bid]),/owner/);
+  await assert.rejects(db.query("insert into public.boat_members values($1,$2,'editor')",[bid,editor]),/permission denied/);
+  await login(owner);
+  assert.equal((await db.query('select document from public.series where id=$1',[sid])).rows[0].document.boats[0].name,'New boat name');
+  await db.query("select public.set_boat_member($1,'other@example.test','remove')",[bid]);
+  await db.query("select public.set_series_member($1,'editor@example.test','remove')",[sid]);
+  await login(other);
+  await assert.rejects(db.query("select public.update_boat($1,'Another name','',null,$2)",[bid,{id:bid,name:'New boat name',className:''}]),/owner or editor/);
+  await login(editor);
+  assert.equal((await db.query('select * from public.series')).rows.length,0);
+  await assert.rejects(save(5),/official|authorized|Forbidden/i);
+  await db.exec('reset role; set role anon');
+  await assert.rejects(db.query('select public.can_create_series()'),/permission denied/);
+  await assert.rejects(db.query('select public.boat_team($1)',[bid]),/permission denied/);
+ } finally {await db.close();}
+});

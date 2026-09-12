@@ -34,6 +34,12 @@ export type Database = {
   }
   public: {
     Tables: {
+      series_creators: {
+        Row: { user_id: string }
+        Insert: { user_id: string }
+        Update: { user_id?: string }
+        Relationships: [{ foreignKeyName: "series_creators_user_id_fkey"; columns: ["user_id"]; isOneToOne: true; referencedRelation: "users"; referencedColumns: ["id"] }]
+      }
       boat_members: {
         Row: {
           boat_id: string
@@ -449,6 +455,10 @@ export type Database = {
         }
         Returns: Json
       }
+      can_create_series: { Args: Record<PropertyKey, never>; Returns: boolean };
+      can_manage_boat: { Args: {boat_id: string}; Returns: boolean };
+      boat_team: { Args: {boat_id: string}; Returns: Json };
+      set_boat_member: { Args: {boat_id: string; member_email: string; member_role: string}; Returns: undefined };
       can_edit_boat: {
         Args: {
           boat_id: string

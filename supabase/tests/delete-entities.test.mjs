@@ -11,6 +11,7 @@ test('entity deletion checks permissions and revision, cascades results, preserv
  for(const f of (await readdir(dir)).filter(f=>f.endsWith('.sql')).sort()) await db.exec(await readFile(new URL(f,dir),'utf8'));
  const owner=id(), stranger=id(), official=id(), sid=id(), bid=id(), cid=id(), eid=id(), hid=id();
  await db.query('insert into auth.users(id) values($1),($2),($3)',[owner,stranger,official]);
+ await db.query('insert into public.series_creators values($1)',[owner]);
  const login=async uid=>{await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[uid]);await db.exec('set role authenticated');};
  const doc={id:sid,name:'Deletion test',year:2026,status:'active',description:'',categories:[{id:cid,name:'Fleet'}],boats:[{id:bid,name:'Boat',sailNumber:'',className:'',categoryId:cid}],events:[{id:eid,name:'Event',order:1,weight:1,completed:false,discards:[]}],races:[{id:hid,eventId:eid,name:'Heat',date:'2026-09-07',order:1,weight:1,status:'published',entries:[bid],results:[{boatId:bid,status:'FINISHED',position:1}]}]};
  const save=rev=>db.query('select public.save_series($1::jsonb,$2,$3)',[JSON.stringify(doc),rev,id()]);

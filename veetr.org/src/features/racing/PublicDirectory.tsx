@@ -1,8 +1,9 @@
 import { appHref } from "./routes";
 import { t } from "./i18n";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { listPublicSeries, type PublicSeriesSummary } from "./api";
-export function PublicDirectory() {
+import { eventsFor, type Series } from "./domain";
+export function PublicDirectory({editableSeries = [], create}: {editableSeries?: Series[]; create?: () => void}) {
   const [series, setSeries] = useState<PublicSeriesSummary[]>([]),
     [loading, setLoading] = useState(true),
     [error, setError] = useState(""),
@@ -30,19 +31,22 @@ export function PublicDirectory() {
       clearInterval(timer);
     };
   }, []);
-  const filtered = series.filter((s) =>
+  const combined = new Map(series.map(s => [s.id, s]));
+  for (const s of editableSeries) combined.set(s.id, {...s, raceCount: eventsFor(s).length, boatCount: s.boats.length});
+  const filtered = [...combined.values()].sort((a,b) => b.year-a.year || a.name.localeCompare(b.name)).filter((s) =>
     `${s.name} ${s.year}`
       .toLocaleLowerCase()
       .includes(query.toLocaleLowerCase()),
   );
   return (
     <section className="public-directory">
-      <h1>{t("Racing on record.")}</h1>
+      <div className="section-title"><h1>{t("Racing on record.")}</h1>{create && <button onClick={create}>{t("New series")}</button>}</div>
       <p>
         {t(
           "Follow published regatta results, explore the fleet, and see how the series unfolds.",
         )}
       </p>
+      {error && <p role="status">{t(error)}</p>}
       <label>
         {t("Find a series")}
         <input
@@ -52,10 +56,8 @@ export function PublicDirectory() {
           placeholder={t("Series name or year")}
         />
       </label>
-      {loading ? (
+      {loading && !filtered.length ? (
         <p role="status">{t("Loading published series…")}</p>
-      ) : error ? (
-        <p role="status">{t(error)}</p>
       ) : (
         <>
           <div className="public-series-grid">
@@ -71,7 +73,7 @@ export function PublicDirectory() {
                 <h2>{s.name}</h2>
                 <p>{s.description || t("Sailing series")}</p>
                 <span>
-                  {s.raceCount} {t("published races ·")}
+                  {s.raceCount} {t("Races")} ·{" "}
                   {s.boatCount} {t("boats")}
                 </span>
               </a>

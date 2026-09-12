@@ -360,6 +360,6 @@ test('race management is mounted in the shared website shell', async () => {
   assert.match(home, /href="\/races\/"/);
   assert.doesNotMatch(home, /id="veetr-racing"/);
   const manifest = JSON.parse(await readFile(new URL('veetr-app.webmanifest', dist), 'utf8'));
-  assert.equal(manifest.start_url, '/races/manage/');
+  assert.equal(manifest.start_url, '/races/');
   await stat(new URL('veetr-app-sw.js', dist));
 });

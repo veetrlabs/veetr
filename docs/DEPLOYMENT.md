@@ -181,3 +181,56 @@ GitHub repository.
 - Check that the race directory loads from Supabase without database errors.
 - After Auth or email changes, test an actual signup or password-reset email,
   an outgoing message from each affected Gmail identity, and incoming replies.
+
+## Regatta access and sharing
+
+Everyone uses the same `/races/` and `/boats/` pages. Signed-in users see creation,
+editing, and team controls according to their permissions. Authorized series
+editors also see that series' drafts and private details in these same pages.
+Public visitors receive the database's published projection, never the full
+private series document.
+
+| Role | Permissions |
+| --- | --- |
+| Approved organizer | Create a series; becomes its owner |
+| Series owner | Edit all races and heats, manage the team, delete series entities; ownership cannot be removed by teammates |
+| Series admin | Edit the series and its races/heats, manage teammates, delete series entities |
+| Race official | Edit series details, entries, heats, and results; cannot manage teammates or delete series entities |
+| Signed-in user | Create a boat; becomes its owner |
+| Boat owner | Edit the boat profile, add/remove boat editors, delete it once removed from every series |
+| Boat editor | Edit the boat profile; cannot manage sharing or delete it |
+
+Series permissions cover the races and heats inside that series. Boat permissions
+are independent: entering a boat in a series does not give that series' admins
+ownership or editing rights over its global profile. Editing a boat updates its
+stored name/class/length in all associated series without exposing those series
+to the boat editor.
+
+### Approve an organizer
+
+A maintainer uses the **Veetr / Regatta** Supabase dashboard for this small
+administrative task. Regular organizers and teammates need only a Veetr account,
+not Supabase dashboard access.
+
+1. The person creates and confirms their account on Veetr.
+2. In [Regatta Auth users](https://supabase.com/dashboard/project/xvqlsltglpgfjhdrhdyc/auth/users), find their account and copy its user ID.
+3. In [Regatta Table Editor](https://supabase.com/dashboard/project/xvqlsltglpgfjhdrhdyc/editor), open `public.series_creators` and insert a row with that ID in `user_id`.
+4. The signed-in person's series directory will show **New series** after the next permission refresh (about five seconds).
+
+Delete that approval row to stop future series creation. It does not remove
+ownership or access to existing series. Existing series owners are approved by
+the permission migration. No user can grant themselves organizer approval from
+the app or its public API.
+
+### Share an entity
+
+On a series page, an owner/admin opens **Series team**, enters a teammate's email,
+and chooses **Race official** or **Series admin**. On a boat page, its owner opens
+**Boat team** and adds an editor by email. Teammates must already have signed in to
+Veetr once. Changes take effect immediately on the server; this does not send an
+invitation email. Remove a teammate in the same panel to revoke access.
+
+The database enforces these rules even if someone bypasses the visible buttons.
+Cached private series are shown only after the current session's access has been
+checked. Offline edits can continue during an already verified session; a fresh
+offline page load needs connectivity before it can unlock private editing.

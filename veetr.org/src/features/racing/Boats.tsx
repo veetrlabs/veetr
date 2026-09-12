@@ -1,9 +1,11 @@
+import {BoatTeam} from "./BoatTeam";
 import { appHref } from "./routes";
 import { Sailboat, Search, Plus, ArrowUpRight } from "lucide-react";
 import { DeleteAction } from "./DeleteAction";
 import { t } from "./i18n";
 import React, { useEffect, useState } from "react";
 import {
+  supabase,
   listBoats,
   boatResults,
   createBoat,
@@ -178,22 +180,27 @@ export function Boats({
       clearInterval(timer);
     };
   }, [boatId]);
+  const [manager, setManager] = useState("");
   const [editable, setEditable] = useState(false),
     [editing, setEditing] = useState<RegisteredBoat | null>(null);
   useEffect(() => {
     let active = true;
     setEditable(false);
+    setManager("");
     setEditing(null);
-    if (boatId && userId)
-      canEditBoat(boatId)
-        .then((value) => {
-          if (active) setEditable(value);
-        })
-        .catch((e) => {
-          if (active) setError(String(e.message));
-        });
+    const refresh = async () => {
+      if (!boatId || !userId || !supabase) return;
+      try {
+        const [edit, {data: manage, error}] = await Promise.all([canEditBoat(boatId), supabase.rpc("can_manage_boat", {boat_id: boatId})]);
+        if (error) throw error;
+        if (active) {setEditable(edit); setManager(manage ? userId : "");}
+      } catch (e) { if (active) {setEditable(false); setManager(""); setError((e as Error).message);} }
+    };
+    void refresh();
+    const timer = setInterval(refresh, 5000);
     return () => {
       active = false;
+      clearInterval(timer);
     };
   }, [boatId, userId]);
   const [creating, setCreating] = useState(false);
@@ -220,15 +227,15 @@ export function Boats({
           <>
             <div className="section-title entity-header">
               <h1>{boat.name}</h1>
-              {editable && !editing && (
+              {userId && editable && !editing && (
                 <button onClick={() => setEditing({ ...boat })}>
                   {t("Edit boat")}
                 </button>
               )}
-            {editable && <DeleteAction description={t("Delete this boat profile? It must be removed from every series first.")} onDelete={async () => {await deleteBoat(boat.id); window.location.href=appHref("?boats");}} />}
+            {userId && manager === userId && <DeleteAction description={t("Delete this boat profile? It must be removed from every series first.")} onDelete={async () => {await deleteBoat(boat.id); window.location.href=appHref("?boats");}} />}
             </div>
 
-            {editing && editable && (
+            {userId && editing && editable && (
               <EditBoat
                 boat={editing}
                 onCancel={() => setEditing(null)}
@@ -245,6 +252,7 @@ export function Boats({
                 .filter(Boolean)
                 .join(" · ")}
             </p>
+            {userId && manager === userId && <BoatTeam key={`${boatId}/${userId}`} boatId={boatId} />}
             <h2>{t("Race results")}</h2>
             {!series.length && <p>{t("No shared race results yet.")}</p>}
             {series.map((s) => (
@@ -328,7 +336,7 @@ export function SeriesFleet({
   onChange,
 }: {
   series: Series;
-  onChange: (change: (s: Series) => void) => void;
+  onChange?: (change: (s: Series) => void) => void;
 }) {
   const [boats, setBoats] = useState<RegisteredBoat[]>([]),
     [query, setQuery] = useState(""),
@@ -339,7 +347,7 @@ export function SeriesFleet({
       .catch((e) => setError(String(e.message)));
   }, []);
   const add = (b: RegisteredBoat) =>
-    onChange((s) => {
+    onChange?.((s) => {
       if (!s.boats.some((v) => v.id === b.id)) {
         s.boats.push({
           ...b,
@@ -367,11 +375,11 @@ export function SeriesFleet({
           {series.boats.length} {t("boats competing")}
         </span>
       </div>
-      <p>
+      {onChange && <p>
         {t(
           "Choose the series fleet and categories. Register boats in each race’s Fleet tab.",
         )}
-      </p>
+      </p>}
       {series.boats.length ? (
         <div className="table-scroll">
           <table className="fleet-table">
@@ -379,7 +387,7 @@ export function SeriesFleet({
               <tr>
                 <th scope="col">{t("Boat")}</th>
                 <th scope="col">{t("Category")}</th>
-                <th scope="col">{t("Actions")}</th>
+                {onChange && <th scope="col">{t("Actions")}</th>}
               </tr>
             </thead>
             <tbody>
@@ -389,12 +397,12 @@ export function SeriesFleet({
                     <a href={appHref(`?boat=${b.id}`)}>{b.name}</a>
                   </th>
                   <td>
-                    <select
+                    {onChange ? <select
                       aria-label={t("Category for {name}", { name: b.name })}
                       value={b.categoryId}
                       onChange={(e) => {
                         const categoryId = e.target.value;
-                        onChange((s) => {
+                        onChange?.((s) => {
                           s.boats.find((v) => v.id === b.id)!.categoryId =
                             categoryId;
                         });
@@ -405,9 +413,9 @@ export function SeriesFleet({
                           {c.name}
                         </option>
                       ))}
-                    </select>
+                    </select> : series.categories.find(c => c.id === b.categoryId)?.name}
                   </td>
-                  <td>
+                  {onChange && <td>
                     <button
                       aria-label={t("Remove {name}", { name: b.name })}
                       disabled={hasResults(b.id)}
@@ -415,7 +423,7 @@ export function SeriesFleet({
                         hasResults(b.id) ? "fleet-removal-help" : undefined
                       }
                       onClick={() =>
-                        onChange((s) => {
+                        onChange?.((s) => {
                           s.boats = s.boats.filter((v) => v.id !== b.id);
                           s.events?.forEach((event) => { if (event.entries) event.entries = event.entries.filter((id) => id !== b.id); });
                           s.races.forEach((r) => {
@@ -426,7 +434,7 @@ export function SeriesFleet({
                     >
                       {t("Remove")}
                     </button>
-                  </td>
+                  </td>}
                 </tr>
               ))}
             </tbody>
@@ -444,7 +452,7 @@ export function SeriesFleet({
           )}
         </p>
       )}
-      <div className="fleet-add">
+      {onChange && <div className="fleet-add">
         <div className="section-title">
           <h2>{t("Add boats")}</h2>
           <span>
@@ -507,7 +515,7 @@ export function SeriesFleet({
             add(b);
           }}
         />
-      </div>
+      </div>}
       {error && <p role="status">{t(error)}</p>}
     </section>
   );
@@ -516,14 +524,14 @@ export function SeriesFleet({
 export function RaceFleet({series, eventId, onChange}: {
   series: Series;
   eventId: string;
-  onChange: (change: (s: Series) => void) => void;
+  onChange?: (change: (s: Series) => void) => void;
 }) {
   const [query, setQuery] = useState("");
   const entries = eventEntries(series, eventId);
-  const boats = series.boats.filter((b) => b.name.toLocaleLowerCase().includes(query.toLocaleLowerCase()));
+  const boats = series.boats.filter(b => onChange || entries.includes(b.id)).filter((b) => b.name.toLocaleLowerCase().includes(query.toLocaleLowerCase()));
   return <section>
     <div className="section-title"><h2>{t("Race fleet")}</h2><span>{entries.length} {t("boats competing")}</span></div>
-    <p>{t("Select boats for this race. Registration applies to all its heats and saves automatically.")}</p>
+    {onChange && <p>{t("Select boats for this race. Registration applies to all its heats and saves automatically.")}</p>}
     <label className="fleet-search">{t("Find a boat")}<input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("Boat name")} /></label>
     <div className="table-scroll"><table className="fleet-table">
       <thead><tr><th scope="col">{t("Boat")}</th><th scope="col">{t("Category")}</th><th scope="col">{t("Competing")}</th></tr></thead>
@@ -531,17 +539,17 @@ export function RaceFleet({series, eventId, onChange}: {
         const recorded = series.races.some((r) => (r.eventId ?? r.id) === eventId && r.results.some((v) => v.boatId === b.id));
         return <tr key={b.id}><th scope="row"><a className="directory-boat-link" href={appHref(`?boat=${b.id}`)}><span className="directory-boat-icon"><Sailboat size={20} aria-hidden="true" /></span><span>{b.name}</span><ArrowUpRight className="directory-link-arrow" size={16} aria-hidden="true" /></a></th>
           <td>{series.categories.find((c) => c.id === b.categoryId)?.name}</td>
-          <td><input className="fleet-registration" type="checkbox" aria-label={t("Register {name}", {name: b.name})} checked={entries.includes(b.id)} disabled={recorded} aria-describedby={recorded ? "race-fleet-help" : undefined} onChange={(e) => {
+          <td>{onChange ? <input className="fleet-registration" type="checkbox" aria-label={t("Register {name}", {name: b.name})} checked={entries.includes(b.id)} disabled={recorded} aria-describedby={recorded ? "race-fleet-help" : undefined} onChange={(e) => {
             const checked = e.target.checked;
-            onChange((s) => {
+            onChange?.((s) => {
               const current = eventEntries(s, eventId);
               setEventEntries(s, eventId, checked ? [...current, b.id] : current.filter((v) => v !== b.id));
             });
-          }} /></td></tr>;
+          }} /> : "✓"}</td></tr>;
       })}</tbody>
     </table></div>
     {!boats.length && <p>{t("No matching boats.")}</p>}
-    <p className="help" id="race-fleet-help">{t("Boats with recorded results cannot be removed until their results are cleared.")}</p>
-    <a href={appHref(`?series=${series.id}`)}>{t("Manage the series fleet to add boats or change categories.")}</a>
+    {onChange && <><p className="help" id="race-fleet-help">{t("Boats with recorded results cannot be removed until their results are cleared.")}</p>
+    <a href={appHref(`?series=${series.id}`)}>{t("Manage the series fleet to add boats or change categories.")}</a></>}
   </section>;
 }

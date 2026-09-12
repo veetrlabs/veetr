@@ -1,3 +1,4 @@
+import {HeatResults} from "./SharedResults";
 import {PublicRace} from "./PublicRace";
 import { t, useLanguage, LanguageSelector } from "./i18n";
 import {
@@ -9,14 +10,15 @@ import {
 import { EventStandings } from "./EventScoring";
 import { Boats, SeriesFleet, RaceFleet } from "./Boats";
 import { PublicDirectory } from "./PublicDirectory";
-import { WorkspaceAccess, requireAccount } from "./WorkspaceAccess";
+import { requireAccount } from "./WorkspaceAccess";
 import { AccountPanel } from "./AccountPanel";
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Flag, Cloud, Undo2 } from "lucide-react";
+import { Cloud, Undo2 } from "lucide-react";
 import { statuses } from "@veetr/scoring";
 import {
   id,
+  eventsFor,
   newSeries,
   normalize,
   setFinish,
@@ -36,11 +38,11 @@ import {
 } from "./storage";
 import { listRemote, publicSeries, pushRemote, supabase, passwordRecoveryRequested, deleteRaceEntity } from "./api";
 import { appHref, integrated, entityId } from "./routes";
-const publicId = entityId("series", new URLSearchParams(window.location.search).get("public") || (integrated && location.pathname === "/races/" ? new URLSearchParams(window.location.search).get("series") : null));
+
 const boatId = entityId("boats", new URLSearchParams(window.location.search).get("boat"));
 const boatsPage =
   Boolean(boatId) || new URLSearchParams(window.location.search).has("boats") || location.pathname.startsWith("/boats/");
-const browsePublic = new URLSearchParams(window.location.search).has("browse") || (integrated && location.pathname === "/races/" && !publicId);
+
 function download(series: Series) {
   const url = URL.createObjectURL(
     new Blob([JSON.stringify(series, null, 2)], { type: "application/json" }),
@@ -54,7 +56,7 @@ function download(series: Series) {
 function readRoute(): Location {
   const params = new URLSearchParams(window.location.search);
   return {
-    seriesId: params.get("series") ?? undefined,
+    seriesId: entityId("series", params.get("series") ?? params.get("public")) ?? undefined,
     eventId: params.get("event") ?? undefined,
     heatId: params.get("heat") ?? undefined,
   };
@@ -62,7 +64,6 @@ function readRoute(): Location {
 export default function App({ updateAvailable = false, updateServiceWorker = async (_reload?: boolean) => {} }: {updateAvailable?: boolean; updateServiceWorker?: (reload?: boolean) => Promise<void>}) {
   const language = useLanguage();
   const [records, setRecords] = useState<LocalRecord[]>([]),
-    [active, setActive] = useState(readRoute().seriesId ?? ""),
     [page, setPage] = useState(readRoute().heatId ? "finish" : "manage"),
     [category, setCategory] = useState(""),
     [raceId, setRaceId] = useState(readRoute().heatId ?? "");
@@ -75,10 +76,9 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
     window.history.pushState(
       null,
       "",
-      window.location.pathname + (params.size ? `?${params}` : ""),
+      appHref(params.size ? `?${params}` : "/"),
     );
     setLocation(next);
-    setActive(next.seriesId ?? "");
     setRaceId(next.heatId ?? "");
     setPage(next.heatId ? "finish" : "manage");
   };
@@ -86,8 +86,7 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
     const restore = () => {
       const next = readRoute();
       setLocation(next);
-      setActive(next.seriesId ?? "");
-      setRaceId(next.heatId ?? "");
+        setRaceId(next.heatId ?? "");
       setPage(next.heatId ? "finish" : "manage");
     };
     window.addEventListener("popstate", restore);
@@ -96,12 +95,17 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
   const [authReady, setAuthReady] = useState(!supabase);
   const [passwordRecovery, setPasswordRecovery] = useState(passwordRecoveryRequested);
   const [accountOpen, setAccountOpen] = useState(passwordRecoveryRequested || (integrated && window.location.pathname === "/account/"));
+  const [editingResults, setEditingResults] = useState(false);
   const [clearResultId, setClearResultId] = useState("");
   const [user, setUser] = useState(""),
     [online, setOnline] = useState(navigator.onLine),
     [message, setMessage] = useState(""),
     [busy, setBusy] = useState(false),
     [publicData, setPublicData] = useState<Series>();
+  useEffect(() => setEditingResults(false), [location.heatId, user]);
+  const [access, setAccess] = useState<{user: string; ids: string[]}>({user: "", ids: []});
+  const [creator, setCreator] = useState("");
+  const canCreate = Boolean(user && creator === user);
   const current = useRef(records);
   current.current = records;
   const identity = useRef(user);
@@ -154,8 +158,11 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
     const account = identity.current;
     try {
       await chain.current;
+      const authorized = await listRemote();
+      if (identity.current !== account) return;
+      setAccess({user: account, ids: authorized.map(r => r.document.id)});
       for (const record of current.current.filter(
-        (r) => r.pending && r.owner === account,
+        (r) => r.pending && r.owner === account && (r.revision === 0 || authorized.some(a => a.document.id === r.series.id)),
       )) {
         if (identity.current !== account) return;
         const revision = await pushRemote(record);
@@ -168,6 +175,7 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
       }
       const remoteRows = await listRemote();
       if (identity.current !== account) return;
+      setAccess({user: account, ids: remoteRows.map(r => r.document.id)});
       await serial(async () => {
         for (const local of current.current.filter((r) => r.owner === account && r.revision > 0 && !r.pending && !remoteRows.some((v) => v.document.id === r.series.id))) {
           await removeLocal(local.series.id);
@@ -177,7 +185,7 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
           const local = current.current.find(
             (r) => r.series.id === remote.document.id,
           );
-          if (!local?.pending && (!local || local.revision !== remote.revision))
+          if ((!local?.pending || local.owner !== account) && (!local || local.owner !== account || local.revision !== remote.revision))
             await persist({
               series: remote.document,
               revision: remote.revision,
@@ -210,22 +218,9 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
     };
   }, []);
   useEffect(() => {
-    if (publicId) {
-      const refresh = () =>
-        publicSeries(publicId)
-          .then(setPublicData)
-          .catch((e) => {
-            setPublicData(undefined);
-            setMessage(e.message);
-          });
-      void refresh();
-      const timer = setInterval(refresh, 2000);
-      return () => clearInterval(timer);
-    }
     void serial(async () => {
       const rows = await loadLocal();
       install(rows);
-      setActive((value) => value || rows[0]?.series.id || "");
     });
     const on = () => {
         setOnline(true);
@@ -250,34 +245,60 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
     if (user) sync();
   }, [user]);
   useEffect(() => {
-    if (publicId) return;
     const timer = setInterval(sync, 2000);
     return () => clearInterval(timer);
   }, []);
-  const visible = user
-    ? records.filter((r) => r.owner === "local" || r.owner === user)
-    : [];
-  const record = visible.find((r) => r.series.id === active) ?? visible[0];
-  const [canDelete, setCanDelete] = useState(false);
   useEffect(() => {
     let alive = true;
-    setCanDelete(false);
-    if (user && location.seriesId && supabase) {
-      void supabase.rpc("is_official", {sid: location.seriesId, admin_only: true}).then(({data}) => {if (alive) setCanDelete(data === true);});
-    }
-    return () => {alive = false;};
+    setCreator("");
+    const refresh = () => {if (user && supabase) void supabase.rpc("can_create_series").then(({data}) => { if (alive) setCreator(data ? user : ""); });};
+    void refresh();
+    const timer = setInterval(refresh, 5000);
+    return () => {alive = false; clearInterval(timer);};
+  }, [user]);
+  useEffect(() => {
+    let alive = true;
+    setPublicData(undefined);
+    const sid = location.seriesId;
+    if (!sid) return;
+    const refresh = () => publicSeries(sid).then(s => {if (alive) setPublicData(s);}).catch(() => {if (alive) setPublicData(undefined);});
+    void refresh();
+    const timer = setInterval(refresh, 2000);
+    return () => {alive = false; clearInterval(timer);};
+  }, [location.seriesId]);
+  const visible = user ? records.filter(r => r.owner === user && (
+    (access.user === user && access.ids.includes(r.series.id)) || (r.revision === 0 && canCreate)
+  )) : [];
+  const record = visible.find(r => r.series.id === location.seriesId);
+  const canEdit = Boolean(record);
+  const [adminScope, setAdminScope] = useState("");
+  const canDelete = adminScope === `${user}/${location.seriesId}`;
+  useEffect(() => {
+    let alive = true;
+    setAdminScope("");
+    const refresh = () => {if (user && location.seriesId && supabase) {
+      void supabase.rpc("is_official", {sid: location.seriesId, admin_only: true}).then(({data}) => {if (alive) setAdminScope(data === true ? `${user}/${location.seriesId}` : "");});
+    }};
+    void refresh();
+    const timer = setInterval(refresh, 5000);
+    return () => {alive = false; clearInterval(timer);};
   }, [user, location.seriesId, record?.revision]);
-  const source = publicId ? publicData : record?.series;
-  const series = source
+  const source = record?.series ?? (publicData?.id === location.seriesId ? publicData : undefined);
+  const invalidRoute = Boolean(source && (
+    (location.eventId && !eventsFor(source).some(e => e.id === location.eventId)) ||
+    (location.heatId && !source.races.some(r => r.id === location.heatId && (!location.eventId || (r.eventId ?? r.id) === location.eventId)))
+  ));
+  const series = source && !invalidRoute
     ? { ...source, races: [...source.races].sort((a, b) => a.order - b.order) }
     : undefined;
   const cat = series?.categories.find((c) => c.id === category);
-  const race = series?.races.find((r) => r.id === raceId) ?? series?.races[0];
+  const race = series?.races.find((r) => r.id === raceId);
   const edit = (change: (s: Series) => void, seriesId?: string) => {
     const sid = seriesId ?? record?.series.id;
     if (!sid) return;
     serial(async () => {
       requireAccount(identity.current, user);
+      if (!visible.some(r => r.series.id === sid)) throw new Error("Series editing access required");
       const old = current.current.find((r) => r.series.id === sid)!;
       const next = structuredClone(old.series);
       change(next);
@@ -299,6 +320,7 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
   const create = () =>
     serial(async () => {
       requireAccount(identity.current, user);
+      if (!canCreate) throw new Error("Organizer approval required to create a series");
       const s = newSeries();
       await persist({
         series: s,
@@ -309,6 +331,7 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
         savedAt: new Date().toISOString(),
       });
       navigate({ seriesId: s.id });
+      void sync();
     });
   const finishers = race?.results ?? [];
   const pending =
@@ -340,22 +363,8 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
           >
             {t("Boats")}
           </a>
-          {publicId ? (
-            <a className="public-results-link" href="?browse">
-              {t("All series")}
-            </a>
-          ) : user && !browsePublic ? (
-            <a className="public-results-link" href="?browse">
-              {t("Public results")}
-            </a>
-          ) : user && browsePublic ? (
-            <a className="public-results-link" href="/">
-              {t("Committee workspace")}
-            </a>
-          ) : null}
+          <a className="public-results-link" href={appHref("?browse")}>{t("All series")}</a>
           {user &&
-            !publicId &&
-            !browsePublic &&
             (!online || records.some((r) => r.owner === user && r.pending)) && (
               <>
                 <Cloud size={18} />
@@ -367,15 +376,13 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
               </>
             )}
           {user &&
-            !publicId &&
-            !browsePublic &&
             supabase &&
             records.some((r) => r.owner === user && r.pending) && (
               <button onClick={sync} disabled={busy || !online}>
                 {t("Sync now")}
               </button>
             )}
-          {!publicId && (
+          {(
             <button
               className="account-trigger"
               onClick={() => setAccountOpen(true)}
@@ -412,29 +419,23 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
         {boatsPage ? (
           <Boats boatId={boatId} userId={user} />
         ) : (
-          <WorkspaceAccess
-            publicContent={<PublicDirectory />}
-            userId={user}
-            browsingPublic={browsePublic}
-            authReady={authReady}
-            isPublic={Boolean(publicId)}
-          >
-            {!publicId && (
+          <>
+            {!authReady && <p role="status">{t("Restoring session…")}</p>}
+            {!location.seriesId && <PublicDirectory editableSeries={visible.map(r => r.series)} create={canCreate ? create : undefined} />}
+            {location.seriesId && (
               <Breadcrumbs
                 location={location}
-                series={
-                  visible.find((r) => r.series.id === location.seriesId)?.series
-                }
+                series={series}
                 navigate={navigate}
               />
             )}
-            {!publicId && location.seriesId && series && (
+            {location.seriesId && series && (
               <EntityDetails
                 key={`${location.seriesId}/${location.eventId ?? ""}/${location.heatId ?? ""}`}
                 series={series}
                 location={location}
-                edit={edit}
-                onDelete={canDelete ? async () => {
+                edit={canEdit ? edit : undefined}
+                onDelete={canEdit && canDelete ? async () => {
                   requireAccount(identity.current, user);
                   if (busy || syncing.current) throw new Error("Wait for synchronization to finish and try again.");
                   syncing.current = true;
@@ -457,7 +458,8 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
                 } : undefined}
               />
             )}
-            {!publicId && location.seriesId && !location.heatId && (
+            {canEdit && canDelete && <button onClick={() => setAccountOpen(true)}>{t("Series team")}</button>}
+            {series && location.seriesId && !location.heatId && (
               <nav aria-label={t("Series tools")}>
                 <button
                   className={page === "manage" ? "selected" : ""}
@@ -466,7 +468,6 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
                 >
                   {t(location.eventId ? "Heats" : "Races")}
                 </button>
-                {!location.eventId && (
                 <button
                   className={page === "standings" ? "selected" : ""}
                   aria-current={page === "standings" ? "page" : undefined}
@@ -474,7 +475,6 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
                 >
                   {t("Standings")}
                 </button>
-                )}
                 <button
                   className={page === "fleet" ? "selected" : ""}
                   aria-current={page === "fleet" ? "page" : undefined}
@@ -484,64 +484,11 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
                 </button>
               </nav>
             )}
-            {!publicId && page === "manage" ? (
-              <SeriesBrowser
-                key={`${location.seriesId ?? ""}/${location.eventId ?? ""}`}
-                seriesList={visible.map((r) => r.series)}
-                location={location}
-                navigate={navigate}
-                edit={edit}
-                create={() => create()}
-              />
-            ) : !series ? (
-              <section className="welcome">
-                <Flag size={44} />
-                {publicId ? (
-                  <>
-                    <h1>{t("Published results")}</h1>
-                    <p>
-                      {message
-                        ? t("Standings are currently unavailable.")
-                        : t("Loading standings…")}
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <h1>
-                      {t("Good racing.")}
-                      <br />
-                      {t("Less paperwork.")}
-                    </h1>
-                    <p>
-                      {t("Run the finish line. Keep the series in order.")}
-                      <br />
-                      {t(
-                        "Your work stays on this device, even out on the reservoir.",
-                      )}
-                    </p>
-                  </>
-                )}
-              </section>
-            ) : publicId && new URLSearchParams(window.location.search).get("event") ? (
-              <PublicRace series={series} eventId={new URLSearchParams(window.location.search).get("event")!}/>
-            ) : (
+            {location.seriesId && !series ? <p role="status">{t("Series unavailable or still loading.")}</p> : series && page === "manage" ? (
+              <SeriesBrowser key={`${series.id}/${location.eventId ?? ""}`} seriesList={[series]} location={location} navigate={navigate} edit={canEdit ? edit : undefined} />
+            ) : series ? (
               <>
-                {publicId && (
-                  <div className="title">
-                    <div>
-                      <p className="eyebrow">
-                        {series.year} {t("SAILING SERIES")}{" "}
-                        {publicId ? t("· PUBLISHED") : ""}
-                      </p>
-                      <h1>{series.name}</h1>
-                      <p>
-                        {series.description || t("Race committee workspace")}
-                      </p>
-                    </div>
-                    <span className="badge">{t(series.status)}</span>
-                  </div>
-                )}
-                {(publicId || page === "standings") && (
+                {(page === "standings" && !location.eventId) && (
                   <div className="categories" aria-label={t("Race categories")}>
                     <button
                       className={!cat ? "active" : ""}
@@ -572,7 +519,10 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
                     ))}
                   </div>
                 )}
-                {!publicId && page === "finish" && (
+                {page === "standings" && location.eventId && <PublicRace series={series} eventId={location.eventId} embedded />}
+                {page === "finish" && race && <HeatResults series={series} race={race} />}
+                {canEdit && page === "finish" && <button aria-expanded={editingResults} onClick={() => setEditingResults(!editingResults)}>{t(editingResults ? "Done" : "Edit results")}</button>}
+                {canEdit && page === "finish" && editingResults && (
                   <>
                     <div className="racebar">
                       {race && (
@@ -843,23 +793,23 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
                     )}
                   </>
                 )}
-                {(publicId || page === "standings") && (
+                {(page === "standings" && !location.eventId) && (
                   <EventStandings
                     key={series.id}
-                    publicLinks={Boolean(publicId)}
+                    publicLinks={true}
                     series={series}
                     categoryId={cat?.id}
                   />
                 )}
-                {!publicId && page === "fleet" && (
-                  location.eventId ? <RaceFleet series={series} eventId={location.eventId} onChange={edit} /> : <SeriesFleet series={series} onChange={edit} />
+                {page === "fleet" && (
+                  location.eventId ? <RaceFleet series={series} eventId={location.eventId} onChange={canEdit ? edit : undefined} /> : <SeriesFleet series={series} onChange={canEdit ? edit : undefined} />
                 )}
-                {!publicId && (
+                {canEdit && (
                   <footer>
                     <button onClick={() => download(series)}>
                       {t("Export local backup")}
                     </button>
-                    <label className="import">
+                    {canCreate && <label className="import">
                       {t("Restore backup as new series")}
                       <input
                         type="file"
@@ -888,6 +838,7 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
                               r.status = "draft";
                             });
                             requireAccount(identity.current, user);
+                            if (!canCreate) throw new Error("Organizer approval required to create a series");
                             await persist({
                               series: restored,
                               revision: 0,
@@ -896,12 +847,13 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
                               mutationId: id(),
                               savedAt: new Date().toISOString(),
                             });
-                            setActive(restored.id);
+                            navigate({seriesId: restored.id});
+                            void sync();
                             setMessage("Backup restored as a new draft series");
                           });
                         }}
                       />
-                    </label>
+                    </label>}
                     {record?.owner === "local" && user && (
                       <button
                         onClick={() =>
@@ -962,8 +914,8 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
                   </footer>
                 )}
               </>
-            )}
-          </WorkspaceAccess>
+            ) : null}
+          </>
         )}
         {accountOpen && (
           <AccountPanel
@@ -974,7 +926,7 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
               history.replaceState(null, "", url);
             }}
             userId={user}
-            seriesId={series?.id}
+            seriesId={canEdit && canDelete ? series?.id : undefined}
             seriesName={series?.name}
             cloudSaved={Boolean(record?.revision)}
             localSeries={record?.owner === "local"}

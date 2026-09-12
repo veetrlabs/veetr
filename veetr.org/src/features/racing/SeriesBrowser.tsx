@@ -70,8 +70,8 @@ export function SeriesBrowser({
   seriesList: Series[];
   location: Location;
   navigate: (l: Location) => void;
-  edit: (fn: (s: Series) => void, seriesId?: string) => void;
-  create: () => void;
+  edit?: (fn: (s: Series) => void, seriesId?: string) => void;
+  create?: () => void;
 }) {
   const series = seriesList.find((s) => s.id === location.seriesId),
     event = series && eventsFor(series).find((e) => e.id === location.eventId);
@@ -143,13 +143,13 @@ export function SeriesBrowser({
     <section>
       <div className="section-title">
         {series ? <h2>{heading}</h2> : <h1>{heading}</h1>}
-        <button
+        {(series ? edit : create) && <button
           onClick={() => {
             if (!series) {
-              create();
+              create?.();
               return;
             }
-            edit((s) => {
+            edit?.((s) => {
               materializeEvents(s);
               if (event) {
                 s.races.push({
@@ -178,7 +178,7 @@ export function SeriesBrowser({
           }}
         >
           {t(event ? "New heat" : series ? "New race" : "New series")}
-        </button>
+        </button>}
       </div>
       {canFilter && <div className="inline">
         <label>
@@ -286,7 +286,7 @@ export function EntityDetails({
   onDelete?: () => Promise<void>;
   series: Series;
   location: Location;
-  edit: (fn: (s: Series) => void, seriesId?: string) => void;
+  edit?: (fn: (s: Series) => void, seriesId?: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const event = eventsFor(series).find((e) => e.id === location.eventId);
@@ -297,7 +297,7 @@ export function EntityDetails({
 
       <div className="section-title entity-header">
         <h1>{entity.name}</h1>
-        {!editing && (
+        {edit && !editing && (
           <button onClick={() => setEditing(true)}>
             {t(heat ? "Edit heat" : event ? "Edit race" : "Edit series")}
           </button>
@@ -305,7 +305,7 @@ export function EntityDetails({
       {onDelete && <DeleteAction onDelete={onDelete} description={t(heat ? "Delete this heat and all its results?" : event ? "Delete this race, all its heats and results? Boat profiles will remain." : "Delete this series, all its races, heats and results? Boat profiles will remain.")} />}
       </div>
       {!event && !heat && series.description && <p>{series.description}</p>}
-      {editing && (
+      {edit && editing && (
         <Editor
           series={series}
           event={heat ? undefined : event}

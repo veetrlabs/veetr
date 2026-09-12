@@ -2,7 +2,7 @@
   "id": "/races/manage/",
   "name": "Veetr — Race management",
   "short_name": "Veetr",
-  "start_url": "/races/manage/",
+  "start_url": "/races/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#0d1420",

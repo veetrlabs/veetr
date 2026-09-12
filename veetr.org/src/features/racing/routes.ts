@@ -7,15 +7,16 @@ export function entityId(kind:keyof Routes,value:string|null):string|null {
 }
 export async function initializeRoutes() {
  try {const cached=localStorage.getItem('veetr.public-routes');if(cached)routes=JSON.parse(cached);}catch{}
- const url=import.meta.env.VITE_SUPABASE_URL,key=import.meta.env.VITE_SUPABASE_ANON_KEY;
+ const url=import.meta.env?.VITE_SUPABASE_URL,key=import.meta.env?.VITE_SUPABASE_ANON_KEY;
  if(url&&key)try {
   const response=await fetch(`${url}/rest/v1/rpc/public_entity_routes`,{method:'POST',headers:{apikey:key,Authorization:`Bearer ${key}`,'Content-Type':'application/json'},body:'{}',signal:AbortSignal.timeout(5000)});
   if(response.ok){routes=await response.json();try{localStorage.setItem('veetr.public-routes',JSON.stringify(routes));}catch{}}
  }catch{/* Cached public URLs remain usable offline. */}
  const params=new URLSearchParams(location.search);
- if(location.pathname==='/races/' && (params.has('public') || params.has('series'))){
+ if(location.pathname==='/races/manage/' && !params.has('public') && !params.has('series')) history.replaceState(null,'','/races/'+location.search+location.hash);
+ if((location.pathname==='/races/' || location.pathname==='/races/manage/') && (params.has('public') || params.has('series'))){
   const id=entityId('series',params.get('public') || params.get('series'))!;
-  if(routes.series[id])history.replaceState(null,'',appHref(`?public=${id}${params.has("event")?`&event=${encodeURIComponent(params.get("event")!)}`:""}`)+location.hash);
+  history.replaceState(null,'',appHref(`?public=${id}${["event","heat"].filter(k=>params.has(k)).map(k=>`&${k}=${encodeURIComponent(params.get(k)!)}`).join("")}`)+location.hash);
  }
  if(location.pathname==='/boats/' && params.has('boat')){
   const id=entityId('boats',params.get('boat'))!;
@@ -24,11 +25,12 @@ export async function initializeRoutes() {
 }
 export function appHref(query:string):string {
  if(!integrated)return query;
- if(query==='/')return '/races/manage/';
+ if(query==='/')return '/races/';
  const params=new URLSearchParams(query.replace(/^\?/,''));
  if(params.has('boats'))return '/boats/';
  if(params.has('boat'))return `/boats/?boat=${encodeURIComponent(routes.boats[params.get('boat')!] || params.get('boat')!)}`;
  if(params.has('browse'))return '/races/';
- if(params.has('public'))return `/races/?series=${encodeURIComponent(routes.series[params.get('public')!] || params.get('public')!)}${params.has('event')?`&event=${encodeURIComponent(params.get('event')!)}`:''}`;
- return `/races/manage/${params.size?`?${params}`:''}`;
+ if(params.has('series')) { params.set('public',params.get('series')!); params.delete('series'); }
+ if(params.has('public'))return `/races/?series=${encodeURIComponent(routes.series[params.get('public')!] || params.get('public')!)}${['event','heat'].filter(k=>params.has(k)).map(k=>`&${k}=${encodeURIComponent(params.get(k)!)}`).join('')}`;
+ return `/races/${params.size?`?${params}`:''}`;
 }

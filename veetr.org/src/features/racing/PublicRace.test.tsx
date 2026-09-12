@@ -11,7 +11,7 @@ test('public race detail includes only that race’s supplied heats and results'
  const heats=series.races.filter(h=>h.eventId===event.id);
  const html=renderToStaticMarkup(<PublicRace series={series} eventId={event.id}/>);
  assert.equal(heats.length,2);
- for(const heat of heats)assert.ok(html.includes(`<th>${heat.name}</th>`));
+ for(const heat of heats)assert.ok(html.includes(`>${heat.name}</a></th>`));
  assert.equal((html.match(/<table>/g)||[]).length,1, 'combined standings only');
  assert.ok(!html.includes('id="heat-'));
  assert.ok(!html.includes('href="#heat-'));

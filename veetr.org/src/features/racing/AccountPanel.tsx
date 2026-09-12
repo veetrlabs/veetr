@@ -109,7 +109,7 @@ export function AccountPanel({
         <PasswordAuth recovery={recovery} onRecovered={onRecovered}/>
       ) : (
         <>
-          <p><a href={appHref("/")}>{t("Committee workspace")}</a></p>
+          <p><a href={appHref("/")}>{t("All series")}</a></p>
           <div className="account-identity">
             <div>
               <strong>{email || "Signed-in account"}</strong>
