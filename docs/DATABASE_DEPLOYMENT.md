@@ -1,5 +1,8 @@
 # Production database deployment
 
+See [Deployment architecture and operations](DEPLOYMENT.md) for how the database,
+website, DNS, and email services fit together.
+
 The `Deploy Veetr database` GitHub Actions workflow applies the SQL files in
 `supabase/migrations` to **Veetr / Regatta**, project `xvqlsltglpgfjhdrhdyc`.
 Its destination is fixed in the workflow. Mautic projects are outside its scope.

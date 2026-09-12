@@ -1,5 +1,8 @@
 # Website hosting
 
+For the complete service map, email flows, deployment sequence, and troubleshooting,
+see [Deployment architecture and operations](DEPLOYMENT.md).
+
 Cloudflare Pages builds directly from GitHub. GitHub Actions performs website
 checks and deploys Supabase migrations; see DATABASE_DEPLOYMENT.md.
 
@@ -15,7 +18,7 @@ VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY configured in Cloudflare. These are
 public browser credentials for the Veetr Regatta project; never substitute a
 service-role key. Database deployment credentials stay in GitHub Actions secrets.
 
-The old GitHub Pages and mirror publishing workflows have been retired. The
+The main repository's old GitHub Pages and mirror publishing workflows have been retired. The
 veetrlabs/veetr-site and veetrlabs/veetr.com repositories are historical deployment
 mirrors and are no longer needed for publishing. Keep veetrlabs/veetr-game:
 it contains the game source. No repositories were deleted during migration.
