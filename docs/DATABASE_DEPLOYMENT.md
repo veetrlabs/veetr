@@ -4,10 +4,13 @@ The `Deploy Veetr database` GitHub Actions workflow applies the SQL files in
 `supabase/migrations` to **Veetr / Regatta**, project `xvqlsltglpgfjhdrhdyc`.
 Its destination is fixed in the workflow. Mautic projects are outside its scope.
 
-Configure these encrypted repository Actions secrets directly in GitHub:
+Configure this encrypted repository Actions secret directly in GitHub:
 
 - `VEETR_SUPABASE_ACCESS_TOKEN`: a Supabase deployment access token.
-- `VEETR_SUPABASE_DB_PASSWORD`: the database password for Regatta only.
+
+The CLI uses the access token to create temporary database login credentials.
+It does not use the stored `VEETR_SUPABASE_DB_PASSWORD` secret; that legacy
+secret can be removed after the token-based deployment is verified.
 
 Do not commit credentials or paste them into issues, logs, or chat. Access tokens
 inherit the owner's permissions; use a deployment identity restricted to Veetr
