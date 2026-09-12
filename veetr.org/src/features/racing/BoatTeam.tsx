@@ -18,7 +18,7 @@ export function BoatTeam({boatId}: {boatId: string}) {
    setMembers(await refresh());
   } catch(e){setError((e as Error).message);} finally{setBusy(false);}
  };
- return <details><summary>{t('Boat team')}</summary>
+ return <details><summary>{t('Boat crew')}</summary>
   <p>{t('Editors can update this boat. Only its owner can manage access or delete it. Sharing a boat does not grant access to private series.')}</p>
   <ul className="team-list">{members.map(m=><li key={m.id}><div><strong>{m.email}</strong><small>{t(m.role === 'owner' ? 'Owner' : m.role === 'editor' ? 'Editor' : 'Crew')}</small></div>{m.role !== 'owner' && <button disabled={busy} onClick={()=>void save(m.email,'remove')}>{t('Remove')}</button>}</li>)}</ul>
   <form onSubmit={e=>{e.preventDefault();void save(String(new FormData(e.currentTarget).get('email')),'editor');}}>

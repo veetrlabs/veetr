@@ -150,7 +150,7 @@ export function AccountPanel({
           ) : !cloudSaved ? (
             <p>{t("Sync this series before managing its team.")}</p>
           ) : teamError ? (
-            <p role="status">{teamError}</p>
+            <p role="status">{t(teamError)}</p>
           ) : team === null ? (
             <p>{t("Loading team…")}</p>
           ) : (

@@ -226,7 +226,7 @@ the app or its public API.
 
 On a series page, an owner/admin opens **Series team**, enters a teammate's email,
 and chooses **Race official** or **Series admin**. On a boat page, its owner opens
-**Boat team** and adds an editor by email. Teammates must already have signed in to
+**Boat crew** and adds an editor by email. Teammates must already have signed in to
 Veetr once. Changes take effect immediately on the server; this does not send an
 invitation email. Remove a teammate in the same panel to revoke access.
 
