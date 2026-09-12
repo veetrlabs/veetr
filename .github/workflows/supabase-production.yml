@@ -50,6 +50,19 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: latest
+      - name: Verify Regatta database connection
+        env:
+          PGPASSWORD: ${{ secrets.VEETR_SUPABASE_DB_PASSWORD }}
+          PGHOST: aws-0-eu-west-2.pooler.supabase.com
+          PGPORT: '5432'
+          PGUSER: postgres.xvqlsltglpgfjhdrhdyc
+          PGDATABASE: postgres
+          PGSSLMODE: require
+          PGCONNECT_TIMEOUT: '15'
+        run: |
+          psql --version
+          psql --no-password --no-psqlrc --set=ON_ERROR_STOP=1 \
+            --command='select current_database(), current_user;'
       - name: Link Veetr Regatta
         run: supabase link --project-ref "$SUPABASE_PROJECT_ID"
       - name: Preview pending migrations
