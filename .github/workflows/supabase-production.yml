@@ -1,0 +1,60 @@
+name: Deploy Veetr database
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
+      - '.github/workflows/supabase-production.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: veetr-production-database
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.19.0'
+          cache: npm
+      - run: npm ci
+      - run: npm run test:race
+
+  migrate:
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Veetr / Regatta only. Never replace with a Mautic project reference.
+      SUPABASE_PROJECT_ID: xvqlsltglpgfjhdrhdyc
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.VEETR_SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.VEETR_SUPABASE_DB_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check deployment credentials
+        shell: bash
+        run: |
+          if [[ -z "$SUPABASE_ACCESS_TOKEN" || -z "$SUPABASE_DB_PASSWORD" ]]; then
+            echo '::error::Add VEETR_SUPABASE_ACCESS_TOKEN and VEETR_SUPABASE_DB_PASSWORD in repository Actions secrets.'
+            exit 1
+          fi
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Link Veetr Regatta
+        run: supabase link --project-ref "$SUPABASE_PROJECT_ID"
+      - name: Preview pending migrations
+        run: supabase db push --linked --dry-run
+      - name: Apply pending migrations
+        run: supabase db push --linked --yes
+      - name: Show migration history
+        run: supabase migration list --linked
