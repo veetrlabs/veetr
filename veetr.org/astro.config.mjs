@@ -4,6 +4,7 @@ import starlight from '@astrojs/starlight';
 export default defineConfig({
   site: 'https://veetr.org',
   output: 'static',
+  vite: {envPrefix: ['PUBLIC_', 'VITE_'], esbuild: {jsx: 'automatic'}},
   redirects: {
     '/contact/': '/about/#contact',
     '/product/': '/',

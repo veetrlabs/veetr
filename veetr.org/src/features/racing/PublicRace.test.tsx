@@ -1,0 +1,22 @@
+import React from 'react';
+import {renderToStaticMarkup} from 'react-dom/server';
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {PublicRace} from './PublicRace';
+import type {Series} from './domain';
+const series=JSON.parse(readFileSync(new URL('../../../imports/orlik-2026/series.json',import.meta.url),'utf8')) as Series;
+test('public race detail includes only that race’s supplied heats and results',()=>{
+ const event=series.events!.find(e=>e.name==='Izolepa')!;
+ const heats=series.races.filter(h=>h.eventId===event.id);
+ const html=renderToStaticMarkup(<PublicRace series={series} eventId={event.id}/>);
+ assert.equal(heats.length,2);
+ for(const heat of heats)assert.ok(html.includes(`<th>${heat.name}</th>`));
+ assert.equal((html.match(/<table>/g)||[]).length,1, 'combined standings only');
+ assert.ok(!html.includes('id="heat-'));
+ assert.ok(!html.includes('href="#heat-'));
+ assert.ok(!html.includes('<input'));
+ const missing=renderToStaticMarkup(<PublicRace series={series} eventId="missing"/>);
+ assert.ok(!missing.includes('<table'));
+ assert.ok(missing.includes(series.name));
+});

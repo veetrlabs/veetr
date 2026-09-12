@@ -1,0 +1,55 @@
+{
+  "Izolepa": {
+    "source": "762916540_29018839481039890_2043311864971782692_n.jpg",
+    "heats": 3,
+    "discards": 0,
+    "rows": [
+      {"name":"Červený kafé","category":"Race","rank":1,"points":[1,1,3],"total":5},
+      {"name":"Sea Mouse 3","category":"Race","rank":2,"points":[2,2,1],"total":5},
+      {"name":"Far Star 3","category":"Race","rank":3,"points":[4,4,2],"total":10},
+      {"name":"Modré kafé","category":"Race","rank":4,"points":[3,3,4],"total":10},
+      {"name":"Luna","category":"≤ 7 m","rank":1,"points":[1,1,1],"total":3},
+      {"name":"J.O.Y.","category":"≤ 7 m","rank":2,"points":[2,2,2],"total":6},
+      {"name":"Sendy","category":"≤ 7 m","rank":3,"points":[3,3,3],"total":9},
+      {"name":"Andante","category":"≤ 7 m","rank":4,"points":[4,4,4],"total":12},
+      {"name":"Family Lady","category":"> 7 m","rank":1,"points":[1,2,1],"total":4},
+      {"name":"Depresso","category":"> 7 m","rank":2,"points":[3,1,2],"total":6},
+      {"name":"Mamba","category":"> 7 m","rank":3,"points":[2,3,3],"total":8},
+      {"name":"M@rtina","category":"> 7 m","rank":4,"points":[5,4,4],"total":13},
+      {"name":"Filoze","category":"> 7 m","rank":5,"points":[6,5,5],"total":16},
+      {"name":"Rose","category":"> 7 m","rank":6,"points":[7,7,7],"total":21},
+      {"name":"Michelle","category":"> 7 m","rank":7,"points":[8,8,6],"total":22},
+      {"name":"Miciny","category":"> 7 m","rank":8,"points":[9,6,8],"total":23},
+      {"name":"Avenir","category":"> 7 m","rank":9,"points":[4,14,14],"total":32},
+      {"name":"Hogan","category":"> 7 m","rank":10,"points":[11,9,14],"total":34},
+      {"name":"Thea","category":"> 7 m","rank":11,"points":[10,10,14],"total":34},
+      {"name":"Liberté","category":"> 7 m","rank":12,"points":[12,14,14],"total":40}
+    ]
+  },
+  "FxCK Cancer": {
+    "source": "FxC Cancer regata výsledky.pdf",
+    "heats": 2,
+    "discards": 0,
+    "rows": [
+      {"name":"Sea Mouse III.","category":"Race","rank":1,"points":[1,1],"overall":[1,1],"total":2},
+      {"name":"Modrý kafe","category":"Race","rank":2,"points":[2,2],"overall":[6,5],"total":4},
+      {"name":"Socka","category":"Race","rank":3,"points":[4,3],"overall":[15,8],"total":7},
+      {"name":"Far Star III","category":"Race","rank":4,"points":[3,4],"overall":[10,11],"total":7},
+      {"name":"Luna","category":"≤ 7 m","rank":1,"points":[1,1],"overall":[5,2],"total":2},
+      {"name":"Varianta","category":"≤ 7 m","rank":2,"points":[2,2],"overall":[16,15],"total":4},
+      {"name":"Mamba","category":"> 7 m","rank":1,"points":[3,1],"overall":[4,3],"total":4},
+      {"name":"Pezi","category":"> 7 m","rank":2,"points":[1,3],"overall":[2,6],"total":4},
+      {"name":"M@rtina","category":"> 7 m","rank":3,"points":[5,2],"overall":[8,4],"total":7},
+      {"name":"Avenir","category":"> 7 m","rank":4,"points":[4,5],"overall":[7,9],"total":9},
+      {"name":"Filozef","category":"> 7 m","rank":5,"points":[2,8],"overall":[3,13],"total":10},
+      {"name":"Depresso","category":"> 7 m","rank":6,"points":[6,4],"overall":[9,7],"total":10},
+      {"name":"Rio","category":"> 7 m","rank":7,"points":[7,6],"overall":[11,10],"total":13},
+      {"name":"Michelle","category":"> 7 m","rank":8,"points":[8,7],"overall":[12,12],"total":15},
+      {"name":"Claudie","category":"> 7 m","rank":9,"points":[9,9],"overall":[13,14],"total":18},
+      {"name":"Sprunzel","category":"> 7 m","rank":10,"points":[11,10],"overall":[17,16],"total":21},
+      {"name":"Maybe","category":"> 7 m","rank":11,"points":[10,12],"overall":[14,"DNS"],"total":22},
+      {"name":"Caprice","category":"> 7 m","rank":12,"points":[13,12],"overall":["DNF","DNS"],"total":25},
+      {"name":"Thea","category":"> 7 m","rank":13,"points":[14,12],"overall":["DNS","DNS"],"total":26}
+    ]
+  }
+}

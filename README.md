@@ -132,3 +132,9 @@ For detailed information, see the [docs/](./docs/) directory:
 ## License
 
 MIT License - see [LICENSE](./LICENSE) for details.
+
+## Race Control
+
+Race management lives in `veetr.org/src/features/racing`, integrated into the website at `/races/`, `/races/manage/`, `/boats/`, and `/account/`. It supports mixed-fleet categories, manual finish entry, automatic standings, published results and offline local saves with Supabase synchronization. Start the integrated site with `npm run dev --workspace veetr.org`. The `apps/race-control` entry remains a lightweight standalone development preview of the same source.
+
+See [Race Control development and scoring rules](./docs/RACE_CONTROL.md) for setup, seed data, authorization, offline behavior, tests and the explicitly provisional long-race scoring policy. The standalone scoring engine is in `packages/scoring`.

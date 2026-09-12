@@ -1,0 +1,17 @@
+name: Race Control
+on:
+  pull_request:
+    paths: ['apps/race-control/**', 'veetr.org/src/features/racing/**', 'veetr.org/imports/**', 'packages/scoring/**', 'supabase/**', 'package*.json', '.github/workflows/race-control.yml']
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.19.0'
+          cache: npm
+      - run: npm ci
+      - run: npm run test:race
+      - run: npm run build:race

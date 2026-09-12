@@ -1,0 +1,17 @@
+---
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import {racingStyles} from '../lib/racing-styles';
+import '../styles/racing-portal.css';
+interface Props {title:string;description:string;}
+const {title,description}=Astro.props;
+---
+<StarlightPage frontmatter={{title,description,template:'splash',head:[{tag:'link',attrs:{rel:'manifest',href:'/veetr-app.webmanifest'}}]}}>
+  <style is:inline set:html={racingStyles()} />
+  <div id="veetr-racing" class="race-app not-content">
+    <div id="root"><p role="status">Loading… / Načítání…</p></div>
+    <noscript>Enable JavaScript for live updates and race management.</noscript>
+  </div>
+</StarlightPage>
+<script>
+  import '../features/racing/site-entry';
+</script>
