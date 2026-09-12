@@ -55,7 +55,7 @@ Cloudflare GitHub installation is restricted to `veetrlabs/veetr` and
 | `game.veetr.org` | `veetr-game` | `veetrlabs/veetr-game`, `main` | Repository root | `exit 0` | `.` |
 
 Each project's preview hostname is `<project>.pages.dev`. `veetr.com` serves the
-existing redirects to the main site. The game is static source; it has no build
+redirects to the main site. The game is static source; it has no build
 step. The main site uses Astro with embedded React race-management screens at
 `/races/`, `/races/manage/`, `/boats/`, and `/account/`.
 
@@ -86,8 +86,8 @@ frontend changes.
 
 The migration workflow has a fixed Regatta project reference and serializes
 database deployments. It uses `VEETR_SUPABASE_ACCESS_TOKEN` from GitHub Actions
-secrets to obtain temporary database login credentials. It does not use the
-legacy `VEETR_SUPABASE_DB_PASSWORD` secret, reset the database, or load seed data.
+secrets to obtain temporary database login credentials. It applies pending SQL
+migrations without resetting the database or loading seed data.
 See [Database deployment](DATABASE_DEPLOYMENT.md) for details.
 
 ## Email flows
@@ -121,8 +121,8 @@ mailboxes with their own inboxes or passwords.
 Both addresses are also confirmed Gmail “Send mail as” identities. Gmail sends
 through Resend at `smtp.resend.com`, port **587**, using **TLS** and username
 `resend`. Each identity uses a separate sending-only key restricted to its
-domain. The Supabase Auth integration uses a separate credential. The existing
-Gmail default sender was not changed.
+domain. The Supabase Auth integration uses a separate credential. Select the
+desired Veetr identity in Gmail's From field when composing a message.
 
 ## DNS responsibilities
 
@@ -131,17 +131,16 @@ Both domains use these Cloudflare nameservers:
 - `apollo.ns.cloudflare.com`
 - `eleanor.ns.cloudflare.com`
 
-GoDaddy remains the registrar. Before migration, `veetr.org` used GoDaddy DNS
-and `veetr.com` used DigitalOcean DNS. Their original transferable records were
-preserved; website address records were then deliberately replaced for Pages.
+GoDaddy is the registrar, Cloudflare hosts authoritative DNS, and Pages manages
+the website custom-domain routing.
 
 | Records | Managed for | Maintenance rule |
 | --- | --- | --- |
 | Website A/AAAA/CNAME routing | Cloudflare Pages custom domains | Change through the corresponding Pages project and verify its custom-domain status |
 | Root MX, SPF, and Email Routing DKIM | Cloudflare Email Routing | Preserve for incoming mail forwarding |
 | `send` subdomain MX/SPF and `resend._domainkey` | Resend | Preserve for authenticated outgoing email |
-| Existing `.org` DMARC and verification TXT records | Domain policies and ownership verification | Retain unless deliberately replacing the related service or policy |
-| `m.veetr.com` → `165.232.83.73` | Existing independent service | Unrelated to this Pages migration; leave intact |
+| `.org` DMARC and verification TXT records | Domain policies and ownership verification | Retain unless deliberately replacing the related service or policy |
+| `m.veetr.com` → `165.232.83.73` | Independent service | Managed separately from Pages; leave intact when changing website hosting |
 
 Root incoming-mail MX and Resend's sending-subdomain MX coexist. Do not replace
 one set with the other when troubleshooting delivery.
@@ -164,14 +163,7 @@ project. Database rollback is separate: inspect the applied migration history
 and write a corrective migration. Do not reset production or edit an already
 applied migration to roll back a release.
 
-## Retired infrastructure and documentation publishing
-
-The main repository's old app GitHub Pages deployment and site/shop mirror
-publishing workflows were removed. `veetrlabs/veetr-site` and
-`veetrlabs/veetr.com` are historical deployment-output repositories; they are no
-longer required for Pages publishing. No repositories were deleted or archived.
-Keep `veetrlabs/veetr-game`, which contains game source. Its historical GitHub
-Pages configuration was not removed during the main-repository cleanup.
+## Documentation publishing
 
 The website documentation loader in
 [`veetr.org/src/content.config.ts`](../veetr.org/src/content.config.ts) explicitly
@@ -181,14 +173,11 @@ that list and out of the website's static/public directories. Repository-only
 means excluded from the website; it does not make files private in this public
 GitHub repository.
 
-## Verified baseline
+## Release verification
 
-On 12 September 2026, all 13 migrations matched between local and Regatta
-history, all five production hostnames returned HTTP 200, and the live race
-directory loaded successfully. Both Resend domains and both Gmail sending
-identities were verified. Gmail's identity-confirmation emails arrived through
-Cloudflare forwarding.
-
-For future releases, also test an actual signup or password-reset email and an
-ordinary outgoing message from each Gmail identity. Those end-to-end delivery
-tests were left for the owner after the initial setup.
+- Confirm the relevant Pages deployments and GitHub checks succeeded.
+- Confirm local and Regatta migration histories match after a schema change.
+- Open each affected production hostname and verify its main functionality.
+- Check that the race directory loads from Supabase without database errors.
+- After Auth or email changes, test an actual signup or password-reset email,
+  an outgoing message from each affected Gmail identity, and incoming replies.

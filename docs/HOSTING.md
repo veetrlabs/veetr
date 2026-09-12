@@ -18,12 +18,7 @@ VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY configured in Cloudflare. These are
 public browser credentials for the Veetr Regatta project; never substitute a
 service-role key. Database deployment credentials stay in GitHub Actions secrets.
 
-The main repository's old GitHub Pages and mirror publishing workflows have been retired. The
-veetrlabs/veetr-site and veetrlabs/veetr.com repositories are historical deployment
-mirrors and are no longer needed for publishing. Keep veetrlabs/veetr-game:
-it contains the game source. No repositories were deleted during migration.
-
-GoDaddy remains the registrar. Both domains use the personal Cloudflare account,
+GoDaddy is the registrar. Both domains use the personal Cloudflare account,
 separate from Mautic. DNS mail records and m.veetr.com are independent of Pages.
 
 Resend supplies Supabase Auth SMTP as Veetr <hello@veetr.org>. Cloudflare Email

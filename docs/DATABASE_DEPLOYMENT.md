@@ -12,8 +12,6 @@ Configure this encrypted repository Actions secret directly in GitHub:
 - `VEETR_SUPABASE_ACCESS_TOKEN`: a Supabase deployment access token.
 
 The CLI uses the access token to create temporary database login credentials.
-It does not use the stored `VEETR_SUPABASE_DB_PASSWORD` secret; that legacy
-secret can be removed after the token-based deployment is verified.
 
 Do not commit credentials or paste them into issues, logs, or chat. Access tokens
 inherit the owner's permissions; use a deployment identity restricted to Veetr
@@ -25,10 +23,8 @@ manually from Actions on `main`. Deployments are serialized and are not cancelle
 halfway through by newer pushes. Supabase records the applied migration history;
 the workflow does not reset the database or load seed data.
 
-For the initial release, wait for this workflow to succeed before switching the
-website's custom domain to Cloudflare Pages. Pages currently builds independently
-on Git pushes, so subsequent schema changes must remain compatible with the
-previous frontend until the new deployment is live. Use additive migrations
+Pages builds independently on Git pushes, so schema changes must remain
+compatible with the previous frontend until the new deployment is live. Use additive migrations
 first and remove old fields only in a later release.
 
 If a migration fails, inspect the Actions log and migration history before
