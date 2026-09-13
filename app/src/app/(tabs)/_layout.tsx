@@ -26,6 +26,8 @@ function TabIcon({ name, color, size }: { name: string; color: string; size?: nu
           <Line x1="16" y1="6" x2="16" y2="22" />
         </Svg>
       )
+    case 'tracking':
+      return <Svg {...props}><Circle cx="12" cy="12" r="7" /><Circle cx="12" cy="12" r="2" /><Path d="M12 2v3m0 14v3M2 12h3m14 0h3" /></Svg>
     case 'history':
       return (
         <Svg {...props}>
@@ -95,6 +97,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => <TabIcon name="map" color={color} size={size} />,
         }}
       />
+      <Tabs.Screen name="tracking" options={{ title: 'Track', tabBarIcon: ({color,size}) => <TabIcon name="tracking" color={color} size={size} /> }} />
       <Tabs.Screen
         name="history"
         options={{

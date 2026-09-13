@@ -443,6 +443,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      public_tracking_positions: { Args: { p_series: string }; Returns: Json }
+      my_tracking_entries: { Args: Record<PropertyKey, never>; Returns: Json }
+      start_tracking_session: { Args: { p_id: string; p_series: string; p_boat: string }; Returns: Json }
+      stop_tracking_session: { Args: { p_id: string; p_stopped_at: string }; Returns: undefined }
+      ingest_tracking_points: { Args: { p_session: string; p_points: Json }; Returns: number }
       delete_race_entity: { Args: {series_id: string; expected_revision: number; event_id?: string; heat_id?: string}; Returns: undefined };
       delete_boat: { Args: {boat_id: string}; Returns: undefined };
       boat_directory: {

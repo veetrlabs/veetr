@@ -31,6 +31,10 @@ jobs:
       run: npm test
       working-directory: app
 
+    - name: Typecheck mobile app
+      run: npm run typecheck
+      working-directory: app
+
   test-shared:
     runs-on: ubuntu-latest
 

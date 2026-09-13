@@ -1,3 +1,4 @@
+import TrackingRuntime from '../tracking/TrackingRuntime'
 import { useEffect } from 'react'
 import { View, StyleSheet } from 'react-native'
 import { Stack } from 'expo-router'
@@ -19,6 +20,7 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <BLEProvider>
+        <TrackingRuntime />
         <StatusBar style="auto" />
         <View style={styles.container}>
           <OfflineIndicator />

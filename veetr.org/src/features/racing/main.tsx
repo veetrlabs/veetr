@@ -1,3 +1,5 @@
+import {LiveTrackingMap} from "./LiveTrackingMap";
+import "leaflet/dist/leaflet.css";
 import {HeatResults} from "./SharedResults";
 import {PublicRace} from "./PublicRace";
 import { t, useLanguage, LanguageSelector } from "./i18n";
@@ -64,7 +66,7 @@ function readRoute(): Location {
 export default function App({ updateAvailable = false, updateServiceWorker = async (_reload?: boolean) => {} }: {updateAvailable?: boolean; updateServiceWorker?: (reload?: boolean) => Promise<void>}) {
   const language = useLanguage();
   const [records, setRecords] = useState<LocalRecord[]>([]),
-    [page, setPage] = useState(readRoute().heatId ? "finish" : "manage"),
+    [page, setPage] = useState(window.location.hash === "#tracking" ? "tracking" : readRoute().heatId ? "finish" : "manage"),
     [category, setCategory] = useState(""),
     [raceId, setRaceId] = useState(readRoute().heatId ?? "");
   const [location, setLocation] = useState<Location>(readRoute);
@@ -87,7 +89,7 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
       const next = readRoute();
       setLocation(next);
         setRaceId(next.heatId ?? "");
-      setPage(next.heatId ? "finish" : "manage");
+      setPage(window.location.hash === "#tracking" ? "tracking" : next.heatId ? "finish" : "manage");
     };
     window.addEventListener("popstate", restore);
     return () => window.removeEventListener("popstate", restore);
@@ -482,12 +484,14 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
                 >
                   {t("Fleet")}
                 </button>
+                <button className={page === "tracking" ? "selected" : ""} aria-current={page === "tracking" ? "page" : undefined} onClick={() => setPage("tracking")}>{t("Live map")}</button>
               </nav>
             )}
             {location.seriesId && !series ? <p role="status">{t("Series unavailable or still loading.")}</p> : series && page === "manage" ? (
               <SeriesBrowser key={`${series.id}/${location.eventId ?? ""}`} seriesList={[series]} location={location} navigate={navigate} edit={canEdit ? edit : undefined} />
             ) : series ? (
               <>
+                {page === "tracking" && <LiveTrackingMap key={series.id} seriesId={series.id} />}
                 {(page === "standings" && !location.eventId) && (
                   <div className="categories" aria-label={t("Race categories")}>
                     <button

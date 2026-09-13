@@ -1,0 +1,254 @@
+import * as Location from "expo-location";
+import * as TaskManager from "expo-task-manager";
+import * as Crypto from "expo-crypto";
+import { trackingClient, trackingRpc } from "./client";
+import { trackingStore } from "./database";
+import {
+  normalizeFix,
+  UPLOAD_INTERVAL_MS,
+  type LocationFix,
+  type TrackingEntry,
+  type TrackingSession,
+} from "./model";
+export const LOCATION_TASK = "veetr-regatta-location-v1";
+let syncing: Promise<void> | null = null;
+let lastAttempt = 0;
+let control: Promise<unknown> = Promise.resolve();
+function serialize<T>(action: () => Promise<T>): Promise<T> {
+  const result = control.then(action);
+  control = result.catch(() => {});
+  return result;
+}
+export const startTracking = (entry: TrackingEntry) =>
+  serialize(() => startInternal(entry));
+export const resumeTracking = () => serialize(resumeInternal);
+export async function stopTracking() {
+  const store = await trackingStore(),
+    session = await store.get();
+  if (!session) return;
+  await store.patch(session.id, {
+    phase: "stopping",
+    stoppedAt: session.stoppedAt ?? new Date().toISOString(),
+  });
+  await stopGPS();
+  return serialize(stopInternal);
+}
+export const discardStoppedTracking = () => serialize(discardInternal);
+const message = (error: unknown) =>
+  error instanceof Error ? error.message : "Tracking failed. Try again.";
+async function owner(session: TrackingSession) {
+  const auth = await trackingClient?.auth.getSession();
+  if (auth?.data.session?.user.id !== session.userId)
+    throw new Error(
+      "Sign in with the account that started this session to finish syncing.",
+    );
+}
+async function stopGPS() {
+  if (await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK))
+    await Location.stopLocationUpdatesAsync(LOCATION_TASK);
+}
+async function startGPS() {
+  if ((await Location.getBackgroundPermissionsAsync()).status !== "granted")
+    throw new Error(
+      "Enable background location permission to resume tracking.",
+    );
+  if (!(await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK)))
+    await Location.startLocationUpdatesAsync(LOCATION_TASK, {
+      accuracy: Location.Accuracy.High,
+      timeInterval: 5000,
+      distanceInterval: 0,
+      deferredUpdatesInterval: 5000,
+      pausesUpdatesAutomatically: false,
+      activityType: Location.ActivityType.OtherNavigation,
+      showsBackgroundLocationIndicator: true,
+      foregroundService: {
+        notificationTitle: "Veetr regatta tracking",
+        notificationBody: "Sharing your boat position. Open Veetr to stop.",
+        killServiceOnDestroy: true,
+      },
+    });
+}
+async function flush() {
+  const store = await trackingStore();
+  const session = await store.get();
+  if (!session || session.phase === "starting") return;
+  try {
+    await owner(session);
+    if (session.phase === "stopping")
+      await trackingRpc("stop_tracking_session", {
+        p_id: session.id,
+        p_stopped_at: session.stoppedAt,
+      });
+    // Limit each wakeup; later callbacks/foreground retries continue draining an offline backlog.
+    for (let i = 0; i < 10; i++) {
+      // Give a local stop priority over draining a large offline backlog.
+      if (
+        session.phase === "recording" &&
+        (await store.get())?.phase !== "recording"
+      )
+        return;
+      const batch = await store.batch(session.id);
+      if (!batch.length) break;
+      const accepted = await trackingRpc<number>("ingest_tracking_points", {
+        p_session: session.id,
+        p_points: batch,
+      });
+      if (accepted !== batch.length)
+        throw new Error("The server did not acknowledge the complete batch.");
+      await store.acknowledge(
+        session.id,
+        batch.map((p) => p.seq),
+      );
+      await store.patch(session.id, {
+        lastUploadAt: new Date().toISOString(),
+        error: undefined,
+      });
+    }
+    const current = await store.get();
+    if (
+      session.phase === "stopping" &&
+      current?.id === session.id &&
+      (await store.count()) === 0
+    )
+      await store.clear(session.id);
+    else await store.patch(session.id, { error: undefined });
+  } catch (error) {
+    await store.patch(session.id, { error: message(error) });
+    throw error;
+  }
+}
+export function syncTracking(force = false): Promise<void> {
+  if (syncing) return syncing;
+  if (!force && Date.now() - lastAttempt < UPLOAD_INTERVAL_MS)
+    return Promise.resolve();
+  lastAttempt = Date.now();
+  syncing = flush().finally(() => {
+    syncing = null;
+  });
+  return syncing;
+}
+async function startInternal(entry: TrackingEntry) {
+  if (!trackingClient)
+    throw new Error("Tracking is not configured in this app build.");
+  const {
+    data: { session: auth },
+  } = await trackingClient.auth.getSession();
+  if (!auth) throw new Error("Sign in before starting tracking.");
+  if ((await Location.requestForegroundPermissionsAsync()).status !== "granted")
+    throw new Error("Precise location permission is required.");
+  if ((await Location.requestBackgroundPermissionsAsync()).status !== "granted")
+    throw new Error(
+      "Allow background location in Settings to track with the screen locked.",
+    );
+  if (!(await TaskManager.isAvailableAsync()))
+    throw new Error(
+      "Install a development or release build to use background tracking.",
+    );
+  const store = await trackingStore();
+  await store.create({
+    ...entry,
+    id: Crypto.randomUUID(),
+    userId: auth.user.id,
+    phase: "starting",
+    startedAt: new Date().toISOString(),
+    expiresAt: "",
+  });
+  await resumeInternal();
+}
+async function resumeInternal() {
+  const store = await trackingStore();
+  let session = await store.get();
+  if (!session) return;
+  try {
+    await owner(session);
+    if (session.phase === "starting") {
+      const reply = await trackingRpc<{ startedAt: string; expiresAt: string }>(
+        "start_tracking_session",
+        {
+          p_id: session.id,
+          p_series: session.seriesId,
+          p_boat: session.boatId,
+        },
+      );
+      const current = await store.get();
+      await store.patch(session.id, {
+        ...reply,
+        phase: current?.phase === "stopping" ? "stopping" : "recording",
+        error: undefined,
+      });
+      session = (await store.get())!;
+    }
+    if (session.phase === "recording") {
+      if (Date.parse(session.expiresAt) <= Date.now()) return stopInternal();
+      await startGPS();
+    } else await stopGPS();
+    await syncTracking(true);
+  } catch (error) {
+    await store.patch(session.id, { error: message(error) });
+    throw error;
+  }
+}
+async function stopInternal() {
+  const store = await trackingStore(),
+    session = await store.get();
+  if (!session) return;
+  // Persist the stop before any network request or native shutdown. Late callbacks cannot append.
+  await store.patch(session.id, {
+    phase: "stopping",
+    stoppedAt: session.stoppedAt ?? new Date().toISOString(),
+  });
+  await stopGPS();
+  await syncing?.catch(() => {});
+  await syncTracking(true);
+}
+async function discardInternal() {
+  const store = await trackingStore(),
+    session = await store.get();
+  if (!session || session.phase !== "stopping")
+    throw new Error("Stop tracking before discarding saved positions.");
+  await owner(session);
+  await stopGPS();
+  await syncing?.catch(() => {});
+  // Never forget an active server session on an uncertain network response.
+  await trackingRpc("stop_tracking_session", {
+    p_id: session.id,
+    p_stopped_at: session.stoppedAt,
+  });
+  await store.clear(session.id);
+}
+export async function recordLocations(locations: LocationFix[]) {
+  const store = await trackingStore(),
+    session = await store.get();
+  if (!session || session.phase !== "recording") return;
+  if (Date.now() >= Date.parse(session.expiresAt)) return stopTracking();
+  try {
+    // Capture is fully offline; only uploads require a current authenticated session.
+    const points = locations
+      .map((f) => normalizeFix(f))
+      .filter((p): p is NonNullable<typeof p> => p !== null);
+    if (points.length) await store.append(session.id, points);
+    else
+      await store.patch(session.id, {
+        error: "Waiting for an accurate GPS fix (100 m or better).",
+      });
+    await syncTracking();
+  } catch (error) {
+    await store.patch(session.id, { error: message(error) });
+    throw error;
+  }
+}
+// Defined at module scope so Expo can launch this task without mounting a screen.
+if (!TaskManager.isTaskDefined(LOCATION_TASK))
+  TaskManager.defineTask<{ locations: Location.LocationObject[] }>(
+    LOCATION_TASK,
+    async ({ data, error }) => {
+      try {
+        if (error) throw new Error(error.message);
+        if (data?.locations) await recordLocations(data.locations);
+      } catch (error) {
+        const store = await trackingStore(),
+          session = await store.get();
+        if (session) await store.patch(session.id, { error: message(error) });
+      }
+    },
+  );
