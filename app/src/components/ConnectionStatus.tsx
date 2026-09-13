@@ -1,17 +1,19 @@
-import { useBLE } from '../context/BLEContext'
 import { useState, useEffect } from 'react'
-import './ConnectionStatus.css'
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { useBLE } from '../context/BLEContext'
+import { useTheme } from '../context/ThemeContext'
+import { themeColors } from '../constants/colors'
 
 export default function ConnectionStatus() {
   const { state, connect, disconnect } = useBLE()
+  const { theme } = useTheme()
+  const colors = themeColors[theme]
   const [currentTime, setCurrentTime] = useState(Date.now())
 
-  // Update current time every second to refresh the "last message" display
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTime(Date.now())
-    }, 1000)
-
+    const tick = () => setCurrentTime(Date.now())
+    tick()
+    const interval = setInterval(tick, 5000)
     return () => clearInterval(interval)
   }, [])
 
@@ -22,81 +24,52 @@ export default function ConnectionStatus() {
     return 'Disconnected'
   }
 
-  const getStatusClass = () => {
-    if (state.isConnecting) return 'connecting'
-    if (state.isConnected) return 'connected'
-    if (state.error) return 'error'
-    return 'disconnected'
-  }
-
-  const getSignalBars = () => {
-    if (!state.isConnected || state.rssi === null) return 0
-    if (state.rssi >= -50) return 4
-    if (state.rssi >= -70) return 3
-    if (state.rssi >= -85) return 2
-    return 1
-  }
-
-  const getSignalClass = () => {
-    const bars = getSignalBars()
-    if (bars >= 3) return 'strong'
-    if (bars === 2) return 'fair'
-    return 'weak'
-  }
-
   const getTimeSinceLastMessage = () => {
     if (!state.lastMessageTime) return 'Never'
-    const diff = Math.floor((currentTime - state.lastMessageTime) / 1000)
-    // Ensure we never show negative values (can happen due to timing precision)
-    const safeDiff = Math.max(0, diff)
-    if (safeDiff < 60) return `${safeDiff}s ago`
-    if (safeDiff < 3600) return `${Math.floor(safeDiff / 60)}m ago`
-    return `${Math.floor(safeDiff / 3600)}h ago`
-  }
-
-  const handleButtonClick = () => {
-    if (state.isConnected) {
-      disconnect()
-    } else {
-      connect()
-    }
+    const diff = Math.max(0, Math.floor((currentTime - state.lastMessageTime) / 1000))
+    if (diff < 60) return `${diff}s ago`
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
+    return `${Math.floor(diff / 3600)}h ago`
   }
 
   return (
-    <div className="connection-status-card">
-      <div className="connection-status-info">
-        <div className={`status-indicator ${getStatusClass()}`}>
-          <span className="status-dot"></span>
-          <span className="status-text">{getStatusText()}</span>
-        </div>
-        {state.isConnected && state.rssi !== null && (
-          <div className="signal-strength">
-            <div className={`signal-bars ${getSignalClass()}`}>
-              {[1, 2, 3, 4].map(bar => (
-                <div
-                  key={bar}
-                  className={`signal-bar ${bar <= getSignalBars() ? 'active' : ''}`}
-                />
-              ))}
-            </div>
-            <span className="signal-text">
-              {state.rssi}dBm ({state.signalQuality})
-            </span>
-          </div>
-        )}
+    <View style={[styles.container, { backgroundColor: colors.panelBg }]}>
+      <View style={styles.info}>
+        <View style={[styles.dot, state.isConnected ? styles.connected : state.isConnecting ? styles.connecting : styles.disconnected]} />
+        <Text style={[styles.statusText, { color: colors.text }]}>{getStatusText()}</Text>
         {state.isConnected && (
-          <div className="last-message-time">
-            Updated: {getTimeSinceLastMessage()}
-          </div>
+          <Text style={[styles.updated, { color: colors.textMuted }]}>Updated: {getTimeSinceLastMessage()}</Text>
         )}
-      </div>
-      <button 
-        className="connection-status-btn"
-        onClick={handleButtonClick}
+      </View>
+      <TouchableOpacity
+        style={[styles.button, state.isConnected ? styles.disconnectBtn : styles.connectBtn]}
+        onPress={() => state.isConnected ? disconnect() : connect()}
         disabled={state.isConnecting}
       >
-        {state.isConnected ? 'Disconnect' : 'Connect'}
-      </button>
-    </div>
+        <Text style={styles.buttonText}>{state.isConnected ? 'Disconnect' : 'Connect'}</Text>
+      </TouchableOpacity>
+    </View>
   )
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+  },
+  info: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
+  dot: { width: 10, height: 10, borderRadius: 5 },
+  connected: { backgroundColor: '#22c55e' },
+  connecting: { backgroundColor: '#f97316' },
+  disconnected: { backgroundColor: '#ef4444' },
+  statusText: { fontSize: 14, fontWeight: '600' },
+  updated: { fontSize: 12 },
+  button: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 },
+  connectBtn: { backgroundColor: '#ef4444' },
+  disconnectBtn: { backgroundColor: '#4a5568' },
+  buttonText: { color: '#fff', fontWeight: '600', fontSize: 14 },
+})

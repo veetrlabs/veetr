@@ -102,7 +102,7 @@ function handleRelease(args) {
   }
 
   // Read current version from app package.json
-  const appPackageJsonPath = path.join(__dirname, 'app/package.json')
+  const appPackageJsonPath = path.join(__dirname, 'pwa/package.json')
   const appPackageJson = JSON.parse(fs.readFileSync(appPackageJsonPath, 'utf8'))
   const currentVersion = appPackageJson.version
 
@@ -150,15 +150,15 @@ function handleRelease(args) {
 // Helper function to sync versions across all files
 function syncVersions(version) {
   // Update app package.json
-  const webPackageJsonPath = path.join(__dirname, 'app/package.json')
+  const webPackageJsonPath = path.join(__dirname, 'pwa/package.json')
   if (fs.existsSync(webPackageJsonPath)) {
     const pkg = JSON.parse(fs.readFileSync(webPackageJsonPath, 'utf8'))
     pkg.version = version
     fs.writeFileSync(webPackageJsonPath, JSON.stringify(pkg, null, 2) + '\n')
-    console.log(`${c.success('✓')} Updated app/package.json to ${version}`)
+    console.log(`${c.success('✓')} Updated pwa/package.json to ${version}`)
     
     // Update app package-lock.json
-    const webPackageLockPath = path.join(__dirname, 'app/package-lock.json')
+    const webPackageLockPath = path.join(__dirname, 'pwa/package-lock.json')
     if (fs.existsSync(webPackageLockPath)) {
       const lockPkg = JSON.parse(fs.readFileSync(webPackageLockPath, 'utf8'))
       lockPkg.version = version
@@ -166,12 +166,12 @@ function syncVersions(version) {
         lockPkg.packages[""].version = version
       }
       fs.writeFileSync(webPackageLockPath, JSON.stringify(lockPkg, null, 2) + '\n')
-      console.log(`${c.success('✓')} Updated app/package-lock.json to ${version}`)
+      console.log(`${c.success('✓')} Updated pwa/package-lock.json to ${version}`)
     }
   }
 
   // Update Service Worker cache names for PWA cache invalidation
-  const swPath = path.join(__dirname, 'app/public/sw.js')
+  const swPath = path.join(__dirname, 'pwa/public/sw.js')
   if (fs.existsSync(swPath)) {
     let content = fs.readFileSync(swPath, 'utf8')
     // Extract major.minor from version for cache naming (e.g., 0.0.15 -> v1.3)
@@ -193,7 +193,7 @@ function syncVersions(version) {
     fs.writeFileSync(swPath, content)
     console.log(`${c.success('✓')} Updated Service Worker cache names to ${cacheVersion}`)
   } else {
-    console.log(`⚠️  app/public/sw.js not found, skipping`)
+    console.log(`⚠️  pwa/public/sw.js not found, skipping`)
   }
 
   // Update firmware version
@@ -210,12 +210,12 @@ function syncVersions(version) {
 }
 
 function handleVersion() {
-  const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, 'app/package.json'), 'utf8'))
+  const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, 'pwa/package.json'), 'utf8'))
   console.log(`${c.info('📦')} Veetr v${packageJson.version}`)
   
   // Also show versions from other files for comparison
   try {
-    const webPackage = JSON.parse(fs.readFileSync(path.join(__dirname, 'app/package.json'), 'utf8'))
+    const webPackage = JSON.parse(fs.readFileSync(path.join(__dirname, 'pwa/package.json'), 'utf8'))
     console.log(`   Web: ${c.success('v' + webPackage.version)}`)
   } catch (e) {
     console.log(`   Web: package.json not found`)
@@ -240,13 +240,13 @@ function handleBuild(args) {
   
   if (!target || target === 'all') {
     console.log('Building everything...')
-    runCommand('npm install', 'Installing app dependencies', { cwd: path.join(__dirname, 'app') })
-    runCommand('npm run build', 'Building web app', { cwd: path.join(__dirname, 'app') })
+    runCommand('npm install', 'Installing app dependencies', { cwd: path.join(__dirname, 'pwa') })
+    runCommand('npm run build', 'Building web app', { cwd: path.join(__dirname, 'pwa') })
     runCommand('pio run', 'Building firmware', { cwd: path.join(__dirname, 'firmware') })
   } else if (target === 'app') {
     console.log('Building web app...')
-    runCommand('npm install', 'Installing app dependencies', { cwd: path.join(__dirname, 'app') })
-    runCommand('npm run build', 'Building web app', { cwd: path.join(__dirname, 'app') })
+    runCommand('npm install', 'Installing app dependencies', { cwd: path.join(__dirname, 'pwa') })
+    runCommand('npm run build', 'Building web app', { cwd: path.join(__dirname, 'pwa') })
   } else if (target === 'firmware') {
     console.log('Building firmware...')
     runCommand('pio run', 'Building firmware', { cwd: path.join(__dirname, 'firmware') })
@@ -260,7 +260,7 @@ function handleBuild(args) {
 function handleDev() {
   console.log(`${c.info('🚀 Veetr Development Server')}`)
   console.log('Starting app development server...')
-  runCommand('npm run dev', null, { cwd: path.join(__dirname, 'app') })
+  runCommand('npm run dev', null, { cwd: path.join(__dirname, 'pwa') })
 }
 
 function handleHelp(args) {

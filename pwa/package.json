@@ -1,0 +1,45 @@
+{
+  "name": "veetr",
+  "version": "0.0.28",
+  "type": "module",
+  "description": "Modern React sailing dashboard with BLE connectivity",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "deploy": "npm run build && gh-pages -d dist"
+  },
+  "dependencies": {
+    "@veetr/shared": "file:../packages/shared",
+    "leaflet": "^1.9.4",
+    "lucide-react": "^0.544.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-leaflet": "^4.2.1"
+  },
+  "devDependencies": {
+    "@types/leaflet": "^1.9.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@types/web-bluetooth": "^0.0.21",
+    "@vitejs/plugin-react": "^4.0.0",
+    "gh-pages": "^6.0.0",
+    "typescript": "^5.0.0",
+    "vite": "^4.4.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/veetrlabs/veetr.git"
+  },
+  "keywords": [
+    "sailing",
+    "dashboard",
+    "bluetooth",
+    "ble",
+    "react",
+    "typescript",
+    "esp32"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}

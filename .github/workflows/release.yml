@@ -30,7 +30,7 @@ jobs:
         echo "🔍 Validating version consistency across all files..."
         
         # Check app package.json
-        APP_VERSION=$(node -e "console.log(require('./app/package.json').version)")
+        APP_VERSION=$(node -e "console.log(require('./pwa/package.json').version)")
         echo "App package.json version: $APP_VERSION"
         
         # Check firmware version

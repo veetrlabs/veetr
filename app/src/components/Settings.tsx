@@ -1,760 +1,341 @@
 import { useState, useRef, useEffect } from 'react'
+import { View, Text, TouchableOpacity, ScrollView, TextInput, Alert, StyleSheet, Animated, Dimensions } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useTheme } from '../context/ThemeContext'
+import { themeColors } from '../constants/colors'
 import { useBLE } from '../context/BLEContext'
 import { hasValidGPSFix } from '../utils/gpsValidation'
 import { FirmwareUpdateCard } from './cards/FirmwareUpdateCard'
 import DataManager from './DataManager'
 import ThemeToggle from './ThemeToggle'
 import { APP_VERSION } from '../utils/version'
-import { Menu, X, Moon, Bluetooth, Flag, Settings as SettingsIcon, Info, ChevronRight, ChevronLeft, AlertTriangle } from 'lucide-react'
-import './Settings.css'
+
+const PANEL_WIDTH = Math.min(Dimensions.get('window').width * 0.85, 360)
+
+type ViewType = 'main' | 'bluetooth' | 'calibration' | 'regatta' | 'about'
 
 export default function Settings() {
+  const insets = useSafeAreaInsets()
   const [menuOpen, setMenuOpen] = useState(false)
-  const [currentView, setCurrentView] = useState<'main' | 'bluetooth' | 'calibration' | 'regatta' | 'about'>('main')
-  const [actionInProgress, setActionInProgress] = useState<string | null>(null)
+  const [isVisible, setIsVisible] = useState(false)
+  const [currentView, setCurrentView] = useState<ViewType>('main')
   const [deviceName, setDeviceName] = useState('')
-  const [refreshRate, setRefreshRate] = useState(1.0) // Default 1 second
-  const menuRef = useRef<HTMLDivElement>(null)
-  const { state, sendCommand, getDeviceName, connect, disconnect } = useBLE()
+  const slideAnim = useRef(new Animated.Value(PANEL_WIDTH)).current
+  const { state, sendCommand, connect, disconnect } = useBLE()
+  const { theme } = useTheme()
+  const colors = themeColors[theme]
 
-  // Request device name when Settings component mounts and is connected
   useEffect(() => {
-    if (state.isConnected && !state.deviceName) {
-      getDeviceName()
-    }
-  }, [state.isConnected, state.deviceName, getDeviceName])
-
-  // Pre-fill device name when connected device name is available
-  useEffect(() => {
-    if (state.deviceName && deviceName === '') {
-      setDeviceName(state.deviceName)
-    }
-  }, [state.deviceName, deviceName])
-
-  // Load saved refresh rate from localStorage
-  useEffect(() => {
-    const savedRefreshRate = localStorage.getItem('veetr-refresh-rate')
-    if (savedRefreshRate) {
-      const rate = parseFloat(savedRefreshRate)
-      if (rate >= 0.5 && rate <= 2.0) {
-        setRefreshRate(rate)
-      }
-    }
-  }, [])
-
-  // Sync refresh rate with device when connected (only once per connection)
-  useEffect(() => {
-    if (state.isConnected && refreshRate !== 1.0) {
-      // Send saved refresh rate to device when connection is established
-      sendCommand({ 
-        action: 'setRefreshRate', 
-        refreshRate: refreshRate 
-      }).catch(error => {
-        console.error('Error syncing refresh rate with device:', error)
+    if (menuOpen) {
+      setCurrentView('main')
+      setIsVisible(true)
+      Animated.timing(slideAnim, { toValue: 0, duration: 300, useNativeDriver: true }).start()
+    } else {
+      Animated.timing(slideAnim, { toValue: PANEL_WIDTH, duration: 250, useNativeDriver: true }).start(() => {
+        setIsVisible(false)
       })
     }
-  }, [state.isConnected]) // Remove refreshRate and sendCommand from dependencies to prevent loops
+  }, [menuOpen])
 
-  // Close menu when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setMenuOpen(false)
-        setCurrentView('main')
-      }
-    }
+  const openMenu = () => setMenuOpen(true)
+  const closeMenu = () => setMenuOpen(false)
 
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [])
-
-  const toggleMenu = () => {
-    setMenuOpen(!menuOpen)
-    if (!menuOpen) {
-      setCurrentView('main')
-    }
-  }
-
-  const navigateToView = (view: 'main' | 'bluetooth' | 'calibration' | 'regatta' | 'about') => {
+  const navigateTo = (view: ViewType) => {
     setCurrentView(view)
   }
 
-  const handleCalibrateLevel = async () => {
-    if (!state.isConnected) {
-      alert('Please connect to Veetr device first')
-      return
-    }
-
-    if (window.confirm('Calibrate vessel level position? This will set the current orientation as level (0°) across all axes.')) {
-      setActionInProgress('resetHeel')
-      try {
+  const handleCalibrateLevel = () => {
+    if (!state.isConnected) { Alert.alert('Not Connected', 'Please connect to Veetr device first'); return }
+    Alert.alert('Calibrate Level', 'This will set the current orientation as level (0°) across all axes.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Calibrate', onPress: async () => {
         const success = await sendCommand({ action: 'resetHeelAngle' })
-        if (success) {
-          alert('Vessel level calibration completed successfully!')
-        } else {
-          alert('Failed to calibrate level position. Please try again.')
-        }
-      } catch (error) {
-        console.error('Failed to calibrate level:', error)
-        alert('Error calibrating level position')
-      } finally {
-        setActionInProgress(null)
-      }
-    }
+        Alert.alert(success ? 'Success' : 'Failed', success ? 'Vessel level calibration completed!' : 'Failed to calibrate.')
+      }}
+    ])
   }
 
-  const handleCalibrateCompass = async () => {
-    if (!state.isConnected) {
-      alert('Please connect to Veetr device first')
-      return
-    }
-
-    if (window.confirm('Calibrate compass to north? Point the vessel\'s bow toward north and press OK. This will set the current magnetic heading as the north reference.')) {
-      setActionInProgress('resetCompass')
-      try {
+  const handleCalibrateCompass = () => {
+    if (!state.isConnected) { Alert.alert('Not Connected', 'Please connect to Veetr device first'); return }
+    Alert.alert('Calibrate Compass', "Point the vessel's bow toward north.", [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Calibrate', onPress: async () => {
         const success = await sendCommand({ action: 'resetCompassNorth' })
-        if (success) {
-          alert('Compass calibrated successfully! The current heading is now set as north (0°).')
-        } else {
-          alert('Failed to calibrate compass. Please try again.')
-        }
-      } catch (error) {
-        console.error('Failed to calibrate compass:', error)
-        alert('Error calibrating compass')
-      } finally {
-        setActionInProgress(null)
-      }
-    }
+        Alert.alert(success ? 'Success' : 'Failed', success ? 'Compass calibrated!' : 'Failed to calibrate.')
+      }}
+    ])
   }
 
-  const handleSetDeviceName = async () => {
-    if (!state.isConnected) {
-      alert('Please connect to Veetr device first')
-      return
-    }
-
-    if (!deviceName.trim()) {
-      alert('Please enter a device name')
-      return
-    }
-
-    if (deviceName.length > 20) {
-      alert('Device name must be 20 characters or less')
-      return
-    }
-
-    if (!/^[A-Za-z0-9_\- ]+$/.test(deviceName)) {
-      alert('Device name can only contain letters, numbers, underscore (_), hyphen (-), and space')
-      return
-    }
-
-    if (window.confirm(`Change device name to "${deviceName.trim()}"? The device will restart and you'll need to reconnect.`)) {
-      setActionInProgress('setDeviceName')
-      try {
-        const success = await sendCommand({ 
-          action: 'setDeviceName', 
-          deviceName: deviceName.trim() 
-        })
-        if (success) {
-          alert(`Device name changed to "${deviceName.trim()}". Device is restarting...`)
-          setDeviceName('')
-          // The device will restart, so we'll be disconnected
-          setTimeout(() => {
-            window.location.reload()
-          }, 2000)
-        } else {
-          alert('Failed to set device name. Please try again.')
-        }
-      } catch (error) {
-        console.error('Failed to set device name:', error)
-        alert('Error setting device name')
-      } finally {
-        setActionInProgress(null)
-      }
-    }
+  const handleSetDeviceName = () => {
+    if (!state.isConnected) { Alert.alert('Not Connected', 'Please connect first'); return }
+    if (!deviceName.trim()) { Alert.alert('Invalid', 'Please enter a device name'); return }
+    Alert.alert('Set Device Name', `Change device name to "${deviceName.trim()}"? Device will restart.`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Set', onPress: async () => {
+        const success = await sendCommand({ action: 'setDeviceName', deviceName: deviceName.trim() })
+        Alert.alert(success ? 'Success' : 'Failed', success ? 'Device name set. Device is restarting.' : 'Failed to set name.')
+      }}
+    ])
   }
 
-    const handleRefreshRateChange = async (newRate: number) => {
-    setRefreshRate(newRate)
-    
-    // Save to localStorage
-    localStorage.setItem('veetr-refresh-rate', newRate.toString())
-    
-    if (!state.isConnected) {
-      return // Just update local state, don't try to send command
-    }
-
-    try {
-      const success = await sendCommand({ 
-        action: 'setRefreshRate', 
-        refreshRate: newRate 
-      })
-      if (!success) {
-        console.error('Failed to set refresh rate on device')
-      }
-    } catch (error) {
-      console.error('Error setting refresh rate:', error)
-    }
+  const handleRegattaSet = async (side: 'port' | 'starboard') => {
+    if (!state.isConnected) { Alert.alert('Not Connected', 'Please connect first'); return }
+    const hasGPS = hasValidGPSFix(state.sailingData.gpsSatellites, state.sailingData.lat, state.sailingData.lon)
+    if (!hasGPS) { Alert.alert('No GPS', 'GPS fix required. Need at least 3 satellites.'); return }
+    const success = await sendCommand({ action: side === 'port' ? 'regattaSetPort' : 'regattaSetStarboard' })
+    if (!success) Alert.alert('Failed', `Failed to set ${side} position.`)
   }
 
-  // Get regatta coordinates from BLE state
-  const portCoords = state.sailingData.portLat !== null && state.sailingData.portLon !== null
-    ? { lat: state.sailingData.portLat, lon: state.sailingData.portLon }
-    : null
-  const starboardCoords = state.sailingData.starboardLat !== null && state.sailingData.starboardLon !== null
-    ? { lat: state.sailingData.starboardLat, lon: state.sailingData.starboardLon }
-    : null
-
-  // Request regatta line from ESP when regatta view is opened (only once)
-  useEffect(() => {
-    if (state.isConnected && currentView === 'regatta') {
-      sendCommand({ action: 'regattaGet' }).catch(error => {
-        console.error('Failed to request regatta coordinates:', error)
-      })
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.isConnected, currentView]) // Intentionally exclude sendCommand to prevent infinite loop
-
-  const handleRegattaSetPort = async () => {
-    if (!state.isConnected) {
-      alert('Please connect to Veetr device first')
-      return
-    }
-
-    // Check GPS status from sailing data
-    const hasGPS = hasValidGPSFix(state.sailingData)
-
-    if (!hasGPS) {
-      alert('GPS fix required to set regatta line positions.\n\nPlease wait for GPS satellite acquisition (need at least 3 satellites) and try again.')
-      return
-    }
-
-    setActionInProgress('regattaPort')
-    try {
-      const success = await sendCommand({ action: 'regattaSetPort' })
-      if (success) {
-        // Coordinates will be updated via BLE state automatically
-        // No alert - we'll show coordinates in the UI
-      } else {
-        console.error('Failed to set port position')
-        alert('Failed to set port position. Please ensure GPS has a valid fix and try again.')
-      }
-    } catch (error) {
-      console.error('Failed to set port marker:', error)
-      alert('Error setting port position. Please check GPS connection and try again.')
-    } finally {
-      setActionInProgress(null)
-    }
+  const handleRegattaClear = async (side: 'port' | 'starboard') => {
+    if (!state.isConnected) { Alert.alert('Not Connected', 'Please connect first'); return }
+    const success = await sendCommand({ action: side === 'port' ? 'regattaClearPort' : 'regattaClearStarboard' })
+    if (!success) Alert.alert('Failed', `Failed to clear ${side} position.`)
   }
 
-  const handleRegattaClearPort = async () => {
-    if (!state.isConnected) {
-      alert('Please connect to Veetr device first')
-      return
-    }
+  const renderMainMenu = () => (
+    <>
+      <View style={[styles.menuHeader, { borderBottomColor: colors.border }]}>
+        <Text style={[styles.menuTitle, { color: colors.text }]}>Veetr Menu</Text>
+        <TouchableOpacity onPress={closeMenu}><Text style={[styles.close, { color: colors.textMuted }]}>✕</Text></TouchableOpacity>
+      </View>
 
-    setActionInProgress('regattaClearPort')
-    try {
-      const success = await sendCommand({ action: 'regattaClearPort' })
-      if (success) {
-        // Coordinates will be cleared via BLE state automatically
-      } else {
-        alert('Failed to clear port position. Please try again.')
-      }
-    } catch (error) {
-      console.error('Failed to clear port marker:', error)
-      alert('Error clearing port position')
-    } finally {
-      setActionInProgress(null)
-    }
-  }
+      <TouchableOpacity style={[styles.menuItem, { borderBottomColor: colors.border }]} onPress={() => navigateTo('bluetooth')}>
+        <Text style={[styles.menuItemText, { color: colors.text }]}>Bluetooth</Text>
+        <Text style={[styles.arrow, { color: colors.textSubtle }]}>›</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={[styles.menuItem, { borderBottomColor: colors.border }]} onPress={() => navigateTo('regatta')}>
+        <Text style={[styles.menuItemText, { color: colors.text }]}>Regatta</Text>
+        <Text style={[styles.arrow, { color: colors.textSubtle }]}>›</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={[styles.menuItem, { borderBottomColor: colors.border }]} onPress={() => navigateTo('calibration')}>
+        <Text style={[styles.menuItemText, { color: colors.text }]}>Calibration</Text>
+        <Text style={[styles.arrow, { color: colors.textSubtle }]}>›</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={[styles.menuItem, { borderBottomColor: colors.border }]} onPress={() => navigateTo('about')}>
+        <Text style={[styles.menuItemText, { color: colors.text }]}>About</Text>
+        <Text style={[styles.arrow, { color: colors.textSubtle }]}>›</Text>
+      </TouchableOpacity>
 
-  const handleRegattaSetStarboard = async () => {
-    if (!state.isConnected) {
-      alert('Please connect to Veetr device first')
-      return
-    }
+      <View style={[styles.themeRow]}>
+        <Text style={[styles.themeLabel, { color: colors.text }]}>Theme</Text>
+        <ThemeToggle />
+      </View>
+    </>
+  )
 
-    // Check GPS status from sailing data
-    const hasGPS = hasValidGPSFix(state.sailingData)
+  const renderBluetooth = () => (
+    <>
+      <View style={[styles.menuHeader, { borderBottomColor: colors.border }]}>
+        <TouchableOpacity onPress={() => navigateTo('main')}><Text style={styles.back}>‹ Back</Text></TouchableOpacity>
+        <Text style={[styles.menuTitle, { color: colors.text }]}>Bluetooth</Text>
+        <TouchableOpacity onPress={closeMenu}><Text style={[styles.close, { color: colors.textMuted }]}>✕</Text></TouchableOpacity>
+      </View>
 
-    if (!hasGPS) {
-      alert('GPS fix required to set regatta line positions.\n\nPlease wait for GPS satellite acquisition (need at least 3 satellites) and try again.')
-      return
-    }
+      <View style={styles.statusBox}>
+        <View style={[styles.statusDot, state.isConnected ? styles.connected : styles.disconnected]} />
+        <Text style={[styles.statusText, { color: colors.text }]}>
+          {state.isConnecting ? 'Connecting...' : state.isConnected ? 'Connected' : 'Disconnected'}
+        </Text>
+      </View>
 
-    setActionInProgress('regattaStarboard')
-    try {
-      const success = await sendCommand({ action: 'regattaSetStarboard' })
-      if (success) {
-        // Coordinates will be updated via BLE state automatically
-        // No alert - we'll show coordinates in the UI
-      } else {
-        console.error('Failed to set starboard position')
-        alert('Failed to set starboard position. Please ensure GPS has a valid fix and try again.')
-      }
-    } catch (error) {
-      console.error('Failed to set starboard marker:', error)
-      alert('Error setting starboard position. Please check GPS connection and try again.')
-    } finally {
-      setActionInProgress(null)
-    }
-  }
+      <TouchableOpacity
+        style={[styles.bigButton, state.isConnected ? styles.disconnectBtn : styles.connectBtn]}
+        onPress={() => state.isConnected ? disconnect() : connect()}
+        disabled={state.isConnecting}
+      >
+        <Text style={styles.bigButtonText}>
+          {state.isConnecting ? 'Connecting...' : state.isConnected ? 'Disconnect' : 'Connect to Veetr'}
+        </Text>
+      </TouchableOpacity>
 
-  const handleRegattaClearStarboard = async () => {
-    if (!state.isConnected) {
-      alert('Please connect to Veetr device first')
-      return
-    }
+      <View style={styles.section}>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Device Name</Text>
+        <TextInput
+          style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
+          value={deviceName}
+          onChangeText={setDeviceName}
+          placeholder="Veetr_Port_Side"
+          placeholderTextColor={colors.textSubtle}
+          maxLength={20}
+        />
+        <TouchableOpacity style={[styles.smallButton, { backgroundColor: colors.text }]} onPress={handleSetDeviceName}>
+          <Text style={styles.smallButtonText}>Set Name</Text>
+        </TouchableOpacity>
+      </View>
+    </>
+  )
 
-    setActionInProgress('regattaClearStarboard')
-    try {
-      const success = await sendCommand({ action: 'regattaClearStarboard' })
-      if (success) {
-        // Coordinates will be cleared via BLE state automatically
-      } else {
-        alert('Failed to clear starboard position. Please try again.')
-      }
-    } catch (error) {
-      console.error('Failed to clear starboard marker:', error)
-      alert('Error clearing starboard position')
-    } finally {
-      setActionInProgress(null)
-    }
-  }
+  const renderCalibration = () => (
+    <>
+      <View style={[styles.menuHeader, { borderBottomColor: colors.border }]}>
+        <TouchableOpacity onPress={() => navigateTo('main')}><Text style={styles.back}>‹ Back</Text></TouchableOpacity>
+        <Text style={[styles.menuTitle, { color: colors.text }]}>Calibration</Text>
+        <TouchableOpacity onPress={closeMenu}><Text style={[styles.close, { color: colors.textMuted }]}>✕</Text></TouchableOpacity>
+      </View>
+
+      <TouchableOpacity style={[styles.menuItem, { borderBottomColor: colors.border }]} onPress={handleCalibrateLevel}>
+        <Text style={[styles.menuItemText, { color: colors.text }]}>Set vessel is Level</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={[styles.menuItem, { borderBottomColor: colors.border }]} onPress={handleCalibrateCompass}>
+        <Text style={[styles.menuItemText, { color: colors.text }]}>Set vessel pointing North</Text>
+      </TouchableOpacity>
+    </>
+  )
+
+  const renderRegatta = () => (
+    <>
+      <View style={[styles.menuHeader, { borderBottomColor: colors.border }]}>
+        <TouchableOpacity onPress={() => navigateTo('main')}><Text style={styles.back}>‹ Back</Text></TouchableOpacity>
+        <Text style={[styles.menuTitle, { color: colors.text }]}>Regatta</Text>
+        <TouchableOpacity onPress={closeMenu}><Text style={[styles.close, { color: colors.textMuted }]}>✕</Text></TouchableOpacity>
+      </View>
+
+      <TouchableOpacity style={[styles.menuItem, { borderBottomColor: colors.border }]} onPress={() => handleRegattaSet('port')}>
+        <Text style={[styles.menuItemText, { color: colors.text }]}>Set Port Line</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={[styles.menuItem, { borderBottomColor: colors.border }]} onPress={() => handleRegattaClear('port')}>
+        <Text style={[styles.menuItemText, { color: '#e53e3e' }]}>Clear Port Line</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={[styles.menuItem, { borderBottomColor: colors.border }]} onPress={() => handleRegattaSet('starboard')}>
+        <Text style={[styles.menuItemText, { color: colors.text }]}>Set Starboard Line</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={[styles.menuItem, { borderBottomColor: colors.border }]} onPress={() => handleRegattaClear('starboard')}>
+        <Text style={[styles.menuItemText, { color: '#e53e3e' }]}>Clear Starboard Line</Text>
+      </TouchableOpacity>
+    </>
+  )
+
+  const renderAbout = () => (
+    <>
+      <View style={[styles.menuHeader, { borderBottomColor: colors.border }]}>
+        <TouchableOpacity onPress={() => navigateTo('main')}><Text style={styles.back}>‹ Back</Text></TouchableOpacity>
+        <Text style={[styles.menuTitle, { color: colors.text }]}>About</Text>
+        <TouchableOpacity onPress={closeMenu}><Text style={[styles.close, { color: colors.textMuted }]}>✕</Text></TouchableOpacity>
+      </View>
+
+      <FirmwareUpdateCard />
+      <DataManager />
+      <Text style={[styles.version, { color: colors.textSubtle }]}>App Version: {APP_VERSION}</Text>
+    </>
+  )
 
   return (
-    <div className="settings-container" ref={menuRef}>
-      <button 
-        className="hamburger-button"
-        onClick={toggleMenu}
-        aria-label="Settings menu"
-      >
-        <Menu size={24} />
-      </button>
-      
-      {menuOpen && (
-        <div className="settings-menu">
-          {currentView === 'main' && (
-            <>
-              <div className="menu-header">
-                <h3>Veetr Menu</h3>
-                <button 
-                  className="close-button" 
-                  onClick={() => setMenuOpen(false)}
-                  aria-label="Close menu"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-              
-              <div className="menu-section">
-                <div className="menu-item main-menu-item theme-menu-item">
-                  <span className="menu-icon">
-                    <Moon size={20} />
-                  </span>
-                  <div className="menu-item-content">
-                    <h4>Theme</h4>
-                    <p>Switch between light and dark mode</p>
-                  </div>
-                  <div className="theme-toggle-container">
-                    <ThemeToggle variant="menu" />
-                  </div>
-                </div>
+    <>
+      <TouchableOpacity style={[styles.hamburger, { backgroundColor: colors.buttonBg, top: insets.top + 8 }]} onPress={openMenu}>
+        <Text style={[styles.hamburgerText, { color: colors.text }]}>☰</Text>
+      </TouchableOpacity>
 
-                <button 
-                  className="menu-item main-menu-item" 
-                  onClick={() => navigateToView('bluetooth')}
-                >
-                  <span className="menu-icon">
-                    <Bluetooth size={20} />
-                  </span>
-                  <div className="menu-item-content">
-                    <h4>Bluetooth</h4>
-                    <p>Connection and device pairing</p>
-                  </div>
-                  <span className="menu-arrow">
-                    <ChevronRight size={16} />
-                  </span>
-                </button>
-                
-                <button 
-                  className="menu-item main-menu-item" 
-                  onClick={() => navigateToView('regatta')}
-                >
-                  <span className="menu-icon">
-                    <Flag size={20} />
-                  </span>
-                  <div className="menu-item-content">
-                    <h4>Regatta</h4>
-                    <p>Starting procedure and race setup</p>
-                  </div>
-                  <span className="menu-arrow">
-                    <ChevronRight size={16} />
-                  </span>
-                </button>
-
-                <button 
-                  className="menu-item main-menu-item" 
-                  onClick={() => navigateToView('calibration')}
-                >
-                  <span className="menu-icon">
-                    <SettingsIcon size={20} />
-                  </span>
-                  <div className="menu-item-content">
-                    <h4>Calibration</h4>
-                    <p>Calibrate after installation</p>
-                  </div>
-                  <span className="menu-arrow">
-                    <ChevronRight size={16} />
-                  </span>
-                </button>
-                
-                <button 
-                  className="menu-item main-menu-item" 
-                  onClick={() => navigateToView('about')}
-                >
-                  <span className="menu-icon">
-                    <Info size={20} />
-                  </span>
-                  <div className="menu-item-content">
-                    <h4>About</h4>
-                    <p>Version info and updates</p>
-                  </div>
-                  <span className="menu-arrow">
-                    <ChevronRight size={16} />
-                  </span>
-                </button>
-              </div>
-            </>
-          )}
-
-          {currentView === 'bluetooth' && (
-            <>
-              <div className="menu-header">
-                <button 
-                  className="back-button" 
-                  onClick={() => navigateToView('main')}
-                  aria-label="Back to main menu"
-                >
-                  <ChevronLeft size={20} />
-                </button>
-                <h3>Bluetooth</h3>
-                <button 
-                  className="close-button" 
-                  onClick={() => setMenuOpen(false)}
-                  aria-label="Close menu"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              <div className="menu-section">
-                <div className="bluetooth-status">
-                  {state.isConnected ? (
-                    <div className="connection-info">
-                      <div className="status-indicator connected">
-                        <span className="status-dot"></span>
-                        <span className="status-text">Connected</span>
-                      </div>
-                      {state.rssi !== null && (
-                        <p className="signal-strength">Signal: {state.rssi}dBm ({state.signalQuality})</p>
-                      )}
-                      {state.lastMessageTime && (
-                        <p className="last-update">
-                          Last update: {Math.floor((Date.now() - state.lastMessageTime) / 1000)}s ago
-                        </p>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="connection-info">
-                      <div className="status-indicator disconnected">
-                        <span className="status-dot"></span>
-                        <span className="status-text">
-                          {state.isConnecting ? 'Connecting...' : 'Disconnected'}
-                        </span>
-                      </div>
-                      {state.error && (
-                        <p className="error-message">Error: {state.error}</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-                
-                <button 
-                  className={`menu-item connection-button ${state.isConnected ? 'connected' : 'disconnected'}`}
-                  onClick={() => state.isConnected ? disconnect() : connect()}
-                  disabled={state.isConnecting}
-                >
-                  {state.isConnecting 
-                    ? 'Connecting...' 
-                    : state.isConnected 
-                      ? 'Disconnect' 
-                      : 'Connect to Veetr'
-                  }
-                </button>
-              </div>
-
-              <div className="menu-section">
-                <div className="input-group">
-                  <label htmlFor="deviceName">Device Name:</label>
-                  <input 
-                    id="deviceName"
-                    type="text"
-                    value={deviceName}
-                    onChange={(e) => setDeviceName(e.target.value)}
-                    placeholder={state.deviceName || "Veetr_Port_Side"}
-                    maxLength={20}
-                    disabled={actionInProgress !== null}
-                  />
-                  <button 
-                    onClick={handleSetDeviceName}
-                    disabled={actionInProgress !== null || !state.isConnected || !deviceName.trim()}
-                    className="action-button"
-                  >
-                    {actionInProgress === 'setDeviceName' ? 'Setting...' : 'Set Name'}
-                  </button>
-                </div>
-                <p className="help-text">Device will restart after name change. Allowed: letters, numbers, underscore, hyphen, space</p>
-              </div>
-
-              <div className="menu-section">
-                <div className="input-group">
-                  <label htmlFor="refreshRate">Data Refresh Rate: {refreshRate.toFixed(1)}s</label>
-                  <input 
-                    id="refreshRate"
-                    type="range"
-                    min="0.5"
-                    max="2.0"
-                    step="0.1"
-                    value={refreshRate}
-                    onChange={(e) => handleRefreshRateChange(parseFloat(e.target.value))}
-                    className="range-input"
-                    disabled={!state.isConnected}
-                  />
-                </div>
-                <p className="help-text">Controls how often sensor data is transmitted. Lower values provide smoother updates but use more battery.</p>
-              </div>
-
-              {!state.isConnected && (
-                <div className="connection-warning">
-                  <p><AlertTriangle size={16} className="inline-icon" /> Connect to Veetr device to configure settings</p>
-                </div>
-              )}
-            </>
-          )}
-
-          {currentView === 'calibration' && (
-            <>
-              <div className="menu-header">
-                <button 
-                  className="back-button" 
-                  onClick={() => navigateToView('main')}
-                  aria-label="Back to main menu"
-                >
-                  <ChevronLeft size={20} />
-                </button>
-                <h3>Calibration</h3>
-                <button 
-                  className="close-button" 
-                  onClick={() => setMenuOpen(false)}
-                  aria-label="Close menu"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-              
-              <div className="menu-section">
-                <button 
-                  className="menu-item" 
-                  onClick={handleCalibrateLevel}
-                  disabled={actionInProgress !== null || !state.isConnected}
-                >
-                  {actionInProgress === 'resetHeel' ? 'Calibrating...' : 'Set vessel is Level'}
-                </button>
-                <p className="help-text">Calibrates current position as level across all axes (heel, pitch, roll)</p>
-                
-                <button 
-                  className="menu-item" 
-                  onClick={handleCalibrateCompass}
-                  disabled={actionInProgress !== null || !state.isConnected}
-                >
-                  {actionInProgress === 'resetCompass' ? 'Calibrating...' : 'Set vessel pointing North'}
-                </button>
-                <p className="help-text">Point vessel's bow to north, then press to calibrate compass heading</p>
-              </div>
-
-              {!state.isConnected && (
-                <div className="connection-warning">
-                  <p><AlertTriangle size={16} className="inline-icon" /> Connect to Veetr device to access settings</p>
-                </div>
-              )}
-            </>
-          )}
-
-          {currentView === 'regatta' && (
-            <>
-              <div className="menu-header">
-                <button 
-                  className="back-button" 
-                  onClick={() => navigateToView('main')}
-                  aria-label="Back to main menu"
-                >
-                  <ChevronLeft size={20} />
-                </button>
-                <h3>Regatta</h3>
-                <button 
-                  className="close-button" 
-                  onClick={() => setMenuOpen(false)}
-                  aria-label="Close menu"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-              
-              <div className="menu-section">
-                <h4>Start Line Setup</h4>
-                
-                {/* Port Line */}
-                <div style={{ marginBottom: '16px' }}>
-                  {!portCoords ? (
-                    <>
-                      <button 
-                        className="menu-item"
-                        onClick={handleRegattaSetPort}
-                        disabled={actionInProgress !== null || !state.isConnected}
-                      >
-                        {actionInProgress === 'regattaPort' ? 'Setting...' : 'Set Port Line'}
-                      </button>
-                      <p className="help-text">Navigate to the port mark and press the button to set its position.</p>
-                    </>
-                  ) : (
-                    <>
-                      <div style={{ padding: '12px', backgroundColor: 'var(--card-bg)', borderRadius: '8px', marginBottom: '8px' }}>
-                        <p style={{ margin: '0 0 4px 0', fontWeight: 'bold' }}>✓ Port Line Set</p>
-                        <p style={{ margin: 0, fontSize: '0.9em', color: 'var(--text-secondary)' }}>
-                          {portCoords.lat.toFixed(6)}, {portCoords.lon.toFixed(6)}
-                        </p>
-                      </div>
-                      <button 
-                        className="menu-item"
-                        onClick={handleRegattaClearPort}
-                        disabled={actionInProgress !== null || !state.isConnected}
-                        style={{ backgroundColor: '#f44336', color: 'white' }}
-                      >
-                        {actionInProgress === 'regattaClearPort' ? 'Clearing...' : 'Clear Port Line'}
-                      </button>
-                    </>
-                  )}
-                </div>
-
-                {/* Starboard Line */}
-                <div>
-                  {!starboardCoords ? (
-                    <>
-                      <button 
-                        className="menu-item"
-                        onClick={handleRegattaSetStarboard}
-                        disabled={actionInProgress !== null || !state.isConnected}
-                      >
-                        {actionInProgress === 'regattaStarboard' ? 'Setting...' : 'Set Starboard Line'}
-                      </button>
-                      <p className="help-text">Navigate to the starboard mark and press the button to set its position.</p>
-                    </>
-                  ) : (
-                    <>
-                      <div style={{ padding: '12px', backgroundColor: 'var(--card-bg)', borderRadius: '8px', marginBottom: '8px' }}>
-                        <p style={{ margin: '0 0 4px 0', fontWeight: 'bold' }}>✓ Starboard Line Set</p>
-                        <p style={{ margin: 0, fontSize: '0.9em', color: 'var(--text-secondary)' }}>
-                          {starboardCoords.lat.toFixed(6)}, {starboardCoords.lon.toFixed(6)}
-                        </p>
-                      </div>
-                      <button 
-                        className="menu-item"
-                        onClick={handleRegattaClearStarboard}
-                        disabled={actionInProgress !== null || !state.isConnected}
-                        style={{ backgroundColor: '#f44336', color: 'white' }}
-                      >
-                        {actionInProgress === 'regattaClearStarboard' ? 'Clearing...' : 'Clear Starboard Line'}
-                      </button>
-                    </>
-                  )}
-                </div>
-
-                {portCoords && starboardCoords && state.sailingData.hasStartLine && (
-                  <div className="regatta-status" style={{ marginTop: '16px' }}>
-                    <p style={{ color: '#4CAF50', fontWeight: 'bold', margin: '0 0 8px 0' }}>✓ Start line active</p>
-                    <p className="help-text" style={{ margin: 0 }}>
-                      Both marks are set. Distance to line is being tracked.
-                    </p>
-                  </div>
-                )}
-              </div>
-
-
-              <div className="menu-section">
-                <h4>Starting Procedure</h4>
-                <button 
-                  className="menu-item" 
-                  disabled={true}
-                >
-                  Coming Soon: Race Timer
-                </button>
-                <p className="help-text">Countdown timer and race start alerts (Planned feature)</p>
-              </div>
-
-              {!state.isConnected && (
-                <div className="connection-warning">
-                  <p><AlertTriangle size={16} className="inline-icon" /> Connect to Veetr device to access regatta features</p>
-                </div>
-              )}
-            </>
-          )}
-
-          {currentView === 'about' && (
-            <>
-              <div className="menu-header">
-                <button 
-                  className="back-button" 
-                  onClick={() => navigateToView('main')}
-                  aria-label="Back to main menu"
-                >
-                  <ChevronLeft size={20} />
-                </button>
-                <h3>About</h3>
-                <button 
-                  className="close-button" 
-                  onClick={() => setMenuOpen(false)}
-                  aria-label="Close menu"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              <div className="menu-section">
-                <FirmwareUpdateCard />
-              </div>
-
-              <div className="menu-section">
-                <DataManager />
-              </div>
-
-              <div className="menu-section">
-                <h4>Information</h4>
-                <p>App Version: {APP_VERSION}</p>
-                <p className="help-text">
-                  Veetr is an open-source sailing dashboard providing real-time wind, GPS, and boat data via Bluetooth Low Energy.
-                </p>
-                <p className="help-text">
-                  For support and updates, visit the GitHub repository or check the documentation.
-                </p>
-              </div>
-            </>
-          )}
-        </div>
+      {isVisible && (
+        <View style={styles.overlay}>
+          <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={closeMenu} />
+          <Animated.View style={[styles.panel, { backgroundColor: colors.panelBg, transform: [{ translateX: slideAnim }] }]}>
+            <ScrollView>
+              {currentView === 'main' && renderMainMenu()}
+              {currentView === 'bluetooth' && renderBluetooth()}
+              {currentView === 'calibration' && renderCalibration()}
+              {currentView === 'regatta' && renderRegatta()}
+              {currentView === 'about' && renderAbout()}
+            </ScrollView>
+          </Animated.View>
+        </View>
       )}
-    </div>
+    </>
   )
 }
+
+const styles = StyleSheet.create({
+  hamburger: {
+    position: 'absolute',
+    left: 10,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 100,
+  },
+  hamburgerText: { fontSize: 24 },
+  overlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 200,
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  panel: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    width: PANEL_WIDTH,
+    padding: 20,
+    paddingTop: 60,
+  },
+  menuHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    borderBottomWidth: 1,
+    paddingBottom: 12,
+  },
+  menuTitle: { fontSize: 20, fontWeight: '700' },
+  close: { fontSize: 22, padding: 4 },
+  back: { fontSize: 16, color: '#3182ce', fontWeight: '600' },
+  arrow: { fontSize: 22 },
+  menuItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+  },
+  menuItemText: { fontSize: 16 },
+  themeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 14,
+  },
+  themeLabel: { fontSize: 16 },
+  statusBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  statusDot: { width: 12, height: 12, borderRadius: 6 },
+  connected: { backgroundColor: '#22c55e' },
+  disconnected: { backgroundColor: '#ef4444' },
+  statusText: { fontSize: 16, fontWeight: '600' },
+  bigButton: {
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  connectBtn: { backgroundColor: '#ef4444' },
+  disconnectBtn: { backgroundColor: '#4a5568' },
+  bigButtonText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  section: { marginBottom: 16 },
+  sectionLabel: { fontSize: 14, fontWeight: '600', marginBottom: 8 },
+  input: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  smallButton: {
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  smallButtonText: { color: '#fff', fontWeight: '600' },
+  version: { fontSize: 14, textAlign: 'center', marginTop: 16 },
+})

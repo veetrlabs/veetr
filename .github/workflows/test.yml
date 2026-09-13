@@ -3,12 +3,15 @@ name: Test Build
 on:
   pull_request:
     branches: [ main ]
+  push:
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
-  test-web:
+  test-app:
     runs-on: ubuntu-latest
-    
+    if: ${{ !cancelled() }}
+
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -24,17 +27,33 @@ jobs:
       run: npm ci
       working-directory: app
 
-    - name: Build web app
-      run: npm run build
+    - name: Run tests
+      run: npm test
       working-directory: app
 
-    - name: Run tests (if any)
-      run: npm run test --passWithNoTests || true
-      working-directory: app
+  test-shared:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run tests
+      run: npm test
+      working-directory: packages/shared
 
   test-firmware:
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -72,10 +91,30 @@ jobs:
         size_bytes=$(stat -c%s .pio/build/esp32dev/firmware.bin)
         size_kb=$((size_bytes / 1024))
         echo "Firmware size: ${size_kb} KB (${size_bytes} bytes)"
-        
-        # Warn if firmware is getting large (ESP32 has 4MB flash, OTA needs ~50% free)
         if [ $size_bytes -gt 1500000 ]; then
           echo "⚠️ Warning: Firmware size is large (${size_kb} KB). Consider optimizations."
         else
           echo "✅ Firmware size is acceptable (${size_kb} KB)"
         fi
+
+  test-web:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: 'pwa/package-lock.json'
+
+    - name: Install dependencies
+      run: npm ci
+      working-directory: pwa
+
+    - name: Build web app
+      run: npm run build
+      working-directory: pwa
