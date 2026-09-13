@@ -1,3 +1,4 @@
+import {CreationAccess} from "./CreationAccess";
 import { PasswordAuth } from "./PasswordAuth";
 import { appHref } from "./routes";
 import { t } from "./i18n";
@@ -110,7 +111,7 @@ export function AccountPanel({
       ) : (
         <>
           <p><a href={appHref("/")}>{t("All series")}</a></p>
-          <div className="account-identity">
+          <CreationAccess key={userId} /><div className="account-identity">
             <div>
               <strong>{email || "Signed-in account"}</strong>
               <small>{t("Signed in")}</small>

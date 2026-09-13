@@ -234,3 +234,13 @@ The database enforces these rules even if someone bypasses the visible buttons.
 Cached private series are shown only after the current session's access has been
 checked. Offline edits can continue during an already verified session; a fresh
 offline page load needs connectivity before it can unlock private editing.
+
+## Series permission requests
+
+Unapproved signed-in users can request series-creation access with a note. Requests are stored in `series_access_requests`; one request per account prevents repeated submissions. Verified email is required.
+
+The `creation-request-email` Supabase Edge Function authenticates the requester and sends via Resend using the server-only `RESEND_API_KEY` secret. The dedicated Resend key is sending-only and restricted to veetr.org. Notifications go from and to `hello@veetr.org`, with Reply-To set to the requester. Existing Cloudflare routing delivers these to the maintainer. Failed sends leave the request pending and offer a retry; sent requests are marked and use an idempotency key.
+
+Insert an administrator's Auth user ID into `public.platform_admins` through the Regatta Table Editor. Administrators review pending requests on `/account/` and approve or decline; approval inserts the requester into the existing `series_creators` table. Neither email links nor ordinary users can grant access. No administrators are seeded automatically.
+
+The database workflow deploys this function after applying migrations. Supabase Auth SMTP and Gmail identity credentials remain separate and unchanged.
