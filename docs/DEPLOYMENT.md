@@ -51,7 +51,7 @@ Cloudflare GitHub installation is restricted to `veetrlabs/veetr` and
 | --- | --- | --- | --- | --- | --- |
 | `veetr.org`, `www.veetr.org` | `veetr-site` | `veetrlabs/veetr`, `main` | Repository root | `npm run build --workspace veetr.org` | `veetr.org/dist` |
 | `veetr.com` | `veetr-com` | `veetrlabs/veetr`, `main` | `veetr.com` | `exit 0` | `.` |
-| `app.veetr.org` | `veetr-app` | `veetrlabs/veetr`, `main` | Repository root | `npm run build --workspace app` | `app/dist` |
+| `app.veetr.org` | `veetr-app` | `veetrlabs/veetr`, `main` | Repository root | `npm run build --workspace pwa` | `pwa/dist` |
 | `game.veetr.org` | `veetr-game` | `veetrlabs/veetr-game`, `main` | Repository root | `exit 0` | `.` |
 
 Each project's preview hostname is `<project>.pages.dev`. `veetr.com` serves the

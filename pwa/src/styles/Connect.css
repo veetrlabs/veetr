@@ -1,0 +1,123 @@
+.connect-page {
+  padding: 16px;
+  max-width: 600px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.connect-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 16px;
+  color: var(--text-primary);
+}
+
+.connect-card {
+  background: var(--bg-card);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.connect-status-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.connect-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.connect-dot.connected { background: #22c55e; }
+.connect-dot.connecting { background: #f97316; }
+.connect-dot.disconnected { background: #ef4444; }
+
+.connect-status-text {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.connect-big-btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 8px;
+  border: none;
+  font-size: 1rem;
+  font-weight: 700;
+  color: white;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.connect-big-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.connect-big-btn.connect { background: #ef4444; }
+.connect-big-btn.disconnect { background: #4a5568; }
+
+.connect-section-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+
+.connect-label {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--text-accent);
+  margin-bottom: 6px;
+}
+
+.connect-input-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.connect-input {
+  flex: 1;
+  padding: 8px 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.connect-input::placeholder {
+  color: var(--text-secondary);
+}
+
+.connect-action-btn {
+  padding: 8px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.connect-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.connect-range {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.connect-help {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin: 0;
+}

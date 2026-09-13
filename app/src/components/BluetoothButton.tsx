@@ -1,109 +1,97 @@
 import { useState } from 'react'
-import { Bluetooth, X } from 'lucide-react'
+import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native'
+import Svg, { Path } from 'react-native-svg'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useBLE } from '../context/BLEContext'
-import './BluetoothButton.css'
+import { useTheme } from '../context/ThemeContext'
+import { themeColors } from '../constants/colors'
 
 export default function BluetoothButton() {
   const { state } = useBLE()
+  const { theme } = useTheme()
+  const colors = themeColors[theme]
+  const insets = useSafeAreaInsets()
   const [showModal, setShowModal] = useState(false)
 
-  // Only show the bluetooth button when connected
-  if (!state.isConnected) {
-    return null
-  }
-
-  const getRssiColor = (rssi: number | null) => {
-    if (rssi === null) return '#6b7280'
-    if (rssi >= -50) return '#22c55e'
-    if (rssi >= -70) return '#22c55e'
-    if (rssi >= -85) return '#f97316'
-    return '#ef4444'
-  }
-
-  const getRssiText = (rssi: number | null) => {
-    if (rssi === null) return 'No Data'
-    if (rssi >= -50) return 'Excellent'
-    if (rssi >= -70) return 'Good'
-    if (rssi >= -85) return 'Fair'
-    return 'Poor'
-  }
-
-  const handleButtonClick = () => {
-    setShowModal(true)
-  }
-
-  const closeModal = () => {
-    setShowModal(false)
-  }
-
-  // Handle click outside modal to close
-  const handleModalOverlayClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      closeModal()
-    }
-  }
+  if (!state.isConnected) return null
 
   return (
     <>
-      <button 
-        className="bluetooth-btn"
-        onClick={handleButtonClick}
-        title="Bluetooth Signal Strength"
-      >
-        <Bluetooth 
-          size={24} 
-          className="bluetooth-icon" 
-          style={{ color: getRssiColor(state.rssi) }}
-        />
-      </button>
+      <TouchableOpacity style={[styles.button, { backgroundColor: colors.buttonBg, top: insets.top + 8 }]} onPress={() => setShowModal(true)}>
+        <Svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2">
+          <Path d="M6 7l12 10-6 5V2l6 5-12 10" />
+        </Svg>
+      </TouchableOpacity>
 
-      {/* RSSI Information Modal */}
-      {showModal && (
-        <div className="modal-overlay" onClick={handleModalOverlayClick}>
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3>Bluetooth Signal</h3>
-              <button 
-                className="modal-close-btn"
-                onClick={closeModal}
-              >
-                <X size={18} />
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="bluetooth-info-grid">
-                <div className="bluetooth-info-row">
-                  <span className="bluetooth-info-label">Signal Strength</span>
-                  <span 
-                    className="bluetooth-info-value" 
-                    style={{ color: getRssiColor(state.rssi) }}
-                  >
-                    {getRssiText(state.rssi)}
-                  </span>
-                </div>
-                <div className="bluetooth-info-row">
-                  <span className="bluetooth-info-label">RSSI</span>
-                  <span className="bluetooth-info-value">
-                    {state.rssi !== null ? `${state.rssi} dBm` : 'No Data'}
-                  </span>
-                </div>
-                <div className="bluetooth-info-row">
-                  <span className="bluetooth-info-label">Device</span>
-                  <span className="bluetooth-info-value">
-                    {state.deviceName || 'Unknown'}
-                  </span>
-                </div>
-                <div className="bluetooth-info-row">
-                  <span className="bluetooth-info-label">Status</span>
-                  <span className="bluetooth-info-value bluetooth-connected">
-                    Connected
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal visible={showModal} transparent animationType="fade" onRequestClose={() => setShowModal(false)}>
+        <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setShowModal(false)}>
+          <View style={[styles.modal, { backgroundColor: colors.panelBg }]}>
+            <View style={styles.header}>
+              <Text style={[styles.title, { color: colors.text }]}>Bluetooth Signal</Text>
+              <TouchableOpacity onPress={() => setShowModal(false)}>
+                <Text style={[styles.close, { color: colors.textMuted }]}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.body}>
+              <InfoRow label="Status" value="Connected" valueColor="#22c55e" theme={theme} />
+              <InfoRow label="Device" value={state.deviceName || 'Unknown'} theme={theme} />
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </>
   )
 }
+
+function InfoRow({ label, value, valueColor, theme }: { label: string; value: string; valueColor?: string; theme: 'light' | 'dark' }) {
+  const colors = themeColors[theme]
+  return (
+    <View style={[styles.row, { borderBottomColor: colors.border }]}>
+      <Text style={[styles.label, { color: colors.textMuted }]}>{label}</Text>
+      <Text style={[styles.value, { color: valueColor || colors.text }]}>{value}</Text>
+    </View>
+  )
+}
+
+const styles = StyleSheet.create({
+  button: {
+    position: 'absolute',
+    right: 50,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 100,
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modal: {
+    borderRadius: 16,
+    padding: 20,
+    width: '85%',
+    maxWidth: 400,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  title: { fontSize: 18, fontWeight: '700' },
+  close: { fontSize: 20, padding: 4 },
+  body: { gap: 12 },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+  },
+  label: { fontSize: 14 },
+  value: { fontSize: 14, fontWeight: '600' },
+})

@@ -1,7 +1,6 @@
 .dashboard {
-  width: 100vw;
-  height: 100vh;
-  height: 100dvh;
+  width: 100%;
+  height: calc(100dvh - 60px);
   overflow: hidden;
 }
 

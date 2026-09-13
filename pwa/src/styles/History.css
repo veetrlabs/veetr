@@ -1,0 +1,124 @@
+.history-page {
+  padding: 16px;
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.history-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 16px;
+  color: var(--text-primary);
+}
+
+.history-range-row {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.history-range-btn {
+  padding: 6px 12px;
+  border-radius: 16px;
+  border: none;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.history-range-btn.active {
+  background: var(--text-primary);
+  color: var(--bg-primary);
+}
+
+.history-status {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-accent);
+  font-size: 1rem;
+}
+
+.history-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.history-legend {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.history-chart {
+  background: var(--bg-card);
+  border-radius: 8px;
+  padding: 16px;
+  overflow-x: auto;
+}
+
+.history-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 200px;
+}
+
+.history-bar-group {
+  display: flex;
+  gap: 1px;
+  align-items: flex-end;
+}
+
+.history-bar {
+  width: 6px;
+  min-width: 2px;
+  border-radius: 1px 1px 0 0;
+  transition: height 0.3s;
+  opacity: 0.7;
+}
+
+.history-stats {
+  display: flex;
+  justify-content: space-around;
+  background: var(--bg-card);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.history-stat {
+  text-align: center;
+}
+
+.history-stat h4 {
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: var(--text-primary);
+}
+
+.history-stat p {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin: 2px 0;
+}
