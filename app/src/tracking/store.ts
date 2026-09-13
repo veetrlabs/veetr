@@ -105,6 +105,11 @@ export class TrackingStore {
             JSON.stringify(point),
           );
           session.lastRecordedAt = point.recordedAt;
+          if (session.error?.startsWith("Waiting for an accurate GPS fix"))
+            session.error = undefined;
+          session.recentPoints = [...(session.recentPoints ?? []), point].slice(
+            -120,
+          );
           queued++;
         }
         await this.db.runAsync(

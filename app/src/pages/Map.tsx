@@ -1,203 +1,181 @@
-import { useEffect, useRef, useState } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { useBLE } from '../context/BLEContext'
-import { useTheme } from '../context/ThemeContext'
-import { themeColors } from '../constants/colors'
-import { getAllReadings } from '../utils/dataStorage'
-import { isValidCoordinates } from '../utils/gpsValidation'
-
-const isNative = Platform.OS === 'ios' || Platform.OS === 'android'
-
-let MapView: any = null
-let Marker: any = null
-let Polyline: any = null
-let Circle: any = null
-
-if (isNative) {
-  try {
-    const Maps = require('react-native-maps')
-    MapView = Maps.default
-    Marker = Maps.Marker
-    Polyline = Maps.Polyline
-    Circle = Maps.Circle
-  } catch {}
+import { useEffect, useRef, useState } from "react";
+import { View, Text, Pressable, StyleSheet, Platform } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useBLE } from "../context/BLEContext";
+import { useTheme } from "../context/ThemeContext";
+import { themeColors } from "../constants/colors";
+import { useNavigation } from "../navigation/NavigationContext";
+import NavigationStatus from "../navigation/NavigationStatus";
+let MapView: any, Marker: any, Polyline: any, Circle: any;
+if (Platform.OS !== "web") {
+  const maps = require("react-native-maps");
+  MapView = maps.default;
+  Marker = maps.Marker;
+  Polyline = maps.Polyline;
+  Circle = maps.Circle;
 }
-
-interface MapProps {
-  onBack?: () => void
-}
-
-export default function Map({ onBack }: MapProps) {
-  const mapRef = useRef<any>(null)
-  const { state } = useBLE()
-  const insets = useSafeAreaInsets()
-  const { theme } = useTheme()
-  const colors = themeColors[theme]
-  const data = state.sailingData
-  const [loading, setLoading] = useState(true)
-  const [trackCoords, setTrackCoords] = useState<Array<{ latitude: number; longitude: number }>>([])
-
+export default function Map({ onBack }: { onBack?: () => void }) {
+  const nav = useNavigation(),
+    { state } = useBLE(),
+    { theme } = useTheme(),
+    colors = themeColors[theme];
+  const insets = useSafeAreaInsets(),
+    ref = useRef<any>(null);
+  const [follow, setFollow] = useState(true),
+    [ready, setReady] = useState(false);
+  const fix = nav.fix;
+  const trail = nav.session?.recentPoints ?? [];
+  const last = trail.at(-1);
+  const position =
+    fix ??
+    (last ? { latitude: last.latitude, longitude: last.longitude } : null);
   useEffect(() => {
-    const initMap = async () => {
-      let lat = data?.lat && data.lat !== 0 ? data.lat : 0
-      let lon = data?.lon && data.lon !== 0 ? data.lon : 0
-
-      try {
-        const readings = await getAllReadings(50)
-        if ((lat === 0 || lon === 0) && readings.length > 0) {
-          const validReading = [...readings].reverse().find(r => isValidCoordinates(r.lat, r.lon))
-          if (validReading) {
-            lat = validReading.lat!
-            lon = validReading.lon!
-          }
-        }
-
-        const validPoints = readings
-          .filter(r => isValidCoordinates(r.lat, r.lon))
-          .map(r => ({
-            latitude: r.lat!,
-            longitude: r.lon!,
-          }))
-        setTrackCoords(validPoints)
-      } catch (error) {
-        console.error('[Map] Error loading readings:', error)
-      }
-
-      if (lat === 0 || lon === 0) {
-        lat = 50.0
-        lon = 14.0
-      }
-
-      setLoading(false)
-    }
-
-    initMap()
-  }, [])
-
-  const hasValidPos = data?.lat && data?.lon && data.lat !== 0 && data.lon !== 0
-  const hasStartLineCoords =
-    data?.portLat && data?.portLon && data?.starboardLat && data?.starboardLon
-
+    if (ready && follow && position)
+      ref.current?.animateToRegion(
+        { ...position, latitudeDelta: 0.01, longitudeDelta: 0.01 },
+        500,
+      );
+  }, [ready, follow, position?.latitude, position?.longitude]);
+  const d = state.sailingData;
+  const coordinate = (lat: number | null, lon: number | null) =>
+    lat !== null &&
+    lon !== null &&
+    Number.isFinite(lat) &&
+    Number.isFinite(lon) &&
+    Math.abs(lat) <= 90 &&
+    Math.abs(lon) <= 180;
+  const line =
+    nav.deviceFresh &&
+    coordinate(d.portLat, d.portLon) &&
+    coordinate(d.starboardLat, d.starboardLon);
   return (
-    <View style={[styles.container, { backgroundColor: colors.bg }]}>
-      {onBack && (
-        <TouchableOpacity style={[styles.backBtn, { backgroundColor: colors.buttonBg, top: insets.top + 8 }]} onPress={onBack}>
-          <Text style={[styles.backText, { color: colors.text }]}>← Back</Text>
-        </TouchableOpacity>
-      )}
-
-      {loading ? (
-        <View style={[styles.loading, { backgroundColor: colors.bg }]}>
-          <Text style={[styles.loadingText, { color: colors.textMuted }]}>Loading map...</Text>
-        </View>
-      ) : !isNative || !MapView ? (
-        <View style={[styles.fallback, { backgroundColor: colors.bg }]}>
-          <Text style={[styles.fallbackTitle, { color: colors.text }]}>Map</Text>
-          <Text style={[styles.fallbackText, { color: colors.textMuted }]}>
-            Map requires a native build. Use a physical device or simulator.
-          </Text>
-          {trackCoords.length > 0 && (
-            <Text style={[styles.fallbackCoords, { color: colors.textSubtle }]}>
-              {trackCoords.length} track points loaded
-            </Text>
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      {MapView ? (
+        <MapView
+          ref={ref}
+          style={StyleSheet.absoluteFill}
+          onMapReady={() => setReady(true)}
+          onPanDrag={() => setFollow(false)}
+          initialRegion={{
+            latitude: position?.latitude ?? 50,
+            longitude: position?.longitude ?? 14,
+            latitudeDelta: 0.02,
+            longitudeDelta: 0.02,
+          }}
+        >
+          {trail.length > 1 && (
+            <Polyline
+              coordinates={trail.map((p) => ({
+                latitude: p.latitude,
+                longitude: p.longitude,
+              }))}
+              strokeColor="#008c80"
+              strokeWidth={4}
+            />
           )}
-          {hasValidPos && (
-            <Text style={[styles.fallbackCoords, { color: colors.textSubtle }]}>
-              Current: {data.lat.toFixed(4)}, {data.lon.toFixed(4)}
-            </Text>
+          {position && (
+            <Marker
+              coordinate={position}
+              title={fix ? fix.source : "Last recorded position"}
+              description={
+                fix?.sogKnots == null
+                  ? "Speed unavailable"
+                  : `${fix.sogKnots.toFixed(1)} kn`
+              }
+              pinColor={fix ? "#008c80" : "#64748b"}
+            />
           )}
-        </View>
-      ) : (
-        (() => {
-          const children: any[] = []
-          if (trackCoords.length > 1) {
-            children.push(
+          {fix?.accuracy != null && (
+            <Circle
+              center={fix}
+              radius={fix.accuracy}
+              fillColor="rgba(0,140,128,0.12)"
+              strokeColor="#008c80"
+            />
+          )}
+          {line && (
+            <>
+              <Marker
+                coordinate={{ latitude: d.portLat!, longitude: d.portLon! }}
+                title="Port"
+                pinColor="red"
+              />
+              <Marker
+                coordinate={{
+                  latitude: d.starboardLat!,
+                  longitude: d.starboardLon!,
+                }}
+                title="Starboard"
+                pinColor="green"
+              />
               <Polyline
-                coordinates={trackCoords}
-                strokeColor="rgba(51,136,255,0.7)"
+                coordinates={[
+                  { latitude: d.portLat!, longitude: d.portLon! },
+                  { latitude: d.starboardLat!, longitude: d.starboardLon! },
+                ]}
+                strokeColor="red"
                 strokeWidth={3}
               />
-            )
-          }
-          if (hasValidPos) {
-            children.push(
-              <>
-                <Marker
-                  coordinate={{ latitude: data.lat, longitude: data.lon }}
-                  title="Current Position"
-                  pinColor="#00bfff"
-                />
-                <Circle
-                  center={{ latitude: data.lat, longitude: data.lon }}
-                  radius={3}
-                  fillColor="rgba(0,191,255,0.3)"
-                  strokeColor="rgba(0,191,255,0.8)"
-                  strokeWidth={2}
-                />
-              </>
-            )
-          }
-          if (hasStartLineCoords) {
-            children.push(
-              <>
-                <Marker
-                  coordinate={{ latitude: data.portLat!, longitude: data.portLon! }}
-                  title="Port"
-                  pinColor="red"
-                />
-                <Marker
-                  coordinate={{ latitude: data.starboardLat!, longitude: data.starboardLon! }}
-                  title="Starboard"
-                  pinColor="green"
-                />
-                <Polyline
-                  coordinates={[
-                    { latitude: data.portLat!, longitude: data.portLon! },
-                    { latitude: data.starboardLat!, longitude: data.starboardLon! },
-                  ]}
-                  strokeColor="red"
-                  strokeWidth={4}
-                  lineDashPattern={[10, 5]}
-                />
-              </>
-            )
-          }
-          return (
-            <MapView ref={mapRef} style={styles.map} initialRegion={{
-              latitude: hasValidPos ? data.lat : 50.0,
-              longitude: hasValidPos ? data.lon : 14.0,
-              latitudeDelta: 0.02,
-              longitudeDelta: 0.02,
-            }}>
-              {children}
-            </MapView>
-          )
-        })()
+            </>
+          )}
+        </MapView>
+      ) : (
+        <Text style={{ color: colors.text, marginTop: 300 }}>
+          Map requires a native build.
+        </Text>
       )}
+      <View
+        style={{
+          position: "absolute",
+          top: insets.top + 8,
+          left: 12,
+          right: 12,
+          gap: 8,
+        }}
+      >
+        <NavigationStatus />
+        <View
+          style={{
+            padding: 12,
+            backgroundColor: colors.panelBg,
+            borderRadius: 12,
+            gap: 6,
+          }}
+        >
+          <Text style={{ color: colors.text, fontSize: 22, fontWeight: "600" }}>
+            SOG {fix?.sogKnots == null ? "—" : fix.sogKnots.toFixed(1)} kn · COG{" "}
+            {fix?.course == null ? "—" : `${Math.round(fix.course)}°`}
+          </Text>
+          <Text style={{ color: colors.textSecondary }}>
+            {trail.length
+              ? "Recent recorded trail · full local recording can be exported from Track"
+              : "Start recording to save your trail"}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            disabled={!position}
+            onPress={() => {
+              setFollow(true);
+              if (position)
+                ref.current?.animateToRegion({
+                  ...position,
+                  latitudeDelta: 0.01,
+                  longitudeDelta: 0.01,
+                });
+            }}
+            style={{ paddingVertical: 8 }}
+          >
+            <Text style={{ color: colors.text }}>
+              {follow ? "Following position" : "Recenter and follow"}
+            </Text>
+          </Pressable>
+          {onBack && (
+            <Pressable onPress={onBack}>
+              <Text style={{ color: colors.text }}>Back</Text>
+            </Pressable>
+          )}
+        </View>
+      </View>
     </View>
-  )
+  );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  backBtn: {
-    position: 'absolute',
-    left: 16,
-    zIndex: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-  },
-  backText: { fontSize: 16, fontWeight: '600' },
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  loadingText: { fontSize: 16 },
-  fallback: {
-    flex: 1, alignItems: 'center', justifyContent: 'center',
-    padding: 32,
-  },
-  fallbackTitle: { fontSize: 20, fontWeight: '700', marginBottom: 8 },
-  fallbackText: { fontSize: 14, textAlign: 'center', marginBottom: 12 },
-  fallbackCoords: { fontSize: 12, textAlign: 'center' },
-  map: { flex: 1 },
-})

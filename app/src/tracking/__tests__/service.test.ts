@@ -1,5 +1,7 @@
+jest.mock("react-native", () => ({ AppState: {currentState: "active"} }));
 import type { TrackingPoint, TrackingSession } from "../model";
 jest.mock("expo-location", () => ({
+  watchPositionAsync: jest.fn(async () => ({ remove: jest.fn() })),
   hasStartedLocationUpdatesAsync: jest.fn(async () => true),
   stopLocationUpdatesAsync: jest.fn(async () => {}),
   startLocationUpdatesAsync: jest.fn(async () => {}),
@@ -224,4 +226,22 @@ test("an expired local recording stops and keeps its saved points", async () => 
   expect(points).toHaveLength(1);
   expect(Location.startLocationUpdatesAsync).not.toHaveBeenCalled();
   expect(trackingRpc).not.toHaveBeenCalled();
+});
+
+test("local recording accepts foreground permission when background permission is declined", async () => {
+  session = null;
+  points = [];
+  (
+    Location.requestBackgroundPermissionsAsync as jest.Mock
+  ).mockResolvedValueOnce({ status: "denied" });
+  (Location.getBackgroundPermissionsAsync as jest.Mock).mockResolvedValueOnce({
+    status: "denied",
+  });
+  await startLocalTracking();
+  expect((session as TrackingSession | null)?.phase).toBe("recording");
+  expect((session as TrackingSession | null)?.backgroundEnabled).toBe(false);
+  expect(Location.startLocationUpdatesAsync).not.toHaveBeenCalled();
+  expect(Location.watchPositionAsync).toHaveBeenCalled();
+  expect(trackingRpc).not.toHaveBeenCalled();
+  await stopTracking();
 });

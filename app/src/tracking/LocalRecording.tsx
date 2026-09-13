@@ -1,3 +1,4 @@
+import { useRouter } from "expo-router";
 import { Alert, Linking, Pressable, Text, View } from "react-native";
 import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
@@ -9,6 +10,7 @@ import {
   startLocalTracking,
   stopTracking,
   resumeTracking,
+  enableBackgroundTracking,
   discardStoppedTracking,
 } from "./service";
 export default function LocalRecording({
@@ -24,6 +26,7 @@ export default function LocalRecording({
   busy: boolean;
   run: (action: () => Promise<unknown>) => Promise<void>;
 }) {
+  const router = useRouter();
   const { theme } = useTheme();
   const colors = themeColors[theme];
   const button = (label: string, action: () => void, disabled = busy) => (
@@ -78,6 +81,16 @@ export default function LocalRecording({
         Record phone GPS without an account or internet. Positions stay on this
         phone and are never automatically uploaded.
       </Text>
+      {!session && (
+        <>
+          <Text style={{ color: colors.textSecondary }}>
+            On iPhone, choose Allow While Using App in the first prompt, then
+            Always when asked. You can still record with the app open if you
+            allow only foreground access. Keep Precise Location on.
+          </Text>
+          {button("Location settings", () => void Linking.openSettings())}
+        </>
+      )}
       {!session ? (
         button("Start local recording", () =>
           Alert.alert(
@@ -105,6 +118,21 @@ export default function LocalRecording({
             stop at {new Date(session.expiresAt).toLocaleTimeString()}. Keep the
             app installed; force-closing it can stop GPS.
           </Text>
+          {session.phase === "recording" &&
+            session.backgroundEnabled === false && (
+              <>
+                <Text style={{ color: colors.text }}>
+                  Foreground recording only. Keep Veetr open; recording pauses
+                  when you lock the screen or switch apps.
+                </Text>
+                {button(
+                  "Enable background recording",
+                  () => void run(enableBackgroundTracking),
+                )}
+              </>
+            )}
+          {button("View map and track", () => router.push("/(tabs)/map"))}
+          {button("View live instruments", () => router.push("/(tabs)"))}
           {session.error && (
             <Text accessibilityRole="alert" style={{ color: colors.text }}>
               {session.error}

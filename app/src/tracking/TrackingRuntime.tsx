@@ -3,7 +3,12 @@ import { AppState } from "react-native";
 import NetInfo from "@react-native-community/netinfo";
 import { trackingClient } from "./client";
 import { trackingStore } from "./database";
-import { resumeTracking, stopTracking, syncTracking } from "./service";
+import {
+  resumeTracking,
+  stopTracking,
+  syncTracking,
+  pauseForegroundGPS,
+} from "./service";
 import { UPLOAD_INTERVAL_MS } from "./model";
 export default function TrackingRuntime() {
   useEffect(() => {
@@ -15,7 +20,10 @@ export default function TrackingRuntime() {
       if (AppState.currentState === "active") {
         client?.auth.startAutoRefresh();
         resume();
-      } else client?.auth.stopAutoRefresh();
+      } else {
+        client?.auth.stopAutoRefresh();
+        pauseForegroundGPS();
+      }
     };
     active();
     const sub = AppState.addEventListener("change", active);

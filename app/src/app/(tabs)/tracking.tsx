@@ -167,8 +167,8 @@ export default function TrackingScreen() {
         )}
         {session?.mode === "local" ? null : !trackingClient ? (
           <Text style={text}>
-            Tracking is not configured in this build. Set the Supabase URL and
-            public key, then rebuild the app.
+            Live regatta sharing is not available in this test build. You can
+            record GPS locally without an account or internet.
           </Text>
         ) : !ready ? (
           <Text style={text}>Restoring account…</Text>

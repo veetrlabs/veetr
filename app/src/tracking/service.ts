@@ -1,3 +1,4 @@
+import { AppState } from "react-native";
 import * as Location from "expo-location";
 import * as TaskManager from "expo-task-manager";
 import * as Crypto from "expo-crypto";
@@ -11,6 +12,13 @@ import {
   type TrackingSession,
 } from "./model";
 export const LOCATION_TASK = "veetr-regatta-location-v1";
+let foreground: Location.LocationSubscription | null = null;
+let foregroundGeneration = 0;
+export function pauseForegroundGPS() {
+  foregroundGeneration++;
+  foreground?.remove();
+  foreground = null;
+}
 let syncing: Promise<void> | null = null;
 let lastAttempt = 0;
 let control: Promise<unknown> = Promise.resolve();
@@ -22,6 +30,11 @@ function serialize<T>(action: () => Promise<T>): Promise<T> {
 export const startTracking = (entry: TrackingEntry) =>
   serialize(() => startInternal(entry));
 export const resumeTracking = () => serialize(resumeInternal);
+export const enableBackgroundTracking = () =>
+  serialize(async () => {
+    await requestPermissions();
+    await resumeInternal();
+  });
 export async function stopTracking() {
   const store = await trackingStore(),
     session = await store.get();
@@ -44,14 +57,49 @@ async function owner(session: TrackingSession) {
     );
 }
 async function stopGPS() {
+  pauseForegroundGPS();
   if (await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK))
     await Location.stopLocationUpdatesAsync(LOCATION_TASK);
 }
 async function startGPS(local = false) {
-  if ((await Location.getBackgroundPermissionsAsync()).status !== "granted")
-    throw new Error(
-      "Enable background location permission to resume tracking.",
-    );
+  const background =
+    (await Location.getBackgroundPermissionsAsync()).status === "granted";
+  const store = await trackingStore();
+  const session = await store.get();
+  if (session) await store.patch(session.id, { backgroundEnabled: background });
+  if (!background) {
+    if (!local)
+      throw new Error(
+        "Enable background location permission to resume live tracking.",
+      );
+    if (await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK))
+      await Location.stopLocationUpdatesAsync(LOCATION_TASK);
+    if (!foreground && AppState.currentState === "active") {
+      const generation = foregroundGeneration;
+      const subscription = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.High,
+          timeInterval: 1000,
+          distanceInterval: 0,
+        },
+        (location) => {
+          if (
+            generation === foregroundGeneration &&
+            AppState.currentState === "active"
+          )
+            void recordLocations([location]).catch(() => {});
+        },
+      );
+      if (
+        generation !== foregroundGeneration ||
+        AppState.currentState !== "active"
+      )
+        subscription.remove();
+      else foreground = subscription;
+    }
+    return;
+  }
+  pauseForegroundGPS();
   if (!(await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK)))
     await Location.startLocationUpdatesAsync(LOCATION_TASK, {
       accuracy: Location.Accuracy.High,
@@ -135,7 +183,7 @@ export const startLocalTracking = () =>
     const store = await trackingStore();
     if (await store.get())
       throw new Error("Finish the previous tracking session first.");
-    await requestPermissions();
+    await requestPermissions(true);
     const now = Date.now();
     await store.create({
       id: Crypto.randomUUID(),
@@ -151,12 +199,15 @@ export const startLocalTracking = () =>
     });
     await resumeInternal();
   });
-async function requestPermissions() {
+async function requestPermissions(allowForeground = false) {
   if ((await Location.requestForegroundPermissionsAsync()).status !== "granted")
     throw new Error("Precise location permission is required.");
-  if ((await Location.requestBackgroundPermissionsAsync()).status !== "granted")
+  if (
+    (await Location.requestBackgroundPermissionsAsync()).status !== "granted" &&
+    !allowForeground
+  )
     throw new Error(
-      "Allow background location in Settings to track with the screen locked.",
+      "To record with the screen locked, open Settings → Privacy & Security → Location Services → Veetr and select Always. Keep Precise Location on, then return and start again.",
     );
   if (!(await TaskManager.isAvailableAsync()))
     throw new Error(

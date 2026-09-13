@@ -41,6 +41,8 @@ export interface SailingData {
   tiltPortMax: number
   tiltStarboardMax: number
   deadWindAngle: number
+  gpsValid?: boolean
+  course?: number | null
   gpsSpeed: number
   gpsSatellites: number
   hdop: number
@@ -290,7 +292,9 @@ export function BLEProvider({ children }: { children: ReactNode }) {
         tiltPortMax: parsed.heelPortMax || 0,
         tiltStarboardMax: parsed.heelStarboardMax || 0,
         deadWindAngle: parsed.deadWind || 40,
-        gpsSpeed: parsed.SOG || 0,
+        gpsValid: Number.isFinite(parsed.lat) && Number.isFinite(parsed.lon) && Math.abs(parsed.lat) <= 90 && Math.abs(parsed.lon) <= 180 && (parsed.satellites ?? parsed.sat ?? 0) >= 3,
+        course: Number.isFinite(parsed.COG) && parsed.COG >= 0 && parsed.COG < 360 ? parsed.COG : null,
+        gpsSpeed: Number.isFinite(parsed.SOG) && parsed.SOG >= 0 ? parsed.SOG : NaN,
         gpsSatellites: parsed.satellites ?? parsed.sat ?? 0,
         hdop: parsed.hdop || 0,
         lat: parsed.lat || 0,

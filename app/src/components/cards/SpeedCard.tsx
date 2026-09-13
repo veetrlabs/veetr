@@ -6,7 +6,7 @@ import { themeColors } from '../../constants/colors'
 import { cardStyles } from './shared'
 
 interface SpeedCardProps {
-  speed: number
+  speed: number | null
 }
 
 const SpeedCard = memo(function SpeedCard({ speed }: SpeedCardProps) {
@@ -25,7 +25,7 @@ const SpeedCard = memo(function SpeedCard({ speed }: SpeedCardProps) {
       </View>
       <View style={cardStyles.valueArea}>
         <View style={cardStyles.valueRow}>
-          <Text style={[cardStyles.number, { color: colors.text, fontSize }]}>{speed.toFixed(1)}</Text>
+          <Text style={[cardStyles.number, { color: colors.text, fontSize }]}>{speed === null || !Number.isFinite(speed) ? '—' : speed.toFixed(1)}</Text>
           <Text style={[cardStyles.unit, { color: colors.textMuted, fontSize: unitFontSize }]}>kt</Text>
         </View>
       </View>
