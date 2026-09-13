@@ -47,7 +47,7 @@ async function stopGPS() {
   if (await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK))
     await Location.stopLocationUpdatesAsync(LOCATION_TASK);
 }
-async function startGPS() {
+async function startGPS(local = false) {
   if ((await Location.getBackgroundPermissionsAsync()).status !== "granted")
     throw new Error(
       "Enable background location permission to resume tracking.",
@@ -63,7 +63,9 @@ async function startGPS() {
       showsBackgroundLocationIndicator: true,
       foregroundService: {
         notificationTitle: "Veetr regatta tracking",
-        notificationBody: "Sharing your boat position. Open Veetr to stop.",
+        notificationBody: local
+          ? "Recording GPS on this phone. Open Veetr to stop."
+          : "Sharing your boat position. Open Veetr to stop.",
         killServiceOnDestroy: true,
       },
     });
@@ -71,7 +73,8 @@ async function startGPS() {
 async function flush() {
   const store = await trackingStore();
   const session = await store.get();
-  if (!session || session.phase === "starting") return;
+  if (!session || session.mode === "local" || session.phase === "starting")
+    return;
   try {
     await owner(session);
     if (session.phase === "stopping")
@@ -127,13 +130,28 @@ export function syncTracking(force = false): Promise<void> {
   });
   return syncing;
 }
-async function startInternal(entry: TrackingEntry) {
-  if (!trackingClient)
-    throw new Error("Tracking is not configured in this app build.");
-  const {
-    data: { session: auth },
-  } = await trackingClient.auth.getSession();
-  if (!auth) throw new Error("Sign in before starting tracking.");
+export const startLocalTracking = () =>
+  serialize(async () => {
+    const store = await trackingStore();
+    if (await store.get())
+      throw new Error("Finish the previous tracking session first.");
+    await requestPermissions();
+    const now = Date.now();
+    await store.create({
+      id: Crypto.randomUUID(),
+      mode: "local",
+      userId: "",
+      boatId: "",
+      boatName: "Local GPS recording",
+      seriesId: "",
+      seriesName: "",
+      phase: "recording",
+      startedAt: new Date(now).toISOString(),
+      expiresAt: new Date(now + 12 * 60 * 60 * 1000).toISOString(),
+    });
+    await resumeInternal();
+  });
+async function requestPermissions() {
   if ((await Location.requestForegroundPermissionsAsync()).status !== "granted")
     throw new Error("Precise location permission is required.");
   if ((await Location.requestBackgroundPermissionsAsync()).status !== "granted")
@@ -144,6 +162,15 @@ async function startInternal(entry: TrackingEntry) {
     throw new Error(
       "Install a development or release build to use background tracking.",
     );
+}
+async function startInternal(entry: TrackingEntry) {
+  if (!trackingClient)
+    throw new Error("Tracking is not configured in this app build.");
+  const {
+    data: { session: auth },
+  } = await trackingClient.auth.getSession();
+  if (!auth) throw new Error("Sign in before starting tracking.");
+  await requestPermissions();
   const store = await trackingStore();
   await store.create({
     ...entry,
@@ -160,6 +187,16 @@ async function resumeInternal() {
   let session = await store.get();
   if (!session) return;
   try {
+    if (session.mode === "local") {
+      if (
+        session.phase === "recording" &&
+        Date.parse(session.expiresAt) > Date.now()
+      ) {
+        await startGPS(true);
+        await store.patch(session.id, { error: undefined });
+      } else await stopInternal();
+      return;
+    }
     await owner(session);
     if (session.phase === "starting") {
       const reply = await trackingRpc<{ startedAt: string; expiresAt: string }>(
@@ -206,6 +243,11 @@ async function discardInternal() {
     session = await store.get();
   if (!session || session.phase !== "stopping")
     throw new Error("Stop tracking before discarding saved positions.");
+  if (session.mode === "local") {
+    await stopGPS();
+    await store.clear(session.id);
+    return;
+  }
   await owner(session);
   await stopGPS();
   await syncing?.catch(() => {});

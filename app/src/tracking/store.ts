@@ -127,6 +127,25 @@ export class TrackingStore {
       })),
     );
   }
+  exportLocal(id: string) {
+    return this.exclusive(async () => {
+      const session = await this.read();
+      if (
+        session?.id !== id ||
+        session.mode !== "local" ||
+        session.phase !== "stopping"
+      )
+        throw new Error("Stop the local recording before exporting.");
+      const rows = await this.db.getAllAsync<{ body: string }>(
+        "SELECT body FROM tracking_outbox WHERE session_id=? ORDER BY seq",
+        id,
+      );
+      return {
+        session,
+        points: rows.map((row) => JSON.parse(row.body) as TrackingPoint),
+      };
+    });
+  }
   acknowledge(id: string, seqs: number[]) {
     return this.exclusive(async () => {
       // Only delete exactly the acknowledged batch; fixes arriving during upload remain queued.

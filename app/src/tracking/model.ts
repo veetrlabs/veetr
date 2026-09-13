@@ -10,6 +10,7 @@ export interface TrackingEntry {
 export interface TrackingSession extends TrackingEntry {
   id: string;
   userId: string;
+  mode?: "local" | "live";
   phase: "starting" | "recording" | "stopping";
   startedAt: string;
   expiresAt: string;

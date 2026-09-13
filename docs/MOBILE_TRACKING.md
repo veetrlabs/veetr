@@ -88,3 +88,9 @@ Before production approval, run a physical iPhone and Android field test:
 - Confirm all sample dates/coordinates and trail points stay tied to the correct boat/session.
 
 Automated builds do not establish battery life, store-review approval, or reliable background behaviour on real devices.
+
+## Standalone offline iPhone test
+
+The Track tab also offers **Record locally** without Supabase configuration, sign-in, or connectivity. Grant background location, start recording, lock the screen, and walk outside. Reopen to inspect the saved-position count and latest-fix age. Stop and use **Export recording** to save JSON through the iOS share sheet. Export does not delete the original; explicitly delete it before beginning another session. Local recordings are never automatically uploaded, including after sign-in or reconnect. One recording is retained at a time, with a 12-hour limit. Map tiles are not available offline.
+
+For TestFlight use `eas build --platform ios --profile testflight`, then submit the completed build with `eas submit --platform ios --id BUILD_ID`. The `testflight` profile is a standalone store build with an incrementing build number; it does not need Metro or a Mac to run. Apple signing credentials and App Store Connect access are required. Submission makes it available for TestFlight processing, not a public App Store release. Add the tester in App Store Connect after processing. External testers may require beta review.

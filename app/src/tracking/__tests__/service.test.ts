@@ -38,6 +38,8 @@ import {
   stopTracking,
   recordLocations,
   resumeTracking,
+  startLocalTracking,
+  discardStoppedTracking,
 } from "../service";
 let session: TrackingSession | null,
   points: (TrackingPoint & { seq: number })[];
@@ -74,6 +76,10 @@ beforeEach(() => {
     name === "ingest_tracking_points" ? args.p_points.length : undefined,
   );
   (trackingStore as jest.Mock).mockResolvedValue({
+    create: async (value: TrackingSession) => {
+      if (session) throw new Error("Existing session");
+      session = value;
+    },
     get: async () => (session ? { ...session } : null),
     patch: async (id: string, patch: Partial<TrackingSession>) => {
       if (session?.id === id) session = { ...session, ...patch };
@@ -126,7 +132,7 @@ test("stop persists immediately during an in-flight upload and late GPS cannot a
   points.push(point(2));
   const stop = stopTracking();
   await tick();
-  expect(session?.phase).toBe("stopping");
+  expect((session as TrackingSession | null)?.phase).toBe("stopping");
   await recordLocations([
     {
       timestamp: Date.now(),
@@ -156,13 +162,13 @@ test("an unacknowledged start retries the same session identity", async () => {
   points = [];
   (trackingRpc as jest.Mock).mockRejectedValueOnce(new Error("Timeout"));
   await expect(resumeTracking()).rejects.toThrow("Timeout");
-  expect(session?.phase).toBe("starting");
+  expect((session as TrackingSession | null)?.phase).toBe("starting");
   (trackingRpc as jest.Mock).mockResolvedValueOnce({
     startedAt: base().startedAt,
     expiresAt: base().expiresAt,
   });
   await resumeTracking();
-  expect(session?.phase).toBe("recording");
+  expect((session as TrackingSession | null)?.phase).toBe("recording");
   const starts = (trackingRpc as jest.Mock).mock.calls.filter(
     (c) => c[0] === "start_tracking_session",
   );
@@ -174,4 +180,48 @@ test("expired tracking stops before trying to start GPS again", async () => {
   await resumeTracking();
   expect(Location.startLocationUpdatesAsync).not.toHaveBeenCalled();
   expect(session).toBeNull();
+});
+
+test("local recording starts without auth and never uploads, even on reconnect or stop", async () => {
+  session = null;
+  points = [];
+  (trackingClient!.auth.getSession as jest.Mock).mockRejectedValue(
+    new Error("No network"),
+  );
+  await startLocalTracking();
+  expect((session as TrackingSession | null)?.mode).toBe("local");
+  await recordLocations([
+    {
+      timestamp: Date.now(),
+      coords: {
+        latitude: 49,
+        longitude: 14,
+        accuracy: 5,
+        speed: 2,
+        heading: 90,
+      },
+    },
+  ]);
+  await syncTracking(true);
+  expect(points).toHaveLength(1);
+  await stopTracking();
+  await resumeTracking();
+  expect((session as TrackingSession | null)?.phase).toBe("stopping");
+  expect(points).toHaveLength(1);
+  expect(trackingClient!.auth.getSession).not.toHaveBeenCalled();
+  expect(trackingRpc).not.toHaveBeenCalled();
+  await discardStoppedTracking();
+  expect(session).toBeNull();
+});
+test("an expired local recording stops and keeps its saved points", async () => {
+  session = {
+    ...base(),
+    mode: "local",
+    expiresAt: new Date(Date.now() - 1000).toISOString(),
+  };
+  await resumeTracking();
+  expect((session as TrackingSession | null)?.phase).toBe("stopping");
+  expect(points).toHaveLength(1);
+  expect(Location.startLocationUpdatesAsync).not.toHaveBeenCalled();
+  expect(trackingRpc).not.toHaveBeenCalled();
 });

@@ -131,3 +131,23 @@ test("a failed SQLite transaction neither loses earlier points nor advances capt
     db.close();
   }
 });
+
+test("local export retains every point and cannot expose a live session", async () => {
+  const db = new DatabaseSync(":memory:");
+  try {
+    const s = store(db);
+    await s.init();
+    await s.create(session);
+    await assert.rejects(s.exportLocal(session.id), /Stop the local recording/);
+    await s.clear(session.id);
+    await s.create({ ...session, mode: "local" });
+    const points = Array.from({ length: 150 }, (_, i) => point(i * 5));
+    await s.append(session.id, points);
+    await assert.rejects(s.exportLocal(session.id), /Stop the local recording/);
+    await s.patch(session.id, { phase: "stopping" });
+    assert.deepEqual((await s.exportLocal(session.id)).points, points);
+    assert.equal(await s.count(), 150);
+  } finally {
+    db.close();
+  }
+});

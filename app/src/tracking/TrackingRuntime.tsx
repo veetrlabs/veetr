@@ -8,15 +8,14 @@ import { UPLOAD_INTERVAL_MS } from "./model";
 export default function TrackingRuntime() {
   useEffect(() => {
     const client = trackingClient;
-    if (!client) return;
     const resume = () => {
       void resumeTracking().catch(() => {});
     };
     const active = () => {
       if (AppState.currentState === "active") {
-        client.auth.startAutoRefresh();
+        client?.auth.startAutoRefresh();
         resume();
-      } else client.auth.stopAutoRefresh();
+      } else client?.auth.stopAutoRefresh();
     };
     active();
     const sub = AppState.addEventListener("change", active);
@@ -40,7 +39,7 @@ export default function TrackingRuntime() {
       sub.remove();
       unsubscribe();
       clearInterval(timer);
-      client.auth.stopAutoRefresh();
+      client?.auth.stopAutoRefresh();
     };
   }, []);
   return null;

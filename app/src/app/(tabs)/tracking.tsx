@@ -1,3 +1,4 @@
+import LocalRecording from "../../tracking/LocalRecording";
 import { useEffect, useState } from "react";
 import {
   Alert,
@@ -59,9 +60,13 @@ export default function TrackingScreen() {
     }
   }
   useEffect(() => {
+    const timer = setInterval(() => {
+      void refresh().catch((e) => setError(String(e)));
+    }, 2000);
+    void refresh().catch((e) => setError(String(e)));
     if (!trackingClient) {
       setReady(true);
-      return;
+      return () => clearInterval(timer);
     }
     let alive = true;
     void trackingClient.auth.getSession().then(({ data, error }) => {
@@ -77,10 +82,6 @@ export default function TrackingScreen() {
       setAuth(s);
       setReady(true);
     });
-    const timer = setInterval(() => {
-      void refresh().catch((e) => setError(String(e)));
-    }, 2000);
-    void refresh().catch((e) => setError(String(e)));
     return () => {
       alive = false;
       subscription.unsubscribe();
@@ -155,7 +156,16 @@ export default function TrackingScreen() {
         <Text style={{ color: colors.textSecondary }}>
           Your phone is your boat’s tracker. No Veetr device needed.
         </Text>
-        {!trackingClient ? (
+        {(!session || session.mode === "local") && (
+          <LocalRecording
+            session={session}
+            count={pending}
+            now={now}
+            busy={busy}
+            run={run}
+          />
+        )}
+        {session?.mode === "local" ? null : !trackingClient ? (
           <Text style={text}>
             Tracking is not configured in this build. Set the Supabase URL and
             public key, then rebuild the app.
