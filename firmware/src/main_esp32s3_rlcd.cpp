@@ -45,7 +45,7 @@
 // Debug flags - uncomment for verbose output
 // #define DEBUG_BLE_DATA
 #define DEBUG_WIND_SENSOR
-// #define DEBUG_GPS
+#define DEBUG_GPS
 #define DEBUG_BNO080
 
 // Persistent storage for settings
@@ -82,9 +82,10 @@ static OtaState otaState;
 static BleOtaHandler otaHandler;
 extern OtaBackend otaBackend;
 
-// BNO080 IMU Sensor (I2C)
-#define BNO080_SDA 21
-#define BNO080_SCL 22
+#include "board/pins_esp32s3_rlcd.h"
+#include "display/display_lvgl.h"
+#include "display/display_driver.h"
+
 BNO080 imu;
 bool imuAvailable = false; // Track if IMU is working
 
@@ -94,22 +95,6 @@ float pitchOffset = 0.0;     // Pitch offset when level
 float headingOffset = 0.0;   // Heading offset when pointing north
 bool levelCalibrated = false;
 bool northCalibrated = false;
-
-// RS485 Wind Sensor Configuration
-#define RS485_DE 14
-#define RS485_RX 32
-#define RS485_TX 33
-#define RS485_UART 2
-
-// GPS Module Configuration (using UART1)
-#define GPS_RX 17
-#define GPS_TX 16
-#define GPS_UART 1
-
-// Discovery Mode Configuration
-#define DISCOVERY_BUTTON_PIN 0     // GPIO0 (BOOT button on ESP32 dev boards)
-#define DISCOVERY_LED_PIN 2        // GPIO2 for discovery status LED (built-in LED)
-#define DISCOVERY_TIMEOUT_MS (5 * 60 * 1000)  // 5 minutes timeout
 
 bool discoveryModeActive = false;
 unsigned long discoveryModeStartTime = 0;
@@ -124,6 +109,9 @@ ModbusMaster windSensor;
 // GPS Module
 HardwareSerial gpsSerial(GPS_UART);
 TinyGPSPlus gps;
+DisplayStatus displayStatus = {0, 0, 0.0f, 0.0f, 0, 0, 0, false, false, false};
+static unsigned long lastClockTickMs = 0;
+static volatile bool usbSerialConnected = false;
 
 // Regatta start line data structure
 struct RegattaData {
@@ -153,6 +141,111 @@ void resetBLEForNewName(const String& newName);
 void handleDiscoveryButton();
 void startDiscoveryMode();
 void stopDiscoveryMode();
+
+static int bcdToDecimal(uint8_t value) {
+  return ((value >> 4) * 10) + (value & 0x0F);
+}
+
+static void startRtcClock() {
+  // PCF85063A Control_1 bit 5 is STOP; clear it so the oscillator advances.
+  Wire.beginTransmission(0x51);
+  Wire.write(0x00);
+  if (Wire.endTransmission(false) != 0 || Wire.requestFrom(0x51, 1) != 1) return;
+
+  uint8_t control1 = Wire.read();
+  Wire.beginTransmission(0x51);
+  Wire.write(0x00);
+  Wire.write(control1 & ~(1 << 5));
+  Wire.endTransmission();
+}
+
+static void handleUsbCdcEvent(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
+  (void)arg;
+  (void)event_data;
+  if (event_base != ARDUINO_USB_CDC_EVENTS) return;
+
+  switch (event_id) {
+    case ARDUINO_USB_CDC_CONNECTED_EVENT:
+      usbSerialConnected = true;
+      break;
+    case ARDUINO_USB_CDC_DISCONNECTED_EVENT:
+      usbSerialConnected = false;
+      break;
+    default:
+      break;
+  }
+}
+
+static void updateDisplayStatus() {
+  displayStatus.satellites = gps.satellites.isValid() ? gps.satellites.value() : 0;
+
+  displayStatus.usbConnected = usbSerialConnected;
+  float batteryVoltage = analogReadMilliVolts(4) * 0.003f;
+  displayStatus.batteryPercent = constrain((int)roundf((batteryVoltage - 2.5f) * 100.0f / 1.7f), 0, 100);
+
+  Wire.beginTransmission(0x70);
+  Wire.write(0x35);
+  Wire.write(0x17);
+  if (Wire.endTransmission() == 0) {
+    delay(1);
+    Wire.beginTransmission(0x70);
+    Wire.write(0x7C);
+    Wire.write(0xA2);
+    if (Wire.endTransmission() == 0) {
+      delay(15);
+      if (Wire.requestFrom(0x70, 6) == 6) {
+        uint16_t rawTemperature = ((uint16_t)Wire.read() << 8) | Wire.read();
+        Wire.read();
+        uint16_t rawHumidity = ((uint16_t)Wire.read() << 8) | Wire.read();
+        Wire.read();
+        displayStatus.temperatureC = -45.0f + 175.0f * rawTemperature / 65535.0f;
+        displayStatus.humidityPercent = 100.0f * rawHumidity / 65535.0f;
+        displayStatus.environmentValid = true;
+      }
+    }
+    Wire.beginTransmission(0x70);
+    Wire.write(0xB0);
+    Wire.write(0x98);
+    Wire.endTransmission();
+  }
+
+  Wire.beginTransmission(0x51);
+  Wire.write(0x04);
+  if (Wire.endTransmission(false) == 0 && Wire.requestFrom(0x51, 3) == 3) {
+    int second = bcdToDecimal(Wire.read() & 0x7F);
+    int minute = bcdToDecimal(Wire.read() & 0x7F);
+    int hour = bcdToDecimal(Wire.read() & 0x3F);
+    static int lastRtcHour = -1;
+    static int lastRtcMinute = -1;
+    static int lastRtcSecond = -1;
+    if (hour < 24 && minute < 60 && second < 60 &&
+        (hour != lastRtcHour || minute != lastRtcMinute || second != lastRtcSecond)) {
+      displayStatus.hour = hour;
+      displayStatus.minute = minute;
+      displayStatus.second = second;
+      displayStatus.clockValid = true;
+      lastRtcHour = hour;
+      lastRtcMinute = minute;
+      lastRtcSecond = second;
+      lastClockTickMs = millis();
+    }
+  }
+}
+
+static void tickDisplayClock() {
+  unsigned long now = millis();
+  if (lastClockTickMs == 0) lastClockTickMs = now;
+  while (displayStatus.clockValid && now - lastClockTickMs >= 1000) {
+    lastClockTickMs += 1000;
+    if (++displayStatus.second == 60) {
+      displayStatus.second = 0;
+      if (++displayStatus.minute == 60) {
+        displayStatus.minute = 0;
+        displayStatus.hour = (displayStatus.hour + 1) % 24;
+      }
+    }
+  }
+}
 void updateDiscoveryStatus();
 
 WindSensorReader<ModbusMaster, HardwareSerial, HardwareSerial> windReader(
@@ -165,7 +258,8 @@ WindSensorReader<ModbusMaster, HardwareSerial, HardwareSerial> windReader(
     millis,
     SERIAL_8E1,
     SERIAL_8N1,
-    &Serial);
+    nullptr  // Serial is USBCDC (not HardwareSerial) with USB_CDC_ON_BOOT
+);
 
 
 
@@ -847,8 +941,11 @@ void startDiscoveryMode() {
   
   // Start BLE advertising if not already active
   if (!NimBLEDevice::getAdvertising()->isAdvertising()) {
-    NimBLEDevice::startAdvertising();
-    Serial.println("[DISCOVERY] BLE advertising started");
+    if (NimBLEDevice::startAdvertising()) {
+      Serial.println("[DISCOVERY] BLE advertising started");
+    } else {
+      Serial.println("[DISCOVERY] ERROR: BLE advertising failed to start");
+    }
   } else {
     Serial.println("[DISCOVERY] BLE advertising already active");
   }
@@ -996,9 +1093,6 @@ void setupBLE() {
   // Using 185 aligns with widely supported browser stacks
   NimBLEDevice::setMTU(185);
   
-  // Use random address type to help bypass client cache on name changes
-  NimBLEDevice::setOwnAddrType(BLE_OWN_ADDR_RANDOM);
-  
   // Set TX power for good range
   NimBLEDevice::setPower(ESP_PWR_LVL_P3); // +3dBm
   
@@ -1125,9 +1219,26 @@ void updateBLEData() {
 }
 
 void setup() {
-  // Initialize serial communication first
+  // Show feedback immediately while serial and peripheral initialization proceeds.
+  display_boot_splash();
+  delay(300);
+
+  // Initialize serial communication after the splash has reached the panel.
   Serial.begin(115200);
+#ifdef ARDUINO_USB_CDC_ON_BOOT
+  Serial.onEvent(handleUsbCdcEvent);
+#endif
+  analogReadResolution(12);
+  analogSetPinAttenuation(4, ADC_11db);
   delay(1000); // Give serial time to initialize
+
+#ifdef ARDUINO_USB_CDC_ON_BOOT
+  // USB CDC needs host enumeration; wait up to 3s for serial to be ready
+  unsigned long serialTimeout = millis() + 3000;
+  while (!Serial && millis() < serialTimeout) { delay(100); }
+  usbSerialConnected = static_cast<bool>(Serial);
+#endif
+
   Serial.println("\n=== Veetr Starting ===");
   Serial.printf("[Boot] Firmware Version: %s\n", FIRMWARE_VERSION);
   
@@ -1198,7 +1309,8 @@ void setup() {
   // Initialize I2C for BNO080 with detection
   Wire.begin(BNO080_SDA, BNO080_SCL);
   Wire.setClock(400000); // Set I2C to 400kHz Fast mode (BNO08X supports up to 400kHz)
-  Wire.setTimeout(100); // Set I2C timeout to 100ms to prevent long blocking
+  Wire.setTimeOut(100); // Prevent I2C peripheral hangs on ESP32-S3 when device NACKs
+  startRtcClock();
   
   Serial.print("Testing BNO080 connection... ");
   Serial.printf("I2C SDA=%d, SCL=%d\n", BNO080_SDA, BNO080_SCL);
@@ -1211,14 +1323,13 @@ void setup() {
   if (imu.begin()) {
     Serial.println("BNO080 begin() successful, configuring sensor...");
     
-    // Enable accelerometer for fast heel/pitch (50ms = 20Hz)
-    imu.enableAccelerometer(50);
-    Serial.println("Accelerometer configuration sent (20Hz)");
-    
-    // Enable rotation vector (gyro + accel + mag fusion with tilt compensation)
-    // This includes magnetometer, so heading will be tilt-compensated
-    imu.enableRotationVector(100); // 100ms = 10Hz for stable heading
+    // Enable rotation vector (gyro+accel+mag fusion, tilt-compensated heading).
+    // IMPORTANT: Must NOT enable any other sensor reports (accel, gyro, mag)
+    // or the rotation vector will stop producing data on this hardware revision.
+    // The rotation vector internally uses all three sensors.
+    imu.enableRotationVector(100); // 100ms = 10Hz
     Serial.println("Rotation vector configuration sent (10Hz)");
+    delay(500); // Give sensor time to process the command
     
     // Give sensor more time to initialize and start providing data
     Serial.println("Waiting for sensor data...");
@@ -1265,25 +1376,6 @@ void setup() {
     Serial.println("BNO080 IMU sensor enabled");
   } else {
     Serial.println("BNO080 IMU sensor disabled - tilt will be set to 0");
-  }
-  
-  // Scan I2C bus for all devices
-  Serial.println("Scanning I2C bus...");
-  int devicesFound = 0;
-  for (byte address = 1; address < 127; address++) {
-    Wire.beginTransmission(address);
-    byte error = Wire.endTransmission();
-    
-    if (error == 0) {
-      Serial.printf("I2C device found at address 0x%02X\n", address);
-      devicesFound++;
-    }
-  }
-  
-  if (devicesFound == 0) {
-    Serial.println("No I2C devices found. Check wiring and power.");
-  } else {
-    Serial.printf("Found %d I2C device(s)\n", devicesFound);
   }
   
   // Initialize BLE with the loaded device name
@@ -1350,6 +1442,9 @@ void setup() {
     Serial.println("Wind sensor test FAILED - check connections and power");
   }
   
+  // Initialize RLCD display with LVGL
+  display_lvgl_init();
+
   Serial.println("Setup complete");
 }
 
@@ -1398,7 +1493,16 @@ void loop() {
     delay(10); // Small delay to prevent tight loop, but keep responsive
     return;
   }
-  
+
+  // Handle serial debug commands
+  if (Serial.available() > 0) {
+    int cmd = Serial.read();
+    if (cmd == 'd' || cmd == 'D') {
+      Serial.println("[Debug] Display framebuffer dump requested");
+      display_serial_dump();
+    }
+  }
+
   // Check if it's time to update data
   if (millis() >= nextUpdate) {
     // Read sensor data
@@ -1455,6 +1559,14 @@ void loop() {
       Serial.println();
       lastStatusTime = millis();
     }
+  }
+
+  // Animate the RLCD independently of the 1 Hz sensor acquisition cycle.
+  tickDisplayClock();
+  static unsigned long nextDisplayFrame = 0;
+  if (millis() >= nextDisplayFrame) {
+    display_lvgl_update(currentData, displayStatus);
+    nextDisplayFrame = millis() + 80;  // 12.5 Hz animation
   }
 }
 
@@ -1665,6 +1777,7 @@ void readSensors() {
   
   // Read GPS data first
   bool gpsDataValid = readGPS();
+  updateDisplayStatus();
   
   #ifdef DEBUG_BLE_DATA
   unsigned long gpsTime = millis();
@@ -1782,12 +1895,31 @@ void readSensors() {
   // Read tilt from BNO080 (only if available)
   if (imuAvailable) {
     static unsigned long lastIMURead = 0;
-    const unsigned long IMU_READ_INTERVAL = 20; // Read IMU every 20ms (50Hz to match magnetometer)
+    const unsigned long IMU_READ_INTERVAL = 50; // Read IMU every 50ms (20Hz to match accel rate)
     
     if (millis() - lastIMURead >= IMU_READ_INTERVAL) {
       lastIMURead = millis();
-      
+
+      // Re-enable sensor features if no data received for a while
+      static unsigned long lastRvReEnable = 0;
+      static bool rvEverWorked = false;
+      static unsigned long lastDataReceived = 0;
+      unsigned long now_ = millis();
+      // Trigger recovery if: data stopped for 3s, OR no data ever after 10s
+      bool needRecovery = (rvEverWorked && lastDataReceived > 0 && now_ - lastDataReceived > 3000)
+                       || (!rvEverWorked && lastDataReceived == 0 && now_ - lastRvReEnable > 10000);
+      if (needRecovery && now_ - lastRvReEnable > 5000) {
+        lastRvReEnable = now_;
+        Wire.end();
+        Wire.begin(BNO080_SDA, BNO080_SCL);
+        Wire.setClock(400000);
+        Wire.setTimeOut(100);
+        delay(5);
+        imu.enableGameRotationVector(100);
+      }
+
       if (imu.dataAvailable()) {
+        lastDataReceived = millis();
         // dataAvailable() processes incoming sensor reports from BNO080
         // It updates internal variables: rawAccelX/Y/Z, rawMagX/Y/Z, rawQuatI/J/K/Real
         
@@ -1795,17 +1927,18 @@ void readSensors() {
         // The rotation vector (quaternion) updates too slowly (~4-6 seconds)
         // Accelerometer updates fast and reliably every cycle
         
-        // Get accelerometer readings (in m/s²)
+        // Get accelerometer readings (in m/s²) — only valid after enableAccelerometer is called
         float accelX = imu.getAccelX();
         float accelY = imu.getAccelY();
         float accelZ = imu.getAccelZ();
         
         // Calculate heel (roll) from gravity vector
-        // When level: accelZ ≈ 9.8, accelX ≈ 0, accelY ≈ 0
-        // When heeled right: accelX increases (positive), accelZ decreases
         float rawRoll = 0.0f;
         float rawPitch = 0.0f;
-        computeRollPitchDegrees(accelX, accelY, accelZ, rawRoll, rawPitch);
+        // Only compute if we have valid accel data (non-zero gravity)
+        if (fabsf(accelZ) > 1.0f) {
+          computeRollPitchDegrees(accelX, accelY, accelZ, rawRoll, rawPitch);
+        }
         
         // Apply calibration offsets
         float roll = rawRoll - rollOffset;
@@ -1823,17 +1956,29 @@ void readSensors() {
         }
         #endif
         
-        // Compass calculation - only update when magnetometer actually changes
-        // **USE ROTATION VECTOR FOR TILT-COMPENSATED COMPASS**
-        // BNO080's rotation vector fuses gyro + accel + mag - heading is tilt-compensated!
+        // Compass calculation — use rotation vector for tilt-compensated heading
+        // BNO080's rotation vector internally fuses gyro + accel + mag
         float quatI = imu.getQuatI();
         float quatJ = imu.getQuatJ();
         float quatK = imu.getQuatK();
         float quatReal = imu.getQuatReal();
         
-        // Check if quaternion is valid (non-zero)
         float heading = 0.0f;
-        if (computeHeadingDegreesFromQuaternion(quatI, quatJ, quatK, quatReal, heading)) {
+          if (computeHeadingDegreesFromQuaternion(quatI, quatJ, quatK, quatReal, heading)) {
+          rvEverWorked = true;
+          
+          // After rotation vector converges, enable accelerometer for heel/pitch.
+          // IMPORTANT: On this hardware, enabling accel BEFORE rotation vector
+          // prevents rotvec from producing data. But enabling it after works.
+          static bool accelEnabled = false;
+          if (!accelEnabled) {
+            delay(50); // Brief pause before sending command
+            imu.enableAccelerometer(50);
+            accelEnabled = true;
+            #ifdef DEBUG_BNO080
+            Serial.println("[BNO080] Accelerometer enabled (20Hz) after rotation vector convergence");
+            #endif
+          }
           
           // Apply calibration offset
           if (northCalibrated) {
@@ -1850,16 +1995,17 @@ void readSensors() {
           #endif
         } else {
           #ifdef DEBUG_BNO080
-          Serial.println("[BNO080] Rotation vector not ready");
+          float qMag = sqrtf(quatI*quatI + quatJ*quatJ + quatK*quatK + quatReal*quatReal);
+          float radAcc = imu.getQuatRadianAccuracy();
+          Serial.printf("[BNO080] Rotation vector not ready (i=%.4f j=%.4f k=%.4f real=%.4f mag=%.4f acc=%.4f)\n",
+                        quatI, quatJ, quatK, quatReal, qMag, radAcc);
           #endif
         }
         
-        // Read accelerometer data
+        // Read and store accelerometer data
         currentData.accelX = imu.getAccelX();
         currentData.accelY = imu.getAccelY();
         currentData.accelZ = imu.getAccelZ();
-        
-        // Store accelerometer data for movement analysis
         storeAccelReading(currentData.accelX, currentData.accelY, currentData.accelZ);
         
         #ifdef DEBUG_BNO080
@@ -1902,6 +2048,66 @@ void readSensors() {
     lastTimingReport = millis();
   }
   #endif
+
+  // Comprehensive all-sensors debug dump (every 2 seconds)
+  static unsigned long lastSensorDump = 0;
+  if (millis() - lastSensorDump > 2000) {
+    lastSensorDump = millis();
+
+    // --- GPS Diagnostics ---
+    int gpsAvail = gpsSerial.available();
+    Serial.printf("[DIAG] GPS serial avail=%d charsProcessed=%d failedCS=%d\n",
+                  gpsAvail, gps.charsProcessed(), gps.failedChecksum());
+
+    // --- IMU Diagnostics ---
+    if (!imuAvailable) {
+      Serial.println("[DIAG] IMU: NOT AVAILABLE (begin() failed or I2C no response)");
+    } else {
+      int reportCount = 0;
+      for (int i = 0; i < 10; i++) {
+        if (imu.dataAvailable()) {
+          reportCount++;
+          // Update currentData with values from the last drained report
+          currentData.accelX = imu.getAccelX();
+          currentData.accelY = imu.getAccelY();
+          currentData.accelZ = imu.getAccelZ();
+          float qI = imu.getQuatI(), qJ = imu.getQuatJ(), qK = imu.getQuatK(), qR = imu.getQuatReal();
+          float hdg = 0.0f;
+          if (computeHeadingDegreesFromQuaternion(qI, qJ, qK, qR, hdg)) {
+            if (northCalibrated) { hdg -= headingOffset; if (hdg < 0) hdg += 360; if (hdg >= 360) hdg -= 360; }
+            currentData.HDM = (int)round(hdg);
+          }
+          float rawRoll, rawPitch;
+          computeRollPitchDegrees(currentData.accelX, currentData.accelY, currentData.accelZ, rawRoll, rawPitch);
+          currentData.tilt = rawRoll - rollOffset;
+          currentData.pitch = rawPitch - pitchOffset;
+        } else break;
+      }
+
+      // Probe I2C bus health
+      auto i2cProbe = [](int addr) -> int {
+        Wire.beginTransmission(addr);
+        return Wire.endTransmission();
+      };
+      int p4B = i2cProbe(0x4B);
+      Serial.printf("[DIAG] IMU: I2C probe 0x4B=%d\n", p4B);
+
+      bool hasAccel = (currentData.accelX != 0.0f || currentData.accelY != 0.0f || currentData.accelZ != 0.0f);
+      Serial.printf("[DIAG] IMU: drained=%d accel=%s heading=%d\n",
+                    reportCount, hasAccel ? "YES" : "NO", currentData.HDM);
+    }
+
+    Serial.println("=== SENSOR READINGS ===");
+    Serial.printf("GPS: Lat=%.6f Lon=%.6f SOG=%.2fkt COG=%.1f Sats=%d HDOP=%.1f\n",
+                  gps.location.lat(), gps.location.lng(),
+                  currentData.speed, gps.course.deg(),
+                  gps.satellites.value(), gps.hdop.hdop());
+    Serial.printf("Wind (Apparent): %.1fkt @ %d\n", currentData.windSpeed, currentData.windAngle);
+    Serial.printf("Wind (True): %.1fkt @ %d\n", currentData.trueWindSpeed, currentData.trueWindAngle);
+    Serial.printf("IMU: Heel=%.1f Pitch=%.1f Heading=%d\n", currentData.tilt, currentData.pitch, currentData.HDM);
+    Serial.printf("Accel: X=%.2f Y=%.2f Z=%.2f m/s²\n", currentData.accelX, currentData.accelY, currentData.accelZ);
+    Serial.println("=======================");
+  }
 }
 
 // Generate JSON string with current sensor data using marine standard terminology
