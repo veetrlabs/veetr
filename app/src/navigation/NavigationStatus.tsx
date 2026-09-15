@@ -27,12 +27,14 @@ export default function NavigationStatus() {
             ? "Recording locally"
             : "Sharing live"
           : nav.session?.phase === "stopping"
-            ? "Recording stopped"
+            ? "NOT RECORDING — live display only"
             : "Live display · not recording"}
         {nav.session?.phase === "recording" &&
         nav.session.backgroundEnabled === false
-          ? " · Keep app open"
-          : ""}
+          ? " · Screen-lock recording OFF"
+          : nav.session?.phase === "recording" && nav.session.backgroundEnabled
+            ? " · Screen-lock recording ready"
+            : ""}
       </Text>
       <View style={{ flexDirection: "row", gap: 20 }}>
         {!nav.permission && (

@@ -22,6 +22,7 @@ export class TrackingStore {
   constructor(private db: TrackingDatabase) {}
   async init() {
     await this.db.execAsync(`PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;
+      CREATE TABLE IF NOT EXISTS local_recordings (id TEXT PRIMARY KEY, body TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS tracking_state (id INTEGER PRIMARY KEY CHECK(id=1), body TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS tracking_outbox (seq INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT NOT NULL, body TEXT NOT NULL);`);
   }
@@ -150,6 +151,75 @@ export class TrackingStore {
         points: rows.map((row) => JSON.parse(row.body) as TrackingPoint),
       };
     });
+  }
+  points(id: string) {
+    return this.exclusive(async () => {
+      if ((await this.read())?.id !== id) return [];
+      const rows = await this.db.getAllAsync<{ body: string }>(
+        "SELECT body FROM tracking_outbox WHERE session_id=? ORDER BY seq",
+        id,
+      );
+      return rows.map((row) => JSON.parse(row.body) as TrackingPoint);
+    });
+  }
+  localRecordings() {
+    return this.exclusive(async () => {
+      const archived = await this.db.getAllAsync<{ body: string }>(
+        "SELECT body FROM local_recordings ORDER BY rowid DESC",
+      );
+      const records = archived.map((row) => ({
+        ...(JSON.parse(row.body) as {
+          session: TrackingSession;
+          points: TrackingPoint[];
+        }),
+        archived: true,
+      }));
+      const session = await this.read();
+      if (session?.mode === "local") {
+        const rows = await this.db.getAllAsync<{ body: string }>(
+          "SELECT body FROM tracking_outbox WHERE session_id=? ORDER BY seq",
+          session.id,
+        );
+        records.unshift({
+          archived: false,
+          session,
+          points: rows.map((row) => JSON.parse(row.body) as TrackingPoint),
+        });
+      }
+      return records;
+    });
+  }
+  archiveLocal() {
+    return this.exclusive(() =>
+      this.transaction(async () => {
+        const session = await this.read();
+        if (!session) return;
+        if (session.mode !== "local" || session.phase !== "stopping")
+          throw new Error("Stop the current recording first.");
+        const rows = await this.db.getAllAsync<{ body: string }>(
+          "SELECT body FROM tracking_outbox WHERE session_id=? ORDER BY seq",
+          session.id,
+        );
+        await this.db.runAsync(
+          "INSERT INTO local_recordings(id,body) VALUES(?,?)",
+          session.id,
+          JSON.stringify({
+            session,
+            points: rows.map((row) => JSON.parse(row.body)),
+          }),
+        );
+        await this.db.runAsync(
+          "DELETE FROM tracking_outbox WHERE session_id=?",
+          session.id,
+        );
+        await this.db.execAsync("DELETE FROM tracking_state WHERE id=1");
+      }),
+    );
+  }
+  deleteArchivedLocal(id: string) {
+    return this.exclusive(() =>
+      this.db.runAsync("DELETE FROM local_recordings WHERE id=?", id),
+    );
   }
   acknowledge(id: string, seqs: number[]) {
     return this.exclusive(async () => {

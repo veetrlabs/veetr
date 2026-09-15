@@ -151,3 +151,30 @@ test("local export retains every point and cannot expose a live session", async 
     db.close();
   }
 });
+
+test("old recordings without a trail cache remain readable and survive archiving", async () => {
+  const db = new DatabaseSync(":memory:");
+  try {
+    const s = store(db);
+    await s.init();
+    await s.create({ ...session, mode: "local" });
+    await s.append(session.id, [point(0), point(5)]);
+    await s.patch(session.id, { recentPoints: undefined, phase: "stopping" });
+    assert.equal((await s.points(session.id)).length, 2);
+    await s.archiveLocal();
+    assert.equal(await s.get(), null);
+    assert.equal(await s.count(), 0);
+    await s.create({ ...session, id: "new-session", mode: "local" });
+    await s.append("new-session", [point(0)]);
+    const recordings = await s.localRecordings();
+    assert.equal(recordings.length, 2);
+    assert.equal(recordings[0].points.length, 1);
+    assert.equal(recordings[1].points.length, 2);
+    await s.clear("new-session");
+    assert.equal((await s.localRecordings()).length, 1);
+    await s.deleteArchivedLocal(session.id);
+    assert.equal((await s.localRecordings()).length, 0);
+  } finally {
+    db.close();
+  }
+});

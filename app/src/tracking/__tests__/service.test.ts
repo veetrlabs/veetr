@@ -1,4 +1,5 @@
-jest.mock("react-native", () => ({ AppState: {currentState: "active"} }));
+import { AppState } from "react-native";
+jest.mock("react-native", () => ({ AppState: { currentState: "active" } }));
 import type { TrackingPoint, TrackingSession } from "../model";
 jest.mock("expo-location", () => ({
   watchPositionAsync: jest.fn(async () => ({ remove: jest.fn() })),
@@ -40,6 +41,7 @@ import {
   stopTracking,
   recordLocations,
   resumeTracking,
+  pauseForegroundGPS,
   startLocalTracking,
   discardStoppedTracking,
 } from "../service";
@@ -244,4 +246,38 @@ test("local recording accepts foreground permission when background permission i
   expect(Location.watchPositionAsync).toHaveBeenCalled();
   expect(trackingRpc).not.toHaveBeenCalled();
   await stopTracking();
+});
+
+test("background capture continues when foreground subscriptions are paused", async () => {
+  session = { ...base(), mode: "local" };
+  points = [];
+  await resumeTracking();
+  expect(Location.startLocationUpdatesAsync).toHaveBeenCalledWith(
+    expect.any(String),
+    expect.objectContaining({
+      pausesUpdatesAutomatically: false,
+      showsBackgroundLocationIndicator: true,
+    }),
+  );
+  (AppState as { currentState: string }).currentState = "background";
+  try {
+    pauseForegroundGPS();
+    await recordLocations([
+      {
+        timestamp: Date.now(),
+        coords: {
+          latitude: 49,
+          longitude: 14,
+          accuracy: 5,
+          speed: 2,
+          heading: 90,
+        },
+      },
+    ]);
+    expect(points).toHaveLength(1);
+    expect(session?.phase).toBe("recording");
+    expect(Location.stopLocationUpdatesAsync).not.toHaveBeenCalled();
+  } finally {
+    (AppState as { currentState: string }).currentState = "active";
+  }
 });

@@ -105,7 +105,9 @@ export default function LocalRecording({
       ) : (
         <>
           <Text style={{ color: colors.text }}>
-            {session.phase === "recording" ? "Recording" : "Recording stopped"}{" "}
+            {session.phase === "recording"
+              ? "● RECORDING"
+              : "NOT RECORDING — saved session"}{" "}
             · {count} saved positions
           </Text>
           <Text style={{ color: colors.text }}>
@@ -133,6 +135,46 @@ export default function LocalRecording({
             )}
           {button("View map and track", () => router.push("/(tabs)/map"))}
           {button("View live instruments", () => router.push("/(tabs)"))}
+          {session.phase === "recording" && (
+            <Text style={{ color: colors.text, fontWeight: "600" }}>
+              {session.backgroundEnabled
+                ? "Screen-lock recording ready"
+                : "Screen-lock recording is NOT enabled"}
+            </Text>
+          )}
+          {session.lastBackgroundFixAt && (
+            <Text style={{ color: colors.text }}>
+              Last background callback:{" "}
+              {new Date(session.lastBackgroundFixAt).toLocaleString()}
+            </Text>
+          )}
+          {session.stopReason && (
+            <Text style={{ color: colors.text }}>
+              Stopped:{" "}
+              {session.stopReason === "expired"
+                ? "12-hour recording limit reached"
+                : "Stop button"}
+            </Text>
+          )}
+          {session.phase === "stopping" &&
+            button("Start a new recording", () =>
+              Alert.alert(
+                "Start a new recording?",
+                "The previous recording will stay in History. Allow background location to record with the screen locked.",
+                [
+                  { text: "Cancel", style: "cancel" },
+                  {
+                    text: "Start recording",
+                    onPress: () => void run(startLocalTracking),
+                  },
+                ],
+              ),
+            )}
+          {session.lastTaskError && (
+            <Text style={{ color: colors.text }}>
+              Last background task error: {session.lastTaskError}
+            </Text>
+          )}
           {session.error && (
             <Text accessibilityRole="alert" style={{ color: colors.text }}>
               {session.error}

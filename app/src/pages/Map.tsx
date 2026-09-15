@@ -24,7 +24,7 @@ export default function Map({ onBack }: { onBack?: () => void }) {
   const [follow, setFollow] = useState(true),
     [ready, setReady] = useState(false);
   const fix = nav.fix;
-  const trail = nav.session?.recentPoints ?? [];
+  const trail = nav.trail;
   const last = trail.at(-1);
   const position =
     fix ??
@@ -148,8 +148,8 @@ export default function Map({ onBack }: { onBack?: () => void }) {
           </Text>
           <Text style={{ color: colors.textSecondary }}>
             {trail.length
-              ? "Recent recorded trail · full local recording can be exported from Track"
-              : "Start recording to save your trail"}
+              ? "Saved recording trail"
+              : "No saved fixes yet · use Recording controls to start"}
           </Text>
           <Pressable
             accessibilityRole="button"

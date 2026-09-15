@@ -22,6 +22,7 @@ function useNavigationState() {
   const { state } = useBLE();
   const [phone, setPhone] = useState<TrackingPoint | null>(null);
   const [session, setSession] = useState<TrackingSession | null>(null);
+  const [trail, setTrail] = useState<TrackingPoint[]>([]);
   const [now, setNow] = useState(Date.now());
   const [permission, setPermission] = useState(false);
   const [error, setError] = useState("");
@@ -29,6 +30,7 @@ function useNavigationState() {
     let alive = true,
       watcher: Location.LocationSubscription | null = null,
       generation = 0;
+    let trailKey = "";
     async function update() {
       const version = ++generation;
       watcher?.remove();
@@ -69,7 +71,18 @@ function useNavigationState() {
     const timer = setInterval(() => {
       setNow(Date.now());
       void trackingStore()
-        .then((s) => s.get())
+        .then(async (s) => {
+          const value = await s.get();
+          const key = `${value?.id}/${value?.lastRecordedAt}/${value?.phase}`;
+          if (key !== trailKey) {
+            const points = value ? await s.points(value.id) : [];
+            if (alive) {
+              setTrail(points.length ? points : (value?.recentPoints ?? []));
+              trailKey = key;
+            }
+          }
+          return value;
+        })
         .then((value) => {
           if (!alive) return;
           setSession(value);
@@ -110,6 +123,7 @@ function useNavigationState() {
   return {
     ...navigationFix(phone, state, session?.phase === "recording", now),
     session,
+    trail,
     permission,
     error,
     enableGPS,

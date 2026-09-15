@@ -35,12 +35,13 @@ export const enableBackgroundTracking = () =>
     await requestPermissions();
     await resumeInternal();
   });
-export async function stopTracking() {
+export async function stopTracking(reason: "user" | "expired" = "user") {
   const store = await trackingStore(),
     session = await store.get();
   if (!session) return;
   await store.patch(session.id, {
     phase: "stopping",
+    stopReason: session.stopReason ?? reason,
     stoppedAt: session.stoppedAt ?? new Date().toISOString(),
   });
   await stopGPS();
@@ -66,7 +67,7 @@ async function startGPS(local = false) {
     (await Location.getBackgroundPermissionsAsync()).status === "granted";
   const store = await trackingStore();
   const session = await store.get();
-  if (session) await store.patch(session.id, { backgroundEnabled: background });
+  if (session) await store.patch(session.id, { backgroundEnabled: false });
   if (!background) {
     if (!local)
       throw new Error(
@@ -100,22 +101,31 @@ async function startGPS(local = false) {
     return;
   }
   pauseForegroundGPS();
+  // Reapply native options on resume: task registration alone does not prove the manager is running.
+  await Location.startLocationUpdatesAsync(LOCATION_TASK, {
+    accuracy: Location.Accuracy.High,
+    timeInterval: 5000,
+    distanceInterval: 0,
+    deferredUpdatesInterval: 0,
+    pausesUpdatesAutomatically: false,
+    activityType: Location.ActivityType.OtherNavigation,
+    showsBackgroundLocationIndicator: true,
+    foregroundService: {
+      notificationTitle: "Veetr regatta tracking",
+      notificationBody: local
+        ? "Recording GPS on this phone. Open Veetr to stop."
+        : "Sharing your boat position. Open Veetr to stop.",
+      killServiceOnDestroy: true,
+    },
+  });
   if (!(await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK)))
-    await Location.startLocationUpdatesAsync(LOCATION_TASK, {
-      accuracy: Location.Accuracy.High,
-      timeInterval: 5000,
-      distanceInterval: 0,
-      deferredUpdatesInterval: 5000,
-      pausesUpdatesAutomatically: false,
-      activityType: Location.ActivityType.OtherNavigation,
-      showsBackgroundLocationIndicator: true,
-      foregroundService: {
-        notificationTitle: "Veetr regatta tracking",
-        notificationBody: local
-          ? "Recording GPS on this phone. Open Veetr to stop."
-          : "Sharing your boat position. Open Veetr to stop.",
-        killServiceOnDestroy: true,
-      },
+    throw new Error(
+      "Background GPS did not start. Keep the app open and retry.",
+    );
+  if (session)
+    await store.patch(session.id, {
+      backgroundEnabled: true,
+      backgroundStartedAt: new Date().toISOString(),
     });
 }
 async function flush() {
@@ -181,9 +191,14 @@ export function syncTracking(force = false): Promise<void> {
 export const startLocalTracking = () =>
   serialize(async () => {
     const store = await trackingStore();
-    if (await store.get())
-      throw new Error("Finish the previous tracking session first.");
+    const previous = await store.get();
+    if (
+      previous &&
+      (previous.mode !== "local" || previous.phase !== "stopping")
+    )
+      throw new Error("Stop the current recording first.");
     await requestPermissions(true);
+    if (previous) await store.archiveLocal();
     const now = Date.now();
     await store.create({
       id: Crypto.randomUUID(),
@@ -245,7 +260,8 @@ async function resumeInternal() {
       ) {
         await startGPS(true);
         await store.patch(session.id, { error: undefined });
-      } else await stopInternal();
+      } else if (session.phase === "recording") await stopInternal("expired");
+      else await stopGPS();
       return;
     }
     await owner(session);
@@ -267,7 +283,8 @@ async function resumeInternal() {
       session = (await store.get())!;
     }
     if (session.phase === "recording") {
-      if (Date.parse(session.expiresAt) <= Date.now()) return stopInternal();
+      if (Date.parse(session.expiresAt) <= Date.now())
+        return stopInternal("expired");
       await startGPS();
     } else await stopGPS();
     await syncTracking(true);
@@ -276,13 +293,14 @@ async function resumeInternal() {
     throw error;
   }
 }
-async function stopInternal() {
+async function stopInternal(reason: "user" | "expired" = "user") {
   const store = await trackingStore(),
     session = await store.get();
   if (!session) return;
   // Persist the stop before any network request or native shutdown. Late callbacks cannot append.
   await store.patch(session.id, {
     phase: "stopping",
+    stopReason: session.stopReason ?? reason,
     stoppedAt: session.stoppedAt ?? new Date().toISOString(),
   });
   await stopGPS();
@@ -313,7 +331,8 @@ export async function recordLocations(locations: LocationFix[]) {
   const store = await trackingStore(),
     session = await store.get();
   if (!session || session.phase !== "recording") return;
-  if (Date.now() >= Date.parse(session.expiresAt)) return stopTracking();
+  if (Date.now() >= Date.parse(session.expiresAt))
+    return stopTracking("expired");
   try {
     // Capture is fully offline; only uploads require a current authenticated session.
     const points = locations
@@ -337,11 +356,25 @@ if (!TaskManager.isTaskDefined(LOCATION_TASK))
     async ({ data, error }) => {
       try {
         if (error) throw new Error(error.message);
-        if (data?.locations) await recordLocations(data.locations);
+        if (data?.locations) {
+          await recordLocations(data.locations);
+          if (AppState.currentState === "background") {
+            const store = await trackingStore(),
+              session = await store.get();
+            if (session?.phase === "recording")
+              await store.patch(session.id, {
+                lastBackgroundFixAt: new Date().toISOString(),
+              });
+          }
+        }
       } catch (error) {
         const store = await trackingStore(),
           session = await store.get();
-        if (session) await store.patch(session.id, { error: message(error) });
+        if (session)
+          await store.patch(session.id, {
+            error: message(error),
+            lastTaskError: message(error),
+          });
       }
     },
   );

@@ -38,7 +38,7 @@ export default function TrackingRuntime() {
             session?.phase === "recording" &&
             Date.parse(session.expiresAt) <= Date.now()
           )
-            await stopTracking();
+            await stopTracking("expired");
           else await syncTracking();
         })
         .catch(() => {});

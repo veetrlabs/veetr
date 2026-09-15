@@ -12,6 +12,10 @@ export interface TrackingSession extends TrackingEntry {
   userId: string;
   mode?: "local" | "live";
   backgroundEnabled?: boolean;
+  backgroundStartedAt?: string;
+  lastBackgroundFixAt?: string;
+  lastTaskError?: string;
+  stopReason?: "user" | "expired";
   recentPoints?: TrackingPoint[];
   phase: "starting" | "recording" | "stopping";
   startedAt: string;
