@@ -79,6 +79,44 @@ test('audit evidence is transactional, attributable, protected and survives dele
   assert.deepEqual(entry.metadata,{attempt_id:attempt,provider_status:200});
  });
 
+ const trackingSession=id();
+ await t.test('tracking start and stop retain actor and before/after evidence',async()=>{
+  await login(owner);
+  await db.query('select public.start_tracking_session($1,$2,$3)',[trackingSession,sid,bid]);
+  await db.query('select public.stop_tracking_session($1,now())',[trackingSession]);
+  const evidence=(await logs()).filter(e=>e.entity_table==='tracking_sessions');
+  const start=evidence.find(e=>e.action==='insert');
+  const stop=evidence.find(e=>e.action==='update');
+  assert.equal(start.entity_key.id,trackingSession);
+  assert.equal(start.actor_id,owner);
+  assert.equal(start.actor_email,'owner@example.test');
+  assert.equal(start.series_id,sid);
+  assert.equal(start.new_values.boat_id,bid);
+  assert.equal(stop.actor_id,owner);
+  assert.equal(stop.old_values.stopped_at,null);
+  assert.ok(stop.new_values.stopped_at);
+  await db.exec('begin');
+  await db.query('delete from public.tracking_sessions where id=$1',[trackingSession]);
+  await db.exec('rollback');
+  assert.equal((await logs()).filter(e=>e.entity_table==='tracking_sessions').length,2);
+  const pointTriggers=await db.query("select 1 from information_schema.triggers where event_object_table='tracking_points' and trigger_name='audit_change'");
+  assert.equal(pointTriggers.rows.length,0);
+ });
+
+ await t.test('reviewer deletion clears the live reference but preserves approval evidence',async()=>{
+  await db.exec('reset role');
+  await db.exec("select set_config('request.jwt.claim.sub','',false)");
+  await db.query('delete from auth.users where id=$1',[admin]);
+  const request=(await db.query('select * from public.series_access_requests where user_id=$1',[owner])).rows[0];
+  assert.equal(request.reviewed_by,null);
+  assert.equal(request.status,'approved');
+  const evidence=await logs();
+  const approval=evidence.find(e=>e.entity_table==='series_access_requests'&&e.new_values?.reviewed_by===admin);
+  assert.equal(approval.actor_id,admin);
+  assert.equal(approval.actor_email,'admin@example.test');
+  assert.ok(evidence.some(e=>e.entity_table==='series_access_requests'&&e.old_values?.reviewed_by===admin&&e.new_values?.reviewed_by===null));
+ });
+
  await t.test('entity and actor deletion preserve names, snapshots and identity',async()=>{
   await login(owner);await db.query('select public.delete_race_entity($1,2)',[sid]);await db.query('select public.delete_boat($1)',[bid]);
   await db.exec('reset role');await db.query('delete from auth.users where id=$1',[owner]);
@@ -87,5 +125,11 @@ test('audit evidence is transactional, attributable, protected and survives dele
   assert.equal(deleted.actor_id,owner);assert.equal(deleted.actor_email,'owner@example.test');
   const boat=evidence.find(e=>e.entity_table==='boats'&&e.action==='delete');assert.equal(boat.old_values.name,'Evidence boat');
   assert.ok(evidence.some(e=>e.entity_table==='race_results'&&e.action==='delete'));
+  const trackingDeleted=evidence.find(e=>e.entity_table==='tracking_sessions'&&e.action==='delete');
+  assert.equal(trackingDeleted.entity_key.id,trackingSession);
+  assert.equal(trackingDeleted.actor_id,owner);
+  assert.equal(trackingDeleted.series_id,sid);
+  assert.equal(trackingDeleted.old_values.user_id,owner);
+  assert.equal(trackingDeleted.old_values.boat_id,bid);
  });
 });

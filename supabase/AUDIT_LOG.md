@@ -5,6 +5,8 @@ Inspect `public.audit_log` in Supabase Table Editor or SQL Editor. There is no a
 ## Recorded evidence
 
 - Inserts, updates and deletes on series, boats, memberships, categories, registrations, heat/result projections, creation permissions and permission requests.
+- Tracking session creation, stop/expiry updates and deletion, including cascades, retain the actor, session, boat and series identity. GPS samples are not duplicated in the audit log.
+- Deleting a reviewer clears the live request’s reviewer reference; existing audit snapshots preserve their identity and approval decision.
 - Full before/after series documents preserve event/heat names, results, publishing changes, imports and restored data. These are stored as document changes; the database cannot infer whether an identical change came from an import, restoration or manual edit.
 - `series_changes` entries preserve mutation IDs and revisions. Join by `transaction_id` to find the series snapshot and related row changes from that save. Projection rebuilds can produce delete/insert pairs, which do not necessarily mean a user deleted/recreated the entity. Timestamp-only updates are omitted.
 - Email attempts, provider acceptance and failures carry a shared attempt ID, request ID and HTTP status. Provider acceptance is not proof of inbox delivery. A crash can leave an attempt without an outcome; retries use the request's existing Resend idempotency key. No email body, key, token or HTTP headers are stored in these events.
