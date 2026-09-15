@@ -33,6 +33,17 @@ Deno.serve(async (req: Request) => {
       return reply(200, "Already processed");
     const apiKey = Deno.env.get("RESEND_API_KEY");
     if (!apiKey) return reply(503, "Email is not configured");
+    const claim = await fetch(`${base}/rest/v1/rpc/claim_request_email`, {
+      method: "POST",
+      headers: { ...adminHeaders, "Content-Type": "application/json" },
+      body: JSON.stringify({ request_id: requestId, requester_id: user.id }),
+    });
+    if (!claim.ok) return reply(502, "Unable to reserve email attempt");
+    if ((await claim.json()) !== true)
+      return reply(
+        429,
+        "Please wait five minutes before retrying. Email notifications are limited to five attempts within 23 hours; your request remains available for admin review.",
+      );
     const attemptId = crypto.randomUUID();
     const audit = async (
       outcome: string,
@@ -54,6 +65,7 @@ Deno.serve(async (req: Request) => {
     let sent: Response;
     try {
       sent = await fetch("https://api.resend.com/emails", {
+        signal: AbortSignal.timeout(30_000),
         method: "POST",
         headers: {
           Authorization: `Bearer ${apiKey}`,

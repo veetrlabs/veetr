@@ -244,3 +244,10 @@ The `creation-request-email` Supabase Edge Function authenticates the requester 
 Insert an administrator's Auth user ID into `public.platform_admins` through the Regatta Table Editor. Administrators review pending requests on `/account/` and approve or decline; approval inserts the requester into the existing `series_creators` table. Neither email links nor ordinary users can grant access. No administrators are seeded automatically.
 
 The database workflow deploys this function after applying migrations. Supabase Auth SMTP and Gmail identity credentials remain separate and unchanged.
+
+Email notification retries are database-limited to five attempts per request,
+at least five minutes apart, and within 23 hours of the first attempt. Failed or
+interrupted sends consume an attempt. Requests remain in the admin review list
+when delivery is unavailable; review them there rather than resetting retry
+counters (which could resend an already delivered message). Apply
+`202609150001_request_email_limits.sql` before deploying the email function.

@@ -1,4 +1,5 @@
 export const cs: Record<string, string> = {
+ "Email retry limit reached. Wait five minutes between attempts; at most five attempts are allowed within 23 hours. Your request is still awaiting admin review.":"Byl dosažen limit odesílání e-mailu. Mezi pokusy vyčkejte pět minut; povoleno je nejvýše pět pokusů během 23 hodin. Vaše žádost stále čeká na posouzení správcem.",
  "Request permission to create series":"Požádat o vytváření seriálů",
  "Why do you need to create series?":"Proč potřebujete vytvářet seriály?",
  "Send request":"Odeslat žádost",

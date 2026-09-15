@@ -66,6 +66,7 @@ test("permission request, notification, and review workflow", async (t) => {
   vm.runInNewContext(code, {
     Request,
     Response,
+    AbortSignal,
     crypto: webcrypto,
     Deno: {
       env: {
@@ -108,6 +109,14 @@ test("permission request, notification, and review workflow", async (t) => {
         if (delivered.has(key)) assert.deepEqual(payload, delivered.get(key));
         delivered.set(key, payload);
         return Response.json({ id: key });
+      }
+      if (url === "https://db.test/rest/v1/rpc/claim_request_email") {
+        const args = JSON.parse(init.body);
+        const result = await db.query(
+          "select public.claim_request_email($1,$2) claimed",
+          [args.request_id, args.requester_id],
+        );
+        return Response.json(result.rows[0].claimed);
       }
       if (url === "https://db.test/rest/v1/rpc/audit_request_email") {
         const args = JSON.parse(init.body);
@@ -178,6 +187,12 @@ test("permission request, notification, and review workflow", async (t) => {
       assert.equal((await access(user)).emailSent, false);
       assert.equal((await access(user)).allowed, false);
       assert.equal((await pending()).length, 1);
+      assert.equal((await notify(user, requestId)).status, 429);
+      await db.exec("reset role");
+      await db.query(
+        "update public.series_access_requests set email_next_attempt_at = now() - interval '1 second' where id=$1",
+        [requestId],
+      );
       failProvider = false;
       assert.equal(
         (
@@ -240,6 +255,12 @@ test("permission request, notification, and review workflow", async (t) => {
       assert.equal((await notify(other, id)).status, 502);
       assert.equal((await access(other)).emailSent, false);
       const count = delivered.size;
+      assert.equal((await notify(other, id)).status, 429);
+      await db.exec("reset role");
+      await db.query(
+        "update public.series_access_requests set email_next_attempt_at = now() - interval '1 second' where id=$1",
+        [id],
+      );
       failMarker = false;
       assert.equal((await notify(other, id)).status, 200);
       assert.equal((await access(other)).emailSent, true);
@@ -261,6 +282,62 @@ test("permission request, notification, and review workflow", async (t) => {
       await assert.rejects(review(admin, id, true), /already reviewed/);
     },
   );
+  await t.test(
+    "concurrent requests, failures, and expired retries cannot flood email or audit",
+    async () => {
+      await submit(admin);
+      const id = (await access(admin)).requestId;
+      failProvider = true;
+      const before = attempts.length;
+      const replies = await Promise.all(
+        Array.from({ length: 12 }, () => notify(admin, id)),
+      );
+      assert.equal(replies.filter((r) => r.status === 502).length, 1);
+      assert.equal(replies.filter((r) => r.status === 429).length, 11);
+      assert.equal(attempts.length, before + 1);
+      for (let attempt = 1; attempt < 5; attempt++) {
+        await db.exec("reset role");
+        await db.query(
+          "update public.series_access_requests set email_next_attempt_at = now() - interval '1 second' where id=$1",
+          [id],
+        );
+        assert.equal((await notify(admin, id)).status, 502);
+      }
+      await db.exec("reset role");
+      await db.query(
+        "update public.series_access_requests set email_next_attempt_at = now() - interval '1 second' where id=$1",
+        [id],
+      );
+      const auditCount = async () =>
+        (await db.query("select count(*) n from public.audit_log")).rows[0].n;
+      const beforeAudit = await auditCount();
+      for (let i = 0; i < 10; i++)
+        assert.equal((await notify(admin, id)).status, 429);
+      assert.equal(await auditCount(), beforeAudit);
+      assert.equal(attempts.length, before + 5);
+      // Even a remaining attempt must not outlive provider idempotency retention.
+      await db.query(
+        "update public.series_access_requests set email_attempt_count=1, email_first_attempt_at=now() - interval '24 hours' where id=$1",
+        [id],
+      );
+      assert.equal((await notify(admin, id)).status, 429);
+      assert.equal(attempts.length, before + 5);
+      await assert.rejects(
+        rpc(admin, "select public.claim_request_email($1,$2)", [id, admin]),
+        /permission denied/,
+      );
+      await assert.rejects(
+        rpc(
+          admin,
+          "update public.series_access_requests set email_attempt_count=0 where id=$1",
+          [id],
+        ),
+        /permission denied/,
+      );
+      failProvider = false;
+    },
+  );
+
   await t.test(
     "email attempts and outcomes are auditable without message bodies",
     async () => {

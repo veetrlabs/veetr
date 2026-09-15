@@ -7,7 +7,7 @@ export function CreationAccess({onCreate}: {onCreate?:()=>void}) {
  async function notify(){
   const access=await supabase!.rpc("creation_access");if(access.error)throw access.error;
   const requestId=(access.data as unknown as Access).requestId;
-  const result=await supabase!.functions.invoke("creation-request-email",{body:{requestId}});if(result.error)throw new Error("Request saved, but email delivery failed. Please retry.");
+  const result=await supabase!.functions.invoke("creation-request-email",{body:{requestId}});if(result.error)throw new Error(result.error.context instanceof Response && result.error.context.status === 429 ? "Email retry limit reached. Wait five minutes between attempts; at most five attempts are allowed within 23 hours. Your request is still awaiting admin review." : "Request saved, but email delivery failed. Please retry.");
  }
  const [requests,setRequests]=useState<{id:string;email:string;note:string;status:string}[]>([]);
  async function refresh(){

@@ -18,6 +18,7 @@ function setup({ missing = false, sent = false, fail = false } = {}) {
   vm.runInNewContext(code, {
     Request,
     Response,
+    AbortSignal,
     crypto: webcrypto,
     Deno: {
       env: {
@@ -32,6 +33,7 @@ function setup({ missing = false, sent = false, fail = false } = {}) {
     },
     fetch: async (url, init = {}) => {
       calls.push({ url, ...init });
+      if (url.endsWith("/rpc/claim_request_email")) return Response.json(true);
       if (url.endsWith("/user"))
         return Response.json({ id: "user", email: "requester@example.test" });
       if (url.includes("resend.com"))
