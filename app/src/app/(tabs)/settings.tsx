@@ -1,3 +1,4 @@
+import CalibrationControls from '../../components/CalibrationControls'
 import QuickGuide from '../../components/QuickGuide'
 import RegattaSettings from '../../components/RegattaSettings'
 import BluetoothSettings from '../../components/BluetoothSettings'
@@ -87,12 +88,7 @@ export default function SettingsTab() {
         <View style={{ width: 50 }} />
       </View>
 
-      <TouchableOpacity style={[styles.menuItem, { borderBottomColor: colors.border }]} onPress={handleCalibrateLevel}>
-        <Text style={[styles.menuItemText, { color: colors.text }]}>Set vessel is Level</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={[styles.menuItem, { borderBottomColor: colors.border }]} onPress={handleCalibrateCompass}>
-        <Text style={[styles.menuItemText, { color: colors.text }]}>Set vessel pointing North</Text>
-      </TouchableOpacity>
+      <CalibrationControls connected={state.isConnected && !state.isConnecting} onLevel={handleCalibrateLevel} onNorth={handleCalibrateCompass} />
     </>
   )
 

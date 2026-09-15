@@ -48,10 +48,10 @@ export default function BluetoothSettings({ onBack }: { onBack: () => void }) {
             maxLength={20}
           />
           <TouchableOpacity
-            style={[styles.actionBtn, { backgroundColor: colors.text }]}
-            onPress={() => sendCommand({ action: 'setDeviceName', deviceName: 'Veetr' })}
+            accessibilityRole="button" disabled={!state.isConnected || state.isConnecting} accessibilityState={{ disabled: !state.isConnected || state.isConnecting }} style={[styles.actionBtn, { backgroundColor: state.isConnected && !state.isConnecting ? '#006b62' : colors.chartBg }]}
+            onPress={() => { if (state.isConnected && !state.isConnecting) void sendCommand({ action: 'setDeviceName', deviceName: 'Veetr' }) }}
           >
-            <Text style={styles.actionBtnText}>Set Name</Text>
+            <Text style={[styles.actionBtnText, (!state.isConnected || state.isConnecting) && { color: colors.textMuted }]}>Set Name</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

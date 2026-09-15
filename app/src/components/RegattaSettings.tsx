@@ -29,8 +29,8 @@ export default function RegattaSettings({ onBack, onBluetooth }: { onBack: () =>
   const starboardLat = deviceMode ? d.starboardLat : phoneStartLine.line.starboard?.latitude ?? null
   const starboardLon = deviceMode ? d.starboardLon : phoneStartLine.line.starboard?.longitude ?? null
   const marks = [
-    { side: 'port' as const, title: 'Port end', hint: 'Usually the pin', lat: portLat, lon: portLon, color: theme === 'dark' ? '#fb7185' : '#be3455' },
-    { side: 'starboard' as const, title: 'Starboard end', hint: 'Usually the committee boat', lat: starboardLat, lon: starboardLon, color: theme === 'dark' ? '#5eead4' : '#087f73' },
+    { side: 'port' as const, title: 'Port end', lat: portLat, lon: portLon, color: theme === 'dark' ? '#fb7185' : '#be3455' },
+    { side: 'starboard' as const, title: 'Starboard end', lat: starboardLat, lon: starboardLon, color: theme === 'dark' ? '#5eead4' : '#087f73' },
   ]
   const saved = marks.map(m => valid(m.lat, m.lon))
   const count = saved.filter(Boolean).length
@@ -61,14 +61,6 @@ export default function RegattaSettings({ onBack, onBluetooth }: { onBack: () =>
       <Text accessibilityRole="header" style={[styles.title, { color: c.text }]}>Set your start line</Text>
       <Text style={[styles.body, { color: c.textSecondary }]}>Sail to each end, then capture its position using {source}. You can set either end first.</Text>
 
-      <View style={[styles.status, { backgroundColor: c.panelBg, borderColor: c.border }]}>
-        <View style={{ flex: 1, gap: 4 }}>
-          <Text style={[styles.bold, { color: c.text }]}>{gpsReady ? `${source} ready` : `Waiting for ${source}`}</Text>
-          <Text style={{ color: c.textSecondary }}>{deviceMode ? (gpsReady ? `${d.gpsSatellites} satellites · ready to capture` : 'A fresh Veetr GPS fix is needed.') : gpsReady ? `Accuracy ±${Math.round(nav.phonePoint!.accuracyM!)} m · saved on this phone` : 'Enable location and wait for accuracy of 30 m or better.'}</Text>
-        </View>
-        {!deviceMode && !nav.permission && <Pressable accessibilityRole="button" onPress={() => void nav.enableGPS()} style={[styles.smallButton, { backgroundColor: c.buttonBg }]}><Text style={[styles.bold, { color: c.text }]}>Enable GPS</Text></Pressable>}
-      </View>
-
       <View style={[styles.diagram, { backgroundColor: c.panelBg, borderColor: c.border }]}>
         <View style={styles.row}><Text style={[styles.bold, { color: c.text }]}>Start line</Text><Text style={{ color: c.textSecondary }}>{count} of 2 ends set</Text></View>
         <Svg width="100%" height={90} viewBox="0 0 320 90" accessibilityLabel="Start line schematic, not to scale">
@@ -81,12 +73,12 @@ export default function RegattaSettings({ onBack, onBluetooth }: { onBack: () =>
         <View style={styles.row}><Text style={{ color: marks[0].color }}>Port / pin</Text><Text style={{ color: marks[1].color }}>Starboard / boat</Text></View>
       </View>
 
+      <View style={styles.markColumns}>
       {marks.map((m, i) => <View key={m.side} style={[styles.card, { backgroundColor: c.panelBg, borderColor: c.border }]}>
-        <View style={styles.row}><Text accessibilityRole="header" style={[styles.cardTitle, { color: c.text }]}>{m.title}</Text><Text style={{ color: saved[i] ? m.color : c.textMuted }}>{saved[i] ? 'Position saved' : 'Not set'}</Text></View>
-        <Text style={{ color: c.textSecondary }}>{m.hint}</Text>
-        {saved[i] && <Text selectable style={{ color: c.textMuted, fontVariant: ['tabular-nums'] }}>{m.lat!.toFixed(5)}°, {m.lon!.toFixed(5)}°</Text>}
-        <Pressable accessibilityRole="button" disabled={!gpsReady || busy} onPress={() => void command(m.side)} style={[styles.capture, { backgroundColor: gpsReady && !busy ? m.color : c.buttonBg }]}>
-          <Text style={[styles.bold, { color: gpsReady && !busy ? '#fff' : c.textMuted }]}>{busy ? 'Updating…' : `${saved[i] ? 'Capture again' : 'Capture'} · ${m.title.toLowerCase()}`}</Text>
+        <View style={styles.markHeader}><Text accessibilityRole="header" style={[styles.cardTitle, { color: c.text }]}>{m.title}</Text><Text style={{ color: saved[i] ? m.color : c.textMuted }}>{saved[i] ? 'Position saved' : 'Not set'}</Text></View>
+        {count > 0 && <View style={styles.coordinates}>{saved[i] && <Text selectable style={{ color: c.textMuted, fontSize: 12, fontVariant: ['tabular-nums'] }}>{m.lat!.toFixed(5)}°{'\n'}{m.lon!.toFixed(5)}°</Text>}</View>}
+        <Pressable accessibilityRole="button" accessibilityLabel={`${saved[i] ? 'Capture again' : 'Capture'} ${m.title.toLowerCase()}`} disabled={!gpsReady || busy} onPress={() => void command(m.side)} style={[styles.capture, { backgroundColor: gpsReady && !busy ? m.color : c.buttonBg }]}>
+          <Text style={[styles.bold, { color: gpsReady && !busy ? '#fff' : c.textMuted }]}>{busy ? 'Updating…' : saved[i] ? 'Capture again' : 'Capture'}</Text>
         </Pressable>
         {saved[i] && clearSide !== m.side && <Pressable accessibilityRole="button" disabled={busy || (!deviceMode && !phoneStartLine.loaded)} onPress={() => setClearSide(m.side)} style={styles.clear}><Text style={{ color: c.textMuted }}>Clear {m.title.toLowerCase()}</Text></Pressable>}
         {clearSide === m.side && <View style={{ gap: 10 }}>
@@ -97,6 +89,7 @@ export default function RegattaSettings({ onBack, onBluetooth }: { onBack: () =>
           </View>
         </View>}
       </View>)}
+      </View>
       {!deviceMode && !!(nav.error || phoneStartLine.error) && <Text accessibilityRole="alert" style={{ color: c.textSecondary }}>{nav.error || phoneStartLine.error}</Text>}
       {!!notice && <Text accessibilityRole="alert" style={{ color: c.textSecondary }}>{notice}</Text>}
       <Text style={[styles.body, { color: c.textMuted }]}>{deviceMode ? "Showing the line saved on Veetr." : "Showing the line saved on this phone."} Capture again if a mark moves. The line above is a diagram; the map shows the saved positions.</Text>
@@ -110,11 +103,13 @@ const styles = StyleSheet.create({
   title: { fontSize: 30, fontWeight: '700', letterSpacing: -0.6 },
   body: { fontSize: 15, lineHeight: 22 },
   bold: { fontSize: 15, fontWeight: '600' },
-  status: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12, borderRadius: 14, borderWidth: 1 },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   diagram: { padding: 18, borderWidth: 1, borderRadius: 16 },
-  card: { padding: 18, gap: 10, borderWidth: 1, borderRadius: 16 },
-  cardTitle: { fontSize: 20, fontWeight: '600' },
+  markColumns: { flexDirection: 'row', gap: 12, alignItems: 'stretch' },
+  markHeader: { gap: 6 },
+  coordinates: { minHeight: 34 },
+  card: { flex: 1, minWidth: 0, padding: 12, gap: 10, borderWidth: 1, borderRadius: 16 },
+  cardTitle: { fontSize: 16, lineHeight: 22, fontWeight: '600' },
   capture: { minHeight: 54, padding: 14, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   smallButton: { padding: 12, minHeight: 44, borderRadius: 8, justifyContent: 'center' },
   clear: { minHeight: 44, justifyContent: 'center', alignItems: 'center' },

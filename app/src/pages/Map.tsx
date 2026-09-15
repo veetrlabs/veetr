@@ -47,6 +47,15 @@ export default function Map({ onBack }: { onBack?: () => void }) {
   const line =
     coordinate(d.portLat, d.portLon) &&
     coordinate(d.starboardLat, d.starboardLon);
+  const lineKey = line ? `${d.portLat},${d.portLon}/${d.starboardLat},${d.starboardLon}` : '';
+  useEffect(() => {
+    if (!ready || !lineKey) return;
+    setFollow(false);
+    ref.current?.fitToCoordinates([
+      { latitude: d.portLat!, longitude: d.portLon! },
+      { latitude: d.starboardLat!, longitude: d.starboardLon! },
+    ], { edgePadding: { top: insets.top + 60, right: 50, bottom: 100, left: 50 }, animated: true });
+  }, [ready, lineKey]);
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       {MapView ? (
@@ -100,7 +109,7 @@ export default function Map({ onBack }: { onBack?: () => void }) {
             <>
               <Marker
                 coordinate={{ latitude: d.portLat!, longitude: d.portLon! }}
-                title="Port"
+                title="Port · start line"
                 pinColor="red"
               />
               <Marker
@@ -108,7 +117,7 @@ export default function Map({ onBack }: { onBack?: () => void }) {
                   latitude: d.starboardLat!,
                   longitude: d.starboardLon!,
                 }}
-                title="Starboard"
+                title="Starboard · start line"
                 pinColor="green"
               />
               <Polyline
@@ -116,8 +125,9 @@ export default function Map({ onBack }: { onBack?: () => void }) {
                   { latitude: d.portLat!, longitude: d.portLon! },
                   { latitude: d.starboardLat!, longitude: d.starboardLon! },
                 ]}
-                strokeColor="red"
-                strokeWidth={3}
+                strokeColor="#f97316"
+                strokeWidth={4}
+                zIndex={10}
               />
             </>
           )}

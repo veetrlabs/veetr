@@ -1,3 +1,4 @@
+import CalibrationControls from './CalibrationControls'
 import { useState, useRef, useEffect } from 'react'
 import { View, Text, TouchableOpacity, ScrollView, TextInput, Alert, StyleSheet, Animated, Dimensions } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -158,8 +159,8 @@ export default function Settings() {
           placeholderTextColor={colors.textSubtle}
           maxLength={20}
         />
-        <TouchableOpacity style={[styles.smallButton, { backgroundColor: colors.text }]} onPress={handleSetDeviceName}>
-          <Text style={styles.smallButtonText}>Set Name</Text>
+        <TouchableOpacity accessibilityRole="button" disabled={!state.isConnected || state.isConnecting} accessibilityState={{ disabled: !state.isConnected || state.isConnecting }} style={[styles.smallButton, { backgroundColor: state.isConnected && !state.isConnecting ? '#006b62' : colors.chartBg }]} onPress={handleSetDeviceName}>
+          <Text style={[styles.smallButtonText, (!state.isConnected || state.isConnecting) && { color: colors.textMuted }]}>Set Name</Text>
         </TouchableOpacity>
       </View>
     </>
@@ -173,12 +174,7 @@ export default function Settings() {
         <TouchableOpacity onPress={closeMenu}><Text style={[styles.close, { color: colors.textMuted }]}>✕</Text></TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={[styles.menuItem, { borderBottomColor: colors.border }]} onPress={handleCalibrateLevel}>
-        <Text style={[styles.menuItemText, { color: colors.text }]}>Set vessel is Level</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={[styles.menuItem, { borderBottomColor: colors.border }]} onPress={handleCalibrateCompass}>
-        <Text style={[styles.menuItemText, { color: colors.text }]}>Set vessel pointing North</Text>
-      </TouchableOpacity>
+      <CalibrationControls connected={state.isConnected && !state.isConnecting} onLevel={handleCalibrateLevel} onNorth={handleCalibrateCompass} />
     </>
   )
 
