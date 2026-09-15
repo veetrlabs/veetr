@@ -1,9 +1,10 @@
+import {CreationAccess} from "./CreationAccess";
 import { appHref } from "./routes";
 import { t } from "./i18n";
 import React, { useEffect, useState } from "react";
 import { listPublicSeries, type PublicSeriesSummary } from "./api";
 import { eventsFor, type Series } from "./domain";
-export function PublicDirectory({editableSeries = [], create}: {editableSeries?: Series[]; create?: () => void}) {
+export function PublicDirectory({editableSeries = [], create, signedIn = false}: {editableSeries?: Series[]; create?: () => void; signedIn?: boolean}) {
   const [series, setSeries] = useState<PublicSeriesSummary[]>([]),
     [loading, setLoading] = useState(true),
     [error, setError] = useState(""),
@@ -40,7 +41,7 @@ export function PublicDirectory({editableSeries = [], create}: {editableSeries?:
   );
   return (
     <section className="public-directory">
-      <div className="section-title"><h1>{t("Racing on record.")}</h1>{create && <button onClick={create}>{t("New series")}</button>}</div>
+      <div className="section-title"><h1>{t("Racing on record.")}</h1>{signedIn && <CreationAccess onCreate={create ?? (()=>{})} />}</div>
       <p>
         {t(
           "Follow published regatta results, explore the fleet, and see how the series unfolds.",

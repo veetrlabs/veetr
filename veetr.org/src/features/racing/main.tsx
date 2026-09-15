@@ -423,7 +423,7 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
         ) : (
           <>
             {!authReady && <p role="status">{t("Restoring session…")}</p>}
-            {!location.seriesId && <PublicDirectory editableSeries={visible.map(r => r.series)} create={canCreate ? create : undefined} />}
+            {!location.seriesId && <PublicDirectory signedIn={Boolean(user)} editableSeries={visible.map(r => r.series)} create={canCreate ? create : undefined} />}
             {location.seriesId && (
               <Breadcrumbs
                 location={location}

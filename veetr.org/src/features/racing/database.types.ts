@@ -15,6 +15,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      creation_access: {Args: Record<PropertyKey, never>; Returns: Json};
+      request_creation_access: {Args: {reason: string}; Returns: undefined};
+      review_creation_access: {Args: {request_id: string; approve: boolean}; Returns: undefined};
+      list_creation_requests: {Args: Record<PropertyKey, never>; Returns: Json};
       graphql: {
         Args: {
           operationName?: string
@@ -443,6 +447,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      creation_access: {Args: Record<PropertyKey, never>; Returns: Json};
+      request_creation_access: {Args: {reason: string}; Returns: undefined};
+      review_creation_access: {Args: {request_id: string; approve: boolean}; Returns: undefined};
+      list_creation_requests: {Args: Record<PropertyKey, never>; Returns: Json};
       public_tracking_positions: { Args: { p_series: string }; Returns: Json }
       my_tracking_entries: { Args: Record<PropertyKey, never>; Returns: Json }
       start_tracking_session: { Args: { p_id: string; p_series: string; p_boat: string }; Returns: Json }
@@ -661,6 +669,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      creation_access: {Args: Record<PropertyKey, never>; Returns: Json};
+      request_creation_access: {Args: {reason: string}; Returns: undefined};
+      review_creation_access: {Args: {request_id: string; approve: boolean}; Returns: undefined};
+      list_creation_requests: {Args: Record<PropertyKey, never>; Returns: Json};
       can_insert_object: {
         Args: {
           bucketid: string
