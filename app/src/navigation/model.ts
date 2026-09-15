@@ -36,9 +36,12 @@ export function navigationFix(
         sogKnots: p.sogMps === null ? null : p.sogMps * KNOTS_PER_MPS,
         course: p.cogDeg,
         accuracy: p.accuracyM,
-        source: "Phone GPS" as const,
+        source:
+          p.source === "veetr"
+            ? ("Veetr GPS" as const)
+            : ("Phone GPS" as const),
       }
     : null;
-  // A phone recording keeps map and board aligned with its recorded source.
-  return { fix: recording ? phoneFix : (deviceFix ?? phoneFix), deviceFresh };
+  // Prefer a fresh device fix; fall back to phone GPS during disconnects.
+  return { fix: deviceFix ?? phoneFix, deviceFresh };
 }

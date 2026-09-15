@@ -64,7 +64,7 @@ export default function RegattaSettings({ onBack, onBluetooth }: { onBack: () =>
       <View style={[styles.status, { backgroundColor: c.panelBg, borderColor: c.border }]}>
         <View style={{ flex: 1, gap: 4 }}>
           <Text style={[styles.bold, { color: c.text }]}>{gpsReady ? `${source} ready` : `Waiting for ${source}`}</Text>
-          <Text style={{ color: c.textSecondary }}>{deviceMode ? (gpsReady ? `${d.gpsSatellites} satellites · ready to capture` : 'A fresh Veetr GPS fix is needed.') : gpsReady ? `Accuracy ±${Math.round(nav.phonePoint!.accuracyM)} m · saved on this phone` : 'Enable location and wait for accuracy of 30 m or better.'}</Text>
+          <Text style={{ color: c.textSecondary }}>{deviceMode ? (gpsReady ? `${d.gpsSatellites} satellites · ready to capture` : 'A fresh Veetr GPS fix is needed.') : gpsReady ? `Accuracy ±${Math.round(nav.phonePoint!.accuracyM!)} m · saved on this phone` : 'Enable location and wait for accuracy of 30 m or better.'}</Text>
         </View>
         {!deviceMode && !nav.permission && <Pressable accessibilityRole="button" onPress={() => void nav.enableGPS()} style={[styles.smallButton, { backgroundColor: c.buttonBg }]}><Text style={[styles.bold, { color: c.text }]}>Enable GPS</Text></Pressable>}
       </View>

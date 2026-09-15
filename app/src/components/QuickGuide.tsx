@@ -5,6 +5,10 @@ import { useTheme } from "../context/ThemeContext";
 import { themeColors } from "../constants/colors";
 const topics = [
   [
+    "Recording and History",
+    "Start tracking begins one recording. Fresh Veetr GPS and instruments are used when available; phone GPS takes over when the device disconnects or its GPS is unavailable. Wind values are absent during phone-only tracking. History shows speed and wind in knots over the selected time range, including 3h and 6h. Gaps mean no samples were saved. Veetr GPS accuracy is unknown when the device does not report it. Background operation still depends on iOS permissions and device connectivity.",
+  ],
+  [
     "Private sailing and regattas",
     "Start tracking records any sail privately on this phone, without an account or internet. To share a regatta track, sign in and choose an eligible regatta and boat. Joining and sharing makes your boat’s position, speed and trail public live and in replay after you stop. Existing live-only sessions are not added to replay. Anyone can browse published regattas and watch without signing in. An account alone does not grant entry: you must own or edit the boat, and the organizer must have entered it in a published heat. Find regattas opens the website; after arranging entry with the organizer, refresh the list. Private recordings are never uploaded automatically. Stop private tracking before joining; the previous recording stays in History.",
   ],

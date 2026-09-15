@@ -125,7 +125,7 @@ test("tracking enforces consent, ownership, one reporter, idempotency, timestamp
     await login(owner);
     assert.equal((await send([point(2)])).rows[0].accepted, 1);
     assert.equal((await send([point(2)])).rows[0].accepted, 1);
-    await send([point(1, -5000)]);
+    await send([{...point(1, -5000),source:'veetr',accuracyM:null}]);
     assert.equal(
       (await feed())[0].latitude,
       point(2).latitude,

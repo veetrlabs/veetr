@@ -1,9 +1,10 @@
+import { setDeviceRecordingSource, clearDeviceRecordingSource } from "../tracking/recordingSource";
+import { recordDevicePoint } from "../tracking/service";
 import { createContext, useContext, useReducer, useRef, useEffect, ReactNode, useCallback } from 'react'
 import { Platform, PermissionsAndroid } from 'react-native'
 import { getLatestRelease, getFirmwareAsset, downloadFirmware, compareVersions, GitHubRelease } from '../utils/githubApi'
 import { BLEFirmwareUpdater, FirmwareUpdateProgress } from '../utils/firmwareUpdater'
 import { showSingleAlert } from '../utils/alertUtils'
-import { dataStorage } from '../utils/dataStorage'
 
 const SERVICE_UUID = '12345678-1234-1234-1234-123456789abc'
 const SENSOR_DATA_CHAR_UUID = '87654321-4321-4321-4321-cba987654321'
@@ -307,18 +308,7 @@ export function BLEProvider({ children }: { children: ReactNode }) {
 
       dispatch({ type: 'UPDATE_DATA', payload: mappedData })
 
-      dataStorage.addReading({
-        timestamp: Date.now(),
-        AWS: mappedData.windSpeed || 0,
-        AWA: parsed.AWA || 0,
-        SOG: mappedData.speed || 0,
-        HDM: mappedData.heading || 0,
-        heel: mappedData.tilt || 0,
-        pitch: parsed.pitch || 0,
-        lat: mappedData.lat && mappedData.lat !== 0 ? mappedData.lat : undefined,
-        lon: mappedData.lon && mappedData.lon !== 0 ? mappedData.lon : undefined,
-        satellites: mappedData.gpsSatellites,
-      }).catch(err => console.error('Failed to store reading:', err))
+      void recordDevicePoint(setDeviceRecordingSource({...mappedData,windSpeed:Number.isFinite(parsed.AWS)?parsed.AWS:NaN,trueWindSpeed:Number.isFinite(parsed.TWS)?parsed.TWS:NaN})).catch(err => console.error('Failed to store reading:', err))
 
       dispatch({ type: 'UPDATE_LAST_MESSAGE_TIME', payload: Date.now() })
     } catch (error) {
@@ -375,7 +365,7 @@ export function BLEProvider({ children }: { children: ReactNode }) {
 
       // Store subscription for cleanup
       const sub = connectedDevice.onDisconnected(() => {
-        dispatch({ type: 'DISCONNECT' })
+        clearDeviceRecordingSource(); dispatch({ type: 'DISCONNECT' })
         connectedDeviceRef.current = null
         sensorDataCharRef.current = null
         commandCharRef.current = null
@@ -488,7 +478,7 @@ export function BLEProvider({ children }: { children: ReactNode }) {
     commandCharRef.current = null
     serviceUuidRef.current = null
     lastDeviceRef.current = null
-    dispatch({ type: 'DISCONNECT' })
+    clearDeviceRecordingSource(); dispatch({ type: 'DISCONNECT' })
   }, [])
 
   const sendCommand = useCallback(async (command: any): Promise<boolean> => {

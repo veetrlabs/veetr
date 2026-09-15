@@ -28,11 +28,11 @@ test("phone speed converts metres per second to knots and preserves equator coor
   expect(result.fix?.sogKnots).toBeCloseTo(3.8877);
   expect(result.deviceFresh).toBe(false);
 });
-test("fresh device GPS wins except while recording a phone track", () => {
+test("fresh device GPS wins during the same recording", () => {
   expect(navigationFix(phone, device, false, now).fix?.source).toBe(
     "Veetr GPS",
   );
-  expect(navigationFix(phone, device, true, now).fix?.source).toBe("Phone GPS");
+  expect(navigationFix(phone, device, true, now).fix?.source).toBe("Veetr GPS");
 });
 test("stale or invalid device data falls back to phone and stale phone data is unavailable", () => {
   expect(
@@ -55,10 +55,19 @@ test("stale or invalid device data falls back to phone and stale phone data is u
 });
 test("unknown GPS speed and course stay unknown; zero speed stays zero", () => {
   expect(
-    navigationFix({ ...phone, sogMps: null, cogDeg: null }, device, true, now)
-      .fix?.sogKnots,
+    navigationFix(
+      { ...phone, sogMps: null, cogDeg: null },
+      { ...device, isConnected: false },
+      true,
+      now,
+    ).fix?.sogKnots,
   ).toBeNull();
   expect(
-    navigationFix({ ...phone, sogMps: 0 }, device, true, now).fix?.sogKnots,
+    navigationFix(
+      { ...phone, sogMps: 0 },
+      { ...device, isConnected: false },
+      true,
+      now,
+    ).fix?.sogKnots,
   ).toBe(0);
 });

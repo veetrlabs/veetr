@@ -88,6 +88,11 @@ test("SQLite outbox survives restart and only acknowledges the submitted batch",
       batch.map((p) => p.seq),
     );
     assert.equal(await s.count(), 1);
+    assert.equal(
+      (await s.historyPoints(point(0).recordedAt, point(20).recordedAt)).length,
+      4,
+      "acknowledged uploads remain in the same local history",
+    );
     await s.patch(session.id, {
       phase: "stopping",
       stoppedAt: point(20).recordedAt,

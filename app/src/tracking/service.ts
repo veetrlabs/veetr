@@ -1,3 +1,4 @@
+import { preferredRecordingPoint } from "./recordingSource";
 import { AppState } from "react-native";
 import * as Location from "expo-location";
 import * as TaskManager from "expo-task-manager";
@@ -339,7 +340,7 @@ export async function recordLocations(locations: LocationFix[]) {
   try {
     // Capture is fully offline; only uploads require a current authenticated session.
     const points = locations
-      .map((f) => normalizeFix(f))
+      .map((f) => preferredRecordingPoint(normalizeFix(f)))
       .filter((p): p is NonNullable<typeof p> => p !== null);
     if (points.length) await store.append(session.id, points);
     else
@@ -381,3 +382,16 @@ if (!TaskManager.isTaskDefined(LOCATION_TASK))
       }
     },
   );
+
+export async function recordDevicePoint(
+  point: import("./model").TrackingPoint | null,
+) {
+  if (!point) return;
+  const store = await trackingStore(),
+    session = await store.get();
+  if (!session || session.phase !== "recording") return;
+  if (Date.now() >= Date.parse(session.expiresAt))
+    return stopTracking("expired");
+  await store.append(session.id, [point]);
+  await syncTracking();
+}

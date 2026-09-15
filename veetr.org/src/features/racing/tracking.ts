@@ -4,10 +4,10 @@ export interface TrackingPosition {
   recordedAt: string;
   latitude: number;
   longitude: number;
-  accuracyM: number;
+  accuracyM: number | null;
   sogMps: number | null;
   cogDeg: number | null;
-  source: "phone";
+  source: "phone" | "veetr";
   trail: [number, number][];
 }
 export function positionAge(
@@ -31,12 +31,13 @@ export function parseTrackingPositions(value: unknown): TrackingPosition[] {
       !Number.isFinite(Date.parse(p.recordedAt)) ||
       !coordinate(p.latitude, 90) ||
       !coordinate(p.longitude, 180) ||
-      !coordinate(p.accuracyM, 100) ||
-      p.accuracyM < 0 ||
+      (p.source === "phone" && p.accuracyM === null) ||
+      (p.accuracyM !== null &&
+        (!coordinate(p.accuracyM, 100) || p.accuracyM < 0)) ||
       (p.sogMps !== null && (!coordinate(p.sogMps, 100) || p.sogMps < 0)) ||
       (p.cogDeg !== null &&
         (!coordinate(p.cogDeg, 360) || p.cogDeg < 0 || p.cogDeg >= 360)) ||
-      p.source !== "phone" ||
+      (p.source !== "phone" && p.source !== "veetr") ||
       !Array.isArray(p.trail) ||
       p.trail.some(
         (c: unknown) =>

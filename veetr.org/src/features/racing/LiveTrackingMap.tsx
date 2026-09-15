@@ -274,7 +274,7 @@ export function LiveTrackingMap({ seriesId }: { seriesId: string }) {
                 </td>
                 <td>
                   {p.latitude.toFixed(5)}, {p.longitude.toFixed(5)} · ±
-                  {Math.round(p.accuracyM)} m
+                  {p.accuracyM === null ? "unknown" : `${Math.round(p.accuracyM)} m`}
                 </td>
               </tr>
             ))}

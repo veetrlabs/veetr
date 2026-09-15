@@ -30,10 +30,11 @@ export interface TrackingPoint {
   recordedAt: string;
   latitude: number;
   longitude: number;
-  accuracyM: number;
+  accuracyM: number | null;
   sogMps: number | null;
   cogDeg: number | null;
-  source: "phone";
+  source: "phone" | "veetr";
+  instruments?: { aws: number | null; tws: number | null };
 }
 export interface LocationFix {
   timestamp: number;

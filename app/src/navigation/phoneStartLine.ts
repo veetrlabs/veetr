@@ -8,11 +8,11 @@ export function canCapturePhone(point: TrackingPoint | null, now = Date.now()): 
   return Number.isFinite(age) && age >= -1000 && age <= 15000 &&
     Number.isFinite(point.latitude) && Math.abs(point.latitude) <= 90 &&
     Number.isFinite(point.longitude) && Math.abs(point.longitude) <= 180 &&
-    Number.isFinite(point.accuracyM) && point.accuracyM >= 0 && point.accuracyM <= 30
+    point.accuracyM !== null && Number.isFinite(point.accuracyM) && point.accuracyM >= 0 && point.accuracyM <= 30
 }
 export function capturePhoneMark(point: TrackingPoint | null, now = Date.now()): StartMark {
   if (!canCapturePhone(point, now)) throw new Error('Wait for a fresh phone GPS fix with accuracy of 30 m or better.')
-  return { latitude: point.latitude, longitude: point.longitude, accuracyM: point.accuracyM, capturedAt: point.recordedAt }
+  return { latitude: point.latitude, longitude: point.longitude, accuracyM: point.accuracyM!, capturedAt: point.recordedAt }
 }
 export function parsePhoneLine(raw: string | null): PhoneStartLine {
   if (!raw) return emptyLine()

@@ -22,6 +22,8 @@ export class TrackingStore {
   constructor(private db: TrackingDatabase) {}
   async init() {
     await this.db.execAsync(`PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;
+      CREATE TABLE IF NOT EXISTS recording_history (session_id TEXT NOT NULL, recorded_at TEXT NOT NULL, body TEXT NOT NULL, PRIMARY KEY(session_id,recorded_at));
+      CREATE INDEX IF NOT EXISTS recording_history_time ON recording_history(recorded_at);
       CREATE TABLE IF NOT EXISTS local_recordings (id TEXT PRIMARY KEY, body TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS tracking_state (id INTEGER PRIMARY KEY CHECK(id=1), body TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS tracking_outbox (seq INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT NOT NULL, body TEXT NOT NULL);`);
@@ -105,6 +107,12 @@ export class TrackingStore {
             session.id,
             JSON.stringify(point),
           );
+          await this.db.runAsync(
+            "INSERT OR IGNORE INTO recording_history(session_id,recorded_at,body) VALUES(?,?,?)",
+            session.id,
+            point.recordedAt,
+            JSON.stringify(point),
+          );
           session.lastRecordedAt = point.recordedAt;
           if (session.error?.startsWith("Waiting for an accurate GPS fix"))
             session.error = undefined;
@@ -162,6 +170,17 @@ export class TrackingStore {
       return rows.map((row) => JSON.parse(row.body) as TrackingPoint);
     });
   }
+  historyPoints(start: string, end: string) {
+    return this.exclusive(async () =>
+      (
+        await this.db.getAllAsync<{ body: string }>(
+          "SELECT body FROM recording_history WHERE recorded_at>=? AND recorded_at<=? ORDER BY recorded_at",
+          start,
+          end,
+        )
+      ).map((row) => JSON.parse(row.body) as TrackingPoint),
+    );
+  }
   localRecordings() {
     return this.exclusive(async () => {
       const archived = await this.db.getAllAsync<{ body: string }>(
@@ -218,7 +237,13 @@ export class TrackingStore {
   }
   deleteArchivedLocal(id: string) {
     return this.exclusive(() =>
-      this.db.runAsync("DELETE FROM local_recordings WHERE id=?", id),
+      this.transaction(async () => {
+        await this.db.runAsync(
+          "DELETE FROM recording_history WHERE session_id=?",
+          id,
+        );
+        await this.db.runAsync("DELETE FROM local_recordings WHERE id=?", id);
+      }),
     );
   }
   acknowledge(id: string, seqs: number[]) {
@@ -243,7 +268,13 @@ export class TrackingStore {
   clear(id: string) {
     return this.exclusive(() =>
       this.transaction(async () => {
-        if ((await this.read())?.id !== id) return;
+        const current = await this.read();
+        if (current?.id !== id) return;
+        if (current.mode === "local")
+          await this.db.runAsync(
+            "DELETE FROM recording_history WHERE session_id=?",
+            id,
+          );
         await this.db.runAsync(
           "DELETE FROM tracking_outbox WHERE session_id=?",
           id,
