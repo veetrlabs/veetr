@@ -3,9 +3,9 @@ name: Website checks
 on:
   push:
     branches: [main]
-    paths: ['veetr.org/**', 'veetr.com/**', 'pwa/**', 'docs/**', 'packages/**', 'supabase/**', 'package*.json', '.github/workflows/site-checks.yml']
+    paths: ['veetr.org/**', 'veetr.com/**', 'pwa/**', 'app/src/tracking/**', 'app/tests/**', 'docs/**', 'packages/**', 'supabase/**', 'package*.json', '.github/workflows/site-checks.yml']
   pull_request:
-    paths: ['veetr.org/**', 'veetr.com/**', 'pwa/**', 'docs/**', 'packages/**', 'supabase/**', 'package*.json', '.github/workflows/site-checks.yml']
+    paths: ['veetr.org/**', 'veetr.com/**', 'pwa/**', 'app/src/tracking/**', 'app/tests/**', 'docs/**', 'packages/**', 'supabase/**', 'package*.json', '.github/workflows/site-checks.yml']
   workflow_dispatch:
 
 permissions:
@@ -23,6 +23,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run test:race
+      - run: npm run test:tracking
       - run: npm run test --workspace veetr.org
         env:
           ASTRO_TELEMETRY_DISABLED: '1'

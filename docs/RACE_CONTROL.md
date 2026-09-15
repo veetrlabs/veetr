@@ -1,6 +1,6 @@
 # Veetr Race Control
 
-An incremental monorepo addition for informal mixed-fleet regattas. The existing BLE dashboard remains in `app/`; firmware and device operation have no new cloud dependency. No competitor mobile app or tracking implementation is included.
+An incremental monorepo addition for informal mixed-fleet regattas. The existing BLE dashboard remains in `app/`; firmware and device operation have no new cloud dependency. Phone-based participant tracking is described in [Mobile tracking](MOBILE_TRACKING.md).
 
 ## Run locally
 

@@ -44,7 +44,17 @@
     },
     "plugins": [
       "expo-router",
-      "react-native-ble-plx"
+      "react-native-ble-plx",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Use your phone GPS to track your boat during a regatta.",
+          "locationAlwaysAndWhenInUsePermission": "Share your boat position during an active tracking session, including while the screen is locked.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

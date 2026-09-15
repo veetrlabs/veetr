@@ -1,10 +1,10 @@
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { useBLE } from '../../context/BLEContext'
-import { useTheme } from '../../context/ThemeContext'
-import { themeColors } from '../../constants/colors'
+import { useBLE } from '../context/BLEContext'
+import { useTheme } from '../context/ThemeContext'
+import { themeColors } from '../constants/colors'
 
-export default function ConnectTab() {
+export default function BluetoothSettings({ onBack }: { onBack: () => void }) {
   const { state, connect, disconnect, sendCommand } = useBLE()
   const { theme } = useTheme()
   const colors = themeColors[theme]
@@ -12,7 +12,10 @@ export default function ConnectTab() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg, paddingTop: insets.top + 8 }]}>
-      <Text style={[styles.title, { color: colors.text }]}>Connect</Text>
+      <TouchableOpacity accessibilityRole="button" accessibilityLabel="Back to Settings" onPress={onBack} style={{ paddingVertical: 8 }}>
+        <Text style={{ color: colors.text, fontSize: 16 }}>‹ Settings</Text>
+      </TouchableOpacity>
+      <Text style={[styles.title, { color: colors.text }]}>Bluetooth settings</Text>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
         <View style={[styles.card, { backgroundColor: colors.panelBg }]}>
@@ -45,10 +48,10 @@ export default function ConnectTab() {
             maxLength={20}
           />
           <TouchableOpacity
-            style={[styles.actionBtn, { backgroundColor: colors.text }]}
-            onPress={() => sendCommand({ action: 'setDeviceName', deviceName: 'Veetr' })}
+            accessibilityRole="button" disabled={!state.isConnected || state.isConnecting} accessibilityState={{ disabled: !state.isConnected || state.isConnecting }} style={[styles.actionBtn, { backgroundColor: state.isConnected && !state.isConnecting ? '#006b62' : colors.chartBg }]}
+            onPress={() => { if (state.isConnected && !state.isConnecting) void sendCommand({ action: 'setDeviceName', deviceName: 'Veetr' }) }}
           >
-            <Text style={styles.actionBtnText}>Set Name</Text>
+            <Text style={[styles.actionBtnText, (!state.isConnected || state.isConnecting) && { color: colors.textMuted }]}>Set Name</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
