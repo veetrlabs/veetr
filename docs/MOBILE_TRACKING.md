@@ -112,3 +112,11 @@ Map reads the current session's actual saved fixes rather than relying on the re
 Track now distinguishes native background startup, background callback timestamps, stop reasons, and persistent background task errors. Resume reapplies native location options instead of treating registration as proof that the location manager is running. Native location callbacks are delivered without the optional deferred interval; SQLite still thins saved fixes to five seconds. Background task errors are preserved for troubleshooting.
 
 The reported screen-lock failure with Always permission is not yet reproduced on a physical device. For validation: start a new recording, verify Screen-lock recording ready and increasing saved positions, lock the phone and walk for 10 minutes without force-quitting, then reopen. Confirm fixes span the locked interval, the map trail and History chart have no unexpected gap, and inspect the last background callback/error. Export the recording if it fails. Automated callback tests establish JS behaviour, not iOS scheduling or file availability while locked.
+
+## Automatic TestFlight delivery
+
+`app/.eas/workflows/testflight.yml` runs mobile type checking and Jest, then builds iOS with the `testflight` profile and submits that exact build to App Store Connect. Failed tests prevent building; failed builds prevent submission. Push triggers cover `main` and `codex/mobile-tracking`, restricted to `app/**` except Markdown-only changes. The workflow can also be run manually from Expo or with `eas workflow:run .eas/workflows/testflight.yml` from `app/`.
+
+The Expo GitHub integration must be installed for `veetrlabs/veetr`, connected to this Expo project, and configured with app base directory `app`. Workflow YAML validation passed. GitHub re-authentication is pending before the repository integration can be completed, so push delivery is not yet active.
+
+This workflow uses the saved EAS signing/submission credentials. It distributes TestFlight builds, not public App Store releases. It does not publish OTA updates; those require a separate runtime/update-channel rollout and a compatible native build. Existing test builds remain usable while the next build is processed by Apple.

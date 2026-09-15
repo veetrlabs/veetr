@@ -1,0 +1,33 @@
+name: Test and deliver iOS to TestFlight
+
+on:
+  push:
+    branches:
+      - main
+      - codex/mobile-tracking
+    paths:
+      - app/**
+      - '!app/**/*.md'
+
+jobs:
+  test:
+    name: Mobile tests and types
+    steps:
+      - uses: eas/checkout
+      - uses: eas/install_node_modules
+      - run: npm run typecheck
+      - run: npm test -- --runInBand
+  build_ios:
+    name: Build standalone iPhone app
+    needs: [test]
+    type: build
+    params:
+      platform: ios
+      profile: testflight
+  submit_ios:
+    name: Submit to TestFlight
+    needs: [build_ios]
+    type: submit
+    params:
+      build_id: ${{ needs.build_ios.outputs.build_id }}
+      profile: testflight
