@@ -2,6 +2,7 @@
   "expo": {
     "name": "Veetr",
     "slug": "veetr",
+    "owner": "veetrlabs",
     "version": "0.0.28",
     "orientation": "default",
     "icon": "./assets/icon.png",

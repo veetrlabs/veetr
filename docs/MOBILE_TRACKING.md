@@ -117,7 +117,7 @@ The reported screen-lock failure with Always permission is not yet reproduced on
 
 `app/.eas/workflows/testflight.yml` runs mobile type checking and Jest, then builds iOS with the `testflight` profile and submits that exact build to App Store Connect. Failed tests prevent building; failed builds prevent submission. Push triggers cover `main` and `codex/mobile-tracking`, restricted to `app/**` except Markdown-only changes. The workflow can also be run manually from Expo or with `eas workflow:run .eas/workflows/testflight.yml` from `app/`.
 
-The Expo GitHub integration must be installed for `veetrlabs/veetr`, connected to this Expo project, and configured with app base directory `app`. Workflow YAML validation passed. The GitHub app is installed, but connecting the organization repository requires transferring the Expo project to the Veetr Labs organization and completing the project connection. Push delivery is not yet active.
+The Expo GitHub integration must be installed for `veetrlabs/veetr`, connected to this Expo project, and configured with app base directory `app`. Workflow YAML validation passed. The project is owned by `veetrlabs`, connected to `veetrlabs/veetr`, and configured with base directory `app`. The app config owner matches the transferred project.
 
 This workflow uses the saved EAS signing/submission credentials. It distributes TestFlight builds, not public App Store releases. It does not publish OTA updates; those require a separate runtime/update-channel rollout and a compatible native build. Existing test builds remain usable while the next build is processed by Apple.
 
