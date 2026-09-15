@@ -1,3 +1,5 @@
+import { usePhoneHeading } from './usePhoneHeading';
+import { usePhoneStartLine } from './usePhoneStartLine';
 import {
   createContext,
   useContext,
@@ -20,6 +22,8 @@ const Context = createContext<ReturnType<typeof useNavigationState> | null>(
 );
 function useNavigationState() {
   const { state } = useBLE();
+  const phoneStartLine = usePhoneStartLine();
+  const phoneHeading = usePhoneHeading();
   const [phone, setPhone] = useState<TrackingPoint | null>(null);
   const [session, setSession] = useState<TrackingSession | null>(null);
   const [trail, setTrail] = useState<TrackingPoint[]>([]);
@@ -122,6 +126,9 @@ function useNavigationState() {
   }
   return {
     ...navigationFix(phone, state, session?.phase === "recording", now),
+    phoneHeading,
+    phonePoint: phone,
+    phoneStartLine,
     session,
     trail,
     permission,

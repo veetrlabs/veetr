@@ -1,4 +1,3 @@
-import { useRouter } from "expo-router";
 import { Alert, Linking, Pressable, Text, View } from "react-native";
 import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
@@ -26,7 +25,6 @@ export default function LocalRecording({
   busy: boolean;
   run: (action: () => Promise<unknown>) => Promise<void>;
 }) {
-  const router = useRouter();
   const { theme } = useTheme();
   const colors = themeColors[theme];
   const button = (label: string, action: () => void, disabled = busy) => (
@@ -37,12 +35,12 @@ export default function LocalRecording({
       style={{
         padding: 16,
         borderRadius: 8,
-        backgroundColor: colors.buttonBg,
+        backgroundColor: label === "Start tracking" || label === "Stop tracking" ? "#006b62" : colors.buttonBg,
         opacity: disabled ? 0.5 : 1,
       }}
     >
       <Text
-        style={{ color: colors.text, textAlign: "center", fontWeight: "600" }}
+        style={{ color: label === "Start tracking" || label === "Stop tracking" ? "white" : colors.text, textAlign: "center", fontWeight: "600" }}
       >
         {label}
       </Text>
@@ -74,34 +72,10 @@ export default function LocalRecording({
         borderRadius: 12,
       }}
     >
-      <Text style={{ color: colors.text, fontSize: 18, fontWeight: "600" }}>
-        Record locally
-      </Text>
-      <Text style={{ color: colors.textSecondary }}>
-        Record phone GPS without an account or internet. Positions stay on this
-        phone and are never automatically uploaded.
-      </Text>
-      {!session && (
-        <>
-          <Text style={{ color: colors.textSecondary }}>
-            On iPhone, choose Allow While Using App in the first prompt, then
-            Always when asked. You can still record with the app open if you
-            allow only foreground access. Keep Precise Location on.
-          </Text>
-          {button("Location settings", () => void Linking.openSettings())}
-        </>
-      )}
+      <Text style={{ color: colors.text, fontSize: 18, fontWeight: "600" }}>Your sailing</Text>
+      <Text style={{ color: colors.textMuted }}>Private · saved on this phone</Text>
       {!session ? (
-        button("Start local recording", () =>
-          Alert.alert(
-            "Record GPS on this phone?",
-            "Allow background location to record with the screen locked. Recording stops after 12 hours. You can export or delete it after stopping.",
-            [
-              { text: "Cancel", style: "cancel" },
-              { text: "Record", onPress: () => void run(startLocalTracking) },
-            ],
-          ),
-        )
+        button("Start tracking", () => void run(startLocalTracking))
       ) : (
         <>
           <Text style={{ color: colors.text }}>
@@ -117,8 +91,7 @@ export default function LocalRecording({
           </Text>
           <Text style={{ color: colors.textSecondary }}>
             Started {new Date(session.startedAt).toLocaleString()}. Automatic
-            stop at {new Date(session.expiresAt).toLocaleTimeString()}. Keep the
-            app installed; force-closing it can stop GPS.
+            stop at {new Date(session.expiresAt).toLocaleTimeString()}.
           </Text>
           {session.phase === "recording" &&
             session.backgroundEnabled === false && (
@@ -133,19 +106,11 @@ export default function LocalRecording({
                 )}
               </>
             )}
-          {button("View map and track", () => router.push("/(tabs)/map"))}
-          {button("View live instruments", () => router.push("/(tabs)"))}
           {session.phase === "recording" && (
             <Text style={{ color: colors.text, fontWeight: "600" }}>
               {session.backgroundEnabled
                 ? "Screen-lock recording ready"
                 : "Screen-lock recording is NOT enabled"}
-            </Text>
-          )}
-          {session.lastBackgroundFixAt && (
-            <Text style={{ color: colors.text }}>
-              Last background callback:{" "}
-              {new Date(session.lastBackgroundFixAt).toLocaleString()}
             </Text>
           )}
           {session.stopReason && (
@@ -157,7 +122,7 @@ export default function LocalRecording({
             </Text>
           )}
           {session.phase === "stopping" &&
-            button("Start a new recording", () =>
+            button("Start tracking", () =>
               Alert.alert(
                 "Start a new recording?",
                 "The previous recording will stay in History. Allow background location to record with the screen locked.",
@@ -182,7 +147,7 @@ export default function LocalRecording({
           )}
           {session.phase === "recording" ? (
             <>
-              {button("Stop recording", () => void run(stopTracking), false)}
+              {button("Stop tracking", () => void run(stopTracking), false)}
               {button("Resume GPS", () => void run(resumeTracking))}
             </>
           ) : (

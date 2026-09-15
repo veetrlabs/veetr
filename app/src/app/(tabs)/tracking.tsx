@@ -1,3 +1,4 @@
+import RegattaBrowser from "../../regattas/RegattaBrowser";
 import LocalRecording from "../../tracking/LocalRecording";
 import { useEffect, useState } from "react";
 import {
@@ -32,6 +33,8 @@ export default function TrackingScreen() {
     colors = themeColors[theme];
   const [auth, setAuth] = useState<Session | null>(null),
     [ready, setReady] = useState(false);
+  const [showSignIn, setShowSignIn] = useState(false);
+  const [entriesLoading, setEntriesLoading] = useState(false);
   const [email, setEmail] = useState(""),
     [password, setPassword] = useState("");
   const [entries, setEntries] = useState<TrackingEntry[]>([]),
@@ -91,7 +94,11 @@ export default function TrackingScreen() {
   useEffect(() => {
     setEntries([]);
     setSelected(null);
-    if (!auth) return;
+    if (!auth) {
+      setEntriesLoading(false);
+      return;
+    }
+    setEntriesLoading(true);
     let alive = true;
     void trackingRpc<TrackingEntry[]>("my_tracking_entries")
       .then((rows) => {
@@ -99,13 +106,18 @@ export default function TrackingScreen() {
       })
       .catch((e) => {
         if (alive) setError(e.message);
+      })
+      .finally(() => {
+        if (alive) setEntriesLoading(false);
       });
     return () => {
       alive = false;
     };
   }, [auth?.user.id]);
   const ownSession =
-    session && session.userId === auth?.user.id ? session : null;
+    session && session.mode !== "local" && session.userId === auth?.user.id
+      ? session
+      : null;
   const text = { color: colors.text };
   const button = (
     title: string,
@@ -152,10 +164,7 @@ export default function TrackingScreen() {
         contentContainerStyle={styles.page}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={[styles.title, text]}>Regatta tracking</Text>
-        <Text style={{ color: colors.textSecondary }}>
-          Your phone is your boat’s tracker. No Veetr device needed.
-        </Text>
+        <Text style={[styles.title, text]}>Track</Text>
         {(!session || session.mode === "local") && (
           <LocalRecording
             session={session}
@@ -165,13 +174,16 @@ export default function TrackingScreen() {
             run={run}
           />
         )}
-        {session?.mode === "local" ? null : !trackingClient ? (
-          <Text style={text}>
-            Live regatta sharing is not available in this test build. You can
-            record GPS locally without an account or internet.
+        <Text style={[styles.heading, text]}>Regattas</Text>
+        <RegattaBrowser />
+        {!trackingClient ? (
+          <Text style={{ color: colors.textMuted }}>
+            Regatta sign-in is currently unavailable.
           </Text>
         ) : !ready ? (
           <Text style={text}>Restoring account…</Text>
+        ) : !auth && !showSignIn ? (
+          button("Sign in to join a regatta", () => setShowSignIn(true))
         ) : !auth ? (
           <View style={styles.section}>
             <Text style={[styles.heading, text]}>
@@ -232,7 +244,7 @@ export default function TrackingScreen() {
             <Text style={{ color: colors.textSecondary }}>
               {auth.user.email}
             </Text>
-            {session && !ownSession ? (
+            {session && session.mode !== "local" && !ownSession ? (
               <Text style={text}>
                 A saved tracking session belongs to another account. Sign in
                 with that account to finish syncing.
@@ -298,7 +310,7 @@ export default function TrackingScreen() {
                   </Text>
                 )}
                 {button(
-                  "View live map",
+                  "Open spectator map",
                   () =>
                     void Linking.openURL(
                       `${site}/races/?series=${encodeURIComponent(ownSession.seriesId)}#tracking`,
@@ -339,14 +351,15 @@ export default function TrackingScreen() {
             ) : (
               <View style={styles.section}>
                 <Text style={[styles.heading, text]}>
-                  Choose your boat and series
+                  Your eligible regattas
                 </Text>
-                {!entries.length && (
-                  <Text style={text}>
-                    No eligible boats yet. Create or join a boat on the website,
-                    then ask the organizer to register it in a published heat.
-                    Boat owners and editors can track.
-                  </Text>
+                {entriesLoading && <Text style={text}>Loading regattas…</Text>}
+                {!entriesLoading && !entries.length && (
+                  <Text style={text}>No approved regatta entries yet.</Text>
+                )}
+                {button(
+                  "Find regattas",
+                  () => void Linking.openURL(`${site}/races/`),
                 )}
                 {entries.map((entry) => (
                   <Pressable
@@ -371,42 +384,57 @@ export default function TrackingScreen() {
                       },
                     ]}
                   >
-                    <Text style={[styles.heading, text]}>{entry.boatName}</Text>
-                    <Text style={text}>{entry.seriesName}</Text>
+                    <Text style={[styles.heading, text]}>
+                      {entry.seriesName}
+                    </Text>
+                    <Text style={text}>{entry.boatName}</Text>
                   </Pressable>
                 ))}
                 {button(
-                  "Refresh boats",
+                  "Refresh regattas",
                   () =>
                     void run(async () => {
                       setEntries(await trackingRpc("my_tracking_entries"));
                       setSelected(null);
                     }),
                 )}
-                <Text style={{ color: colors.textSecondary }}>
-                  Starting shares your boat’s location, speed and recent trail
-                  with anyone viewing this series. Sharing lasts until you stop
-                  or 12 hours pass. Uploads target every 20 seconds; offline
-                  positions are saved for retry.
-                </Text>
+                {session?.mode === "local" && session.phase !== "stopping" && (
+                  <Text style={{ color: colors.textMuted }}>
+                    Stop private tracking before joining a regatta.
+                  </Text>
+                )}
                 {button(
-                  "Start sharing location",
+                  "Join regatta & share tracking",
                   () =>
                     selected &&
                     Alert.alert(
                       "Share your boat’s location?",
-                      `${selected.boatName} will appear publicly in ${selected.seriesName}. Allow background location to keep tracking with the screen locked.`,
+                      `${selected.boatName} will appear publicly in ${selected.seriesName}, live and in replay after you stop sharing. Private recordings are never shared. Allow background location to keep tracking with the screen locked.`,
                       [
                         { text: "Cancel", style: "cancel" },
                         {
                           text: "Start sharing",
                           onPress: () =>
-                            void run(() => startTracking(selected)),
+                            void run(async () => {
+                              if (session?.mode === "local") {
+                                if (session.phase !== "stopping")
+                                  throw new Error(
+                                    "Stop private tracking first.",
+                                  );
+                                await (await trackingStore()).archiveLocal();
+                              }
+                              await startTracking(selected, true);
+                            }),
                         },
                       ],
                     ),
                   true,
-                  busy || !selected,
+                  busy ||
+                    entriesLoading ||
+                    !selected ||
+                    Boolean(
+                      session?.mode === "local" && session.phase !== "stopping",
+                    ),
                 )}
               </View>
             )}

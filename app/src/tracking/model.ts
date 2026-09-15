@@ -11,6 +11,7 @@ export interface TrackingSession extends TrackingEntry {
   id: string;
   userId: string;
   mode?: "local" | "live";
+  replayEnabled?: boolean;
   backgroundEnabled?: boolean;
   backgroundStartedAt?: string;
   lastBackgroundFixAt?: string;

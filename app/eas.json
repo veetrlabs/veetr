@@ -14,10 +14,16 @@
         "buildType": "apk"
       }
     },
-    "production": {},
+    "production": {
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://xvqlsltglpgfjhdrhdyc.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2cWxzbHRnbHBnZmpoZHJoZHljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2NjUwMzIsImV4cCI6MjEwNDI0MTAzMn0.iioYZbuIv3jG9fZhqhgsqMc8hvWeOXABe5qpxqlxfwA"
+      }
+    },
     "testflight": {
       "distribution": "store",
-      "autoIncrement": true
+      "autoIncrement": true,
+      "extends": "production"
     }
   },
   "submit": {

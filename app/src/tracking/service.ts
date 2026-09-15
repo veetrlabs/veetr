@@ -27,8 +27,8 @@ function serialize<T>(action: () => Promise<T>): Promise<T> {
   control = result.catch(() => {});
   return result;
 }
-export const startTracking = (entry: TrackingEntry) =>
-  serialize(() => startInternal(entry));
+export const startTracking = (entry: TrackingEntry, replayEnabled = false) =>
+  serialize(() => startInternal(entry, replayEnabled));
 export const resumeTracking = () => serialize(resumeInternal);
 export const enableBackgroundTracking = () =>
   serialize(async () => {
@@ -229,7 +229,7 @@ async function requestPermissions(allowForeground = false) {
       "Install a development or release build to use background tracking.",
     );
 }
-async function startInternal(entry: TrackingEntry) {
+async function startInternal(entry: TrackingEntry, replayEnabled = false) {
   if (!trackingClient)
     throw new Error("Tracking is not configured in this app build.");
   const {
@@ -240,6 +240,7 @@ async function startInternal(entry: TrackingEntry) {
   const store = await trackingStore();
   await store.create({
     ...entry,
+    replayEnabled,
     id: Crypto.randomUUID(),
     userId: auth.user.id,
     phase: "starting",
@@ -267,7 +268,9 @@ async function resumeInternal() {
     await owner(session);
     if (session.phase === "starting") {
       const reply = await trackingRpc<{ startedAt: string; expiresAt: string }>(
-        "start_tracking_session",
+        session.replayEnabled
+          ? "start_replay_tracking_session"
+          : "start_tracking_session",
         {
           p_id: session.id,
           p_series: session.seriesId,

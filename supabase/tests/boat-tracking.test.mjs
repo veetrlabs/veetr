@@ -194,16 +194,62 @@ test("tracking enforces consent, ownership, one reporter, idempotency, timestamp
       [],
       "offline backfill after stop never republishes",
     );
+    assert.deepEqual(
+      (
+        await db.query("select public.public_regatta_replay($1,$2) value", [
+          sid,
+          first.startedAt,
+        ])
+      ).rows[0].value,
+      [],
+      "live-only sessions never become replayable",
+    );
     await assert.rejects(start(), /ended/);
     const second = id();
     await login(editor);
-    await start(second);
+    await db.query("select public.start_replay_tracking_session($1,$2,$3)", [
+      second,
+      sid,
+      bid,
+    ]);
     await db.query("select public.ingest_tracking_points($1,$2)", [
       second,
       JSON.stringify([{ ...point(1), recordedAt: new Date().toISOString() }]),
     ]);
     assert.equal((await feed()).length, 1);
+    await login(null, "anon");
+    const replay = async () =>
+      (
+        await db.query("select public.public_regatta_replay($1,now()) value", [
+          sid,
+        ])
+      ).rows[0].value;
+    assert.equal(
+      (await replay()).length,
+      1,
+      "anonymous viewers can replay opted-in sessions",
+    );
+    const directory = (
+      await db.query("select public.public_regatta_directory() value")
+    ).rows[0].value;
+    assert.equal(directory.length, 1);
+    assert.ok(directory[0].firstDate);
+    assert.ok(directory[0].replayStart);
     await db.exec("reset role");
+    await db.query("update public.races set status='draft' where id=$1", [
+      race,
+    ]);
+    await login(null, "anon");
+    assert.deepEqual(await replay(), []);
+    assert.deepEqual(
+      (await db.query("select public.public_regatta_directory() value")).rows[0]
+        .value,
+      [],
+    );
+    await db.exec("reset role");
+    await db.query("update public.races set status='published' where id=$1", [
+      race,
+    ]);
     await db.query(
       "delete from public.boat_members where boat_id=$1 and user_id=$2",
       [bid, editor],
@@ -213,6 +259,11 @@ test("tracking enforces consent, ownership, one reporter, idempotency, timestamp
       await feed(),
       [],
       "revocation removes public feed without waiting for phone",
+    );
+    assert.deepEqual(
+      await replay(),
+      [],
+      "revoked editors are also removed from replay",
     );
     await login(editor);
     await assert.rejects(

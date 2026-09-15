@@ -35,18 +35,6 @@ function TabIcon({ name, color, size }: { name: string; color: string; size?: nu
           <Polygon points="12 6 12 12 16 14" />
         </Svg>
       )
-    case 'connect':
-      return (
-        <Svg {...props}>
-          <Path d="M14.5 2h-5v4h5z" />
-          <Path d="M14.5 18h-5v4h5z" />
-          <Path d="M9.5 8v8" />
-          <Path d="M6.5 11h-4" />
-          <Path d="M18.5 11h-4" />
-          <Path d="M7.5 9l-3 3 3 3" />
-          <Path d="M16.5 9l3 3-3 3" />
-        </Svg>
-      )
     case 'settings':
       return (
         <Svg {...props}>
@@ -103,13 +91,6 @@ export default function TabLayout() {
         options={{
           title: 'History',
           tabBarIcon: ({ color, size }) => <TabIcon name="history" color={color} size={size} />,
-        }}
-      />
-      <Tabs.Screen
-        name="connect"
-        options={{
-          title: 'Connect',
-          tabBarIcon: ({ color, size }) => <TabIcon name="connect" color={color} size={size} />,
         }}
       />
       <Tabs.Screen

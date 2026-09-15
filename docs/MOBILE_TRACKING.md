@@ -117,6 +117,16 @@ The reported screen-lock failure with Always permission is not yet reproduced on
 
 `app/.eas/workflows/testflight.yml` runs mobile type checking and Jest, then builds iOS with the `testflight` profile and submits that exact build to App Store Connect. Failed tests prevent building; failed builds prevent submission. Push triggers cover `main` and `codex/mobile-tracking`, restricted to `app/**` except Markdown-only changes. The workflow can also be run manually from Expo or with `eas workflow:run .eas/workflows/testflight.yml` from `app/`.
 
-The Expo GitHub integration must be installed for `veetrlabs/veetr`, connected to this Expo project, and configured with app base directory `app`. Workflow YAML validation passed. GitHub re-authentication is pending before the repository integration can be completed, so push delivery is not yet active.
+The Expo GitHub integration must be installed for `veetrlabs/veetr`, connected to this Expo project, and configured with app base directory `app`. Workflow YAML validation passed. The GitHub app is installed, but connecting the organization repository requires transferring the Expo project to the Veetr Labs organization and completing the project connection. Push delivery is not yet active.
 
 This workflow uses the saved EAS signing/submission credentials. It distributes TestFlight builds, not public App Store releases. It does not publish OTA updates; those require a separate runtime/update-channel rollout and a compatible native build. Existing test builds remain usable while the next build is processed by Apple.
+
+## Public regatta browsing and replay
+
+Track includes a public directory with All, Live, Upcoming and Past filters. It uses published heat dates; draft events stay private. Guests can open a fleet map without authentication. The native map and browser Leaflet map display public boat positions and recent trails; live positions refresh every five seconds while the app is active. Replay controls step through public timestamps, with playback advancing 20 seconds per response. Missing and stale fixes are not interpolated.
+
+Joining/sharing still requires sign-in, boat owner/editor permission and entry in a published heat. New mobile sharing explicitly consents to public live viewing and subsequent replay. The separate `start_replay_tracking_session` RPC records that consent; old live-only sessions retain their original privacy. Replay and directory bounds recheck publication and boat-editor permission. Private phone recordings never enter these APIs.
+
+Production/TestFlight build profiles contain the same public Supabase URL and anon key as veetr.org. These are client identifiers, not service-role credentials; database permissions remain enforced. Local Expo previews use ignored `app/.env.local`.
+
+Deployment must go through `.github/workflows/supabase-production.yml`: merge the reviewed migrations to main, let Actions run the racing/database tests, preview pending migrations, then apply them to the Veetr Regatta project. Do not apply these files manually in the dashboard. Both `202609130001_boat_tracking.sql` and `202609150001_regatta_spectators.sql` are pending on production as of this change. Before they land the app can use the older public directory, but live tracking/replay are unavailable. No production SQL was changed during implementation.

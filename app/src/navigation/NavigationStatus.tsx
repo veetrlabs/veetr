@@ -1,11 +1,9 @@
 import { View, Text, Pressable, Linking } from "react-native";
-import { useRouter } from "expo-router";
 import { useNavigation } from "./NavigationContext";
 import { useTheme } from "../context/ThemeContext";
 import { themeColors } from "../constants/colors";
-export default function NavigationStatus() {
-  const nav = useNavigation(),
-    router = useRouter();
+export default function NavigationStatus({ showMode = true }: { showMode?: boolean }) {
+  const nav = useNavigation();
   const { theme } = useTheme(),
     c = themeColors[theme];
   return (
@@ -19,7 +17,7 @@ export default function NavigationStatus() {
     >
       <Text style={{ color: c.text, fontWeight: "600" }}>
         {nav.fix?.source ?? "Waiting for GPS"}
-        {nav.deviceFresh ? " · Veetr instruments" : " · Phone mode"}
+        {showMode && (nav.deviceFresh ? " · Veetr instruments" : " · Phone mode")}
       </Text>
       <Text style={{ color: c.textSecondary }}>
         {nav.session?.phase === "recording"
@@ -36,7 +34,6 @@ export default function NavigationStatus() {
             ? " · Screen-lock recording ready"
             : ""}
       </Text>
-      <View style={{ flexDirection: "row", gap: 20 }}>
         {!nav.permission && (
           <Pressable
             accessibilityRole="button"
@@ -46,14 +43,6 @@ export default function NavigationStatus() {
             <Text style={{ color: c.text }}>Enable phone GPS</Text>
           </Pressable>
         )}
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => router.push("/(tabs)/tracking")}
-          style={{ paddingVertical: 8 }}
-        >
-          <Text style={{ color: c.text }}>Recording controls →</Text>
-        </Pressable>
-      </View>
       {nav.error ? (
         <Pressable
           accessibilityRole="button"

@@ -1,19 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { View, Text, Pressable, StyleSheet, Platform } from "react-native";
+import { View, Text, Pressable, StyleSheet, Linking } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBLE } from "../context/BLEContext";
 import { useTheme } from "../context/ThemeContext";
 import { themeColors } from "../constants/colors";
 import { useNavigation } from "../navigation/NavigationContext";
-import NavigationStatus from "../navigation/NavigationStatus";
-let MapView: any, Marker: any, Polyline: any, Circle: any;
-if (Platform.OS !== "web") {
-  const maps = require("react-native-maps");
-  MapView = maps.default;
-  Marker = maps.Marker;
-  Polyline = maps.Polyline;
-  Circle = maps.Circle;
-}
+import GPSStatusButton from "../components/GPSStatusButton";
+import Svg, { Circle as IconCircle, Path } from "react-native-svg";
+import { MapView, Marker, Polyline, Circle, UrlTile } from "../components/NativeMap";
 export default function Map({ onBack }: { onBack?: () => void }) {
   const nav = useNavigation(),
     { state } = useBLE(),
@@ -23,6 +17,8 @@ export default function Map({ onBack }: { onBack?: () => void }) {
     ref = useRef<any>(null);
   const [follow, setFollow] = useState(true),
     [ready, setReady] = useState(false);
+  const [seamarks, setSeamarks] = useState(true);
+  const [mapType, setMapType] = useState<"standard" | "satellite">("standard");
   const fix = nav.fix;
   const trail = nav.trail;
   const last = trail.at(-1);
@@ -36,7 +32,11 @@ export default function Map({ onBack }: { onBack?: () => void }) {
         500,
       );
   }, [ready, follow, position?.latitude, position?.longitude]);
-  const d = state.sailingData;
+  const local = nav.phoneStartLine.line;
+  const d = state.isConnected ? state.sailingData : {
+    portLat: local.port?.latitude ?? null, portLon: local.port?.longitude ?? null,
+    starboardLat: local.starboard?.latitude ?? null, starboardLon: local.starboard?.longitude ?? null,
+  };
   const coordinate = (lat: number | null, lon: number | null) =>
     lat !== null &&
     lon !== null &&
@@ -45,7 +45,6 @@ export default function Map({ onBack }: { onBack?: () => void }) {
     Math.abs(lat) <= 90 &&
     Math.abs(lon) <= 180;
   const line =
-    nav.deviceFresh &&
     coordinate(d.portLat, d.portLon) &&
     coordinate(d.starboardLat, d.starboardLon);
   return (
@@ -53,6 +52,7 @@ export default function Map({ onBack }: { onBack?: () => void }) {
       {MapView ? (
         <MapView
           ref={ref}
+          mapType={mapType}
           style={StyleSheet.absoluteFill}
           onMapReady={() => setReady(true)}
           onPanDrag={() => setFollow(false)}
@@ -63,6 +63,14 @@ export default function Map({ onBack }: { onBack?: () => void }) {
             longitudeDelta: 0.02,
           }}
         >
+          {seamarks && <UrlTile
+            urlTemplate="https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png"
+            tileSize={256}
+            maximumNativeZ={18}
+            maximumZ={22}
+            shouldReplaceMapContent={false}
+            zIndex={0}
+          />}
           {trail.length > 1 && (
             <Polyline
               coordinates={trail.map((p) => ({
@@ -77,11 +85,6 @@ export default function Map({ onBack }: { onBack?: () => void }) {
             <Marker
               coordinate={position}
               title={fix ? fix.source : "Last recorded position"}
-              description={
-                fix?.sogKnots == null
-                  ? "Speed unavailable"
-                  : `${fix.sogKnots.toFixed(1)} kn`
-              }
               pinColor={fix ? "#008c80" : "#64748b"}
             />
           )}
@@ -119,63 +122,45 @@ export default function Map({ onBack }: { onBack?: () => void }) {
             </>
           )}
         </MapView>
-      ) : (
-        <Text style={{ color: colors.text, marginTop: 300 }}>
-          Map requires a native build.
-        </Text>
-      )}
-      <View
-        style={{
-          position: "absolute",
-          top: insets.top + 8,
-          left: 12,
-          right: 12,
-          gap: 8,
-        }}
-      >
-        <NavigationStatus />
-        <View
-          style={{
-            padding: 12,
-            backgroundColor: colors.panelBg,
-            borderRadius: 12,
-            gap: 6,
-          }}
-        >
-          <Text style={{ color: colors.text, fontSize: 22, fontWeight: "600" }}>
-            SOG {fix?.sogKnots == null ? "—" : fix.sogKnots.toFixed(1)} kn · COG{" "}
-            {fix?.course == null ? "—" : `${Math.round(fix.course)}°`}
-          </Text>
-          <Text style={{ color: colors.textSecondary }}>
-            {trail.length
-              ? "Saved recording trail"
-              : "No saved fixes yet · use Recording controls to start"}
-          </Text>
-          <Pressable
-            accessibilityRole="button"
-            disabled={!position}
-            onPress={() => {
-              setFollow(true);
-              if (position)
-                ref.current?.animateToRegion({
-                  ...position,
-                  latitudeDelta: 0.01,
-                  longitudeDelta: 0.01,
-                });
-            }}
-            style={{ paddingVertical: 8 }}
-          >
-            <Text style={{ color: colors.text }}>
-              {follow ? "Following position" : "Recenter and follow"}
-            </Text>
+      ) : null}
+      <GPSStatusButton />
+      <Pressable accessibilityRole="button" accessibilityLabel="Recenter and follow GPS" accessibilityState={{ selected: follow, disabled: !position }} disabled={!position} onPress={() => {
+        setFollow(true);
+        if (position) ref.current?.animateToRegion({ ...position, latitudeDelta: 0.01, longitudeDelta: 0.01 });
+      }} style={{ position: 'absolute', top: insets.top + 4, right: Math.max(8, insets.right), width: 44, height: 44, borderRadius: 22, backgroundColor: colors.panelBg, alignItems: 'center', justifyContent: 'center' }}>
+        <Svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke={!position ? colors.textMuted : follow ? '#008c80' : colors.text} strokeWidth={2}>
+          <IconCircle cx="12" cy="12" r="6" /><IconCircle cx="12" cy="12" r="2" /><Path d="M12 2v4m0 12v4M2 12h4m12 0h4" />
+        </Svg>
+      </Pressable>
+      <View style={{ position: 'absolute', bottom: 32, right: Math.max(12, insets.right), gap: 8, alignItems: 'flex-end' }}>
+        {line && <Pressable accessibilityRole="button" accessibilityLabel="Show start line" onPress={() => {
+          setFollow(false);
+          ref.current?.fitToCoordinates([
+            { latitude: d.portLat!, longitude: d.portLon! },
+            { latitude: d.starboardLat!, longitude: d.starboardLon! },
+          ], { edgePadding: { top: insets.top + 60, right: 50, bottom: 100, left: 50 }, animated: true });
+        }} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: colors.panelBg }}>
+          <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={colors.text} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><Path d="M4 20V4l7 3-7 3 M20 20V4l-7 3 7 3 M4 18h16" /></Svg>
+        </Pressable>}
+        <View style={{ flexDirection: 'row', borderRadius: 12, padding: 2, backgroundColor: colors.panelBg, gap: 2 }}>
+          {(['standard', 'satellite'] as const).map(type => <Pressable key={type} accessibilityRole="button" accessibilityLabel={type === 'standard' ? 'Standard map' : 'Satellite map'} accessibilityState={{ selected: mapType === type }} onPress={() => setMapType(type)} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: mapType === type ? colors.buttonBg : 'transparent' }}>
+            <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={mapType === type ? '#008c80' : colors.textMuted} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+              {type === 'standard' ? <Path d="M3 5l6-2 6 2 6-2v16l-6 2-6-2-6 2V5z M9 3v16 M15 5v16" /> : <><Path d="M9 10l5-5 5 5-5 5z M6 5l3-3 3 3-3 3z M16 17l3-3 3 3-3 3z M3 14a7 7 0 007 7 M3 18a3 3 0 003 3 M7 13l4 4" /></>}
+            </Svg>
+          </Pressable>)}
+          <View style={{ width: 1, marginVertical: 10, backgroundColor: colors.border }} />
+          <Pressable accessibilityRole="button" accessibilityLabel="Nautical seamarks" accessibilityState={{ selected: seamarks }} onPress={() => setSeamarks(value => !value)} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: seamarks ? colors.buttonBg : 'transparent' }}>
+            <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={seamarks ? '#008c80' : colors.textMuted} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+              <Path d="M12 3v4 M9 7h6l2 11H7L9 7z M9 11h6 M3 20q3-3 6 0t6 0t6 0" />
+              <IconCircle cx="12" cy="3" r="1" />
+            </Svg>
           </Pressable>
-          {onBack && (
-            <Pressable onPress={onBack}>
-              <Text style={{ color: colors.text }}>Back</Text>
-            </Pressable>
-          )}
         </View>
+        {onBack && <Pressable accessibilityRole="button" onPress={onBack} style={{ padding: 12, backgroundColor: colors.panelBg }}><Text style={{ color: colors.text }}>Back</Text></Pressable>}
       </View>
+      {seamarks && <Pressable accessibilityRole="link" accessibilityLabel="OpenSeaMap attribution" onPress={() => void Linking.openURL('https://www.openseamap.org/')} style={{ position: 'absolute', left: Math.max(8, insets.left), bottom: 30, padding: 4, backgroundColor: colors.panelBg, borderRadius: 4 }}>
+        <Text style={{ fontSize: 10, color: colors.textSecondary }}>© OpenSeaMap contributors</Text>
+      </Pressable>}
     </View>
   );
 }

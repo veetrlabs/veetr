@@ -1,209 +1,89 @@
-import { Text, ScrollView, Pressable } from "react-native";
-import { useRouter } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useNavigation } from "../navigation/NavigationContext";
-import NavigationStatus from "../navigation/NavigationStatus";
-import { useTheme } from "../context/ThemeContext";
-import { themeColors } from "../constants/colors";
-import { View, StyleSheet, useWindowDimensions } from "react-native";
-import { useBLE } from "../context/BLEContext";
-import SpeedCard from "./cards/SpeedCard";
-import WindCard from "./cards/WindCard";
-import TiltCard from "./cards/TiltCard";
-import ApparentAngleCard from "./cards/ApparentAngleCard";
-import TrueWindAngleCard from "./cards/TrueWindAngleCard";
-import WindAngleCard from "./cards/WindAngleCard";
-import StartingLineCard from "./cards/StartingLineCard";
-import HeadingCard from "./cards/HeadingCard";
+import { phoneStartLineDistance } from '../navigation/startLineDistance'
+import { useState } from 'react'
+import { View, Text, StyleSheet } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useNavigation } from '../navigation/NavigationContext'
+import { compassBearings } from '../navigation/phoneHeading'
+import { useTheme } from '../context/ThemeContext'
+import { themeColors } from '../constants/colors'
+import { useBLE } from '../context/BLEContext'
+import WindAngleCard from './cards/WindAngleCard'
+
+const number = (value: number | null | undefined, decimals = 0) => value == null || !Number.isFinite(value) ? '—' : value.toFixed(decimals)
+const angle = (value: number | null | undefined) => value == null || !Number.isFinite(value) ? '—' : `${Math.round(value) % 360}°`
 
 export default function Dashboard() {
-  const nav = useNavigation();
-  const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const { theme } = useTheme();
-  const colors = themeColors[theme];
-  const { state } = useBLE();
-  const { sailingData } = state;
-  const { width, height } = useWindowDimensions();
-  const isLandscape = width > height;
-
-  if (!nav.deviceFresh)
-    return (
-      <ScrollView
-        contentContainerStyle={{
-          padding: 16,
-          paddingTop: insets.top + 80,
-          gap: 16,
-          paddingBottom: 100,
-        }}
-      >
-        <NavigationStatus />
-        <View style={{ height: 180, flexDirection: "row", gap: 12 }}>
-          <View style={{ flex: 1 }}>
-            <SpeedCard speed={nav.fix?.sogKnots ?? null} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <HeadingCard heading={nav.fix?.course ?? null} title="COG" />
-          </View>
-        </View>
-        <Text style={{ color: colors.textSecondary }}>
-          Course over ground is your direction of travel, not compass heading.
-          Speed and course need a recent GPS fix.
-        </Text>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => router.push("/(tabs)/map")}
-          style={{
-            padding: 16,
-            backgroundColor: colors.buttonBg,
-            borderRadius: 12,
-          }}
-        >
-          <Text style={{ color: colors.text }}>
-            View position and track on map →
-          </Text>
-        </Pressable>
-        <View
-          style={{
-            padding: 20,
-            gap: 10,
-            backgroundColor: colors.cardBg,
-            borderRadius: 12,
-          }}
-        >
-          <Text style={{ color: colors.text, fontSize: 20, fontWeight: "600" }}>
-            Add Veetr instruments
-          </Text>
-          <Text style={{ color: colors.textSecondary }}>
-            Wind speed and angles, compass heading, heel and start-line
-            instruments require data from a connected Veetr device.
-          </Text>
-        </View>
-      </ScrollView>
-    );
-  const compass = (
-    <WindAngleCard
-      windDirection={sailingData.windDirection}
-      trueWindSpeed={sailingData.trueWindSpeed}
-      trueWindAngle={sailingData.trueWindAngle}
-      deadWindAngle={sailingData.deadWindAngle}
-      heading={sailingData.heading}
-    />
-  );
-
-  const cardRows = (
-    <>
-      <View style={styles.cardRow}>
-        <View style={styles.cardCell}>
-          <WindCard windSpeed={sailingData.windSpeed} title="Apparent Wind" />
-        </View>
-        <View style={styles.cardCell}>
-          <ApparentAngleCard awa={sailingData.windAngle} />
-        </View>
-      </View>
-      <View style={styles.cardRow}>
-        <View style={styles.cardCell}>
-          <WindCard windSpeed={sailingData.trueWindSpeed} title="True Wind" />
-        </View>
-        <View style={styles.cardCell}>
-          <TrueWindAngleCard twa={sailingData.trueWindAngle} />
-        </View>
-      </View>
-      <View style={styles.cardRow}>
-        <View style={styles.cardCell}>
-          <SpeedCard speed={nav.fix?.sogKnots ?? null} />
-        </View>
-        <View style={styles.cardCell}>
-          <HeadingCard heading={sailingData.heading} />
-        </View>
-      </View>
-      <View style={styles.cardRow}>
-        <View style={styles.cardCell}>
-          <StartingLineCard
-            hasStartLine={sailingData.hasStartLine}
-            distanceToLine={sailingData.distanceToLine}
+  const nav = useNavigation(), { state } = useBLE(), { theme } = useTheme()
+  const colors = themeColors[theme], insets = useSafeAreaInsets(), d = state.sailingData
+  const [space, setSpace] = useState({ width: 0, height: 0 })
+  const landscape = space.width > space.height * 1.15
+  const device = nav.deviceFresh
+  const phoneLine = nav.phoneStartLine.line
+  const showPhoneDistance = !state.isConnected && !!phoneLine.port && !!phoneLine.starboard
+  const phoneDistance = showPhoneDistance ? phoneStartLineDistance(phoneLine, nav.permission ? nav.phonePoint : null) : null
+  const bearings = compassBearings(nav.fix?.course ?? null, nav.phoneHeading.sample, Date.now())
+  // The tab navigator already reserves its bottom bar. Measure only the remaining instrument area.
+  const compassSize = Math.max(0, Math.min(landscape ? space.width * 0.46 : space.width, landscape ? space.height : Math.max(0, space.height - (device ? 280 : showPhoneDistance ? 260 : 210))))
+  const panelWidth = landscape ? space.width - compassSize - 12 : space.width
+  const panelHeight = landscape ? space.height : space.height - compassSize - 8
+  const lineHeight = showPhoneDistance ? Math.max(0, panelHeight * 0.22) : 0
+  const speedHeight = Math.max(0, panelHeight * (device ? 0.43 : showPhoneDistance ? 0.48 : 0.6))
+  const speedFont = Math.max(12, Math.min(panelWidth / 3.5, speedHeight * 0.64, 150))
+  const rows = device ? 4 : 1
+  const secondaryFont = Math.max(10, Math.min(speedFont * 0.48, (panelHeight - speedHeight - lineHeight) / rows * 0.48, panelWidth / 9, 48))
+  const metrics = [
+    { label: 'COG', value: angle(nav.fix?.course) },
+    { label: device ? 'HDG' : 'HDG · M', value: angle(device ? d.heading : nav.phoneHeading.heading) },
+    ...(device ? [
+      { label: 'APP WIND · kn', value: number(d.windSpeed, 1) },
+      { label: 'APP ANGLE', value: `${number(d.windAngle)}°` },
+      { label: 'TRUE WIND · kn', value: number(d.trueWindSpeed, 1) },
+      { label: 'TRUE ANGLE', value: `${number(d.trueWindAngle)}°` },
+      { label: 'START LINE · m', value: d.hasStartLine ? number(d.distanceToLine) : '—' },
+      { label: 'HEEL', value: `${number(d.tilt)}°` },
+    ] : []),
+  ]
+  return <View style={[styles.screen, { paddingTop: insets.top + 4, paddingLeft: Math.max(12, insets.left), paddingRight: Math.max(12, insets.right) }]}>
+    <View style={styles.instrumentArea} onLayout={e => setSpace(e.nativeEvent.layout)}>
+      <View style={[styles.layout, { flexDirection: landscape ? 'row' : 'column' }]}>
+        <View style={{ width: compassSize, height: compassSize, alignSelf: 'center' }}>
+          <WindAngleCard
+            heading={device ? d.heading : bearings.heading}
+            course={device ? null : bearings.course}
+            showWind={device}
+            windDirection={d.windDirection}
+            trueWindSpeed={d.trueWindSpeed}
+            trueWindAngle={d.trueWindAngle}
+            deadWindAngle={d.deadWindAngle}
           />
         </View>
-        <View style={styles.cardCell}>
-          <TiltCard tilt={sailingData.tilt} />
-        </View>
-      </View>
-    </>
-  );
-
-  return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={{ flexGrow: 1 }}
-    >
-      <View style={{ marginTop: insets.top + 72, marginHorizontal: 8 }}>
-        <NavigationStatus />
-      </View>
-      {isLandscape ? (
-        <View style={styles.landscapeWrap}>
-          <View style={styles.compassColumn}>
-            <View style={styles.compassWrapper}>{compass}</View>
+        <View style={styles.numbers}>
+          <View style={{ height: speedHeight, alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ color: colors.textSecondary, fontSize: Math.max(10, Math.min(16, speedFont * 0.18)), fontWeight: '700', letterSpacing: 2 }}>SOG</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+              <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.text, fontSize: speedFont, lineHeight: speedFont * 1.08, fontWeight: '900', fontVariant: ['tabular-nums'] }}>{number(nav.fix?.sogKnots, 1)}</Text>
+              <Text style={{ color: colors.textMuted, fontSize: speedFont * 0.23 }}>kn</Text>
+            </View>
           </View>
-          <View style={styles.cardsColumn}>{cardRows}</View>
+          {showPhoneDistance && <View style={{ height: lineHeight, alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ color: colors.textMuted, fontSize: 11, fontWeight: '600' }}>START LINE · m</Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.text, fontSize: secondaryFont, lineHeight: secondaryFont * 1.12, fontWeight: '700', fontVariant: ['tabular-nums'] }}>{number(phoneDistance)}</Text>
+          </View>}
+          <View style={styles.metrics}>
+            {metrics.map(metric => <View key={metric.label} style={{ width: '50%', height: `${100 / rows}%`, alignItems: 'center', justifyContent: 'center' }}>
+              <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.textMuted, fontSize: Math.max(9, Math.min(12, secondaryFont * 0.35)), fontWeight: '600' }}>{metric.label}</Text>
+              <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: colors.text, fontSize: secondaryFont, lineHeight: secondaryFont * 1.12, fontWeight: '700', fontVariant: ['tabular-nums'] }}>{metric.value}</Text>
+            </View>)}
+          </View>
         </View>
-      ) : (
-        <View style={styles.content}>
-          <View style={styles.compassSection}>{compass}</View>
-          <View style={styles.cardsGrid}>{cardRows}</View>
-        </View>
-      )}
-    </ScrollView>
-  );
+      </View>
+    </View>
+  </View>
 }
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "transparent",
-  },
-  content: {
-    flex: 1,
-    padding: 8,
-    paddingBottom: 100,
-  },
-  compassSection: {
-    width: "100%",
-    maxWidth: 400,
-    alignSelf: "center",
-    aspectRatio: 1,
-    marginBottom: 12,
-  },
-  cardsGrid: {
-    flex: 1,
-    gap: 8,
-  },
-  landscapeWrap: {
-    flex: 1,
-    flexDirection: "row",
-    padding: 8,
-    gap: 8,
-  },
-  compassColumn: {
-    flex: 2,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  compassWrapper: {
-    width: "100%",
-    maxWidth: 400,
-    aspectRatio: 1,
-  },
-  cardsColumn: {
-    flex: 3,
-    gap: 8,
-  },
-  cardRow: {
-    minHeight: 90,
-    flex: 1,
-    flexDirection: "row",
-    gap: 8,
-  },
-  cardCell: {
-    flex: 1,
-  },
-});
+  screen: { flex: 1, minHeight: 0, paddingBottom: 4, gap: 4 },
+  instrumentArea: { flex: 1, minHeight: 0 },
+  layout: { flex: 1, minHeight: 0, gap: 8 },
+  numbers: { flex: 1, minHeight: 0 },
+  metrics: { flex: 1, minHeight: 0, flexDirection: 'row', flexWrap: 'wrap' },
+})

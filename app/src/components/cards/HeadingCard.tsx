@@ -26,7 +26,7 @@ const HeadingCard = memo(function HeadingCard({ heading, title = "HDG" }: Headin
       </View>
       <View style={cardStyles.valueArea}>
         <View style={cardStyles.valueRow}>
-          <Text style={[cardStyles.number, { color: colors.text, fontSize }]}>{heading === null || !Number.isFinite(heading) ? '—' : `${Math.round(heading)}°`}</Text>
+          <Text style={[cardStyles.number, { color: colors.text, fontSize }]}>{heading === null || !Number.isFinite(heading) ? '—' : `${Math.round(heading) % 360}°`}</Text>
         </View>
       </View>
     </View>
