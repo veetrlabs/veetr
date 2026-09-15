@@ -1,6 +1,6 @@
 # Audit log
 
-Inspect `public.audit_log` in Supabase Table Editor or SQL Editor. There is no application audit page. Apply `202609130003_audit_log.sql` after the creation-request migrations, before deploying the updated email function. The same audit migration works with both local and prepared production histories.
+Inspect `public.audit_log` in Supabase Table Editor or SQL Editor. There is no application audit page. Apply `202609150004_audit_log.sql` after the creation-request migrations, before deploying the updated email function. The same audit migration works with both local and prepared production histories.
 
 ## Recorded evidence
 

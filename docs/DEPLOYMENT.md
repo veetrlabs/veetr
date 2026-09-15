@@ -250,4 +250,4 @@ at least five minutes apart, and within 23 hours of the first attempt. Failed or
 interrupted sends consume an attempt. Requests remain in the admin review list
 when delivery is unavailable; review them there rather than resetting retry
 counters (which could resend an already delivered message). Apply
-`202609150001_request_email_limits.sql` before deploying the email function.
+`202609150005_request_email_limits.sql` before deploying the email function.

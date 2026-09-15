@@ -779,3 +779,14 @@ input.fleet-registration { width: 22px; height: 22px; min-height: 22px; margin: 
   .directory-boat-link { gap: 10px; }
   .directory-new-boat { padding: 20px; }
 }
+
+.tracking-heading { display:flex; gap:1rem; align-items:center; justify-content:space-between; }
+.tracking-map { height: min(60vh, 540px); min-height:300px; border-radius:12px; isolation:isolate; z-index:0; background:#e2e8f0; }
+.tracking-map .leaflet-tooltip { color:#172b33; background:white; font-weight:600; }
+.live-tracking table { margin-top:1rem; }
+@media(max-width:600px) { .tracking-heading { align-items:flex-start; flex-direction:column; } }
+.live-tracking .tracking-layer-toggle { display:flex; align-items:center; gap:.65rem; margin:1rem 0 .5rem; font-size:.95rem; }
+.live-tracking .tracking-layer-toggle input[type="checkbox"] { width:1.15rem; height:1.15rem; min-height:0; margin:0; flex:0 0 auto; }
+.tracking-map .leaflet-control-zoom a { color:#172b33; background:white; }
+.tracking-map .leaflet-control-attribution { color:#334155; background:rgba(255,255,255,.9); }
+.tracking-map .leaflet-control-attribution a { color:#005e8c; }

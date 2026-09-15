@@ -21,7 +21,7 @@ export default function ConnectionStatus() {
     if (state.isConnecting) return 'Connecting...'
     if (state.isConnected) return 'Connected'
     if (state.error) return `Error: ${state.error}`
-    return 'Disconnected'
+    return 'Phone mode'
   }
 
   const getTimeSinceLastMessage = () => {
@@ -46,7 +46,7 @@ export default function ConnectionStatus() {
         onPress={() => state.isConnected ? disconnect() : connect()}
         disabled={state.isConnecting}
       >
-        <Text style={styles.buttonText}>{state.isConnected ? 'Disconnect' : 'Connect'}</Text>
+        <Text style={styles.buttonText}>{state.isConnected ? 'Disconnect' : 'Connect Veetr'}</Text>
       </TouchableOpacity>
     </View>
   )

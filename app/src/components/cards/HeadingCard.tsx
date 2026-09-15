@@ -6,10 +6,11 @@ import { themeColors } from '../../constants/colors'
 import { cardStyles } from './shared'
 
 interface HeadingCardProps {
-  heading: number
+  heading: number | null
+  title?: string
 }
 
-const HeadingCard = memo(function HeadingCard({ heading }: HeadingCardProps) {
+const HeadingCard = memo(function HeadingCard({ heading, title = "HDG" }: HeadingCardProps) {
   const { fontSize, unitFontSize, titleFontSize, onCardLayout } = useCardTextSize()
   const { theme } = useTheme()
   const colors = themeColors[theme]
@@ -17,7 +18,7 @@ const HeadingCard = memo(function HeadingCard({ heading }: HeadingCardProps) {
   return (
     <View style={[cardStyles.card, { backgroundColor: colors.cardBg }]} onLayout={onCardLayout}>
       <View style={[cardStyles.titleCol, { width: titleFontSize }]}>
-        {'HDG'.split('').map((char, i) => (
+        {title.split('').map((char, i) => (
           <Text key={i} style={[cardStyles.title, { color: colors.textSecondary, fontSize: titleFontSize }]}>
             {char}
           </Text>
@@ -25,7 +26,7 @@ const HeadingCard = memo(function HeadingCard({ heading }: HeadingCardProps) {
       </View>
       <View style={cardStyles.valueArea}>
         <View style={cardStyles.valueRow}>
-          <Text style={[cardStyles.number, { color: colors.text, fontSize }]}>{Math.round(heading)}°</Text>
+          <Text style={[cardStyles.number, { color: colors.text, fontSize }]}>{heading === null || !Number.isFinite(heading) ? '—' : `${Math.round(heading) % 360}°`}</Text>
         </View>
       </View>
     </View>

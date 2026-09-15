@@ -301,3 +301,7 @@ The shared `@veetr/shared` package under `packages/shared/` also has 42 tests wh
 | BLE doesn't connect | Ensure you're on a development build, not Expo Go. BLE requires a physical device. |
 | "Cannot find module" | The monorepo uses npm workspaces. Always `npm install` from the root. |
 | iOS Simulator shows blank map | `react-native-maps` needs a native build (`npx expo run:ios`), not `npx expo start` alone. |
+
+## Regatta tracking
+
+The **Track** tab can share phone GPS through Supabase to the series live map. See [Mobile tracking setup and field checks](../docs/MOBILE_TRACKING.md). Copy `.env.example` to `.env.local` and configure the matching backend and website; rebuild the native app for the new background location permissions.
