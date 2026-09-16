@@ -1,0 +1,25 @@
+<figure class="ota-diagram">
+  <div class="ota-flow" role="img" aria-label="GitHub releases sends firmware over HTTPS to the phone. The phone sends it over Bluetooth Low Energy to the Veetr device.">
+    <div class="endpoint"><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="8" y="8" width="32" height="13" rx="3"/><rect x="8" y="27" width="32" height="13" rx="3"/><path d="M14 14h1m5 0h1m-7 20h1m5 0h1M31 14h3m-3 20h3"/></svg><strong>GitHub</strong><span>Firmware release</span></div>
+    <div class="transfer"><span>HTTPS</span><svg viewBox="0 0 48 24" aria-hidden="true"><path d="M2 12h40m-9-8 9 8-9 8"/></svg></div>
+    <div class="endpoint"><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="12" y="3" width="24" height="42" rx="5"/><path d="M20 8h8m-8 32h8M24 15v15m-6-6 6 6 6-6"/></svg><strong>Phone</strong><span>Veetr app</span></div>
+    <div class="transfer"><span>BLE</span><svg viewBox="0 0 48 24" aria-hidden="true"><path d="M2 12h40m-9-8 9 8-9 8"/></svg></div>
+    <div class="endpoint"><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="6" y="14" width="36" height="28" rx="5"/><path d="M35 14V4M13 22h22m-22 7h15m-15 6h5"/><circle cx="35" cy="35" r="1"/></svg><strong>Veetr</strong><span>Install &amp; restart</span></div>
+  </div>
+  <figcaption>New firmware. Same hardware. No USB cable.</figcaption>
+</figure>
+<style>
+  .ota-diagram { margin: 1.5rem 0 0; padding: 1.25rem .75rem; border: 1px solid var(--sl-color-hairline); border-radius: .7rem; background: var(--sl-color-bg); }
+  .ota-flow { display: grid; grid-template-columns: 1fr .55fr 1fr .55fr 1fr; align-items: center; gap: .2rem; }
+  .endpoint { display: flex; align-items: center; flex-direction: column; text-align: center; min-width: 0; }
+  .endpoint svg { width: 2.75rem; height: 2.75rem; margin-bottom: .65rem; color: var(--sl-color-text-accent); }
+  svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  strong { color: var(--sl-color-white); font-size: .85rem; }
+  .endpoint span, small { font-size: .65rem; line-height: 1.4; color: var(--sl-color-gray-2); }
+  .endpoint span { margin-top: .25rem; }
+  .transfer { text-align: center; color: var(--sl-color-text-accent); align-self: start; padding-top: .1rem; }
+  .transfer span { font-size: .6rem; font-weight: 700; letter-spacing: .04em; }
+  .transfer svg { display: block; width: 100%; margin: .2rem 0; }
+  figcaption { margin-top: 1rem; text-align: center; font-size: .75rem; color: var(--sl-color-gray-2); }
+  @media (max-width: 25rem) { .ota-flow { grid-template-columns: 1fr; gap: .6rem; } .transfer { display: flex; align-items: center; justify-content: center; gap: .5rem; } .transfer svg { width: 1.5rem; transform: rotate(90deg); } }
+</style>
