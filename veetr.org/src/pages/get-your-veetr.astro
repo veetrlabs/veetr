@@ -1,70 +1,99 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import dashboard from '../assets/veetr-tablet-phone-1024.png';
-import MarkdownSection from '../components/MarkdownSection.astro';
 import Newsletter from '../components/Newsletter.astro';
-import { LinkCard } from '@astrojs/starlight/components';
 import { frontmatter, Content } from '../content/pages/get-your-veetr.md';
+import { milestones, stateLabels } from '../data/roadmap';
 ---
 
-<BaseLayout title={frontmatter.title} description={frontmatter.description} hero={frontmatter} image={dashboard} imageAlt="Veetr dashboard on tablet and phone">
+<BaseLayout title={frontmatter.title} description={frontmatter.description} hero={{
+  heroTitle: 'A hobby project getting out of hand.',
+  heroLead: 'What started as an experiment is becoming a sailing system. Here’s what we’ve built, what we’ve learned, and what comes next.',
+  eyebrow: 'Get your Veetr · The roadmap',
+  heroSupport: 'Built in the open. Tested on the water.',
+}}>
+  <p class="follow-link"><a href="#follow">Follow the journey ↗</a></p>
 
-  <MarkdownSection Content={Content} />
+  <aside class="certification-note" aria-labelledby="blocker-title">
+    <div><p class="eyebrow">Why you can’t buy one yet</p><h2 id="blocker-title">Certification is the blocker.</h2><a href="#milestone-17">See milestone 17 <span aria-hidden="true">↓</span></a></div>
+    <div class="blocker-copy"><Content /><a href="https://single-market-economy.ec.europa.eu/single-market/goods/building-blocks/conformity-assessment_en">About EU conformity assessment ↗</a></div>
+  </aside>
 
-  <section class="section section-muted">
-    <div class="shell">
-      <div class="section-heading">
-        <p class="eyebrow">Campaign model</p>
-        <h2>A practical path to the first product batch</h2>
-      </div>
-      <div class="timeline">
-        <article>
-          <span>1</span>
-          <h3>Audience proof</h3>
-          <p>Reach 250 newsletter subscribers and collect enough builder feedback to know which product configuration should be certified.</p>
-        </article>
-        <article>
-          <span>2</span>
-          <h3>Quote the work</h3>
-          <p>Get lab and manufacturing quotes for the final configuration, including EU and US requirements, packaging, labeling, manuals, and retest reserve.</p>
-        </article>
-        <article>
-          <span>3</span>
-          <h3>Open fund campaign</h3>
-          <p>Run a transparent campaign with the provisional EUR 45,000 target replaced by sourced quotes before launch.</p>
-        </article>
-        <article>
-          <span>4</span>
-          <h3>Certify, then batch</h3>
-          <p>Complete testing, fix issues, publish the lessons, and prepare the first batch only after the hardware passes.</p>
-        </article>
-      </div>
+  <section class="roadmap-section" aria-labelledby="roadmap-title">
+    <div class="roadmap-heading">
+      <div><p class="eyebrow">Built in the open</p><h2 id="roadmap-title">The path to the first batch</h2><p>19 milestones. No promised dates. Some work happens in parallel.</p></div>
+      <div class="legend" aria-label="Milestone states">{Object.entries(stateLabels).map(([state, label]) => <span class:list={['state', state]}>{label}</span>)}</div>
     </div>
+    <ol class="roadmap" role="list">
+      {milestones.map((milestone, index) => (
+        <li class:list={['milestone', milestone.state]} id={`milestone-${index + 1}`}>
+          <span class="step" aria-label={`Step ${index + 1}`}>{index + 1}</span>
+          <article class:list={['bubble', { 'certification-bubble': index === 16 }]} aria-labelledby={`title-${index + 1}`}>
+            <div class="bubble-meta"><span class:list={['state', milestone.state]}>{stateLabels[milestone.state]}</span>{index === 16 && <span class="sales-gate">Sales blocker</span>}</div>
+            <h3 id={`title-${index + 1}`}>{milestone.title}</h3>
+            <p>{milestone.text}</p>
+            {milestone.image && <figure class="prototype-placeholder"><svg viewBox="0 0 360 150" role="img" aria-label="Illustration placeholder of a wired breadboard"><defs><pattern id="holes" width="12" height="12" patternUnits="userSpaceOnUse"><circle cx="6" cy="6" r="1.4" fill="#8bacc4" /></pattern></defs><rect x="28" y="28" width="304" height="104" rx="9" fill="#e5f4fe" /><rect x="42" y="40" width="276" height="80" fill="url(#holes)" /><path d="M42 78H318" stroke="#b4ccdd" stroke-width="5" /><rect x="143" y="55" width="72" height="43" rx="4" fill="#102f56" /><path d="M70 61V29Q70 14 85 14H152Q166 14 166 29V55" fill="none" stroke="#48b3f6" stroke-width="5" /><path d="M195 98V118Q195 141 220 141H272Q287 141 287 123V92" fill="none" stroke="#ba733b" stroke-width="5" /><path d="M110 98V106Q110 122 125 122H145" fill="none" stroke="#537f71" stroke-width="5" /></svg><figcaption>First breadboard · Photo coming soon</figcaption></figure>}
+            {milestone.note && <p class="milestone-note">{milestone.note}</p>}
+          </article>
+        </li>
+      ))}
+    </ol>
   </section>
-
-  <section class="section">
-    <div class="shell budget-grid">
-      <div>
-        <p class="eyebrow">Planning budget</p>
-        <h2>What EUR 45,000 is meant to cover</h2>
-        <p>This number is deliberately conservative for planning. It should become a public budget before the campaign starts.</p>
-      </div>
-      <dl>
-        <div><dt>Pre-compliance and engineering</dt><dd>EUR 8,000</dd></div>
-        <div><dt>Final lab testing and filings</dt><dd>EUR 15,000</dd></div>
-        <div><dt>Design fixes and retesting reserve</dt><dd>EUR 8,000</dd></div>
-        <div><dt>Manuals, labeling, legal, accounting</dt><dd>EUR 5,000</dd></div>
-        <div><dt>Pilot manufacturing preparation</dt><dd>EUR 9,000</dd></div>
-      </dl>
-    </div>
-  </section>
-
-  <section class="section section-muted">
-    <div class="shell resource-grid">
-      <LinkCard href="/kit/" title="Former Veetr kit offer" description="Preserved pricing, shipping, parts, and early-adopter information from veetr.com" />
-      <LinkCard href="/build/" title="Build Veetr today" description="Use the open files and current hardware documentation" />
-    </div>
-  </section>
-
-  <Newsletter id={4} title="Help unlock the certified batch" text="The first milestone is 250 people who want Veetr to become a real open source product." />
+  <section class="next-step"><p class="eyebrow">Help shape what comes next</p><h2>Real feedback moves this forward.</h2><p>Sailor, race organiser or builder? Tell us what you use today, what gets in the way and what Veetr would need to prove.</p><div><a class="button" href="/about/#contact">Share your experience</a><a href="/build/">Explore the DIY build →</a></div></section>
+  <Newsletter id={4} anchorId="follow" title="Follow the journey to the first batch" text="Get build notes, test results and certification updates as Veetr moves toward finished hardware." />
 </BaseLayout>
+
+<style>
+  .follow-link { padding-block: 1rem 2rem; }
+  .certification-note { display: grid; grid-template-columns: 1fr 1.6fr; gap: 2.5rem; padding: clamp(1.4rem, 3vw, 2.5rem); border: 1px solid var(--sl-color-hairline); border-left: 4px solid #48b3f6; border-radius: .8rem; background: var(--sl-color-accent-low); }
+  .certification-note h2 { font-size: 1.6rem; }
+  .blocker-copy { font-size: .95rem; }
+  .blocker-copy :global(p) { margin-bottom: 1rem; }
+  .roadmap-section { padding-top: 4rem; }
+  .roadmap-heading { display: flex; align-items: end; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem; margin-bottom: 3rem; }
+  .roadmap-heading h2 { margin-bottom: .75rem; }
+  .legend { display: flex; flex-wrap: wrap; gap: .6rem; }
+  .state { display: inline-flex; align-items: center; gap: .45rem; font-size: .75rem; line-height: 1.5; font-weight: 650; padding: .25rem .6rem; border: 1px solid var(--sl-color-hairline); border-radius: 100px; color: var(--sl-color-gray-2); }
+  .state::before { content: ''; width: .45rem; height: .45rem; border-radius: 50%; background: var(--sl-color-gray-3); }
+  .state.done { color: var(--sl-color-green-high); background: var(--sl-color-green-low); }
+  .state.done::before { background: currentColor; }
+  .state.in-progress { color: var(--sl-color-text-accent); background: var(--sl-color-accent-low); }
+  .state.in-progress::before { background: #48b3f6; }
+  .roadmap { position: relative; list-style: none; padding: 0; margin: 0; }
+  .roadmap::before { content: ''; position: absolute; left: 50%; top: 1.4rem; bottom: 0; width: 2px; transform: translateX(-50%); background: var(--sl-color-gray-5); }
+  .milestone { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 5rem minmax(0, 1fr); padding-bottom: 2rem; margin: 0; scroll-margin-top: 6rem; }
+  .step { grid-column: 2; grid-row: 1; justify-self: center; z-index: 1; width: 2.8rem; height: 2.8rem; display: grid; place-items: center; border-radius: 50%; border: 2px solid var(--sl-color-gray-4); background: var(--sl-color-bg); color: var(--sl-color-white); font-weight: 650; }
+  .done .step { border-color: var(--sl-color-text-accent); background: var(--sl-color-accent-low); }
+  .in-progress .step { border-color: #48b3f6; box-shadow: 0 0 0 5px var(--sl-color-accent-low); }
+  .bubble { grid-column: 1; grid-row: 1; position: relative; padding: 1.5rem; border: 1px solid var(--sl-color-hairline); border-radius: 1rem; background: var(--veetr-surface); }
+  .bubble::before { content: ''; position: absolute; top: 1.35rem; left: 100%; width: 2.5rem; height: 2px; background: var(--sl-color-gray-5); }
+  .milestone:nth-child(even) .bubble { grid-column: 3; }
+  .milestone:nth-child(even) .bubble::before { left: auto; right: 100%; }
+  .bubble-meta { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem; }
+  .bubble h3 { font-size: 1.35rem; }
+  .bubble p { font-size: .95rem; line-height: 1.7; }
+  .bubble .milestone-note { padding-top: 1rem; border-top: 1px solid var(--sl-color-hairline); color: var(--sl-color-gray-2); font-size: .875rem; }
+  .certification-bubble { border-color: #48b3f6; background: var(--sl-color-accent-low); }
+  .sales-gate { font-size: .72rem; font-weight: 650; color: var(--sl-color-text-accent); text-transform: uppercase; letter-spacing: .07em; }
+  .prototype-placeholder { margin: 1.25rem 0 0; padding: .75rem; border: 1px dashed var(--sl-color-gray-4); border-radius: .6rem; background: var(--sl-color-bg); }
+  .prototype-placeholder svg { display: block; width: 100%; height: auto; }
+  .prototype-placeholder figcaption { font-size: .75rem; text-align: center; color: var(--sl-color-gray-2); margin-top: .5rem; }
+  .next-step { margin-top: 2rem; border-top: 1px solid var(--sl-color-hairline); padding-top: 3rem; }
+  .next-step p { max-width: 42rem; }
+  .next-step > div { display: flex; align-items: center; flex-wrap: wrap; gap: 1.5rem; }
+  @media (min-width: 45.001rem) {
+    /* Share a row per pair so opposite-side cards use the same vertical space. */
+    .roadmap { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2rem 5rem; align-items: start; }
+    .milestone { display: block; padding-bottom: 0; min-width: 0; }
+    .milestone:nth-child(even) { margin-top: 4rem; }
+    .step { position: absolute; top: 0; right: -3.9rem; }
+    .milestone:nth-child(even) .step { right: auto; left: -3.9rem; }
+  }
+  @media (max-width: 45rem) {
+    .certification-note { grid-template-columns: 1fr; gap: 1.5rem; }
+    .roadmap::before { left: 1.4rem; }
+    .milestone { grid-template-columns: 3.8rem minmax(0, 1fr); padding-bottom: 1.5rem; }
+    .step { grid-column: 1; justify-self: start; }
+    .bubble, .milestone:nth-child(even) .bubble { grid-column: 2; padding: 1.2rem; }
+    .bubble::before, .milestone:nth-child(even) .bubble::before { left: auto; right: 100%; width: 1.2rem; }
+  }
+</style>

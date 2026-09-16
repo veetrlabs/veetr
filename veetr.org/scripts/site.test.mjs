@@ -241,7 +241,7 @@ test('hardware resources and campaign details remain available', async () => {
   }
   assert.doesNotMatch(wiring, /ESP32 DevKitC WROOM-32U Pinout:/);
   const campaign = await readPage('get-your-veetr/');
-  for (const detail of ['Audience proof', 'Quote the work', 'Open fund campaign', 'Certify, then batch', 'EUR 15,000', 'EUR 9,000']) {
+  for (const detail of ['Hardware prototype', 'Hardware certifications', 'Small-batch manufacturing', 'Certification is the blocker.', 'Done', 'In progress', 'Planned']) {
     assert.ok(campaign.includes(detail), detail);
   }
 });
