@@ -1,4 +1,22 @@
 {
   "private": true,
-  "workspaces": ["app", "packages/*", "veetr.org"]
+  "workspaces": [
+    "pwa",
+    "packages/*",
+    "veetr.org",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:race": "npm run dev -w @veetr/race-control",
+    "build:race": "npm run build -w @veetr/race-control",
+    "test:race": "npm test -w @veetr/scoring && node --import tsx --test veetr.org/src/features/racing/*.test.ts veetr.org/src/features/racing/*.test.tsx && node --test supabase/tests/*.test.mjs",
+    "test:race:integration": "node --import tsx --test supabase/tests/*.integration.ts",
+    "format:race": "prettier --write veetr.org/src/features/racing apps/race-control/vite.config.ts packages/scoring/src supabase/tests",
+    "test:tracking": "node --import tsx --test app/tests/*.test.ts"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "fake-indexeddb": "^6.2.5",
+    "prettier": "^3.9.6"
+  }
 }

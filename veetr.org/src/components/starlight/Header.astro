@@ -6,9 +6,11 @@ import { Icon } from '@astrojs/starlight/components';
 
 const links = [
   { href: '/build/', label: 'Build' },
-  { href: '/get-your-veetr/', label: 'Get Your Veetr' },
+  { href: '/get-your-veetr/', label: 'Get' },
   { href: '/docs/', label: 'Docs' },
   { href: '/about/', label: 'About' },
+  { href: '/boats/', label: 'Boats' },
+  { href: '/races/', label: 'Races' },
 ];
 const pathname = Astro.url.pathname;
 ---
@@ -26,6 +28,7 @@ const pathname = Astro.url.pathname;
       <Icon name="github" size="1.25rem" />
     </a>
     <ThemeSelect />
+    <div id="veetr-account-controls"><a href="/account/">Account</a></div>
     <details class="mobile-menu">
       <summary aria-label="Site navigation">
         <Icon class="menu-icon" name="list-format" size="1.25rem" />
@@ -46,16 +49,18 @@ const pathname = Astro.url.pathname;
 
 <style>
   .veetr-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; height: 100%; max-width: 76rem; margin-inline: auto; }
-  .veetr-header :global(.site-title) { gap: .6rem; color: var(--sl-color-white); font-size: 1.4rem; font-weight: 750; }
+  .veetr-header :global(.site-title) { flex-shrink: 0; white-space: nowrap; overflow: visible; gap: .6rem; color: var(--sl-color-white); font-size: 1.4rem; font-weight: 750; }
   .veetr-header :global(.site-title img) { height: 2.25rem; width: 2.25rem; }
   .desktop-links, .header-controls { display: flex; align-items: center; gap: .4rem; }
+  .header-controls { flex-shrink: 0; }
   .header-controls :global(site-search) { margin-inline: .2rem; }
   .desktop-links a { padding: .55rem .7rem; font-size: .9rem; font-weight: 550; text-decoration: none; color: var(--sl-color-gray-2); border-radius: .5rem; white-space: nowrap; }
   .desktop-links a:hover, .desktop-links a[aria-current="page"] { color: var(--sl-color-text-accent); background: var(--sl-color-accent-low); }
   .github-link { display: grid; place-items: center; width: 2.75rem; height: 2.75rem; color: var(--sl-color-white); }
+  #veetr-account-controls > a { padding: .55rem .7rem; border-radius: .5rem; color: var(--sl-color-text-accent); background: var(--sl-color-accent-low); font-size: .9rem; font-weight: 600; text-decoration: none; }
   .mobile-menu { display: none; }
   a:focus-visible, summary:focus-visible { outline: 2px solid var(--sl-color-text-accent); outline-offset: 4px; }
-  @media (max-width: 64rem) {
+  @media (max-width: 76rem) {
     .desktop-links, .github-link { display: none; }
     .mobile-menu { display: block; }
     summary { display: grid; place-items: center; list-style: none; width: 2.75rem; height: 2.75rem; border: 1px solid var(--sl-color-hairline); border-radius: .6rem; cursor: pointer; color: var(--sl-color-white); }
@@ -66,6 +71,12 @@ const pathname = Astro.url.pathname;
     .mobile-menu nav a { display: flex; align-items: center; justify-content: space-between; min-height: 3rem; padding: .65rem 1rem; color: var(--sl-color-white); text-decoration: none; font-weight: 550; border-radius: .45rem; }
     .mobile-menu nav a:hover, .mobile-menu nav a[aria-current="page"] { background: var(--sl-color-accent-low); color: var(--sl-color-text-accent); }
     .mobile-actions { border-top: 1px solid var(--sl-color-hairline); margin-top: .5rem; padding-top: .5rem; }
+  }
+  @media (max-width: 40rem) {
+    :global(:root) { --sl-nav-height: 8rem; }
+    .veetr-header { flex-wrap: wrap; align-content: center; gap: .5rem; }
+    .header-controls { width: 100%; justify-content: space-between; gap: .15rem; }
+    .header-controls :global(site-search) { margin: 0; }
   }
   @media (max-width: 24rem) {
     .veetr-header { gap: .5rem; }
@@ -91,6 +102,6 @@ const pathname = Astro.url.pathname;
       if (event.relatedTarget instanceof Node && !menu.contains(event.relatedTarget)) close();
     });
     menu.querySelectorAll('a').forEach((link) => link.addEventListener('click', close));
-    window.matchMedia('(max-width: 64rem)').addEventListener('change', close);
+    window.matchMedia('(max-width: 76rem)').addEventListener('change', close);
   }
 </script>

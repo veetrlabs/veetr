@@ -1,0 +1,1922 @@
+{
+  "id": "627ec69c-3618-5dd6-8f0b-15954a57f715",
+  "name": "Orlická série 2026",
+  "year": 2026,
+  "status": "active",
+  "description": "Vánoční a Radavská regata zrušeny. O pohár Vltavy: čekáme na výsledky. Pohár Slunce: připravuje se. Izolepa: pouze jachtařské rozjížďky. 24hodinovka se počítá dvakrát. Škrtání jednoho výsledku od 4 závodů je zatím pracovní nastavení pro porovnání.",
+  "categories": [
+    {
+      "id": "1b7505b3-0cd6-57cb-8880-f1b78ce777ab",
+      "name": "≤ 7 m"
+    },
+    {
+      "id": "62b4973b-fed6-525d-88b8-fa994cff3b91",
+      "name": "> 7 m"
+    },
+    {
+      "id": "9ba47edf-5be6-50ee-863f-8380430140c4",
+      "name": "Race"
+    }
+  ],
+  "boats": [
+    {
+      "id": "5703dc62-bdc2-58b5-8e66-9df180a596f6",
+      "name": "LUNA",
+      "categoryId": "1b7505b3-0cd6-57cb-8880-f1b78ce777ab",
+      "sailNumber": "",
+      "className": ""
+    },
+    {
+      "id": "013988f8-8326-528a-8c04-13f5be101832",
+      "name": "SENDY",
+      "categoryId": "1b7505b3-0cd6-57cb-8880-f1b78ce777ab",
+      "sailNumber": "",
+      "className": ""
+    },
+    {
+      "id": "44f65359-c651-5631-8b6e-017a123c4a06",
+      "name": "JOY",
+      "categoryId": "1b7505b3-0cd6-57cb-8880-f1b78ce777ab",
+      "sailNumber": "",
+      "className": ""
+    },
+    {
+      "id": "116474f9-47c6-51cd-8d09-4e2d9f8a1bba",
+      "name": "Andante",
+      "categoryId": "1b7505b3-0cd6-57cb-8880-f1b78ce777ab",
+      "sailNumber": "",
+      "className": ""
+    },
+    {
+      "id": "28cf5477-51cb-5ba3-8bd1-82e9f4511de8",
+      "name": "Varianta",
+      "categoryId": "1b7505b3-0cd6-57cb-8880-f1b78ce777ab",
+      "sailNumber": "",
+      "className": ""
+    },
+    {
+      "id": "bc3b2529-315d-5502-885a-abef8639a911",
+      "name": "Charlotte III",
+      "categoryId": "1b7505b3-0cd6-57cb-8880-f1b78ce777ab",
+      "sailNumber": "",
+      "className": ""
+    },
+    {
+      "id": "fc44861b-060e-566a-874c-9500670e261a",
+      "name": "PEZI",
+      "categoryId": "62b4973b-fed6-525d-88b8-fa994cff3b91",
+      "sailNumber": "",
+      "className": ""
+    },
+    {
+      "id": "08456289-190e-5bdd-81af-2b1a39ee644f",
+      "name": "MAMBA",
+      "categoryId": "62b4973b-fed6-525d-88b8-fa994cff3b91",
+      "sailNumber": "",
+      "className": ""
+    },
+    {
+      "id": "596d73f6-f798-5511-823a-31d1472ce2a6",
+      "name": "M1",
+      "categoryId": "62b4973b-fed6-525d-88b8-fa994cff3b91",
+      "sailNumber": "",
+      "className": ""
+    },
+    {
+      "id": "1ad93a07-29d7-5c75-818a-3a800b5b4e77",
+      "name": "DEPRESSO",
+      "categoryId": "62b4973b-fed6-525d-88b8-fa994cff3b91",
+      "sailNumber": "",
+      "className": ""
+    },
+    {
+      "id": "4709580c-8a55-5d80-8c6b-00209f18c020",
+      "name": "CASSIOPEIA",
+      "categoryId": "62b4973b-fed6-525d-88b8-fa994cff3b91",
+      "sailNumber": "",
+      "className": ""
+    },
+    {
+      "id": "9d2c7ebe-f475-58e0-8079-e9de1002e4b0",
+      "name": "SULA",
+      "categoryId": "62b4973b-fed6-525d-88b8-fa994cff3b91",
+      "sailNumber": "",
+      "className": ""
+    },
+    {
+      "id": "a0b53a02-595d-5b63-84e3-b2ff3b487117",
+      "name": "NABLB",
+      "categoryId": "62b4973b-fed6-525d-88b8-fa994cff3b91",
+      "sailNumber": "",
+      "className": ""
+    },
+    {
+      "id": "fff49989-34b2-57c9-8d15-b325dfcadcdc",
+      "name": "FILOZEP",
+      "categoryId": "62b4973b-fed6-525d-88b8-fa994cff3b91",
+      "sailNumber": "",
+      "className": ""
+    },
+    {
+      "id": "7bef10b9-5927-5617-86bb-4c45f3c000a6",
+      "name": "SPRUNZEL",
+      "categoryId": "62b4973b-fed6-525d-88b8-fa994cff3b91",
+      "sailNumber": "",
+      "className": ""
+    },
+    {
+      "id": "8fe7fe44-65fb-5e86-8a01-cfd131f2ac7b",
+      "name": "THEA",
+      "categoryId": "62b4973b-fed6-525d-88b8-fa994cff3b91",
+      "sailNumber": "",
+      "className": ""
+    },
+    {
+      "id": "bd23ae4c-a3c8-5894-8139-cd14f89da349",
+      "name": "MICHELLE",
+      "categoryId": "62b4973b-fed6-525d-88b8-fa994cff3b91",
+      "sailNumber": "",
+      "className": ""
+    },
+    {
+      "id": "4d2759c8-45a2-54ee-8adf-e378e0f08cc8",
+      "name": "DIVNA",
+      "categoryId": "62b4973b-fed6-525d-88b8-fa994cff3b91",
+      "sailNumber": "",
+      "className": ""
+    },
+    {
+      "id": "d633c9a0-4104-5b15-8cb7-55c8c0a5a03e",
+      "name": "FAMILY LADY",
+      "categoryId": "62b4973b-fed6-525d-88b8-fa994cff3b91",
+      "sailNumber": "",
+      "className": ""
+    },
+    {
+      "id": "87605d2a-d64a-5f6b-8b12-95c97d5a67d6",
+      "name": "M@rtina",
+      "categoryId": "62b4973b-fed6-525d-88b8-fa994cff3b91",
+      "sailNumber": "",
+      "className": ""
+    },
+    {
+      "id": "af29f48d-18ae-5f4e-8457-aab298217f9d",
+      "name": "ROSE",
+      "categoryId": "62b4973b-fed6-525d-88b8-fa994cff3b91",
+      "sailNumber": "",
+      "className": ""
+    },
+    {
+      "id": "493a5130-efea-55e0-8930-7df719b72e71",
+      "name": "MICINY",
+      "categoryId": "62b4973b-fed6-525d-88b8-fa994cff3b91",
+      "sailNumber": "",
+      "className": ""
+    },
+    {
+      "id": "9a8940f5-84da-5cec-86f1-4bfc5e31f2d1",
+      "name": "AVENIR",
+      "categoryId": "62b4973b-fed6-525d-88b8-fa994cff3b91",
+      "sailNumber": "",
+      "className": ""
+    },
+    {
+      "id": "a1e5c87b-46d3-5df3-8734-94d76c7c50cf",
+      "name": "HOGAN",
+      "categoryId": "62b4973b-fed6-525d-88b8-fa994cff3b91",
+      "sailNumber": "",
+      "className": ""
+    },
+    {
+      "id": "b413ff0d-ec00-5153-8539-c90a9a11e355",
+      "name": "LIBERTÉ",
+      "categoryId": "62b4973b-fed6-525d-88b8-fa994cff3b91",
+      "sailNumber": "",
+      "className": ""
+    },
+    {
+      "id": "3ec68955-6dd6-55bc-8eb0-5790b2cc85a9",
+      "name": "Rio",
+      "categoryId": "62b4973b-fed6-525d-88b8-fa994cff3b91",
+      "sailNumber": "",
+      "className": ""
+    },
+    {
+      "id": "15c89755-77da-5ad6-8910-0e4152dbe181",
+      "name": "Claudie",
+      "categoryId": "62b4973b-fed6-525d-88b8-fa994cff3b91",
+      "sailNumber": "",
+      "className": ""
+    },
+    {
+      "id": "c510e6ed-159a-58a0-8415-ba43b355acd7",
+      "name": "Mabye",
+      "categoryId": "62b4973b-fed6-525d-88b8-fa994cff3b91",
+      "sailNumber": "",
+      "className": ""
+    },
+    {
+      "id": "e4a61dbb-9e38-545c-8744-802876993ef8",
+      "name": "Caprice",
+      "categoryId": "62b4973b-fed6-525d-88b8-fa994cff3b91",
+      "sailNumber": "",
+      "className": ""
+    },
+    {
+      "id": "dc69fc45-8567-5f04-8ebf-ea81b1cf1f9a",
+      "name": "Valhalla",
+      "categoryId": "62b4973b-fed6-525d-88b8-fa994cff3b91",
+      "sailNumber": "",
+      "className": ""
+    },
+    {
+      "id": "c1a97b65-711a-5fe1-8ecf-752c1c2c5733",
+      "name": "Perun",
+      "categoryId": "62b4973b-fed6-525d-88b8-fa994cff3b91",
+      "sailNumber": "",
+      "className": ""
+    },
+    {
+      "id": "e6305090-a0ff-5e8e-8691-1c99825bfce8",
+      "name": "ČERVENÉ CAFE",
+      "categoryId": "9ba47edf-5be6-50ee-863f-8380430140c4",
+      "sailNumber": "",
+      "className": ""
+    },
+    {
+      "id": "1fb73fd8-5e71-5e7b-8734-f9e97012eb35",
+      "name": "MODRÉ CAFE",
+      "categoryId": "9ba47edf-5be6-50ee-863f-8380430140c4",
+      "sailNumber": "",
+      "className": ""
+    },
+    {
+      "id": "f1b93f9d-fcd3-5e19-8710-76a40cdf6c5c",
+      "name": "SEA MOUSE III",
+      "categoryId": "9ba47edf-5be6-50ee-863f-8380430140c4",
+      "sailNumber": "",
+      "className": ""
+    },
+    {
+      "id": "36f84bf2-d4d1-5d9b-8b97-c3be08286dd9",
+      "name": "SOCKA",
+      "categoryId": "9ba47edf-5be6-50ee-863f-8380430140c4",
+      "sailNumber": "",
+      "className": ""
+    },
+    {
+      "id": "ebd56d78-5702-5449-8c1c-d3df29623254",
+      "name": "FAR  STAR III",
+      "categoryId": "9ba47edf-5be6-50ee-863f-8380430140c4",
+      "sailNumber": "",
+      "className": ""
+    },
+    {
+      "id": "794bf6d4-767f-5e2f-8df6-539e79858b54",
+      "name": "Zephyr",
+      "categoryId": "9ba47edf-5be6-50ee-863f-8380430140c4",
+      "sailNumber": "",
+      "className": ""
+    }
+  ],
+  "events": [
+    {
+      "id": "bd7998e7-1ce3-5be6-81ea-af30322c57d3",
+      "name": "Jarní vítr",
+      "order": 1,
+      "weight": 1,
+      "countAs": 1,
+      "completed": true,
+      "entries": [
+        "5703dc62-bdc2-58b5-8e66-9df180a596f6",
+        "013988f8-8326-528a-8c04-13f5be101832",
+        "44f65359-c651-5631-8b6e-017a123c4a06",
+        "116474f9-47c6-51cd-8d09-4e2d9f8a1bba",
+        "28cf5477-51cb-5ba3-8bd1-82e9f4511de8",
+        "bc3b2529-315d-5502-885a-abef8639a911",
+        "fc44861b-060e-566a-874c-9500670e261a",
+        "08456289-190e-5bdd-81af-2b1a39ee644f",
+        "596d73f6-f798-5511-823a-31d1472ce2a6",
+        "1ad93a07-29d7-5c75-818a-3a800b5b4e77",
+        "4709580c-8a55-5d80-8c6b-00209f18c020",
+        "9d2c7ebe-f475-58e0-8079-e9de1002e4b0",
+        "a0b53a02-595d-5b63-84e3-b2ff3b487117",
+        "fff49989-34b2-57c9-8d15-b325dfcadcdc",
+        "7bef10b9-5927-5617-86bb-4c45f3c000a6",
+        "8fe7fe44-65fb-5e86-8a01-cfd131f2ac7b",
+        "bd23ae4c-a3c8-5894-8139-cd14f89da349",
+        "4d2759c8-45a2-54ee-8adf-e378e0f08cc8",
+        "d633c9a0-4104-5b15-8cb7-55c8c0a5a03e",
+        "87605d2a-d64a-5f6b-8b12-95c97d5a67d6",
+        "af29f48d-18ae-5f4e-8457-aab298217f9d",
+        "493a5130-efea-55e0-8930-7df719b72e71",
+        "9a8940f5-84da-5cec-86f1-4bfc5e31f2d1",
+        "a1e5c87b-46d3-5df3-8734-94d76c7c50cf",
+        "b413ff0d-ec00-5153-8539-c90a9a11e355",
+        "3ec68955-6dd6-55bc-8eb0-5790b2cc85a9",
+        "15c89755-77da-5ad6-8910-0e4152dbe181",
+        "c510e6ed-159a-58a0-8415-ba43b355acd7",
+        "e4a61dbb-9e38-545c-8744-802876993ef8",
+        "dc69fc45-8567-5f04-8ebf-ea81b1cf1f9a",
+        "c1a97b65-711a-5fe1-8ecf-752c1c2c5733",
+        "e6305090-a0ff-5e8e-8691-1c99825bfce8",
+        "1fb73fd8-5e71-5e7b-8734-f9e97012eb35",
+        "f1b93f9d-fcd3-5e19-8710-76a40cdf6c5c",
+        "36f84bf2-d4d1-5d9b-8b97-c3be08286dd9",
+        "ebd56d78-5702-5449-8c1c-d3df29623254",
+        "794bf6d4-767f-5e2f-8df6-539e79858b54"
+      ],
+      "discards": []
+    },
+    {
+      "id": "4ac0de02-3867-5de6-8ea3-e68634e6770b",
+      "name": "Radavská regata",
+      "order": 2,
+      "weight": 1,
+      "countAs": 1,
+      "completed": false,
+      "entries": [
+        "5703dc62-bdc2-58b5-8e66-9df180a596f6",
+        "013988f8-8326-528a-8c04-13f5be101832",
+        "44f65359-c651-5631-8b6e-017a123c4a06",
+        "116474f9-47c6-51cd-8d09-4e2d9f8a1bba",
+        "28cf5477-51cb-5ba3-8bd1-82e9f4511de8",
+        "bc3b2529-315d-5502-885a-abef8639a911",
+        "fc44861b-060e-566a-874c-9500670e261a",
+        "08456289-190e-5bdd-81af-2b1a39ee644f",
+        "596d73f6-f798-5511-823a-31d1472ce2a6",
+        "1ad93a07-29d7-5c75-818a-3a800b5b4e77",
+        "4709580c-8a55-5d80-8c6b-00209f18c020",
+        "9d2c7ebe-f475-58e0-8079-e9de1002e4b0",
+        "a0b53a02-595d-5b63-84e3-b2ff3b487117",
+        "fff49989-34b2-57c9-8d15-b325dfcadcdc",
+        "7bef10b9-5927-5617-86bb-4c45f3c000a6",
+        "8fe7fe44-65fb-5e86-8a01-cfd131f2ac7b",
+        "bd23ae4c-a3c8-5894-8139-cd14f89da349",
+        "4d2759c8-45a2-54ee-8adf-e378e0f08cc8",
+        "d633c9a0-4104-5b15-8cb7-55c8c0a5a03e",
+        "87605d2a-d64a-5f6b-8b12-95c97d5a67d6",
+        "af29f48d-18ae-5f4e-8457-aab298217f9d",
+        "493a5130-efea-55e0-8930-7df719b72e71",
+        "9a8940f5-84da-5cec-86f1-4bfc5e31f2d1",
+        "a1e5c87b-46d3-5df3-8734-94d76c7c50cf",
+        "b413ff0d-ec00-5153-8539-c90a9a11e355",
+        "3ec68955-6dd6-55bc-8eb0-5790b2cc85a9",
+        "15c89755-77da-5ad6-8910-0e4152dbe181",
+        "c510e6ed-159a-58a0-8415-ba43b355acd7",
+        "e4a61dbb-9e38-545c-8744-802876993ef8",
+        "dc69fc45-8567-5f04-8ebf-ea81b1cf1f9a",
+        "c1a97b65-711a-5fe1-8ecf-752c1c2c5733",
+        "e6305090-a0ff-5e8e-8691-1c99825bfce8",
+        "1fb73fd8-5e71-5e7b-8734-f9e97012eb35",
+        "f1b93f9d-fcd3-5e19-8710-76a40cdf6c5c",
+        "36f84bf2-d4d1-5d9b-8b97-c3be08286dd9",
+        "ebd56d78-5702-5449-8c1c-d3df29623254",
+        "794bf6d4-767f-5e2f-8df6-539e79858b54"
+      ],
+      "discards": [],
+      "scheduleStatus": "Cancelled"
+    },
+    {
+      "id": "09f54b2e-d9d9-58cf-8d5d-44871aa7fa79",
+      "name": "24hodinovka",
+      "order": 3,
+      "weight": 1,
+      "countAs": 2,
+      "completed": true,
+      "entries": [
+        "5703dc62-bdc2-58b5-8e66-9df180a596f6",
+        "013988f8-8326-528a-8c04-13f5be101832",
+        "44f65359-c651-5631-8b6e-017a123c4a06",
+        "116474f9-47c6-51cd-8d09-4e2d9f8a1bba",
+        "28cf5477-51cb-5ba3-8bd1-82e9f4511de8",
+        "bc3b2529-315d-5502-885a-abef8639a911",
+        "fc44861b-060e-566a-874c-9500670e261a",
+        "08456289-190e-5bdd-81af-2b1a39ee644f",
+        "596d73f6-f798-5511-823a-31d1472ce2a6",
+        "1ad93a07-29d7-5c75-818a-3a800b5b4e77",
+        "4709580c-8a55-5d80-8c6b-00209f18c020",
+        "9d2c7ebe-f475-58e0-8079-e9de1002e4b0",
+        "a0b53a02-595d-5b63-84e3-b2ff3b487117",
+        "fff49989-34b2-57c9-8d15-b325dfcadcdc",
+        "7bef10b9-5927-5617-86bb-4c45f3c000a6",
+        "8fe7fe44-65fb-5e86-8a01-cfd131f2ac7b",
+        "bd23ae4c-a3c8-5894-8139-cd14f89da349",
+        "4d2759c8-45a2-54ee-8adf-e378e0f08cc8",
+        "d633c9a0-4104-5b15-8cb7-55c8c0a5a03e",
+        "87605d2a-d64a-5f6b-8b12-95c97d5a67d6",
+        "af29f48d-18ae-5f4e-8457-aab298217f9d",
+        "493a5130-efea-55e0-8930-7df719b72e71",
+        "9a8940f5-84da-5cec-86f1-4bfc5e31f2d1",
+        "a1e5c87b-46d3-5df3-8734-94d76c7c50cf",
+        "b413ff0d-ec00-5153-8539-c90a9a11e355",
+        "3ec68955-6dd6-55bc-8eb0-5790b2cc85a9",
+        "15c89755-77da-5ad6-8910-0e4152dbe181",
+        "c510e6ed-159a-58a0-8415-ba43b355acd7",
+        "e4a61dbb-9e38-545c-8744-802876993ef8",
+        "dc69fc45-8567-5f04-8ebf-ea81b1cf1f9a",
+        "c1a97b65-711a-5fe1-8ecf-752c1c2c5733",
+        "e6305090-a0ff-5e8e-8691-1c99825bfce8",
+        "1fb73fd8-5e71-5e7b-8734-f9e97012eb35",
+        "f1b93f9d-fcd3-5e19-8710-76a40cdf6c5c",
+        "36f84bf2-d4d1-5d9b-8b97-c3be08286dd9",
+        "ebd56d78-5702-5449-8c1c-d3df29623254",
+        "794bf6d4-767f-5e2f-8df6-539e79858b54"
+      ],
+      "discards": []
+    },
+    {
+      "id": "1b67b3bc-fb98-5206-81ce-6861da160244",
+      "name": "Vánoční regata",
+      "order": 4,
+      "weight": 1,
+      "countAs": 1,
+      "completed": false,
+      "entries": [
+        "5703dc62-bdc2-58b5-8e66-9df180a596f6",
+        "013988f8-8326-528a-8c04-13f5be101832",
+        "44f65359-c651-5631-8b6e-017a123c4a06",
+        "116474f9-47c6-51cd-8d09-4e2d9f8a1bba",
+        "28cf5477-51cb-5ba3-8bd1-82e9f4511de8",
+        "bc3b2529-315d-5502-885a-abef8639a911",
+        "fc44861b-060e-566a-874c-9500670e261a",
+        "08456289-190e-5bdd-81af-2b1a39ee644f",
+        "596d73f6-f798-5511-823a-31d1472ce2a6",
+        "1ad93a07-29d7-5c75-818a-3a800b5b4e77",
+        "4709580c-8a55-5d80-8c6b-00209f18c020",
+        "9d2c7ebe-f475-58e0-8079-e9de1002e4b0",
+        "a0b53a02-595d-5b63-84e3-b2ff3b487117",
+        "fff49989-34b2-57c9-8d15-b325dfcadcdc",
+        "7bef10b9-5927-5617-86bb-4c45f3c000a6",
+        "8fe7fe44-65fb-5e86-8a01-cfd131f2ac7b",
+        "bd23ae4c-a3c8-5894-8139-cd14f89da349",
+        "4d2759c8-45a2-54ee-8adf-e378e0f08cc8",
+        "d633c9a0-4104-5b15-8cb7-55c8c0a5a03e",
+        "87605d2a-d64a-5f6b-8b12-95c97d5a67d6",
+        "af29f48d-18ae-5f4e-8457-aab298217f9d",
+        "493a5130-efea-55e0-8930-7df719b72e71",
+        "9a8940f5-84da-5cec-86f1-4bfc5e31f2d1",
+        "a1e5c87b-46d3-5df3-8734-94d76c7c50cf",
+        "b413ff0d-ec00-5153-8539-c90a9a11e355",
+        "3ec68955-6dd6-55bc-8eb0-5790b2cc85a9",
+        "15c89755-77da-5ad6-8910-0e4152dbe181",
+        "c510e6ed-159a-58a0-8415-ba43b355acd7",
+        "e4a61dbb-9e38-545c-8744-802876993ef8",
+        "dc69fc45-8567-5f04-8ebf-ea81b1cf1f9a",
+        "c1a97b65-711a-5fe1-8ecf-752c1c2c5733",
+        "e6305090-a0ff-5e8e-8691-1c99825bfce8",
+        "1fb73fd8-5e71-5e7b-8734-f9e97012eb35",
+        "f1b93f9d-fcd3-5e19-8710-76a40cdf6c5c",
+        "36f84bf2-d4d1-5d9b-8b97-c3be08286dd9",
+        "ebd56d78-5702-5449-8c1c-d3df29623254",
+        "794bf6d4-767f-5e2f-8df6-539e79858b54"
+      ],
+      "discards": [],
+      "scheduleStatus": "Cancelled"
+    },
+    {
+      "id": "b10647d4-4b78-5a36-88bc-9fe05777081c",
+      "name": "Izolepa",
+      "order": 5,
+      "weight": 1,
+      "countAs": 1,
+      "completed": true,
+      "entries": [
+        "e6305090-a0ff-5e8e-8691-1c99825bfce8",
+        "f1b93f9d-fcd3-5e19-8710-76a40cdf6c5c",
+        "ebd56d78-5702-5449-8c1c-d3df29623254",
+        "1fb73fd8-5e71-5e7b-8734-f9e97012eb35",
+        "5703dc62-bdc2-58b5-8e66-9df180a596f6",
+        "44f65359-c651-5631-8b6e-017a123c4a06",
+        "013988f8-8326-528a-8c04-13f5be101832",
+        "116474f9-47c6-51cd-8d09-4e2d9f8a1bba",
+        "d633c9a0-4104-5b15-8cb7-55c8c0a5a03e",
+        "1ad93a07-29d7-5c75-818a-3a800b5b4e77",
+        "08456289-190e-5bdd-81af-2b1a39ee644f",
+        "87605d2a-d64a-5f6b-8b12-95c97d5a67d6",
+        "fff49989-34b2-57c9-8d15-b325dfcadcdc",
+        "af29f48d-18ae-5f4e-8457-aab298217f9d",
+        "bd23ae4c-a3c8-5894-8139-cd14f89da349",
+        "493a5130-efea-55e0-8930-7df719b72e71",
+        "9a8940f5-84da-5cec-86f1-4bfc5e31f2d1",
+        "a1e5c87b-46d3-5df3-8734-94d76c7c50cf",
+        "8fe7fe44-65fb-5e86-8a01-cfd131f2ac7b",
+        "b413ff0d-ec00-5153-8539-c90a9a11e355"
+      ],
+      "discards": []
+    },
+    {
+      "id": "e7d56ac5-c10c-552c-8006-ad68a24bcc3e",
+      "name": "FxCK Cancer",
+      "order": 6,
+      "weight": 1,
+      "countAs": 1,
+      "completed": true,
+      "entries": [
+        "f1b93f9d-fcd3-5e19-8710-76a40cdf6c5c",
+        "1fb73fd8-5e71-5e7b-8734-f9e97012eb35",
+        "36f84bf2-d4d1-5d9b-8b97-c3be08286dd9",
+        "ebd56d78-5702-5449-8c1c-d3df29623254",
+        "5703dc62-bdc2-58b5-8e66-9df180a596f6",
+        "28cf5477-51cb-5ba3-8bd1-82e9f4511de8",
+        "08456289-190e-5bdd-81af-2b1a39ee644f",
+        "fc44861b-060e-566a-874c-9500670e261a",
+        "87605d2a-d64a-5f6b-8b12-95c97d5a67d6",
+        "9a8940f5-84da-5cec-86f1-4bfc5e31f2d1",
+        "fff49989-34b2-57c9-8d15-b325dfcadcdc",
+        "1ad93a07-29d7-5c75-818a-3a800b5b4e77",
+        "3ec68955-6dd6-55bc-8eb0-5790b2cc85a9",
+        "bd23ae4c-a3c8-5894-8139-cd14f89da349",
+        "15c89755-77da-5ad6-8910-0e4152dbe181",
+        "7bef10b9-5927-5617-86bb-4c45f3c000a6",
+        "c510e6ed-159a-58a0-8415-ba43b355acd7",
+        "e4a61dbb-9e38-545c-8744-802876993ef8",
+        "8fe7fe44-65fb-5e86-8a01-cfd131f2ac7b"
+      ],
+      "discards": []
+    },
+    {
+      "id": "057a11e5-3784-53ba-8cc6-1b8e584bd4f6",
+      "name": "Radavský pohár",
+      "order": 7,
+      "weight": 1,
+      "countAs": 1,
+      "completed": true,
+      "entries": [
+        "5703dc62-bdc2-58b5-8e66-9df180a596f6",
+        "013988f8-8326-528a-8c04-13f5be101832",
+        "44f65359-c651-5631-8b6e-017a123c4a06",
+        "116474f9-47c6-51cd-8d09-4e2d9f8a1bba",
+        "28cf5477-51cb-5ba3-8bd1-82e9f4511de8",
+        "bc3b2529-315d-5502-885a-abef8639a911",
+        "fc44861b-060e-566a-874c-9500670e261a",
+        "08456289-190e-5bdd-81af-2b1a39ee644f",
+        "596d73f6-f798-5511-823a-31d1472ce2a6",
+        "1ad93a07-29d7-5c75-818a-3a800b5b4e77",
+        "4709580c-8a55-5d80-8c6b-00209f18c020",
+        "9d2c7ebe-f475-58e0-8079-e9de1002e4b0",
+        "a0b53a02-595d-5b63-84e3-b2ff3b487117",
+        "fff49989-34b2-57c9-8d15-b325dfcadcdc",
+        "7bef10b9-5927-5617-86bb-4c45f3c000a6",
+        "8fe7fe44-65fb-5e86-8a01-cfd131f2ac7b",
+        "bd23ae4c-a3c8-5894-8139-cd14f89da349",
+        "4d2759c8-45a2-54ee-8adf-e378e0f08cc8",
+        "d633c9a0-4104-5b15-8cb7-55c8c0a5a03e",
+        "87605d2a-d64a-5f6b-8b12-95c97d5a67d6",
+        "af29f48d-18ae-5f4e-8457-aab298217f9d",
+        "493a5130-efea-55e0-8930-7df719b72e71",
+        "9a8940f5-84da-5cec-86f1-4bfc5e31f2d1",
+        "a1e5c87b-46d3-5df3-8734-94d76c7c50cf",
+        "b413ff0d-ec00-5153-8539-c90a9a11e355",
+        "3ec68955-6dd6-55bc-8eb0-5790b2cc85a9",
+        "15c89755-77da-5ad6-8910-0e4152dbe181",
+        "c510e6ed-159a-58a0-8415-ba43b355acd7",
+        "e4a61dbb-9e38-545c-8744-802876993ef8",
+        "dc69fc45-8567-5f04-8ebf-ea81b1cf1f9a",
+        "c1a97b65-711a-5fe1-8ecf-752c1c2c5733",
+        "e6305090-a0ff-5e8e-8691-1c99825bfce8",
+        "1fb73fd8-5e71-5e7b-8734-f9e97012eb35",
+        "f1b93f9d-fcd3-5e19-8710-76a40cdf6c5c",
+        "36f84bf2-d4d1-5d9b-8b97-c3be08286dd9",
+        "ebd56d78-5702-5449-8c1c-d3df29623254",
+        "794bf6d4-767f-5e2f-8df6-539e79858b54"
+      ],
+      "discards": []
+    },
+    {
+      "id": "9b0d4dec-4c0e-5a61-8f86-c83b18b3051b",
+      "name": "O pohár Vltavy",
+      "order": 8,
+      "weight": 1,
+      "countAs": 1,
+      "completed": false,
+      "entries": [
+        "5703dc62-bdc2-58b5-8e66-9df180a596f6",
+        "013988f8-8326-528a-8c04-13f5be101832",
+        "44f65359-c651-5631-8b6e-017a123c4a06",
+        "116474f9-47c6-51cd-8d09-4e2d9f8a1bba",
+        "28cf5477-51cb-5ba3-8bd1-82e9f4511de8",
+        "bc3b2529-315d-5502-885a-abef8639a911",
+        "fc44861b-060e-566a-874c-9500670e261a",
+        "08456289-190e-5bdd-81af-2b1a39ee644f",
+        "596d73f6-f798-5511-823a-31d1472ce2a6",
+        "1ad93a07-29d7-5c75-818a-3a800b5b4e77",
+        "4709580c-8a55-5d80-8c6b-00209f18c020",
+        "9d2c7ebe-f475-58e0-8079-e9de1002e4b0",
+        "a0b53a02-595d-5b63-84e3-b2ff3b487117",
+        "fff49989-34b2-57c9-8d15-b325dfcadcdc",
+        "7bef10b9-5927-5617-86bb-4c45f3c000a6",
+        "8fe7fe44-65fb-5e86-8a01-cfd131f2ac7b",
+        "bd23ae4c-a3c8-5894-8139-cd14f89da349",
+        "4d2759c8-45a2-54ee-8adf-e378e0f08cc8",
+        "d633c9a0-4104-5b15-8cb7-55c8c0a5a03e",
+        "87605d2a-d64a-5f6b-8b12-95c97d5a67d6",
+        "af29f48d-18ae-5f4e-8457-aab298217f9d",
+        "493a5130-efea-55e0-8930-7df719b72e71",
+        "9a8940f5-84da-5cec-86f1-4bfc5e31f2d1",
+        "a1e5c87b-46d3-5df3-8734-94d76c7c50cf",
+        "b413ff0d-ec00-5153-8539-c90a9a11e355",
+        "3ec68955-6dd6-55bc-8eb0-5790b2cc85a9",
+        "15c89755-77da-5ad6-8910-0e4152dbe181",
+        "c510e6ed-159a-58a0-8415-ba43b355acd7",
+        "e4a61dbb-9e38-545c-8744-802876993ef8",
+        "dc69fc45-8567-5f04-8ebf-ea81b1cf1f9a",
+        "c1a97b65-711a-5fe1-8ecf-752c1c2c5733",
+        "e6305090-a0ff-5e8e-8691-1c99825bfce8",
+        "1fb73fd8-5e71-5e7b-8734-f9e97012eb35",
+        "f1b93f9d-fcd3-5e19-8710-76a40cdf6c5c",
+        "36f84bf2-d4d1-5d9b-8b97-c3be08286dd9",
+        "ebd56d78-5702-5449-8c1c-d3df29623254",
+        "794bf6d4-767f-5e2f-8df6-539e79858b54"
+      ],
+      "discards": [],
+      "scheduleStatus": "Awaiting results"
+    },
+    {
+      "id": "715c63e4-566e-5c8a-8d92-31924df7a2f5",
+      "name": "Pohár Slunce",
+      "order": 9,
+      "weight": 1,
+      "countAs": 1,
+      "completed": false,
+      "entries": [
+        "5703dc62-bdc2-58b5-8e66-9df180a596f6",
+        "013988f8-8326-528a-8c04-13f5be101832",
+        "44f65359-c651-5631-8b6e-017a123c4a06",
+        "116474f9-47c6-51cd-8d09-4e2d9f8a1bba",
+        "28cf5477-51cb-5ba3-8bd1-82e9f4511de8",
+        "bc3b2529-315d-5502-885a-abef8639a911",
+        "fc44861b-060e-566a-874c-9500670e261a",
+        "08456289-190e-5bdd-81af-2b1a39ee644f",
+        "596d73f6-f798-5511-823a-31d1472ce2a6",
+        "1ad93a07-29d7-5c75-818a-3a800b5b4e77",
+        "4709580c-8a55-5d80-8c6b-00209f18c020",
+        "9d2c7ebe-f475-58e0-8079-e9de1002e4b0",
+        "a0b53a02-595d-5b63-84e3-b2ff3b487117",
+        "fff49989-34b2-57c9-8d15-b325dfcadcdc",
+        "7bef10b9-5927-5617-86bb-4c45f3c000a6",
+        "8fe7fe44-65fb-5e86-8a01-cfd131f2ac7b",
+        "bd23ae4c-a3c8-5894-8139-cd14f89da349",
+        "4d2759c8-45a2-54ee-8adf-e378e0f08cc8",
+        "d633c9a0-4104-5b15-8cb7-55c8c0a5a03e",
+        "87605d2a-d64a-5f6b-8b12-95c97d5a67d6",
+        "af29f48d-18ae-5f4e-8457-aab298217f9d",
+        "493a5130-efea-55e0-8930-7df719b72e71",
+        "9a8940f5-84da-5cec-86f1-4bfc5e31f2d1",
+        "a1e5c87b-46d3-5df3-8734-94d76c7c50cf",
+        "b413ff0d-ec00-5153-8539-c90a9a11e355",
+        "3ec68955-6dd6-55bc-8eb0-5790b2cc85a9",
+        "15c89755-77da-5ad6-8910-0e4152dbe181",
+        "c510e6ed-159a-58a0-8415-ba43b355acd7",
+        "e4a61dbb-9e38-545c-8744-802876993ef8",
+        "dc69fc45-8567-5f04-8ebf-ea81b1cf1f9a",
+        "c1a97b65-711a-5fe1-8ecf-752c1c2c5733",
+        "e6305090-a0ff-5e8e-8691-1c99825bfce8",
+        "1fb73fd8-5e71-5e7b-8734-f9e97012eb35",
+        "f1b93f9d-fcd3-5e19-8710-76a40cdf6c5c",
+        "36f84bf2-d4d1-5d9b-8b97-c3be08286dd9",
+        "ebd56d78-5702-5449-8c1c-d3df29623254",
+        "794bf6d4-767f-5e2f-8df6-539e79858b54"
+      ],
+      "discards": [],
+      "scheduleStatus": "Upcoming"
+    }
+  ],
+  "races": [
+    {
+      "id": "fddbf45b-1090-5044-84ad-4b1059df8ae1",
+      "eventId": "bd7998e7-1ce3-5be6-81ea-af30322c57d3",
+      "kind": "aggregate",
+      "name": "Souhrnné výsledky (bez rozpisu rozjížděk)",
+      "date": "",
+      "order": 1,
+      "weight": 1,
+      "status": "published",
+      "entries": [
+        "5703dc62-bdc2-58b5-8e66-9df180a596f6",
+        "013988f8-8326-528a-8c04-13f5be101832",
+        "44f65359-c651-5631-8b6e-017a123c4a06",
+        "116474f9-47c6-51cd-8d09-4e2d9f8a1bba",
+        "28cf5477-51cb-5ba3-8bd1-82e9f4511de8",
+        "bc3b2529-315d-5502-885a-abef8639a911",
+        "fc44861b-060e-566a-874c-9500670e261a",
+        "08456289-190e-5bdd-81af-2b1a39ee644f",
+        "596d73f6-f798-5511-823a-31d1472ce2a6",
+        "1ad93a07-29d7-5c75-818a-3a800b5b4e77",
+        "4709580c-8a55-5d80-8c6b-00209f18c020",
+        "9d2c7ebe-f475-58e0-8079-e9de1002e4b0",
+        "a0b53a02-595d-5b63-84e3-b2ff3b487117",
+        "fff49989-34b2-57c9-8d15-b325dfcadcdc",
+        "7bef10b9-5927-5617-86bb-4c45f3c000a6",
+        "8fe7fe44-65fb-5e86-8a01-cfd131f2ac7b",
+        "bd23ae4c-a3c8-5894-8139-cd14f89da349",
+        "4d2759c8-45a2-54ee-8adf-e378e0f08cc8",
+        "d633c9a0-4104-5b15-8cb7-55c8c0a5a03e",
+        "87605d2a-d64a-5f6b-8b12-95c97d5a67d6",
+        "af29f48d-18ae-5f4e-8457-aab298217f9d",
+        "493a5130-efea-55e0-8930-7df719b72e71",
+        "9a8940f5-84da-5cec-86f1-4bfc5e31f2d1",
+        "a1e5c87b-46d3-5df3-8734-94d76c7c50cf",
+        "b413ff0d-ec00-5153-8539-c90a9a11e355",
+        "3ec68955-6dd6-55bc-8eb0-5790b2cc85a9",
+        "15c89755-77da-5ad6-8910-0e4152dbe181",
+        "c510e6ed-159a-58a0-8415-ba43b355acd7",
+        "e4a61dbb-9e38-545c-8744-802876993ef8",
+        "dc69fc45-8567-5f04-8ebf-ea81b1cf1f9a",
+        "c1a97b65-711a-5fe1-8ecf-752c1c2c5733",
+        "e6305090-a0ff-5e8e-8691-1c99825bfce8",
+        "1fb73fd8-5e71-5e7b-8734-f9e97012eb35",
+        "f1b93f9d-fcd3-5e19-8710-76a40cdf6c5c",
+        "36f84bf2-d4d1-5d9b-8b97-c3be08286dd9",
+        "ebd56d78-5702-5449-8c1c-d3df29623254",
+        "794bf6d4-767f-5e2f-8df6-539e79858b54"
+      ],
+      "results": [
+        {
+          "boatId": "5703dc62-bdc2-58b5-8e66-9df180a596f6",
+          "status": "SCORED",
+          "points": 0
+        },
+        {
+          "boatId": "013988f8-8326-528a-8c04-13f5be101832",
+          "status": "SCORED",
+          "points": 1
+        },
+        {
+          "boatId": "44f65359-c651-5631-8b6e-017a123c4a06",
+          "status": "SCORED",
+          "points": 1
+        },
+        {
+          "boatId": "116474f9-47c6-51cd-8d09-4e2d9f8a1bba",
+          "status": "SCORED",
+          "points": 1
+        },
+        {
+          "boatId": "28cf5477-51cb-5ba3-8bd1-82e9f4511de8",
+          "status": "SCORED",
+          "points": 1
+        },
+        {
+          "boatId": "bc3b2529-315d-5502-885a-abef8639a911",
+          "status": "SCORED",
+          "points": 1
+        },
+        {
+          "boatId": "fc44861b-060e-566a-874c-9500670e261a",
+          "status": "SCORED",
+          "points": 0
+        },
+        {
+          "boatId": "08456289-190e-5bdd-81af-2b1a39ee644f",
+          "status": "SCORED",
+          "points": 1
+        },
+        {
+          "boatId": "596d73f6-f798-5511-823a-31d1472ce2a6",
+          "status": "SCORED",
+          "points": 2
+        },
+        {
+          "boatId": "1ad93a07-29d7-5c75-818a-3a800b5b4e77",
+          "status": "SCORED",
+          "points": 3
+        },
+        {
+          "boatId": "4709580c-8a55-5d80-8c6b-00209f18c020",
+          "status": "SCORED",
+          "points": 4
+        },
+        {
+          "boatId": "9d2c7ebe-f475-58e0-8079-e9de1002e4b0",
+          "status": "SCORED",
+          "points": 5
+        },
+        {
+          "boatId": "a0b53a02-595d-5b63-84e3-b2ff3b487117",
+          "status": "SCORED",
+          "points": 6
+        },
+        {
+          "boatId": "fff49989-34b2-57c9-8d15-b325dfcadcdc",
+          "status": "SCORED",
+          "points": 7
+        },
+        {
+          "boatId": "7bef10b9-5927-5617-86bb-4c45f3c000a6",
+          "status": "SCORED",
+          "points": 8
+        },
+        {
+          "boatId": "8fe7fe44-65fb-5e86-8a01-cfd131f2ac7b",
+          "status": "SCORED",
+          "points": 8
+        },
+        {
+          "boatId": "bd23ae4c-a3c8-5894-8139-cd14f89da349",
+          "status": "SCORED",
+          "points": 8
+        },
+        {
+          "boatId": "4d2759c8-45a2-54ee-8adf-e378e0f08cc8",
+          "status": "SCORED",
+          "points": 8
+        },
+        {
+          "boatId": "d633c9a0-4104-5b15-8cb7-55c8c0a5a03e",
+          "status": "SCORED",
+          "points": 8
+        },
+        {
+          "boatId": "87605d2a-d64a-5f6b-8b12-95c97d5a67d6",
+          "status": "SCORED",
+          "points": 8
+        },
+        {
+          "boatId": "af29f48d-18ae-5f4e-8457-aab298217f9d",
+          "status": "SCORED",
+          "points": 8
+        },
+        {
+          "boatId": "493a5130-efea-55e0-8930-7df719b72e71",
+          "status": "SCORED",
+          "points": 8
+        },
+        {
+          "boatId": "9a8940f5-84da-5cec-86f1-4bfc5e31f2d1",
+          "status": "SCORED",
+          "points": 8
+        },
+        {
+          "boatId": "a1e5c87b-46d3-5df3-8734-94d76c7c50cf",
+          "status": "SCORED",
+          "points": 8
+        },
+        {
+          "boatId": "b413ff0d-ec00-5153-8539-c90a9a11e355",
+          "status": "SCORED",
+          "points": 8
+        },
+        {
+          "boatId": "3ec68955-6dd6-55bc-8eb0-5790b2cc85a9",
+          "status": "SCORED",
+          "points": 8
+        },
+        {
+          "boatId": "15c89755-77da-5ad6-8910-0e4152dbe181",
+          "status": "SCORED",
+          "points": 8
+        },
+        {
+          "boatId": "c510e6ed-159a-58a0-8415-ba43b355acd7",
+          "status": "SCORED",
+          "points": 8
+        },
+        {
+          "boatId": "e4a61dbb-9e38-545c-8744-802876993ef8",
+          "status": "SCORED",
+          "points": 8
+        },
+        {
+          "boatId": "dc69fc45-8567-5f04-8ebf-ea81b1cf1f9a",
+          "status": "SCORED",
+          "points": 8
+        },
+        {
+          "boatId": "c1a97b65-711a-5fe1-8ecf-752c1c2c5733",
+          "status": "SCORED",
+          "points": 8
+        },
+        {
+          "boatId": "e6305090-a0ff-5e8e-8691-1c99825bfce8",
+          "status": "SCORED",
+          "points": 0
+        },
+        {
+          "boatId": "1fb73fd8-5e71-5e7b-8734-f9e97012eb35",
+          "status": "SCORED",
+          "points": 1
+        },
+        {
+          "boatId": "f1b93f9d-fcd3-5e19-8710-76a40cdf6c5c",
+          "status": "SCORED",
+          "points": 2
+        },
+        {
+          "boatId": "36f84bf2-d4d1-5d9b-8b97-c3be08286dd9",
+          "status": "SCORED",
+          "points": 2
+        },
+        {
+          "boatId": "ebd56d78-5702-5449-8c1c-d3df29623254",
+          "status": "SCORED",
+          "points": 2
+        },
+        {
+          "boatId": "794bf6d4-767f-5e2f-8df6-539e79858b54",
+          "status": "SCORED",
+          "points": 2
+        }
+      ]
+    },
+    {
+      "id": "4e96fa7b-4db0-53fc-845e-03ebf789eca0",
+      "eventId": "09f54b2e-d9d9-58cf-8d5d-44871aa7fa79",
+      "kind": "aggregate",
+      "name": "Souhrnné výsledky (bez rozpisu rozjížděk)",
+      "date": "",
+      "order": 2,
+      "weight": 1,
+      "status": "published",
+      "entries": [
+        "5703dc62-bdc2-58b5-8e66-9df180a596f6",
+        "013988f8-8326-528a-8c04-13f5be101832",
+        "44f65359-c651-5631-8b6e-017a123c4a06",
+        "116474f9-47c6-51cd-8d09-4e2d9f8a1bba",
+        "28cf5477-51cb-5ba3-8bd1-82e9f4511de8",
+        "bc3b2529-315d-5502-885a-abef8639a911",
+        "fc44861b-060e-566a-874c-9500670e261a",
+        "08456289-190e-5bdd-81af-2b1a39ee644f",
+        "596d73f6-f798-5511-823a-31d1472ce2a6",
+        "1ad93a07-29d7-5c75-818a-3a800b5b4e77",
+        "4709580c-8a55-5d80-8c6b-00209f18c020",
+        "9d2c7ebe-f475-58e0-8079-e9de1002e4b0",
+        "a0b53a02-595d-5b63-84e3-b2ff3b487117",
+        "fff49989-34b2-57c9-8d15-b325dfcadcdc",
+        "7bef10b9-5927-5617-86bb-4c45f3c000a6",
+        "8fe7fe44-65fb-5e86-8a01-cfd131f2ac7b",
+        "bd23ae4c-a3c8-5894-8139-cd14f89da349",
+        "4d2759c8-45a2-54ee-8adf-e378e0f08cc8",
+        "d633c9a0-4104-5b15-8cb7-55c8c0a5a03e",
+        "87605d2a-d64a-5f6b-8b12-95c97d5a67d6",
+        "af29f48d-18ae-5f4e-8457-aab298217f9d",
+        "493a5130-efea-55e0-8930-7df719b72e71",
+        "9a8940f5-84da-5cec-86f1-4bfc5e31f2d1",
+        "a1e5c87b-46d3-5df3-8734-94d76c7c50cf",
+        "b413ff0d-ec00-5153-8539-c90a9a11e355",
+        "3ec68955-6dd6-55bc-8eb0-5790b2cc85a9",
+        "15c89755-77da-5ad6-8910-0e4152dbe181",
+        "c510e6ed-159a-58a0-8415-ba43b355acd7",
+        "e4a61dbb-9e38-545c-8744-802876993ef8",
+        "dc69fc45-8567-5f04-8ebf-ea81b1cf1f9a",
+        "c1a97b65-711a-5fe1-8ecf-752c1c2c5733",
+        "e6305090-a0ff-5e8e-8691-1c99825bfce8",
+        "1fb73fd8-5e71-5e7b-8734-f9e97012eb35",
+        "f1b93f9d-fcd3-5e19-8710-76a40cdf6c5c",
+        "36f84bf2-d4d1-5d9b-8b97-c3be08286dd9",
+        "ebd56d78-5702-5449-8c1c-d3df29623254",
+        "794bf6d4-767f-5e2f-8df6-539e79858b54"
+      ],
+      "results": [
+        {
+          "boatId": "5703dc62-bdc2-58b5-8e66-9df180a596f6",
+          "status": "SCORED",
+          "points": 0
+        },
+        {
+          "boatId": "013988f8-8326-528a-8c04-13f5be101832",
+          "status": "SCORED",
+          "points": 1
+        },
+        {
+          "boatId": "44f65359-c651-5631-8b6e-017a123c4a06",
+          "status": "SCORED",
+          "points": 2
+        },
+        {
+          "boatId": "116474f9-47c6-51cd-8d09-4e2d9f8a1bba",
+          "status": "SCORED",
+          "points": 4
+        },
+        {
+          "boatId": "28cf5477-51cb-5ba3-8bd1-82e9f4511de8",
+          "status": "SCORED",
+          "points": 4
+        },
+        {
+          "boatId": "bc3b2529-315d-5502-885a-abef8639a911",
+          "status": "SCORED",
+          "points": 4
+        },
+        {
+          "boatId": "fc44861b-060e-566a-874c-9500670e261a",
+          "status": "SCORED",
+          "points": 1
+        },
+        {
+          "boatId": "08456289-190e-5bdd-81af-2b1a39ee644f",
+          "status": "SCORED",
+          "points": 0
+        },
+        {
+          "boatId": "596d73f6-f798-5511-823a-31d1472ce2a6",
+          "status": "SCORED",
+          "points": 9
+        },
+        {
+          "boatId": "1ad93a07-29d7-5c75-818a-3a800b5b4e77",
+          "status": "SCORED",
+          "points": 9
+        },
+        {
+          "boatId": "4709580c-8a55-5d80-8c6b-00209f18c020",
+          "status": "SCORED",
+          "points": 2
+        },
+        {
+          "boatId": "9d2c7ebe-f475-58e0-8079-e9de1002e4b0",
+          "status": "SCORED",
+          "points": 9
+        },
+        {
+          "boatId": "a0b53a02-595d-5b63-84e3-b2ff3b487117",
+          "status": "SCORED",
+          "points": 4
+        },
+        {
+          "boatId": "fff49989-34b2-57c9-8d15-b325dfcadcdc",
+          "status": "SCORED",
+          "points": 9
+        },
+        {
+          "boatId": "7bef10b9-5927-5617-86bb-4c45f3c000a6",
+          "status": "SCORED",
+          "points": 3
+        },
+        {
+          "boatId": "8fe7fe44-65fb-5e86-8a01-cfd131f2ac7b",
+          "status": "SCORED",
+          "points": 5
+        },
+        {
+          "boatId": "bd23ae4c-a3c8-5894-8139-cd14f89da349",
+          "status": "SCORED",
+          "points": 6
+        },
+        {
+          "boatId": "4d2759c8-45a2-54ee-8adf-e378e0f08cc8",
+          "status": "SCORED",
+          "points": 7
+        },
+        {
+          "boatId": "d633c9a0-4104-5b15-8cb7-55c8c0a5a03e",
+          "status": "SCORED",
+          "points": 9
+        },
+        {
+          "boatId": "87605d2a-d64a-5f6b-8b12-95c97d5a67d6",
+          "status": "SCORED",
+          "points": 9
+        },
+        {
+          "boatId": "af29f48d-18ae-5f4e-8457-aab298217f9d",
+          "status": "SCORED",
+          "points": 9
+        },
+        {
+          "boatId": "493a5130-efea-55e0-8930-7df719b72e71",
+          "status": "SCORED",
+          "points": 9
+        },
+        {
+          "boatId": "9a8940f5-84da-5cec-86f1-4bfc5e31f2d1",
+          "status": "SCORED",
+          "points": 9
+        },
+        {
+          "boatId": "a1e5c87b-46d3-5df3-8734-94d76c7c50cf",
+          "status": "SCORED",
+          "points": 9
+        },
+        {
+          "boatId": "b413ff0d-ec00-5153-8539-c90a9a11e355",
+          "status": "SCORED",
+          "points": 9
+        },
+        {
+          "boatId": "3ec68955-6dd6-55bc-8eb0-5790b2cc85a9",
+          "status": "SCORED",
+          "points": 9
+        },
+        {
+          "boatId": "15c89755-77da-5ad6-8910-0e4152dbe181",
+          "status": "SCORED",
+          "points": 9
+        },
+        {
+          "boatId": "c510e6ed-159a-58a0-8415-ba43b355acd7",
+          "status": "SCORED",
+          "points": 9
+        },
+        {
+          "boatId": "e4a61dbb-9e38-545c-8744-802876993ef8",
+          "status": "SCORED",
+          "points": 9
+        },
+        {
+          "boatId": "dc69fc45-8567-5f04-8ebf-ea81b1cf1f9a",
+          "status": "SCORED",
+          "points": 9
+        },
+        {
+          "boatId": "c1a97b65-711a-5fe1-8ecf-752c1c2c5733",
+          "status": "SCORED",
+          "points": 9
+        },
+        {
+          "boatId": "e6305090-a0ff-5e8e-8691-1c99825bfce8",
+          "status": "SCORED",
+          "points": 21
+        },
+        {
+          "boatId": "1fb73fd8-5e71-5e7b-8734-f9e97012eb35",
+          "status": "SCORED",
+          "points": 3
+        },
+        {
+          "boatId": "f1b93f9d-fcd3-5e19-8710-76a40cdf6c5c",
+          "status": "SCORED",
+          "points": 0
+        },
+        {
+          "boatId": "36f84bf2-d4d1-5d9b-8b97-c3be08286dd9",
+          "status": "SCORED",
+          "points": 1
+        },
+        {
+          "boatId": "ebd56d78-5702-5449-8c1c-d3df29623254",
+          "status": "SCORED",
+          "points": 2
+        },
+        {
+          "boatId": "794bf6d4-767f-5e2f-8df6-539e79858b54",
+          "status": "SCORED",
+          "points": 3
+        }
+      ]
+    },
+    {
+      "id": "9c6e563d-5a94-5012-81ec-2ebc7107e7e7",
+      "eventId": "b10647d4-4b78-5a36-88bc-9fe05777081c",
+      "name": "Rozjížďka 1",
+      "date": "",
+      "order": 3,
+      "weight": 1,
+      "status": "published",
+      "entries": [
+        "e6305090-a0ff-5e8e-8691-1c99825bfce8",
+        "f1b93f9d-fcd3-5e19-8710-76a40cdf6c5c",
+        "ebd56d78-5702-5449-8c1c-d3df29623254",
+        "1fb73fd8-5e71-5e7b-8734-f9e97012eb35",
+        "5703dc62-bdc2-58b5-8e66-9df180a596f6",
+        "44f65359-c651-5631-8b6e-017a123c4a06",
+        "013988f8-8326-528a-8c04-13f5be101832",
+        "116474f9-47c6-51cd-8d09-4e2d9f8a1bba",
+        "d633c9a0-4104-5b15-8cb7-55c8c0a5a03e",
+        "1ad93a07-29d7-5c75-818a-3a800b5b4e77",
+        "08456289-190e-5bdd-81af-2b1a39ee644f",
+        "87605d2a-d64a-5f6b-8b12-95c97d5a67d6",
+        "fff49989-34b2-57c9-8d15-b325dfcadcdc",
+        "af29f48d-18ae-5f4e-8457-aab298217f9d",
+        "bd23ae4c-a3c8-5894-8139-cd14f89da349",
+        "493a5130-efea-55e0-8930-7df719b72e71",
+        "9a8940f5-84da-5cec-86f1-4bfc5e31f2d1",
+        "a1e5c87b-46d3-5df3-8734-94d76c7c50cf",
+        "8fe7fe44-65fb-5e86-8a01-cfd131f2ac7b",
+        "b413ff0d-ec00-5153-8539-c90a9a11e355"
+      ],
+      "results": [
+        {
+          "boatId": "e6305090-a0ff-5e8e-8691-1c99825bfce8",
+          "status": "SCORED",
+          "points": 1
+        },
+        {
+          "boatId": "f1b93f9d-fcd3-5e19-8710-76a40cdf6c5c",
+          "status": "SCORED",
+          "points": 2
+        },
+        {
+          "boatId": "ebd56d78-5702-5449-8c1c-d3df29623254",
+          "status": "SCORED",
+          "points": 4
+        },
+        {
+          "boatId": "1fb73fd8-5e71-5e7b-8734-f9e97012eb35",
+          "status": "SCORED",
+          "points": 3
+        },
+        {
+          "boatId": "5703dc62-bdc2-58b5-8e66-9df180a596f6",
+          "status": "SCORED",
+          "points": 1
+        },
+        {
+          "boatId": "44f65359-c651-5631-8b6e-017a123c4a06",
+          "status": "SCORED",
+          "points": 2
+        },
+        {
+          "boatId": "013988f8-8326-528a-8c04-13f5be101832",
+          "status": "SCORED",
+          "points": 3
+        },
+        {
+          "boatId": "116474f9-47c6-51cd-8d09-4e2d9f8a1bba",
+          "status": "SCORED",
+          "points": 4
+        },
+        {
+          "boatId": "d633c9a0-4104-5b15-8cb7-55c8c0a5a03e",
+          "status": "SCORED",
+          "points": 2
+        },
+        {
+          "boatId": "1ad93a07-29d7-5c75-818a-3a800b5b4e77",
+          "status": "SCORED",
+          "points": 1
+        },
+        {
+          "boatId": "08456289-190e-5bdd-81af-2b1a39ee644f",
+          "status": "SCORED",
+          "points": 3
+        },
+        {
+          "boatId": "87605d2a-d64a-5f6b-8b12-95c97d5a67d6",
+          "status": "SCORED",
+          "points": 4
+        },
+        {
+          "boatId": "fff49989-34b2-57c9-8d15-b325dfcadcdc",
+          "status": "SCORED",
+          "points": 5
+        },
+        {
+          "boatId": "af29f48d-18ae-5f4e-8457-aab298217f9d",
+          "status": "SCORED",
+          "points": 7
+        },
+        {
+          "boatId": "bd23ae4c-a3c8-5894-8139-cd14f89da349",
+          "status": "SCORED",
+          "points": 8
+        },
+        {
+          "boatId": "493a5130-efea-55e0-8930-7df719b72e71",
+          "status": "SCORED",
+          "points": 6
+        },
+        {
+          "boatId": "9a8940f5-84da-5cec-86f1-4bfc5e31f2d1",
+          "status": "SCORED",
+          "points": 14
+        },
+        {
+          "boatId": "a1e5c87b-46d3-5df3-8734-94d76c7c50cf",
+          "status": "SCORED",
+          "points": 9
+        },
+        {
+          "boatId": "8fe7fe44-65fb-5e86-8a01-cfd131f2ac7b",
+          "status": "SCORED",
+          "points": 10
+        },
+        {
+          "boatId": "b413ff0d-ec00-5153-8539-c90a9a11e355",
+          "status": "SCORED",
+          "points": 14
+        }
+      ]
+    },
+    {
+      "id": "e0de483c-2172-5576-84bf-55c7f0bb62af",
+      "eventId": "b10647d4-4b78-5a36-88bc-9fe05777081c",
+      "name": "Rozjížďka 2",
+      "date": "",
+      "order": 4,
+      "weight": 1,
+      "status": "published",
+      "entries": [
+        "e6305090-a0ff-5e8e-8691-1c99825bfce8",
+        "f1b93f9d-fcd3-5e19-8710-76a40cdf6c5c",
+        "ebd56d78-5702-5449-8c1c-d3df29623254",
+        "1fb73fd8-5e71-5e7b-8734-f9e97012eb35",
+        "5703dc62-bdc2-58b5-8e66-9df180a596f6",
+        "44f65359-c651-5631-8b6e-017a123c4a06",
+        "013988f8-8326-528a-8c04-13f5be101832",
+        "116474f9-47c6-51cd-8d09-4e2d9f8a1bba",
+        "d633c9a0-4104-5b15-8cb7-55c8c0a5a03e",
+        "1ad93a07-29d7-5c75-818a-3a800b5b4e77",
+        "08456289-190e-5bdd-81af-2b1a39ee644f",
+        "87605d2a-d64a-5f6b-8b12-95c97d5a67d6",
+        "fff49989-34b2-57c9-8d15-b325dfcadcdc",
+        "af29f48d-18ae-5f4e-8457-aab298217f9d",
+        "bd23ae4c-a3c8-5894-8139-cd14f89da349",
+        "493a5130-efea-55e0-8930-7df719b72e71",
+        "9a8940f5-84da-5cec-86f1-4bfc5e31f2d1",
+        "a1e5c87b-46d3-5df3-8734-94d76c7c50cf",
+        "8fe7fe44-65fb-5e86-8a01-cfd131f2ac7b",
+        "b413ff0d-ec00-5153-8539-c90a9a11e355"
+      ],
+      "results": [
+        {
+          "boatId": "e6305090-a0ff-5e8e-8691-1c99825bfce8",
+          "status": "SCORED",
+          "points": 3
+        },
+        {
+          "boatId": "f1b93f9d-fcd3-5e19-8710-76a40cdf6c5c",
+          "status": "SCORED",
+          "points": 1
+        },
+        {
+          "boatId": "ebd56d78-5702-5449-8c1c-d3df29623254",
+          "status": "SCORED",
+          "points": 2
+        },
+        {
+          "boatId": "1fb73fd8-5e71-5e7b-8734-f9e97012eb35",
+          "status": "SCORED",
+          "points": 4
+        },
+        {
+          "boatId": "5703dc62-bdc2-58b5-8e66-9df180a596f6",
+          "status": "SCORED",
+          "points": 1
+        },
+        {
+          "boatId": "44f65359-c651-5631-8b6e-017a123c4a06",
+          "status": "SCORED",
+          "points": 2
+        },
+        {
+          "boatId": "013988f8-8326-528a-8c04-13f5be101832",
+          "status": "SCORED",
+          "points": 3
+        },
+        {
+          "boatId": "116474f9-47c6-51cd-8d09-4e2d9f8a1bba",
+          "status": "SCORED",
+          "points": 4
+        },
+        {
+          "boatId": "d633c9a0-4104-5b15-8cb7-55c8c0a5a03e",
+          "status": "SCORED",
+          "points": 1
+        },
+        {
+          "boatId": "1ad93a07-29d7-5c75-818a-3a800b5b4e77",
+          "status": "SCORED",
+          "points": 2
+        },
+        {
+          "boatId": "08456289-190e-5bdd-81af-2b1a39ee644f",
+          "status": "SCORED",
+          "points": 3
+        },
+        {
+          "boatId": "87605d2a-d64a-5f6b-8b12-95c97d5a67d6",
+          "status": "SCORED",
+          "points": 4
+        },
+        {
+          "boatId": "fff49989-34b2-57c9-8d15-b325dfcadcdc",
+          "status": "SCORED",
+          "points": 5
+        },
+        {
+          "boatId": "af29f48d-18ae-5f4e-8457-aab298217f9d",
+          "status": "SCORED",
+          "points": 7
+        },
+        {
+          "boatId": "bd23ae4c-a3c8-5894-8139-cd14f89da349",
+          "status": "SCORED",
+          "points": 6
+        },
+        {
+          "boatId": "493a5130-efea-55e0-8930-7df719b72e71",
+          "status": "SCORED",
+          "points": 8
+        },
+        {
+          "boatId": "9a8940f5-84da-5cec-86f1-4bfc5e31f2d1",
+          "status": "SCORED",
+          "points": 14
+        },
+        {
+          "boatId": "a1e5c87b-46d3-5df3-8734-94d76c7c50cf",
+          "status": "SCORED",
+          "points": 14
+        },
+        {
+          "boatId": "8fe7fe44-65fb-5e86-8a01-cfd131f2ac7b",
+          "status": "SCORED",
+          "points": 14
+        },
+        {
+          "boatId": "b413ff0d-ec00-5153-8539-c90a9a11e355",
+          "status": "SCORED",
+          "points": 14
+        }
+      ]
+    },
+    {
+      "id": "c84720d7-9a55-5ea0-8752-95e4bfaeb4d8",
+      "eventId": "e7d56ac5-c10c-552c-8006-ad68a24bcc3e",
+      "name": "Rozjížďka 1",
+      "date": "",
+      "order": 5,
+      "weight": 1,
+      "status": "published",
+      "entries": [
+        "f1b93f9d-fcd3-5e19-8710-76a40cdf6c5c",
+        "1fb73fd8-5e71-5e7b-8734-f9e97012eb35",
+        "36f84bf2-d4d1-5d9b-8b97-c3be08286dd9",
+        "ebd56d78-5702-5449-8c1c-d3df29623254",
+        "5703dc62-bdc2-58b5-8e66-9df180a596f6",
+        "28cf5477-51cb-5ba3-8bd1-82e9f4511de8",
+        "08456289-190e-5bdd-81af-2b1a39ee644f",
+        "fc44861b-060e-566a-874c-9500670e261a",
+        "87605d2a-d64a-5f6b-8b12-95c97d5a67d6",
+        "9a8940f5-84da-5cec-86f1-4bfc5e31f2d1",
+        "fff49989-34b2-57c9-8d15-b325dfcadcdc",
+        "1ad93a07-29d7-5c75-818a-3a800b5b4e77",
+        "3ec68955-6dd6-55bc-8eb0-5790b2cc85a9",
+        "bd23ae4c-a3c8-5894-8139-cd14f89da349",
+        "15c89755-77da-5ad6-8910-0e4152dbe181",
+        "7bef10b9-5927-5617-86bb-4c45f3c000a6",
+        "c510e6ed-159a-58a0-8415-ba43b355acd7",
+        "e4a61dbb-9e38-545c-8744-802876993ef8",
+        "8fe7fe44-65fb-5e86-8a01-cfd131f2ac7b"
+      ],
+      "results": [
+        {
+          "boatId": "f1b93f9d-fcd3-5e19-8710-76a40cdf6c5c",
+          "status": "SCORED",
+          "points": 1
+        },
+        {
+          "boatId": "1fb73fd8-5e71-5e7b-8734-f9e97012eb35",
+          "status": "SCORED",
+          "points": 2
+        },
+        {
+          "boatId": "36f84bf2-d4d1-5d9b-8b97-c3be08286dd9",
+          "status": "SCORED",
+          "points": 4
+        },
+        {
+          "boatId": "ebd56d78-5702-5449-8c1c-d3df29623254",
+          "status": "SCORED",
+          "points": 3
+        },
+        {
+          "boatId": "5703dc62-bdc2-58b5-8e66-9df180a596f6",
+          "status": "SCORED",
+          "points": 1
+        },
+        {
+          "boatId": "28cf5477-51cb-5ba3-8bd1-82e9f4511de8",
+          "status": "SCORED",
+          "points": 2
+        },
+        {
+          "boatId": "08456289-190e-5bdd-81af-2b1a39ee644f",
+          "status": "SCORED",
+          "points": 3
+        },
+        {
+          "boatId": "fc44861b-060e-566a-874c-9500670e261a",
+          "status": "SCORED",
+          "points": 1
+        },
+        {
+          "boatId": "87605d2a-d64a-5f6b-8b12-95c97d5a67d6",
+          "status": "SCORED",
+          "points": 5
+        },
+        {
+          "boatId": "9a8940f5-84da-5cec-86f1-4bfc5e31f2d1",
+          "status": "SCORED",
+          "points": 4
+        },
+        {
+          "boatId": "fff49989-34b2-57c9-8d15-b325dfcadcdc",
+          "status": "SCORED",
+          "points": 2
+        },
+        {
+          "boatId": "1ad93a07-29d7-5c75-818a-3a800b5b4e77",
+          "status": "SCORED",
+          "points": 6
+        },
+        {
+          "boatId": "3ec68955-6dd6-55bc-8eb0-5790b2cc85a9",
+          "status": "SCORED",
+          "points": 7
+        },
+        {
+          "boatId": "bd23ae4c-a3c8-5894-8139-cd14f89da349",
+          "status": "SCORED",
+          "points": 8
+        },
+        {
+          "boatId": "15c89755-77da-5ad6-8910-0e4152dbe181",
+          "status": "SCORED",
+          "points": 9
+        },
+        {
+          "boatId": "7bef10b9-5927-5617-86bb-4c45f3c000a6",
+          "status": "SCORED",
+          "points": 11
+        },
+        {
+          "boatId": "c510e6ed-159a-58a0-8415-ba43b355acd7",
+          "status": "SCORED",
+          "points": 10
+        },
+        {
+          "boatId": "e4a61dbb-9e38-545c-8744-802876993ef8",
+          "status": "DNF",
+          "points": 13
+        },
+        {
+          "boatId": "8fe7fe44-65fb-5e86-8a01-cfd131f2ac7b",
+          "status": "DNS",
+          "points": 14
+        }
+      ]
+    },
+    {
+      "id": "503d6af4-4b1c-5f58-85cb-88895f03643a",
+      "eventId": "e7d56ac5-c10c-552c-8006-ad68a24bcc3e",
+      "name": "Rozjížďka 2",
+      "date": "",
+      "order": 6,
+      "weight": 1,
+      "status": "published",
+      "entries": [
+        "f1b93f9d-fcd3-5e19-8710-76a40cdf6c5c",
+        "1fb73fd8-5e71-5e7b-8734-f9e97012eb35",
+        "36f84bf2-d4d1-5d9b-8b97-c3be08286dd9",
+        "ebd56d78-5702-5449-8c1c-d3df29623254",
+        "5703dc62-bdc2-58b5-8e66-9df180a596f6",
+        "28cf5477-51cb-5ba3-8bd1-82e9f4511de8",
+        "08456289-190e-5bdd-81af-2b1a39ee644f",
+        "fc44861b-060e-566a-874c-9500670e261a",
+        "87605d2a-d64a-5f6b-8b12-95c97d5a67d6",
+        "9a8940f5-84da-5cec-86f1-4bfc5e31f2d1",
+        "fff49989-34b2-57c9-8d15-b325dfcadcdc",
+        "1ad93a07-29d7-5c75-818a-3a800b5b4e77",
+        "3ec68955-6dd6-55bc-8eb0-5790b2cc85a9",
+        "bd23ae4c-a3c8-5894-8139-cd14f89da349",
+        "15c89755-77da-5ad6-8910-0e4152dbe181",
+        "7bef10b9-5927-5617-86bb-4c45f3c000a6",
+        "c510e6ed-159a-58a0-8415-ba43b355acd7",
+        "e4a61dbb-9e38-545c-8744-802876993ef8",
+        "8fe7fe44-65fb-5e86-8a01-cfd131f2ac7b"
+      ],
+      "results": [
+        {
+          "boatId": "f1b93f9d-fcd3-5e19-8710-76a40cdf6c5c",
+          "status": "SCORED",
+          "points": 1
+        },
+        {
+          "boatId": "1fb73fd8-5e71-5e7b-8734-f9e97012eb35",
+          "status": "SCORED",
+          "points": 2
+        },
+        {
+          "boatId": "36f84bf2-d4d1-5d9b-8b97-c3be08286dd9",
+          "status": "SCORED",
+          "points": 3
+        },
+        {
+          "boatId": "ebd56d78-5702-5449-8c1c-d3df29623254",
+          "status": "SCORED",
+          "points": 4
+        },
+        {
+          "boatId": "5703dc62-bdc2-58b5-8e66-9df180a596f6",
+          "status": "SCORED",
+          "points": 1
+        },
+        {
+          "boatId": "28cf5477-51cb-5ba3-8bd1-82e9f4511de8",
+          "status": "SCORED",
+          "points": 2
+        },
+        {
+          "boatId": "08456289-190e-5bdd-81af-2b1a39ee644f",
+          "status": "SCORED",
+          "points": 1
+        },
+        {
+          "boatId": "fc44861b-060e-566a-874c-9500670e261a",
+          "status": "SCORED",
+          "points": 3
+        },
+        {
+          "boatId": "87605d2a-d64a-5f6b-8b12-95c97d5a67d6",
+          "status": "SCORED",
+          "points": 2
+        },
+        {
+          "boatId": "9a8940f5-84da-5cec-86f1-4bfc5e31f2d1",
+          "status": "SCORED",
+          "points": 5
+        },
+        {
+          "boatId": "fff49989-34b2-57c9-8d15-b325dfcadcdc",
+          "status": "SCORED",
+          "points": 8
+        },
+        {
+          "boatId": "1ad93a07-29d7-5c75-818a-3a800b5b4e77",
+          "status": "SCORED",
+          "points": 4
+        },
+        {
+          "boatId": "3ec68955-6dd6-55bc-8eb0-5790b2cc85a9",
+          "status": "SCORED",
+          "points": 6
+        },
+        {
+          "boatId": "bd23ae4c-a3c8-5894-8139-cd14f89da349",
+          "status": "SCORED",
+          "points": 7
+        },
+        {
+          "boatId": "15c89755-77da-5ad6-8910-0e4152dbe181",
+          "status": "SCORED",
+          "points": 9
+        },
+        {
+          "boatId": "7bef10b9-5927-5617-86bb-4c45f3c000a6",
+          "status": "SCORED",
+          "points": 10
+        },
+        {
+          "boatId": "c510e6ed-159a-58a0-8415-ba43b355acd7",
+          "status": "DNS",
+          "points": 12
+        },
+        {
+          "boatId": "e4a61dbb-9e38-545c-8744-802876993ef8",
+          "status": "DNS",
+          "points": 12
+        },
+        {
+          "boatId": "8fe7fe44-65fb-5e86-8a01-cfd131f2ac7b",
+          "status": "DNS",
+          "points": 12
+        }
+      ]
+    },
+    {
+      "id": "ffaed7c2-5afe-5575-8e17-bb025682556c",
+      "eventId": "057a11e5-3784-53ba-8cc6-1b8e584bd4f6",
+      "kind": "aggregate",
+      "name": "Souhrnné výsledky (bez rozpisu rozjížděk)",
+      "date": "",
+      "order": 7,
+      "weight": 1,
+      "status": "published",
+      "entries": [
+        "5703dc62-bdc2-58b5-8e66-9df180a596f6",
+        "013988f8-8326-528a-8c04-13f5be101832",
+        "44f65359-c651-5631-8b6e-017a123c4a06",
+        "116474f9-47c6-51cd-8d09-4e2d9f8a1bba",
+        "28cf5477-51cb-5ba3-8bd1-82e9f4511de8",
+        "bc3b2529-315d-5502-885a-abef8639a911",
+        "fc44861b-060e-566a-874c-9500670e261a",
+        "08456289-190e-5bdd-81af-2b1a39ee644f",
+        "596d73f6-f798-5511-823a-31d1472ce2a6",
+        "1ad93a07-29d7-5c75-818a-3a800b5b4e77",
+        "4709580c-8a55-5d80-8c6b-00209f18c020",
+        "9d2c7ebe-f475-58e0-8079-e9de1002e4b0",
+        "a0b53a02-595d-5b63-84e3-b2ff3b487117",
+        "fff49989-34b2-57c9-8d15-b325dfcadcdc",
+        "7bef10b9-5927-5617-86bb-4c45f3c000a6",
+        "8fe7fe44-65fb-5e86-8a01-cfd131f2ac7b",
+        "bd23ae4c-a3c8-5894-8139-cd14f89da349",
+        "4d2759c8-45a2-54ee-8adf-e378e0f08cc8",
+        "d633c9a0-4104-5b15-8cb7-55c8c0a5a03e",
+        "87605d2a-d64a-5f6b-8b12-95c97d5a67d6",
+        "af29f48d-18ae-5f4e-8457-aab298217f9d",
+        "493a5130-efea-55e0-8930-7df719b72e71",
+        "9a8940f5-84da-5cec-86f1-4bfc5e31f2d1",
+        "a1e5c87b-46d3-5df3-8734-94d76c7c50cf",
+        "b413ff0d-ec00-5153-8539-c90a9a11e355",
+        "3ec68955-6dd6-55bc-8eb0-5790b2cc85a9",
+        "15c89755-77da-5ad6-8910-0e4152dbe181",
+        "c510e6ed-159a-58a0-8415-ba43b355acd7",
+        "e4a61dbb-9e38-545c-8744-802876993ef8",
+        "dc69fc45-8567-5f04-8ebf-ea81b1cf1f9a",
+        "c1a97b65-711a-5fe1-8ecf-752c1c2c5733",
+        "e6305090-a0ff-5e8e-8691-1c99825bfce8",
+        "1fb73fd8-5e71-5e7b-8734-f9e97012eb35",
+        "f1b93f9d-fcd3-5e19-8710-76a40cdf6c5c",
+        "36f84bf2-d4d1-5d9b-8b97-c3be08286dd9",
+        "ebd56d78-5702-5449-8c1c-d3df29623254",
+        "794bf6d4-767f-5e2f-8df6-539e79858b54"
+      ],
+      "results": [
+        {
+          "boatId": "5703dc62-bdc2-58b5-8e66-9df180a596f6",
+          "status": "SCORED",
+          "points": 1
+        },
+        {
+          "boatId": "013988f8-8326-528a-8c04-13f5be101832",
+          "status": "SCORED",
+          "points": 2
+        },
+        {
+          "boatId": "44f65359-c651-5631-8b6e-017a123c4a06",
+          "status": "SCORED",
+          "points": 3
+        },
+        {
+          "boatId": "116474f9-47c6-51cd-8d09-4e2d9f8a1bba",
+          "status": "SCORED",
+          "points": 3
+        },
+        {
+          "boatId": "28cf5477-51cb-5ba3-8bd1-82e9f4511de8",
+          "status": "SCORED",
+          "points": 3
+        },
+        {
+          "boatId": "bc3b2529-315d-5502-885a-abef8639a911",
+          "status": "SCORED",
+          "points": 0
+        },
+        {
+          "boatId": "fc44861b-060e-566a-874c-9500670e261a",
+          "status": "SCORED",
+          "points": 0
+        },
+        {
+          "boatId": "08456289-190e-5bdd-81af-2b1a39ee644f",
+          "status": "SCORED",
+          "points": 3
+        },
+        {
+          "boatId": "596d73f6-f798-5511-823a-31d1472ce2a6",
+          "status": "SCORED",
+          "points": 9
+        },
+        {
+          "boatId": "1ad93a07-29d7-5c75-818a-3a800b5b4e77",
+          "status": "SCORED",
+          "points": 1
+        },
+        {
+          "boatId": "4709580c-8a55-5d80-8c6b-00209f18c020",
+          "status": "SCORED",
+          "points": 9
+        },
+        {
+          "boatId": "9d2c7ebe-f475-58e0-8079-e9de1002e4b0",
+          "status": "SCORED",
+          "points": 9
+        },
+        {
+          "boatId": "a0b53a02-595d-5b63-84e3-b2ff3b487117",
+          "status": "SCORED",
+          "points": 9
+        },
+        {
+          "boatId": "fff49989-34b2-57c9-8d15-b325dfcadcdc",
+          "status": "SCORED",
+          "points": 9
+        },
+        {
+          "boatId": "7bef10b9-5927-5617-86bb-4c45f3c000a6",
+          "status": "SCORED",
+          "points": 8
+        },
+        {
+          "boatId": "8fe7fe44-65fb-5e86-8a01-cfd131f2ac7b",
+          "status": "SCORED",
+          "points": 9
+        },
+        {
+          "boatId": "bd23ae4c-a3c8-5894-8139-cd14f89da349",
+          "status": "SCORED",
+          "points": 7
+        },
+        {
+          "boatId": "4d2759c8-45a2-54ee-8adf-e378e0f08cc8",
+          "status": "SCORED",
+          "points": 9
+        },
+        {
+          "boatId": "d633c9a0-4104-5b15-8cb7-55c8c0a5a03e",
+          "status": "SCORED",
+          "points": 9
+        },
+        {
+          "boatId": "87605d2a-d64a-5f6b-8b12-95c97d5a67d6",
+          "status": "SCORED",
+          "points": 2
+        },
+        {
+          "boatId": "af29f48d-18ae-5f4e-8457-aab298217f9d",
+          "status": "SCORED",
+          "points": 9
+        },
+        {
+          "boatId": "493a5130-efea-55e0-8930-7df719b72e71",
+          "status": "SCORED",
+          "points": 9
+        },
+        {
+          "boatId": "9a8940f5-84da-5cec-86f1-4bfc5e31f2d1",
+          "status": "SCORED",
+          "points": 5
+        },
+        {
+          "boatId": "a1e5c87b-46d3-5df3-8734-94d76c7c50cf",
+          "status": "SCORED",
+          "points": 9
+        },
+        {
+          "boatId": "b413ff0d-ec00-5153-8539-c90a9a11e355",
+          "status": "SCORED",
+          "points": 9
+        },
+        {
+          "boatId": "3ec68955-6dd6-55bc-8eb0-5790b2cc85a9",
+          "status": "SCORED",
+          "points": 9
+        },
+        {
+          "boatId": "15c89755-77da-5ad6-8910-0e4152dbe181",
+          "status": "SCORED",
+          "points": 9
+        },
+        {
+          "boatId": "c510e6ed-159a-58a0-8415-ba43b355acd7",
+          "status": "SCORED",
+          "points": 9
+        },
+        {
+          "boatId": "e4a61dbb-9e38-545c-8744-802876993ef8",
+          "status": "SCORED",
+          "points": 9
+        },
+        {
+          "boatId": "dc69fc45-8567-5f04-8ebf-ea81b1cf1f9a",
+          "status": "SCORED",
+          "points": 4
+        },
+        {
+          "boatId": "c1a97b65-711a-5fe1-8ecf-752c1c2c5733",
+          "status": "SCORED",
+          "points": 6
+        },
+        {
+          "boatId": "e6305090-a0ff-5e8e-8691-1c99825bfce8",
+          "status": "SCORED",
+          "points": 4
+        },
+        {
+          "boatId": "1fb73fd8-5e71-5e7b-8734-f9e97012eb35",
+          "status": "SCORED",
+          "points": 2
+        },
+        {
+          "boatId": "f1b93f9d-fcd3-5e19-8710-76a40cdf6c5c",
+          "status": "SCORED",
+          "points": 1
+        },
+        {
+          "boatId": "36f84bf2-d4d1-5d9b-8b97-c3be08286dd9",
+          "status": "SCORED",
+          "points": 4
+        },
+        {
+          "boatId": "ebd56d78-5702-5449-8c1c-d3df29623254",
+          "status": "SCORED",
+          "points": 3
+        },
+        {
+          "boatId": "794bf6d4-767f-5e2f-8df6-539e79858b54",
+          "status": "SCORED",
+          "points": 0
+        }
+      ]
+    }
+  ],
+  "discards": [
+    {
+      "from": 4,
+      "discard": 1
+    }
+  ],
+  "pointsStart": 0
+}

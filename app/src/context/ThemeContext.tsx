@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { useColorScheme } from 'react-native'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 type Theme = 'light' | 'dark'
 
@@ -7,32 +9,34 @@ interface ThemeContextType {
   toggleTheme: () => void
 }
 
+const THEME_STORAGE_KEY = '@veetr_theme'
+
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(() => {
-    // Check localStorage first, then system preference, default to light for marine use
-    const stored = localStorage.getItem('sailing-dashboard-theme') as Theme
-    if (stored) return stored
-    
-    // For sailing applications, default to light mode for better sunlight readability
-    return 'light'
-  })
+export function ThemeProvider({ children }: { children: ReactNode }) {
+  const systemScheme = useColorScheme()
+  const [theme, setTheme] = useState<Theme>(systemScheme === 'dark' ? 'dark' : 'light')
+  const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    localStorage.setItem('sailing-dashboard-theme', theme)
-    document.documentElement.setAttribute('data-theme', theme)
-    
-    // Update meta theme-color dynamically
-    const metaThemeColor = document.querySelector('meta[name="theme-color"]')
-    if (metaThemeColor) {
-      const themeColor = theme === 'light' ? '#f5f5f5' : '#1a202c'
-      metaThemeColor.setAttribute('content', themeColor)
-    }
-  }, [theme])
+    AsyncStorage.getItem(THEME_STORAGE_KEY).then(stored => {
+      if (stored === 'light' || stored === 'dark') {
+        setTheme(stored)
+      } else if (systemScheme === 'dark') {
+        setTheme('dark')
+      }
+      setReady(true)
+    })
+  }, [systemScheme])
+
+  if (!ready) return null
 
   const toggleTheme = () => {
-    setTheme(prev => prev === 'light' ? 'dark' : 'light')
+    setTheme(prev => {
+      const next = prev === 'light' ? 'dark' : 'light'
+      AsyncStorage.setItem(THEME_STORAGE_KEY, next)
+      return next
+    })
   }
 
   return (
@@ -44,8 +48,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
 export function useTheme() {
   const context = useContext(ThemeContext)
-  if (context === undefined) {
-    throw new Error('useTheme must be used within a ThemeProvider')
-  }
+  if (context === undefined) throw new Error('useTheme must be used within a ThemeProvider')
   return context
 }

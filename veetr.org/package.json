@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "build": "astro build && node scripts/build-racing-sw.mjs",
     "preview": "astro preview",
     "test": "npm run build && node --test scripts/site.test.mjs"
   },
@@ -16,6 +16,19 @@
   "dependencies": {
     "@astrojs/starlight": "0.42.0",
     "astro": "7.3.1",
-    "sharp": "^0.35.4"
+    "sharp": "^0.35.4",
+    "@veetr/scoring": "*",
+    "@supabase/supabase-js": "^2.57.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "lucide-react": "^0.544.0",
+    "leaflet": "^1.9.4"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "workbox-build": "^7.0.0",
+    "postcss": "^8.4.0",
+    "@types/leaflet": "^1.9.22"
   }
 }

@@ -1,0 +1,58 @@
+/* Portal chrome uses the existing Veetr/Starlight theme, including dark mode. */
+body:has(#veetr-racing) .main-pane { width: 100%; }
+body:has(#veetr-racing) .sl-container { max-width: 86rem; }
+body:has(#veetr-racing) .content-panel:first-child { display: none; }
+body:has(#veetr-racing) .content-panel { border: 0; padding-top: 1rem; }
+#veetr-racing { --ink: var(--sl-color-white); --muted:var(--sl-color-gray-2); --line:var(--sl-color-hairline); --surface:var(--sl-color-bg); --canvas:var(--sl-color-bg); color:var(--sl-color-white); background:transparent; }
+#veetr-racing .race-main { padding: 0 0 2rem; max-width: none; }
+#veetr-racing section, #veetr-racing .entity-details, #veetr-racing .directory-heading, #veetr-racing .welcome, #veetr-racing .public-series-card, #veetr-racing .finish-boat, #veetr-racing .directory-new-boat { background:var(--sl-color-bg); color:var(--sl-color-white); border-color:var(--sl-color-hairline); }
+#veetr-racing p, #veetr-racing label, #veetr-racing .directory-description, #veetr-racing .directory-results { color:var(--sl-color-gray-2); }
+#veetr-racing h1, #veetr-racing h2, #veetr-racing h3 { color:var(--sl-color-white); }
+#veetr-racing button, #veetr-racing input, #veetr-racing select, #veetr-racing textarea { font-family:inherit; color:var(--sl-color-white); border-color:var(--sl-color-gray-4); background:var(--sl-color-bg); }
+#veetr-racing button:hover, #veetr-racing tbody tr:hover { background:var(--sl-color-gray-6); }
+#veetr-racing .primary, #veetr-racing .directory-create, #veetr-racing .section-title > button:not(.delete-action) { background:var(--sl-color-text-accent); border-color:var(--sl-color-text-accent); color:var(--sl-color-bg); }
+/* Keep the accent foreground/background paired through interactive states. */
+#veetr-racing .primary:is(:hover, :active, :focus-visible),
+#veetr-racing .directory-create:is(:hover, :active, :focus-visible),
+#veetr-racing .section-title > button:not(.delete-action):is(:hover, :active, :focus-visible) {
+  background:var(--sl-color-text-accent);
+  color:var(--sl-color-bg);
+  border-color:var(--sl-color-text-accent);
+  box-shadow:inset 0 0 0 2px var(--sl-color-bg);
+}
+#veetr-racing .selected, #veetr-racing .categories .active, #veetr-racing .badge, #veetr-racing .directory-count, #veetr-racing .directory-boat-icon, #veetr-racing .position { background:var(--sl-color-accent-low); color:var(--sl-color-text-accent); border-color:var(--sl-color-accent); }
+#veetr-racing table { font-size:.95rem; }
+#veetr-racing thead, #veetr-racing .counted, #veetr-racing .total, #veetr-racing .directory-search { background:var(--sl-color-gray-6); color:var(--sl-color-white); }
+#veetr-racing th, #veetr-racing td, #veetr-racing .table-scroll, #veetr-racing .directory-toolbar { border-color:var(--sl-color-hairline); }
+#veetr-racing .discarded, #veetr-racing .delete-action { color:#e06a62; }
+:root[data-theme=light] #veetr-racing .discarded, :root[data-theme=light] #veetr-racing .delete-action {color:#b42318;}
+#veetr-racing .account-dialog { background:var(--sl-color-bg); color:var(--sl-color-white); border-color:var(--sl-color-hairline); }
+/* Pair notice text and surfaces explicitly; the portal paragraph color must not bleed in. */
+#veetr-racing .notice {
+  --notice-bg: #312b17;
+  --notice-text: #fff0b3;
+  --notice-border: #88733a;
+  background: var(--notice-bg);
+  color: var(--notice-text);
+  border-color: var(--notice-border);
+  line-height: 1.6;
+}
+:root[data-theme=light] #veetr-racing .notice {
+  --notice-bg: #fff8df;
+  --notice-text: #554616;
+  --notice-border: #bca55e;
+}
+#veetr-racing .notice :is(p, strong, a) { color: inherit; }
+#veetr-racing .notice button {
+  background: transparent;
+  color: var(--notice-text);
+  border-color: var(--notice-border);
+}
+#veetr-racing .notice button:hover { background: transparent; text-decoration: underline; }
+#veetr-racing .portal-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:1rem; margin-bottom:1.25rem; }
+#veetr-racing .portal-toolbar a {font-weight:600; font-size:.9rem; color:var(--sl-color-text-accent);text-decoration:none;}
+#veetr-account-controls {flex-shrink:0;white-space:nowrap;display:flex;align-items:center;gap:.5rem;}
+#veetr-account-controls:has(button) > a {display:none;}
+#veetr-account-controls select, #veetr-account-controls button {font:inherit;font-size:.85rem;min-height:2.5rem;border:1px solid var(--sl-color-hairline);border-radius:.5rem;padding:.4rem .65rem;background:var(--sl-color-bg);color:var(--sl-color-white);}
+#veetr-account-controls .portal-account {background:var(--sl-color-text-accent);color:var(--sl-color-bg);font-weight:600;}
+@media(max-width:48rem){#veetr-account-controls select {max-width:5rem;}#veetr-account-controls button{max-width:7rem;}body:has(#veetr-racing) .sl-container {padding-inline:.5rem;}}

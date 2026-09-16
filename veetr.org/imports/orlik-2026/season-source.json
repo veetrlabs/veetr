@@ -1,0 +1,753 @@
+[
+  {
+    "sheet": "pořadí do 7m",
+    "events": [
+      "Jarní vítr",
+      "Radavská regata",
+      "24hodinovka",
+      "Vánoční regata",
+      "Izolepa",
+      "FxCK Cancer",
+      "Radavský pohár",
+      "O pohár Vltavy",
+      "Pohár Slunce"
+    ],
+    "boats": [
+      {
+        "name": "LUNA",
+        "sourceRow": 4,
+        "scores": [
+          0,
+          0,
+          -1,
+          0,
+          0,
+          0,
+          1,
+          null,
+          null
+        ],
+        "raw": 0,
+        "rawRank": 1,
+        "counted": 1,
+        "rank": 1
+      },
+      {
+        "name": "SENDY",
+        "sourceRow": 5,
+        "scores": [
+          1,
+          0,
+          0,
+          0,
+          2,
+          2,
+          2,
+          null,
+          null
+        ],
+        "raw": 7,
+        "rawRank": 2,
+        "counted": 5,
+        "rank": 2
+      },
+      {
+        "name": "JOY",
+        "sourceRow": 6,
+        "scores": [
+          1,
+          0,
+          1,
+          0,
+          1,
+          2,
+          3,
+          null,
+          null
+        ],
+        "raw": 8,
+        "rawRank": 3,
+        "counted": 6,
+        "rank": 4
+      },
+      {
+        "name": "Andante",
+        "sourceRow": 7,
+        "scores": [
+          1,
+          0,
+          3,
+          0,
+          3,
+          2,
+          3,
+          null,
+          null
+        ],
+        "raw": 12,
+        "rawRank": 6,
+        "counted": 9,
+        "rank": 6
+      },
+      {
+        "name": "Varianta",
+        "sourceRow": 8,
+        "scores": [
+          1,
+          0,
+          3,
+          0,
+          4,
+          1,
+          3,
+          null,
+          null
+        ],
+        "raw": 12,
+        "rawRank": 5,
+        "counted": 8,
+        "rank": 5
+      },
+      {
+        "name": "Charlotte III",
+        "sourceRow": 9,
+        "scores": [
+          1,
+          0,
+          3,
+          0,
+          4,
+          2,
+          0,
+          null,
+          null
+        ],
+        "raw": 10,
+        "rawRank": 4,
+        "counted": 6,
+        "rank": 3
+      }
+    ]
+  },
+  {
+    "sheet": "pořadí nad 7m",
+    "events": [
+      "Jarní vítr",
+      "Radavská regata",
+      "24hodinovka",
+      "Vánoční regata",
+      "Izolepa",
+      "FxCK Cancer",
+      "Radavský pohár",
+      "O pohár Vltavy",
+      "Pohár Slunce"
+    ],
+    "boats": [
+      {
+        "name": "PEZI",
+        "sourceRow": 4,
+        "scores": [
+          0,
+          0,
+          0,
+          0,
+          12,
+          1,
+          0,
+          null,
+          null
+        ],
+        "raw": 13,
+        "rawRank": 2,
+        "counted": 1,
+        "rank": 1
+      },
+      {
+        "name": "MAMBA",
+        "sourceRow": 5,
+        "scores": [
+          1,
+          0,
+          -1,
+          0,
+          2,
+          0,
+          3,
+          null,
+          null
+        ],
+        "raw": 5,
+        "rawRank": 1,
+        "counted": 3,
+        "rank": 2
+      },
+      {
+        "name": "M1",
+        "sourceRow": 6,
+        "scores": [
+          2,
+          0,
+          8,
+          0,
+          12,
+          13,
+          9,
+          null,
+          null
+        ],
+        "raw": 44,
+        "rawRank": 15,
+        "counted": 31,
+        "rank": 13
+      },
+      {
+        "name": "DEPRESSO",
+        "sourceRow": 7,
+        "scores": [
+          3,
+          0,
+          8,
+          0,
+          1,
+          5,
+          1,
+          null,
+          null
+        ],
+        "raw": 18,
+        "rawRank": 3,
+        "counted": 10,
+        "rank": 3
+      },
+      {
+        "name": "CASSIOPEIA",
+        "sourceRow": 8,
+        "scores": [
+          4,
+          0,
+          1,
+          0,
+          12,
+          13,
+          9,
+          null,
+          null
+        ],
+        "raw": 39,
+        "rawRank": 9,
+        "counted": 26,
+        "rank": 8
+      },
+      {
+        "name": "SULA",
+        "sourceRow": 9,
+        "scores": [
+          5,
+          0,
+          8,
+          0,
+          12,
+          13,
+          9,
+          null,
+          null
+        ],
+        "raw": 47,
+        "rawRank": 20,
+        "counted": 36,
+        "rank": 23
+      },
+      {
+        "name": "NABLB",
+        "sourceRow": 10,
+        "scores": [
+          6,
+          0,
+          3,
+          0,
+          12,
+          13,
+          9,
+          null,
+          null
+        ],
+        "raw": 43,
+        "rawRank": 11,
+        "counted": 30,
+        "rank": 11
+      },
+      {
+        "name": "FILOZEP",
+        "sourceRow": 11,
+        "scores": [
+          7,
+          0,
+          8,
+          0,
+          4,
+          4,
+          9,
+          null,
+          null
+        ],
+        "raw": 32,
+        "rawRank": 6,
+        "counted": 28,
+        "rank": 10
+      },
+      {
+        "name": "SPRUNZEL",
+        "sourceRow": 12,
+        "scores": [
+          8,
+          0,
+          2,
+          0,
+          12,
+          9,
+          8,
+          null,
+          null
+        ],
+        "raw": 39,
+        "rawRank": 10,
+        "counted": 27,
+        "rank": 9
+      },
+      {
+        "name": "THEA",
+        "sourceRow": 13,
+        "scores": [
+          8,
+          0,
+          4,
+          0,
+          10,
+          12,
+          9,
+          null,
+          null
+        ],
+        "raw": 43,
+        "rawRank": 12,
+        "counted": 31,
+        "rank": 14
+      },
+      {
+        "name": "MICHELLE",
+        "sourceRow": 14,
+        "scores": [
+          8,
+          0,
+          5,
+          0,
+          6,
+          7,
+          7,
+          null,
+          null
+        ],
+        "raw": 33,
+        "rawRank": 7,
+        "counted": 25,
+        "rank": 7
+      },
+      {
+        "name": "DIVNA",
+        "sourceRow": 15,
+        "scores": [
+          8,
+          0,
+          6,
+          0,
+          12,
+          13,
+          9,
+          null,
+          null
+        ],
+        "raw": 48,
+        "rawRank": 24,
+        "counted": 35,
+        "rank": 21
+      },
+      {
+        "name": "FAMILY LADY",
+        "sourceRow": 16,
+        "scores": [
+          8,
+          0,
+          8,
+          0,
+          0,
+          13,
+          9,
+          null,
+          null
+        ],
+        "raw": 38,
+        "rawRank": 8,
+        "counted": 25,
+        "rank": 6
+      },
+      {
+        "name": "M@rtina",
+        "sourceRow": 17,
+        "scores": [
+          8,
+          0,
+          8,
+          0,
+          3,
+          2,
+          2,
+          null,
+          null
+        ],
+        "raw": 23,
+        "rawRank": 4,
+        "counted": 15,
+        "rank": 4
+      },
+      {
+        "name": "ROSE",
+        "sourceRow": 18,
+        "scores": [
+          8,
+          0,
+          8,
+          0,
+          5,
+          13,
+          9,
+          null,
+          null
+        ],
+        "raw": 43,
+        "rawRank": 14,
+        "counted": 30,
+        "rank": 12
+      },
+      {
+        "name": "MICINY",
+        "sourceRow": 19,
+        "scores": [
+          8,
+          0,
+          8,
+          0,
+          7,
+          13,
+          9,
+          null,
+          null
+        ],
+        "raw": 45,
+        "rawRank": 17,
+        "counted": 32,
+        "rank": 17
+      },
+      {
+        "name": "AVENIR",
+        "sourceRow": 20,
+        "scores": [
+          8,
+          0,
+          8,
+          0,
+          8,
+          3,
+          5,
+          null,
+          null
+        ],
+        "raw": 32,
+        "rawRank": 5,
+        "counted": 24,
+        "rank": 5
+      },
+      {
+        "name": "HOGAN",
+        "sourceRow": 21,
+        "scores": [
+          8,
+          0,
+          8,
+          0,
+          9,
+          13,
+          9,
+          null,
+          null
+        ],
+        "raw": 47,
+        "rawRank": 22,
+        "counted": 34,
+        "rank": 19
+      },
+      {
+        "name": "LIBERTÉ",
+        "sourceRow": 22,
+        "scores": [
+          8,
+          0,
+          8,
+          0,
+          11,
+          13,
+          9,
+          null,
+          null
+        ],
+        "raw": 49,
+        "rawRank": 25,
+        "counted": 36,
+        "rank": 25
+      },
+      {
+        "name": "Rio",
+        "sourceRow": 23,
+        "scores": [
+          8,
+          0,
+          8,
+          0,
+          12,
+          6,
+          9,
+          null,
+          null
+        ],
+        "raw": 43,
+        "rawRank": 13,
+        "counted": 31,
+        "rank": 15
+      },
+      {
+        "name": "Claudie",
+        "sourceRow": 24,
+        "scores": [
+          8,
+          0,
+          8,
+          0,
+          12,
+          8,
+          9,
+          null,
+          null
+        ],
+        "raw": 45,
+        "rawRank": 18,
+        "counted": 33,
+        "rank": 17
+      },
+      {
+        "name": "Mabye",
+        "sourceRow": 25,
+        "scores": [
+          8,
+          0,
+          8,
+          0,
+          12,
+          10,
+          9,
+          null,
+          null
+        ],
+        "raw": 47,
+        "rawRank": 22,
+        "counted": 35,
+        "rank": 20
+      },
+      {
+        "name": "Caprice",
+        "sourceRow": 26,
+        "scores": [
+          8,
+          0,
+          8,
+          0,
+          12,
+          11,
+          9,
+          null,
+          null
+        ],
+        "raw": 48,
+        "rawRank": 23,
+        "counted": 36,
+        "rank": 24
+      },
+      {
+        "name": "Valhalla",
+        "sourceRow": 27,
+        "scores": [
+          8,
+          0,
+          8,
+          0,
+          12,
+          13,
+          4,
+          null,
+          null
+        ],
+        "raw": 45,
+        "rawRank": 16,
+        "counted": 32,
+        "rank": 16
+      },
+      {
+        "name": "Perun",
+        "sourceRow": 28,
+        "scores": [
+          8,
+          0,
+          8,
+          0,
+          12,
+          13,
+          6,
+          null,
+          null
+        ],
+        "raw": 47,
+        "rawRank": 19,
+        "counted": 34,
+        "rank": 18
+      }
+    ]
+  },
+  {
+    "sheet": "RACE",
+    "events": [
+      "Jarní vítr",
+      "Radavská regata",
+      "24hodinovka",
+      "Vánoční regata",
+      "Izolepa",
+      "FxCK Cancer",
+      "Radavský pohár",
+      "O pohár Vltavy",
+      "Pohár Slunce"
+    ],
+    "boats": [
+      {
+        "name": "ČERVENÉ CAFE",
+        "sourceRow": 4,
+        "scores": [
+          0,
+          0,
+          20,
+          0,
+          0,
+          4,
+          4,
+          null,
+          null
+        ],
+        "raw": 28,
+        "rawRank": 6,
+        "counted": 8,
+        "rank": 3
+      },
+      {
+        "name": "MODRÉ CAFE",
+        "sourceRow": 5,
+        "scores": [
+          1,
+          0,
+          2,
+          0,
+          3,
+          1,
+          2,
+          null,
+          null
+        ],
+        "raw": 9,
+        "rawRank": 2,
+        "counted": 6,
+        "rank": 2
+      },
+      {
+        "name": "SEA MOUSE III",
+        "sourceRow": 6,
+        "scores": [
+          2,
+          0,
+          -1,
+          0,
+          1,
+          0,
+          1,
+          null,
+          null
+        ],
+        "raw": 3,
+        "rawRank": 1,
+        "counted": 1,
+        "rank": 1
+      },
+      {
+        "name": "SOCKA",
+        "sourceRow": 7,
+        "scores": [
+          2,
+          0,
+          0,
+          0,
+          4,
+          2,
+          4,
+          null,
+          null
+        ],
+        "raw": 12,
+        "rawRank": 4,
+        "counted": 8,
+        "rank": 5
+      },
+      {
+        "name": "FAR  STAR III",
+        "sourceRow": 8,
+        "scores": [
+          2,
+          0,
+          1,
+          0,
+          2,
+          3,
+          3,
+          null,
+          null
+        ],
+        "raw": 11,
+        "rawRank": 3,
+        "counted": 8,
+        "rank": 6
+      },
+      {
+        "name": "Zephyr",
+        "sourceRow": 9,
+        "scores": [
+          2,
+          0,
+          2,
+          0,
+          5,
+          4,
+          0,
+          null,
+          null
+        ],
+        "raw": 13,
+        "rawRank": 5,
+        "counted": 8,
+        "rank": 4
+      }
+    ]
+  }
+]

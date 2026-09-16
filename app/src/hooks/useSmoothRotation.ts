@@ -1,68 +1,64 @@
-import { useState, useEffect, useRef } from 'react'
+import { useRef, useEffect, useState } from 'react'
+import { Animated, Easing } from 'react-native'
 
 interface UseSmoothRotationOptions {
-  duration?: number // Animation duration in milliseconds
-  easing?: (t: number) => number // Easing function
+  duration?: number
 }
 
 export function useSmoothRotation(
   targetAngle: number,
   options: UseSmoothRotationOptions = {}
-) {
-  const { duration = 1000, easing = (t) => t * (2 - t) } = options // Default to ease-out
-  const [currentAngle, setCurrentAngle] = useState(targetAngle)
-  const animationRef = useRef<number>()
-  const startTimeRef = useRef<number>()
-  const startAngleRef = useRef<number>(targetAngle)
+): number {
+  const { duration = 1000 } = options
+  const initialAngle = ((targetAngle % 360) + 360) % 360
+  const [currentAngle, setCurrentAngle] = useState(initialAngle)
+  const animatedValue = useRef(new Animated.Value(initialAngle)).current
+  const currentValueRef = useRef(initialAngle)
+  const animRef = useRef<Animated.CompositeAnimation | null>(null)
 
   useEffect(() => {
-    // Calculate the shortest path between angles (handling 360° wrap-around)
-    const angleDiff = ((targetAngle - currentAngle + 540) % 360) - 180
-    const targetNormalized = currentAngle + angleDiff
+    let lastUpdate = 0
+    const id = animatedValue.addListener(({ value }) => {
+      currentValueRef.current = value
+      const now = Date.now()
+      if (now - lastUpdate > 33) {
+        lastUpdate = now
+        setCurrentAngle(((value % 360) + 360) % 360)
+      }
+    })
+    return () => animatedValue.removeListener(id)
+  }, [animatedValue])
 
-    if (Math.abs(angleDiff) < 0.1) {
-      // If the difference is tiny, just snap to target
-      setCurrentAngle(targetAngle)
+  useEffect(() => {
+    const target = ((targetAngle % 360) + 360) % 360
+    const current = ((currentValueRef.current % 360) + 360) % 360
+    const diff = ((target - current + 540) % 360) - 180
+
+    if (Math.abs(diff) < 0.1) {
+      animRef.current?.stop()
+      animatedValue.setValue(target)
+      setCurrentAngle(target)
       return
     }
 
-    startAngleRef.current = currentAngle
-    startTimeRef.current = performance.now()
+    const from = currentValueRef.current
+    const to = from + diff
 
-    const animate = (timestamp: number) => {
-      const elapsed = timestamp - startTimeRef.current!
-      const progress = Math.min(elapsed / duration, 1)
-      const easedProgress = easing(progress)
+    animRef.current?.stop()
+    animatedValue.setValue(from)
 
-      const newAngle = startAngleRef.current + (targetNormalized - startAngleRef.current) * easedProgress
-      
-      // Normalize angle to 0-360 range
-      const normalizedAngle = ((newAngle % 360) + 360) % 360
-      setCurrentAngle(normalizedAngle)
+    animRef.current = Animated.timing(animatedValue, {
+      toValue: to,
+      duration,
+      easing: Easing.inOut(Easing.quad),
+      useNativeDriver: false,
+    })
+    animRef.current.start()
+  }, [targetAngle, duration])
 
-      if (progress < 1) {
-        animationRef.current = requestAnimationFrame(animate)
-      } else {
-        // Ensure we end exactly at the target
-        setCurrentAngle(((targetAngle % 360) + 360) % 360)
-      }
-    }
-
-    animationRef.current = requestAnimationFrame(animate)
-
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current)
-      }
-    }
-  }, [targetAngle, duration, easing])
-
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current)
-      }
+      animRef.current?.stop()
     }
   }, [])
 

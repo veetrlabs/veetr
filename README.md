@@ -121,6 +121,7 @@ For detailed information, see the [docs/](./docs/) directory:
 - **[Firmware](./docs/FIRMWARE.md)** - Sensor acquisition, calculations, BLE, settings, and updates
 - **[Progressive Web App](./docs/PWA.md)** - Dashboard, local history, offline behavior, and browser support
 - **[Development Guide](./docs/DEVELOPMENT.md)** - Developer workflow and contribution guide
+- **[Deployment Architecture](./docs/DEPLOYMENT.md)** - Maintainer guide to hosting, DNS, email, database migrations, and troubleshooting (GitHub only)
 - **[Hardware Guide](./docs/HARDWARE.md)** - ESP32 wiring and sensor specifications
 - **[PCB Files](./pcb/README.md)** - Gerber files and PCB manufacturing information ([download Gerbers](./pcb/gerbers/))
 - **[Compliance & Certifications](./docs/COMPLIANCE.md)** - FCC, CE, IC regulatory compliance
@@ -132,3 +133,9 @@ For detailed information, see the [docs/](./docs/) directory:
 ## License
 
 MIT License - see [LICENSE](./LICENSE) for details.
+
+## Race Control
+
+Race management lives in `veetr.org/src/features/racing`, integrated into the website at `/races/`, `/races/manage/`, `/boats/`, and `/account/`. It supports mixed-fleet categories, manual finish entry, automatic standings, published results and offline local saves with Supabase synchronization. Start the integrated site with `npm run dev --workspace veetr.org`. The `apps/race-control` entry remains a lightweight standalone development preview of the same source.
+
+See [Race Control development and scoring rules](./docs/RACE_CONTROL.md) for setup, seed data, authorization, offline behavior, tests and the explicitly provisional long-race scoring policy. The standalone scoring engine is in `packages/scoring`.

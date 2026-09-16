@@ -1,366 +1,176 @@
-import { useEffect, useRef, useState } from 'react';
-import { useBLE } from '../context/BLEContext';
-import { getAllReadings } from '../utils/dataStorage';
-import { isValidCoordinates } from '../utils/gpsValidation';
-import '../styles/Map.css';
-
-// Leaflet types will be loaded dynamically
-declare global {
-  interface Window {
-    L: any;
-  }
-}
-
-export default function Map() {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
-  const markersRef = useRef<any[]>([]);
-  const polylinesRef = useRef<any[]>([]);
-  const startLineMarkersRef = useRef<any[]>([]);
-  const startLineRef = useRef<any>(null);
-  const { state } = useBLE();
-  const data = state.sailingData;
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Debug: Log regatta data whenever it changes
+import { useEffect, useRef, useState } from "react";
+import { View, Text, Pressable, StyleSheet, Linking } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useBLE } from "../context/BLEContext";
+import { useTheme } from "../context/ThemeContext";
+import { themeColors } from "../constants/colors";
+import { useNavigation } from "../navigation/NavigationContext";
+import GPSStatusButton from "../components/GPSStatusButton";
+import Svg, { Circle as IconCircle, Path } from "react-native-svg";
+import { MapView, Marker, Polyline, Circle, UrlTile } from "../components/NativeMap";
+export default function Map({ onBack }: { onBack?: () => void }) {
+  const nav = useNavigation(),
+    { state } = useBLE(),
+    { theme } = useTheme(),
+    colors = themeColors[theme];
+  const insets = useSafeAreaInsets(),
+    ref = useRef<any>(null);
+  const [follow, setFollow] = useState(true),
+    [ready, setReady] = useState(false);
+  const [seamarks, setSeamarks] = useState(true);
+  const [mapType, setMapType] = useState<"standard" | "satellite">("standard");
+  const fix = nav.fix;
+  const trail = nav.trail;
+  const last = trail.at(-1);
+  const position =
+    fix ??
+    (last ? { latitude: last.latitude, longitude: last.longitude } : null);
   useEffect(() => {
-    console.log('[Map] Sailing data update:', {
-      portLat: data?.portLat,
-      portLon: data?.portLon,
-      starboardLat: data?.starboardLat,
-      starboardLon: data?.starboardLon,
-      hasStartLine: data?.hasStartLine
-    });
-  }, [data?.portLat, data?.portLon, data?.starboardLat, data?.starboardLon, data?.hasStartLine]);
-
-  useEffect(() => {
-    let mounted = true;
-
-    const initMap = async () => {
-      if (!mapRef.current) return;
-
-      // Load Leaflet if not already loaded
-      if (!window.L) {
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-        document.head.appendChild(link);
-
-        const script = document.createElement('script');
-        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-        await new Promise((resolve) => {
-          script.onload = resolve;
-          document.head.appendChild(script);
-        });
-      }
-
-      if (!mounted) return;
-
-      // Get GPS data from BLE or database
-      let lat = data?.lat && data.lat !== 0 ? data.lat : 0;
-      let lon = data?.lon && data.lon !== 0 ? data.lon : 0;
-
-      console.log('[Map] Initial GPS from BLE:', { lat, lon, hasData: !!data });
-
-      // Load last 50 readings for track and fallback position
-      let trackReadings: any[] = [];
-      try {
-        trackReadings = await getAllReadings(50);
-        console.log('[Map] Loaded track readings:', trackReadings.length);
-        
-        // Fallback to database if no live GPS
-        if ((lat === 0 || lon === 0) && trackReadings.length > 0) {
-          // Find most recent valid GPS reading (already in chronological order)
-          const validReading = [...trackReadings].reverse().find(r => isValidCoordinates(r.lat, r.lon));
-          if (validReading) {
-            lat = validReading.lat;
-            lon = validReading.lon;
-            console.log('[Map] Using GPS from database:', { lat, lon });
-          }
-        }
-      } catch (error) {
-        console.error('[Map] Error loading readings:', error);
-      }
-
-      // Default to Prague if still no data
-      if (lat === 0 || lon === 0) {
-        console.warn('[Map] No valid GPS data, using default location');
-        lat = 50.0;
-        lon = 14.0;
-      }
-
-      console.log('[Map] Final map center:', { lat, lon });
-
-      // Create map
-      const map = window.L.map(mapRef.current, {
-        center: [lat, lon],
-        zoom: lat === 50.0 && lon === 14.0 ? 5 : 20,
-        zoomControl: true,
-        dragging: true,
-        touchZoom: true,
-        doubleClickZoom: true,
-        scrollWheelZoom: true,
-        boxZoom: true,
-        keyboard: true,
-      });
-
-      // Add OpenStreetMap base layer
-      window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 19,
-      }).addTo(map);
-
-      // Add OpenSeaMap overlay
-      window.L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', {
-        attribution: '© OpenSeaMap contributors',
-        maxZoom: 19,
-      }).addTo(map);
-
-      mapInstanceRef.current = map;
-
-      // Load and display track history
-      loadTrackHistory(map, trackReadings);
-
-      setIsLoading(false);
-      console.log('[Map] Initialized successfully at', lat, lon);
-    };
-
-    const loadTrackHistory = (map: any, readings: any[]) => {
-      try {
-        // Use the readings passed from initMap
-        
-        // Filter valid GPS coordinates
-        const validPoints = readings.filter(r => isValidCoordinates(r.lat, r.lon));
-        
-        if (validPoints.length === 0) {
-          console.log('[Map] No track history to display');
-          return;
-        }
-
-        console.log(`[Map] Displaying ${validPoints.length} track points`);
-
-        // Group points into segments based on time gaps (> 1 minute)
-        const segments: Array<Array<typeof validPoints[0]>> = [];
-        let currentSegment: Array<typeof validPoints[0]> = [];
-        
-        for (let i = 0; i < validPoints.length; i++) {
-          currentSegment.push(validPoints[i]);
-          
-          // Check if next point has a time gap > 1 minute (60000ms)
-          if (i < validPoints.length - 1) {
-            const timeDiff = validPoints[i + 1].timestamp - validPoints[i].timestamp;
-            if (timeDiff > 60000) {
-              // Time gap detected, start new segment
-              segments.push(currentSegment);
-              currentSegment = [];
-            }
-          }
-        }
-        
-        // Add the last segment
-        if (currentSegment.length > 0) {
-          segments.push(currentSegment);
-        }
-
-        console.log(`[Map] Grouped into ${segments.length} track segments`);
-
-        // Draw polylines for each segment
-        segments.forEach((segment) => {
-          if (segment.length > 1) {
-            const coordinates = segment.map(p => [p.lat!, p.lon!]);
-            const polyline = window.L.polyline(coordinates, {
-              color: '#3388ff',
-              weight: 3,
-              opacity: 0.7,
-              smoothFactor: 1,
-            }).addTo(map);
-            
-            markersRef.current.push(polyline);
-          }
-        });
-
-        // Draw each point as a small circle with gradient opacity
-        validPoints.forEach((point, index) => {
-          const isLatest = index === validPoints.length - 1;
-          // Calculate opacity: latest point = 1.0, oldest = 0.0, decrease by 2% per point
-          const opacity = Math.max(0, 1 - ((validPoints.length - 1 - index) * 0.02));
-          
-          const marker = window.L.circleMarker([point.lat!, point.lon!], {
-            radius: isLatest ? 5 : 3,
-            fillColor: isLatest ? '#00bfff' : '#666', // Light blue for latest, grey for others
-            color: isLatest ? '#fff' : '#666',
-            weight: isLatest ? 2 : 1,
-            opacity: opacity,
-            fillOpacity: opacity,
-            pane: isLatest ? 'markerPane' : 'overlayPane', // Latest on top
-            zIndexOffset: isLatest ? 1000 : 0
-          }).addTo(map);
-
-          // Add tooltip with sensor data
-          const tooltipContent = `
-            <strong>${new Date(point.timestamp).toLocaleString()}</strong><br/>
-            SOG: ${point.SOG?.toFixed(1) || 'N/A'} kt<br/>
-            HDM: ${point.HDM?.toFixed(0) || 'N/A'}°<br/>
-            AWS: ${point.AWS?.toFixed(1) || 'N/A'} kt<br/>
-            AWA: ${point.AWA?.toFixed(0) || 'N/A'}°
-          `;
-          marker.bindTooltip(tooltipContent);
-
-          markersRef.current.push(marker);
-        });
-
-      } catch (error) {
-        console.error('[Map] Error loading track history:', error);
-      }
-    };
-
-    initMap();
-
-    return () => {
-      mounted = false;
-      // Clean up markers
-      markersRef.current.forEach(marker => marker.remove());
-      markersRef.current = [];
-      
-      // Clean up polylines
-      polylinesRef.current.forEach(line => line.remove());
-      polylinesRef.current = [];
-      
-      // Clean up start line markers and line
-      startLineMarkersRef.current.forEach(marker => marker.remove());
-      startLineMarkersRef.current = [];
-      if (startLineRef.current) {
-        startLineRef.current.remove();
-        startLineRef.current = null;
-      }
-      
-      if (mapInstanceRef.current) {
-        console.log('[Map] Cleaning up map instance');
-        mapInstanceRef.current.off();
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-      }
-      
-      // Remove Leaflet's internal tracking
-      const container = document.getElementById('map');
-      if (container) {
-        (container as any)._leaflet_id = undefined;
-      }
-    };
-  }, []);
-
-  // Update start line markers when regatta data changes
-  useEffect(() => {
-    console.log('[Map] Regatta effect check:', { 
-      hasMap: !!mapInstanceRef.current, 
-      hasLeaflet: !!window.L,
-      portLat: data?.portLat,
-      portLon: data?.portLon,
-      starboardLat: data?.starboardLat,
-      starboardLon: data?.starboardLon
-    });
-
-    if (!mapInstanceRef.current || !window.L) {
-      console.log('[Map] Regatta effect: Map not ready yet');
-      return;
-    }
-
-    // Get regatta coordinates from BLE context data
-    const portLat = data?.portLat;
-    const portLon = data?.portLon;
-    const starboardLat = data?.starboardLat;
-    const starboardLon = data?.starboardLon;
-
-    console.log('[Map] Regatta effect triggered:', { portLat, portLon, starboardLat, starboardLon, hasData: !!data });
-
-    // Clean up existing start line markers and line
-    startLineMarkersRef.current.forEach(marker => marker.remove());
-    startLineMarkersRef.current = [];
-    if (startLineRef.current) {
-      startLineRef.current.remove();
-      startLineRef.current = null;
-    }
-
-    if (!portLat && !starboardLat) {
-      console.log('[Map] No regatta coordinates available');
-      return;
-    }
-
-    try {
-      if (portLat && portLon) {
-        // Add port marker (red)
-        const portMarker = window.L.circleMarker([portLat, portLon], {
-          radius: 8,
-          fillColor: '#ff0000',
-          color: '#fff',
-          weight: 2,
-          opacity: 1,
-          fillOpacity: 0.8,
-          pane: 'markerPane' // Ensure it's on top
-        }).addTo(mapInstanceRef.current);
-        
-        startLineMarkersRef.current.push(portMarker);
-      }
-
-      if (starboardLat && starboardLon) {
-        // Add starboard marker (green)
-        const starboardMarker = window.L.circleMarker([starboardLat, starboardLon], {
-          radius: 8,
-          fillColor: '#00ff00',
-          color: '#fff',
-          weight: 2,
-          opacity: 1,
-          fillOpacity: 0.8,
-          pane: 'markerPane' // Ensure it's on top
-        }).addTo(mapInstanceRef.current);
-        
-        startLineMarkersRef.current.push(starboardMarker);
-      }
-
-      // If both points are set, draw the start line
-      if (portLat && portLon && starboardLat && starboardLon) {
-        const startLine = window.L.polyline(
-          [[portLat, portLon], [starboardLat, starboardLon]],
-          {
-            color: '#ff0000',
-            weight: 4,
-            opacity: 1,
-            dashArray: '10, 5',
-            pane: 'markerPane' // Render on top
-          }
-        ).addTo(mapInstanceRef.current);
-        
-        startLineRef.current = startLine;
-        console.log('[Map] Start line drawn between port and starboard');
-      }
-    } catch (error) {
-      console.error('[Map] Error adding regatta markers:', error);
-    }
-  }, [data?.portLat, data?.portLon, data?.starboardLat, data?.starboardLon, isLoading]); // Re-run when coordinates change OR map becomes ready
-
-  const handleBack = () => {
-    // Use state update instead of history.back()
-    window.dispatchEvent(new CustomEvent('navigate', { detail: 'dashboard' }));
+    if (ready && follow && position)
+      ref.current?.animateToRegion(
+        { ...position, latitudeDelta: 0.01, longitudeDelta: 0.01 },
+        500,
+      );
+  }, [ready, follow, position?.latitude, position?.longitude]);
+  const local = nav.phoneStartLine.line;
+  const d = state.isConnected ? state.sailingData : {
+    portLat: local.port?.latitude ?? null, portLon: local.port?.longitude ?? null,
+    starboardLat: local.starboard?.latitude ?? null, starboardLon: local.starboard?.longitude ?? null,
   };
-
+  const coordinate = (lat: number | null, lon: number | null) =>
+    lat !== null &&
+    lon !== null &&
+    Number.isFinite(lat) &&
+    Number.isFinite(lon) &&
+    Math.abs(lat) <= 90 &&
+    Math.abs(lon) <= 180;
+  const line =
+    coordinate(d.portLat, d.portLon) &&
+    coordinate(d.starboardLat, d.starboardLon);
+  const lineKey = line ? `${d.portLat},${d.portLon}/${d.starboardLat},${d.starboardLon}` : '';
+  useEffect(() => {
+    if (!ready || !lineKey) return;
+    setFollow(false);
+    ref.current?.fitToCoordinates([
+      { latitude: d.portLat!, longitude: d.portLon! },
+      { latitude: d.starboardLat!, longitude: d.starboardLon! },
+    ], { edgePadding: { top: insets.top + 60, right: 50, bottom: 100, left: 50 }, animated: true });
+  }, [ready, lineKey]);
   return (
-    <div className="map-page">
-      <button 
-        className="map-back-button"
-        onClick={handleBack}
-        aria-label="Go back to dashboard"
-      >
-        ← Back
-      </button>
-      
-      {isLoading && (
-        <div className="map-loading">Loading map...</div>
-      )}
-      
-      <div 
-        ref={mapRef} 
-        className="map-container"
-      />
-    </div>
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      {MapView ? (
+        <MapView
+          ref={ref}
+          mapType={mapType}
+          style={StyleSheet.absoluteFill}
+          onMapReady={() => setReady(true)}
+          onPanDrag={() => setFollow(false)}
+          initialRegion={{
+            latitude: position?.latitude ?? 50,
+            longitude: position?.longitude ?? 14,
+            latitudeDelta: 0.02,
+            longitudeDelta: 0.02,
+          }}
+        >
+          {seamarks && <UrlTile
+            urlTemplate="https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png"
+            tileSize={256}
+            maximumNativeZ={18}
+            maximumZ={22}
+            shouldReplaceMapContent={false}
+            zIndex={0}
+          />}
+          {trail.length > 1 && (
+            <Polyline
+              coordinates={trail.map((p) => ({
+                latitude: p.latitude,
+                longitude: p.longitude,
+              }))}
+              strokeColor="#008c80"
+              strokeWidth={4}
+            />
+          )}
+          {position && (
+            <Marker
+              coordinate={position}
+              title={fix ? fix.source : "Last recorded position"}
+              pinColor={fix ? "#008c80" : "#64748b"}
+            />
+          )}
+          {fix?.accuracy != null && (
+            <Circle
+              center={fix}
+              radius={fix.accuracy}
+              fillColor="rgba(0,140,128,0.12)"
+              strokeColor="#008c80"
+            />
+          )}
+          {line && (
+            <>
+              <Marker
+                coordinate={{ latitude: d.portLat!, longitude: d.portLon! }}
+                title="Port · start line"
+                pinColor="red"
+              />
+              <Marker
+                coordinate={{
+                  latitude: d.starboardLat!,
+                  longitude: d.starboardLon!,
+                }}
+                title="Starboard · start line"
+                pinColor="green"
+              />
+              <Polyline
+                coordinates={[
+                  { latitude: d.portLat!, longitude: d.portLon! },
+                  { latitude: d.starboardLat!, longitude: d.starboardLon! },
+                ]}
+                strokeColor="#f97316"
+                strokeWidth={4}
+                zIndex={10}
+              />
+            </>
+          )}
+        </MapView>
+      ) : null}
+      <GPSStatusButton />
+      <Pressable accessibilityRole="button" accessibilityLabel="Recenter and follow GPS" accessibilityState={{ selected: follow, disabled: !position }} disabled={!position} onPress={() => {
+        setFollow(true);
+        if (position) ref.current?.animateToRegion({ ...position, latitudeDelta: 0.01, longitudeDelta: 0.01 });
+      }} style={{ position: 'absolute', top: insets.top + 4, right: Math.max(8, insets.right), width: 44, height: 44, borderRadius: 22, backgroundColor: colors.panelBg, alignItems: 'center', justifyContent: 'center' }}>
+        <Svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke={!position ? colors.textMuted : follow ? '#008c80' : colors.text} strokeWidth={2}>
+          <IconCircle cx="12" cy="12" r="6" /><IconCircle cx="12" cy="12" r="2" /><Path d="M12 2v4m0 12v4M2 12h4m12 0h4" />
+        </Svg>
+      </Pressable>
+      <View style={{ position: 'absolute', bottom: 32, right: Math.max(12, insets.right), gap: 8, alignItems: 'flex-end' }}>
+        {line && <Pressable accessibilityRole="button" accessibilityLabel="Show start line" onPress={() => {
+          setFollow(false);
+          ref.current?.fitToCoordinates([
+            { latitude: d.portLat!, longitude: d.portLon! },
+            { latitude: d.starboardLat!, longitude: d.starboardLon! },
+          ], { edgePadding: { top: insets.top + 60, right: 50, bottom: 100, left: 50 }, animated: true });
+        }} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: colors.panelBg }}>
+          <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={colors.text} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><Path d="M4 20V4l7 3-7 3 M20 20V4l-7 3 7 3 M4 18h16" /></Svg>
+        </Pressable>}
+        <View style={{ flexDirection: 'row', borderRadius: 12, padding: 2, backgroundColor: colors.panelBg, gap: 2 }}>
+          {(['standard', 'satellite'] as const).map(type => <Pressable key={type} accessibilityRole="button" accessibilityLabel={type === 'standard' ? 'Standard map' : 'Satellite map'} accessibilityState={{ selected: mapType === type }} onPress={() => setMapType(type)} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: mapType === type ? colors.buttonBg : 'transparent' }}>
+            <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={mapType === type ? '#008c80' : colors.textMuted} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+              {type === 'standard' ? <Path d="M3 5l6-2 6 2 6-2v16l-6 2-6-2-6 2V5z M9 3v16 M15 5v16" /> : <><Path d="M9 10l5-5 5 5-5 5z M6 5l3-3 3 3-3 3z M16 17l3-3 3 3-3 3z M3 14a7 7 0 007 7 M3 18a3 3 0 003 3 M7 13l4 4" /></>}
+            </Svg>
+          </Pressable>)}
+          <View style={{ width: 1, marginVertical: 10, backgroundColor: colors.border }} />
+          <Pressable accessibilityRole="button" accessibilityLabel="Nautical seamarks" accessibilityState={{ selected: seamarks }} onPress={() => setSeamarks(value => !value)} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: seamarks ? colors.buttonBg : 'transparent' }}>
+            <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={seamarks ? '#008c80' : colors.textMuted} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+              <Path d="M12 3v4 M9 7h6l2 11H7L9 7z M9 11h6 M3 20q3-3 6 0t6 0t6 0" />
+              <IconCircle cx="12" cy="3" r="1" />
+            </Svg>
+          </Pressable>
+        </View>
+        {onBack && <Pressable accessibilityRole="button" onPress={onBack} style={{ padding: 12, backgroundColor: colors.panelBg }}><Text style={{ color: colors.text }}>Back</Text></Pressable>}
+      </View>
+      {seamarks && <Pressable accessibilityRole="link" accessibilityLabel="OpenSeaMap attribution" onPress={() => void Linking.openURL('https://www.openseamap.org/')} style={{ position: 'absolute', left: Math.max(8, insets.left), bottom: 30, padding: 4, backgroundColor: colors.panelBg, borderRadius: 4 }}>
+        <Text style={{ fontSize: 10, color: colors.textSecondary }}>© OpenSeaMap contributors</Text>
+      </Pressable>}
+    </View>
   );
 }
