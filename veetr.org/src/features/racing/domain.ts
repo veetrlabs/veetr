@@ -3,7 +3,7 @@ import {
   defaultPolicy,
   type Result,
   type Race,
-} from "@veetr/scoring";
+} from "../../../../packages/scoring/src/index";
 export interface Category {
   id: string;
   name: string;
@@ -281,9 +281,9 @@ export function eventStandings(
   const boats = categoryId || series.pointsStart === 0
     ? series.boats
     : series.boats.map((b) => ({ ...b, categoryId: "overall" }));
-  const races = structuredClone(
-    series.races.filter((r) => (r.eventId ?? r.id) === event.id),
-  );
+  const races = series.races
+    .filter((r) => (r.eventId ?? r.id) === event.id)
+    .map(r => ({ ...r, entries: [...r.entries], results: r.results.map(result => ({ ...result })) }));
   if (!series.events)
     races.forEach((r) => {
       r.weight = 1;

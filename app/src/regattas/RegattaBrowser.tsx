@@ -5,30 +5,37 @@ import {
   Modal,
   Pressable,
   ScrollView,
+  RefreshControl,
   Text,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
 import { themeColors } from "../constants/colors";
 import { trackingClient, trackingRpc } from "../tracking/client";
 import {
   type Regatta,
+  type RaceRegatta,
+  publishedRaceRegattas,
   type RegattaFilter,
   regattaState,
   replayStep,
 } from "./model";
 import { parseTrackingPositions, type TrackingPosition } from "./positions";
 import FleetMap from "./FleetMap";
+import { retryRegattaRead, regattaReadError } from "./read";
+import SeriesDetail from "./SeriesDetail";
+import RegattaResults from "./RegattaResults";
+import type { Series } from "../../../veetr.org/src/features/racing/domain";
 
 export default function RegattaBrowser() {
   const { theme } = useTheme(),
     c = themeColors[theme];
-  const [rows, setRows] = useState<Regatta[]>([]),
+  const [rows, setRows] = useState<RaceRegatta[]>([]),
     [loading, setLoading] = useState(true),
     [error, setError] = useState("");
   const [filter, setFilter] = useState<RegattaFilter>("All"),
-    [selected, setSelected] = useState<Regatta | null>(null);
+    [selected, setSelected] = useState<RaceRegatta | null>(null);
   const [revision, setRevision] = useState(0);
   useEffect(() => {
     let alive = true;
@@ -40,20 +47,25 @@ export default function RegattaBrowser() {
           "Regattas are unavailable. Check your connection and try again.",
         );
       const reply = await trackingClient.rpc("public_regatta_directory");
+      let directory: Regatta[];
       if (reply.error) {
         // Compatibility while the spectator migration is being deployed.
         if (reply.error.code !== "PGRST202")
           throw new Error(reply.error.message);
-        return trackingRpc<Regatta[]>("public_series_directory");
-      }
-      return reply.data as Regatta[];
+        directory = await trackingRpc<Regatta[]>("public_series_directory");
+      } else directory = reply.data as Regatta[];
+      const races = await Promise.all(directory.map(async row => {
+        const series = await trackingRpc<Series | null>("public_standings", { series_id: row.id });
+        return series ? publishedRaceRegattas(row, series) : [];
+      }));
+      return races.flat();
     }
-    void load()
+    void retryRegattaRead(load, () => alive)
       .then((data) => {
         if (alive) setRows(data);
       })
       .catch((e) => {
-        if (alive) setError(e.message);
+        if (alive) setError(regattaReadError(e));
       })
       .finally(() => {
         if (alive) setLoading(false);
@@ -78,13 +90,25 @@ export default function RegattaBrowser() {
     </Pressable>
   );
   return (
-    <View style={{ gap: 12 }}>
+    <ScrollView
+      testID="regatta-list"
+      style={{ flex: 1 }}
+      alwaysBounceVertical
+      contentContainerStyle={{ flexGrow: 1, padding: 20, gap: 16, paddingBottom: 36 }}
+      refreshControl={<RefreshControl
+        refreshing={loading && revision > 0}
+        onRefresh={() => { if (!loading) { setLoading(true); setRevision(v => v + 1); } }}
+        tintColor={c.text}
+        colors={["#006b62"]}
+      />}
+    >
+      <Text style={{ color: c.text, fontSize: 28, fontWeight: "700" }}>Regattas</Text>
       <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
         {(["All", "Live", "Upcoming", "Past"] as RegattaFilter[]).map((f) =>
           button(f, () => setFilter(f), filter === f),
         )}
       </View>
-      {loading && <Text style={{ color: c.textMuted }}>Loading regattas…</Text>}
+      {loading && revision === 0 && <Text style={{ color: c.textMuted }}>Loading races…</Text>}
       {error && (
         <Text accessibilityRole="alert" style={{ color: c.text }}>
           {error}
@@ -95,7 +119,7 @@ export default function RegattaBrowser() {
         !rows.filter((r) => filter === "All" || regattaState(r) === filter)
           .length && (
           <Text style={{ color: c.textMuted }}>
-            No {filter === "All" ? "published" : filter.toLowerCase()} regattas
+            No {filter === "All" ? "published" : filter.toLowerCase()} races
             yet.
           </Text>
         )}
@@ -120,31 +144,37 @@ export default function RegattaBrowser() {
               {r.name}
             </Text>
             <Text style={{ color: c.textMuted }}>
-              {regattaState(r)} · {r.firstDate || r.year} · {r.boatCount} boats
+              {regattaState(r) === "Scheduled" ? "Date not set" : regattaState(r)} · {r.firstDate || r.year} · {r.boatCount} boats
             </Text>
             {r.replayStart && (
               <Text style={{ color: c.textSecondary }}>Replay available</Text>
             )}
           </Pressable>
         ))}
-      {button("Refresh", () => setRevision((v) => v + 1))}
       {selected && (
         <Spectator regatta={selected} close={() => setSelected(null)} />
       )}
-    </View>
+    </ScrollView>
   );
 }
 function Spectator({
-  regatta: r,
+  regatta: initialRace,
   close,
 }: {
-  regatta: Regatta;
+  regatta: RaceRegatta;
   close: () => void;
 }) {
   const { theme } = useTheme(),
     c = themeColors[theme];
-  const [replay, setReplay] = useState(false),
-    [playing, setPlaying] = useState(false);
+  type Page = {kind:"race"; regatta:RaceRegatta} | {kind:"series"; series:Series} | {kind:"boat"; series:Series; boatId:string};
+  const [pages, setPages] = useState<Page[]>([{kind:"race",regatta:initialRace}]);
+  const page = pages[pages.length-1];
+  const r = page.kind === "race" ? page.regatta : initialRace;
+  const navigate = (next:Page) => { setPages(history=>[...history,next]); setTab("Results"); setPlaying(false); };
+  const [tab, setTab] = useState<"Results" | "Live" | "Replay">("Results");
+  const replay = tab === "Replay";
+  const hasReplay = Number.isFinite(Date.parse(r.replayStart || "")) && Number.isFinite(Date.parse(r.replayEnd || "")) && Date.parse(r.replayEnd!) >= Date.parse(r.replayStart!);
+  const [playing, setPlaying] = useState(false);
   const [retry, setRetry] = useState(0);
   const start = Date.parse(r.replayStart || ""),
     end = Date.parse(r.replayEnd || "");
@@ -154,6 +184,7 @@ function Spectator({
     [loading, setLoading] = useState(true),
     [now, setNow] = useState(Date.now());
   useEffect(() => {
+    if (tab === "Results" || page.kind !== "race") return;
     let alive = true,
       timer: ReturnType<typeof setTimeout>;
     setPositions([]);
@@ -168,12 +199,12 @@ function Spectator({
         const result = await trackingRpc(
           replay ? "public_regatta_replay" : "public_tracking_positions",
           {
-            p_series: r.id,
+            p_series: r.seriesId,
             ...(replay ? { p_at: new Date(at).toISOString() } : {}),
           },
         );
         if (alive) {
-          setPositions(parseTrackingPositions(result));
+          setPositions(parseTrackingPositions(result).filter(p => r.boatIds.includes(p.boatId)));
           setError("");
           setNow(Date.now());
         }
@@ -195,7 +226,7 @@ function Spectator({
       alive = false;
       clearTimeout(timer);
     };
-  }, [r.id, replay, at, retry]);
+  }, [r.id, page.kind, tab, replay, at, retry]);
   useEffect(() => {
     if (!replay || !playing || loading) return;
     const timer = setTimeout(() => {
@@ -211,7 +242,11 @@ function Spectator({
       disabled={disabled}
       onPress={fn}
       style={{
-        padding: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        minHeight: 44,
+        alignItems: "center",
+        justifyContent: "center",
         borderRadius: 10,
         backgroundColor: c.buttonBg,
         opacity: disabled ? 0.4 : 1,
@@ -222,10 +257,11 @@ function Spectator({
   );
   return (
     <Modal visible animationType="slide" onRequestClose={close}>
+      <SafeAreaProvider>
       <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
         <View style={{ padding: 16, gap: 10 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            {action("Close", close)}
+            {action(pages.length > 1 ? "Back" : "Close", pages.length > 1 ? () => { setPages(history=>history.slice(0,-1)); setTab("Results"); setPlaying(false); } : close)}
             <Text
               style={{
                 flex: 1,
@@ -234,23 +270,18 @@ function Spectator({
                 fontWeight: "700",
               }}
             >
-              {r.name}
+              {page.kind === "race" ? r.name : page.kind === "series" ? page.series.name : "Boat details"}
             </Text>
           </View>
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            {action("Live", () => {
-              setReplay(false);
-              setPlaying(false);
-            })}
-            {action(
-              "Replay",
-              () => {
-                setAt(start);
-                setReplay(true);
-              },
-              !Number.isFinite(start) || !Number.isFinite(end),
-            )}
-          </View>
+          {page.kind === "race" && (hasReplay || (r.liveBoats ?? 0) > 0) && <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
+            {(["Results", ...((r.liveBoats ?? 0) > 0 ? ["Live"] : []), ...(hasReplay ? ["Replay"] : [])] as const).map((label) => (
+              <Pressable key={label} accessibilityRole="tab" accessibilityState={{ selected: tab === label }}
+                onPress={() => { setTab(label as typeof tab); setPlaying(false); if (label === "Replay") setAt(start); }}
+                style={{ minHeight: 44, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 22, backgroundColor: tab === label ? "#006b62" : c.buttonBg }}>
+                <Text style={{ color: tab === label ? "white" : c.text, fontWeight: "600" }}>{label}</Text>
+              </Pressable>
+            ))}
+          </View>}
           {replay && (
             <>
               <Text style={{ color: c.text }}>
@@ -274,8 +305,8 @@ function Spectator({
               </View>
             </>
           )}
-          {error && action("Retry positions", () => setRetry((v) => v + 1))}
-          {error ? (
+          {tab !== "Results" && error && action("Retry positions", () => setRetry((v) => v + 1))}
+          {tab === "Results" ? null : error ? (
             <Text accessibilityRole="alert" style={{ color: c.text }}>
               {error}
             </Text>
@@ -289,11 +320,17 @@ function Spectator({
             </Text>
           ) : null}
         </View>
-        <FleetMap
+        {page.kind !== "race" ? <SeriesDetail key={page.kind === "boat" ? page.boatId : page.series.id} series={page.series} boatId={page.kind === "boat" ? page.boatId : undefined}
+          onBoat={boatId=>navigate({kind:"boat",series:page.series,boatId})}
+          onRace={eventId=>{
+            const race = publishedRaceRegattas({ ...initialRace, liveBoats:0, replayStart:undefined, replayEnd:undefined }, page.series).find(race=>race.eventId===eventId);
+            if (race) navigate({kind:"race",regatta:race});
+          }} /> : tab === "Results" ? <RegattaResults key={r.id} seriesId={r.seriesId} eventId={r.eventId} onSeries={series=>navigate({kind:"series",series})} /> : <>
+        {positions.length > 0 && <FleetMap
           key={replay ? "replay" : "live"}
           positions={positions}
           at={replay ? at : now}
-        />
+        />}
         <ScrollView
           style={{ maxHeight: 120 }}
           contentContainerStyle={{ padding: 12, gap: 6 }}
@@ -308,15 +345,16 @@ function Spectator({
             </Text>
           ))}
         </ScrollView>
-        <View style={{ padding: 10 }}>
+        </>}
+        {page.kind === "race" && <View style={{ padding: 16, gap: 8 }}>
           {action(
-            "Results & event details",
+            "Open on website",
             () =>
               void Linking.openURL(
-                `https://veetr.org/races/?series=${encodeURIComponent(r.id)}`,
+                `https://veetr.org/races/?series=${encodeURIComponent(r.seriesId)}&event=${encodeURIComponent(r.eventId)}`,
               ),
           )}
-          <Text
+          {tab !== "Results" && positions.length > 0 && <Text
             style={{
               color: c.textMuted,
               fontSize: 11,
@@ -325,9 +363,10 @@ function Spectator({
             }}
           >
             Seamarks © OpenSeaMap contributors
-          </Text>
-        </View>
+          </Text>}
+        </View>}
       </SafeAreaView>
+      </SafeAreaProvider>
     </Modal>
   );
 }

@@ -1,482 +1,198 @@
-import RegattaBrowser from "../../regattas/RegattaBrowser";
-import LocalRecording from "../../tracking/LocalRecording";
-import { useEffect, useState } from "react";
-import {
-  Alert,
-  Linking,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { useCallback, useState } from "react";
+import { FlatList, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import type { Session } from "@supabase/supabase-js";
+import { router, useFocusEffect } from "expo-router";
 import { useTheme } from "../../context/ThemeContext";
 import { themeColors } from "../../constants/colors";
-import { trackingClient, trackingRpc } from "../../tracking/client";
 import { trackingStore } from "../../tracking/database";
+import type { TrackingSession } from "../../tracking/model";
+import LocalRecording from "../../tracking/LocalRecording";
+import TripMap from "../../tracking/TripMap";
+import TrackingIcon from "../../tracking/TrackingIcon";
 import {
-  startTracking,
-  stopTracking,
-  resumeTracking,
-  discardStoppedTracking,
-} from "../../tracking/service";
-import type { TrackingEntry, TrackingSession } from "../../tracking/model";
-const site = (process.env.EXPO_PUBLIC_SITE_URL || "https://veetr.org").replace(
-  /\/$/,
-  "",
-);
+  distanceNm,
+  durationLabel,
+  orderedPoints,
+  tripDuration,
+  type Trip,
+} from "../../tracking/trip";
 export default function TrackingScreen() {
   const { theme } = useTheme(),
-    colors = themeColors[theme];
-  const [auth, setAuth] = useState<Session | null>(null),
-    [ready, setReady] = useState(false);
-  const [showSignIn, setShowSignIn] = useState(false);
-  const [entriesLoading, setEntriesLoading] = useState(false);
-  const [email, setEmail] = useState(""),
-    [password, setPassword] = useState("");
-  const [entries, setEntries] = useState<TrackingEntry[]>([]),
-    [selected, setSelected] = useState<TrackingEntry | null>(null);
+    c = themeColors[theme];
   const [session, setSession] = useState<TrackingSession | null>(null),
-    [pending, setPending] = useState(0);
-  const [busy, setBusy] = useState(false),
-    [error, setError] = useState(""),
+    [trips, setTrips] = useState<Trip[]>([]),
     [now, setNow] = useState(Date.now());
-  async function refresh() {
+  const [busy, setBusy] = useState(false),
+    [loading, setLoading] = useState(true),
+    [error, setError] = useState("");
+  const refresh = useCallback(async () => {
     const store = await trackingStore();
-    setSession(await store.get());
-    setPending(await store.count());
+    const [current, rows] = await Promise.all([
+      store.get(),
+      store.localRecordings(),
+    ]);
+    setSession(current);
+    setTrips(rows.map((r) => ({ ...r, points: orderedPoints(r.points) })));
     setNow(Date.now());
-  }
+    setLoading(false);
+  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      let alive = true;
+      const update = () => {
+        if (alive)
+          void refresh().catch((e) => {
+            if (alive) {
+              setError(String(e));
+              setLoading(false);
+            }
+          });
+      };
+      update();
+      const timer = setInterval(update, 5000);
+      const clock = setInterval(() => setNow(Date.now()), 1000);
+      return () => {
+        alive = false;
+        clearInterval(timer);
+        clearInterval(clock);
+      };
+    }, [refresh]),
+  );
   async function run(action: () => Promise<unknown>) {
     setBusy(true);
     setError("");
     try {
       await action();
+      await refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Please try again.");
+      setError(e instanceof Error ? e.message : String(e));
     } finally {
-      await refresh().catch(() => {});
       setBusy(false);
     }
   }
-  useEffect(() => {
-    const timer = setInterval(() => {
-      void refresh().catch((e) => setError(String(e)));
-    }, 2000);
-    void refresh().catch((e) => setError(String(e)));
-    if (!trackingClient) {
-      setReady(true);
-      return () => clearInterval(timer);
-    }
-    let alive = true;
-    void trackingClient.auth.getSession().then(({ data, error }) => {
-      if (alive) {
-        setAuth(data.session);
-        setReady(true);
-        if (error) setError(error.message);
-      }
-    });
-    const {
-      data: { subscription },
-    } = trackingClient.auth.onAuthStateChange((_event, s) => {
-      setAuth(s);
-      setReady(true);
-    });
-    return () => {
-      alive = false;
-      subscription.unsubscribe();
-      clearInterval(timer);
-    };
-  }, []);
-  useEffect(() => {
-    setEntries([]);
-    setSelected(null);
-    if (!auth) {
-      setEntriesLoading(false);
-      return;
-    }
-    setEntriesLoading(true);
-    let alive = true;
-    void trackingRpc<TrackingEntry[]>("my_tracking_entries")
-      .then((rows) => {
-        if (alive) setEntries(rows);
-      })
-      .catch((e) => {
-        if (alive) setError(e.message);
-      })
-      .finally(() => {
-        if (alive) setEntriesLoading(false);
-      });
-    return () => {
-      alive = false;
-    };
-  }, [auth?.user.id]);
-  const ownSession =
-    session && session.mode !== "local" && session.userId === auth?.user.id
-      ? session
-      : null;
-  const text = { color: colors.text };
-  const button = (
-    title: string,
-    action: () => void,
-    primary = false,
-    disabled = busy,
-  ) => (
-    <Pressable
-      accessibilityRole="button"
-      disabled={disabled}
-      onPress={action}
-      style={[
-        styles.button,
-        {
-          backgroundColor: primary ? "#006b62" : colors.buttonBg,
-          opacity: disabled ? 0.5 : 1,
-        },
-      ]}
-    >
-      <Text
-        style={{
-          color: primary ? "white" : colors.text,
-          fontWeight: "600",
-          textAlign: "center",
-        }}
-      >
-        {title}
-      </Text>
-    </Pressable>
-  );
-  const active = ownSession?.phase === "recording";
-  const fixAge = ownSession?.lastRecordedAt
-    ? Math.max(
-        0,
-        Math.floor((now - Date.parse(ownSession.lastRecordedAt)) / 1000),
-      )
-    : null;
+  const current = trips.find((t) => t.session.id === session?.id);
   return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: colors.bg }}
-      edges={["top"]}
-    >
-      <ScrollView
-        contentContainerStyle={styles.page}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Text style={[styles.title, text]}>Track</Text>
-        {(!session || session.mode === "local") && (
-          <LocalRecording
-            session={session}
-            count={pending}
-            now={now}
-            busy={busy}
-            run={run}
-          />
-        )}
-        <Text style={[styles.heading, text]}>Regattas</Text>
-        <RegattaBrowser />
-        {!trackingClient ? (
-          <Text style={{ color: colors.textMuted }}>
-            Regatta sign-in is currently unavailable.
-          </Text>
-        ) : !ready ? (
-          <Text style={text}>Restoring account…</Text>
-        ) : !auth && !showSignIn ? (
-          button("Sign in to join a regatta", () => setShowSignIn(true))
-        ) : !auth ? (
-          <View style={styles.section}>
-            <Text style={[styles.heading, text]}>
-              Sign in to your Veetr account
-            </Text>
-            <TextInput
-              accessibilityLabel="Email"
-              placeholder="Email"
-              autoCapitalize="none"
-              autoComplete="email"
-              keyboardType="email-address"
-              value={email}
-              onChangeText={setEmail}
-              placeholderTextColor={colors.textMuted}
-              style={[
-                styles.input,
-                text,
-                { borderColor: colors.border, backgroundColor: colors.inputBg },
-              ]}
-            />
-            <TextInput
-              accessibilityLabel="Password"
-              placeholder="Password"
-              secureTextEntry
-              autoComplete="current-password"
-              value={password}
-              onChangeText={setPassword}
-              placeholderTextColor={colors.textMuted}
-              style={[
-                styles.input,
-                text,
-                { borderColor: colors.border, backgroundColor: colors.inputBg },
-              ]}
-            />
-            {button(
-              "Sign in",
-              () =>
-                void run(async () => {
-                  const { error } =
-                    await trackingClient!.auth.signInWithPassword({
-                      email: email.trim(),
-                      password,
-                    });
-                  if (error) throw error;
-                  setPassword("");
-                  await resumeTracking();
-                }),
-              true,
-              busy || !email.trim() || !password,
-            )}
-            {button(
-              "Create an account or reset password",
-              () => void Linking.openURL(`${site}/account/`),
-            )}
-          </View>
-        ) : (
-          <>
-            <Text style={{ color: colors.textSecondary }}>
-              {auth.user.email}
-            </Text>
-            {session && session.mode !== "local" && !ownSession ? (
-              <Text style={text}>
-                A saved tracking session belongs to another account. Sign in
-                with that account to finish syncing.
-              </Text>
-            ) : ownSession ? (
-              <View
-                style={[
-                  styles.section,
-                  styles.card,
-                  {
-                    backgroundColor: colors.panelBg,
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                <Text style={[styles.heading, text]}>
-                  {active
-                    ? "● Sharing live location"
-                    : ownSession.phase === "starting"
-                      ? "Starting session…"
-                      : "Tracking stopped on this phone"}
-                </Text>
-                <Text style={[styles.heading, text]}>
-                  {ownSession.boatName}
-                </Text>
-                <Text style={text}>{ownSession.seriesName}</Text>
-                {active && (
-                  <Text style={text}>
-                    {fixAge === null
-                      ? "Waiting for GPS…"
-                      : fixAge > 30
-                        ? `GPS may be paused · last fix ${fixAge}s ago`
-                        : `Last GPS fix ${fixAge}s ago`}{" "}
-                    · phone GPS
-                  </Text>
-                )}
-                <Text style={text}>{pending} positions waiting to upload</Text>
-                <Text style={{ color: colors.textSecondary }}>
-                  {ownSession.lastUploadAt
-                    ? `Last upload ${new Date(ownSession.lastUploadAt).toLocaleTimeString()}`
-                    : "No positions uploaded yet"}
-                </Text>
-                {active && (
-                  <Text style={{ color: colors.textSecondary }}>
-                    Automatic stop at{" "}
-                    {new Date(ownSession.expiresAt).toLocaleTimeString()}. Keep
-                    the app installed and allow background location;
-                    force-closing it may stop tracking.
-                  </Text>
-                )}
-                {ownSession.phase === "stopping" && (
-                  <Text style={text}>
-                    Reconnect to finish syncing and confirm the stop on the live
-                    map. Saved positions stay on this phone until acknowledged.
-                  </Text>
-                )}
-                {ownSession.error && (
-                  <Text
-                    accessibilityRole="alert"
-                    style={{ color: colors.text }}
-                  >
-                    {ownSession.error}
-                  </Text>
-                )}
-                {button(
-                  "Open spectator map",
-                  () =>
-                    void Linking.openURL(
-                      `${site}/races/?series=${encodeURIComponent(ownSession.seriesId)}#tracking`,
-                    ),
-                )}
-                {ownSession.phase !== "stopping" &&
-                  button(
-                    "Stop sharing",
-                    () => void run(stopTracking),
-                    true,
-                    false,
-                  )}
-                {button(
-                  ownSession.phase === "starting"
-                    ? "Retry start"
-                    : ownSession.phase === "recording"
-                      ? "Resume / sync now"
-                      : "Retry final sync",
-                  () => void run(resumeTracking),
-                )}
-                {ownSession.phase === "stopping" &&
-                  button("Discard unsent positions", () =>
-                    Alert.alert(
-                      "Discard unsent positions?",
-                      "This removes this phone’s unsent track after the server confirms sharing has stopped.",
-                      [
-                        { text: "Cancel", style: "cancel" },
-                        {
-                          text: "Discard",
-                          style: "destructive",
-                          onPress: () => void run(discardStoppedTracking),
-                        },
-                      ],
-                    ),
-                  )}
-                {button("Location settings", () => void Linking.openSettings())}
-              </View>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: c.bg }}>
+      <FlatList
+        data={trips}
+        keyExtractor={(t) => t.session.id}
+        contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 32 }}
+        initialNumToRender={4}
+        windowSize={5}
+        refreshing={loading}
+        onRefresh={() => void refresh().catch((e) => setError(String(e)))}
+        ListHeaderComponent={
+          <View style={{ gap: 14, marginBottom: 2 }}>
+            {!session || session.mode === "local" ? (
+              <LocalRecording
+                session={session}
+                count={current?.points.length || 0}
+                now={now}
+                busy={busy}
+                run={run}
+              />
             ) : (
-              <View style={styles.section}>
-                <Text style={[styles.heading, text]}>
-                  Your eligible regattas
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => router.push("/regattas")}
+                style={{
+                  backgroundColor: c.panelBg,
+                  padding: 18,
+                  borderRadius: 16,
+                }}
+              >
+                <Text style={{ color: c.text }}>
+                  Regatta tracking · manage in Regattas ›
                 </Text>
-                {entriesLoading && <Text style={text}>Loading regattas…</Text>}
-                {!entriesLoading && !entries.length && (
-                  <Text style={text}>No approved regatta entries yet.</Text>
-                )}
-                {button(
-                  "Find regattas",
-                  () => void Linking.openURL(`${site}/races/`),
-                )}
-                {entries.map((entry) => (
-                  <Pressable
-                    key={`${entry.seriesId}/${entry.boatId}`}
-                    accessibilityRole="radio"
-                    accessibilityState={{
-                      checked:
-                        selected?.seriesId === entry.seriesId &&
-                        selected?.boatId === entry.boatId,
-                    }}
-                    onPress={() => setSelected(entry)}
-                    disabled={busy}
-                    style={[
-                      styles.card,
-                      {
-                        borderColor:
-                          selected?.seriesId === entry.seriesId &&
-                          selected?.boatId === entry.boatId
-                            ? "#009688"
-                            : colors.border,
-                        backgroundColor: colors.panelBg,
-                      },
-                    ]}
-                  >
-                    <Text style={[styles.heading, text]}>
-                      {entry.seriesName}
-                    </Text>
-                    <Text style={text}>{entry.boatName}</Text>
-                  </Pressable>
-                ))}
-                {button(
-                  "Refresh regattas",
-                  () =>
-                    void run(async () => {
-                      setEntries(await trackingRpc("my_tracking_entries"));
-                      setSelected(null);
-                    }),
-                )}
-                {session?.mode === "local" && session.phase !== "stopping" && (
-                  <Text style={{ color: colors.textMuted }}>
-                    Stop private tracking before joining a regatta.
-                  </Text>
-                )}
-                {button(
-                  "Join regatta & share tracking",
-                  () =>
-                    selected &&
-                    Alert.alert(
-                      "Share your boat’s location?",
-                      `${selected.boatName} will appear publicly in ${selected.seriesName}, live and in replay after you stop sharing. Private recordings are never shared. Allow background location to keep tracking with the screen locked.`,
-                      [
-                        { text: "Cancel", style: "cancel" },
-                        {
-                          text: "Start sharing",
-                          onPress: () =>
-                            void run(async () => {
-                              if (session?.mode === "local") {
-                                if (session.phase !== "stopping")
-                                  throw new Error(
-                                    "Stop private tracking first.",
-                                  );
-                                await (await trackingStore()).archiveLocal();
-                              }
-                              await startTracking(selected, true);
-                            }),
-                        },
-                      ],
-                    ),
-                  true,
-                  busy ||
-                    entriesLoading ||
-                    !selected ||
-                    Boolean(
-                      session?.mode === "local" && session.phase !== "stopping",
-                    ),
-                )}
-              </View>
+              </Pressable>
             )}
-            {button(
-              "Sign out",
-              () =>
-                void run(async () => {
-                  const { error } = await trackingClient!.auth.signOut({
-                    scope: "local",
-                  });
-                  if (error) throw error;
-                }),
-              false,
-              busy || Boolean(ownSession),
-            )}
-            {ownSession && (
-              <Text style={{ color: colors.textSecondary }}>
-                Finish this tracking session before signing out.
+            {!!error && (
+              <Text accessibilityRole="alert" style={{ color: c.text }}>
+                {error}
               </Text>
             )}
-          </>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginTop: 10,
+              }}
+            >
+              <Text style={{ color: c.text, fontSize: 20, fontWeight: "700" }}>
+                Your trips
+              </Text>
+              <Text style={{ color: c.textMuted, fontSize: 13 }}>
+                {trips.length} saved
+              </Text>
+            </View>
+          </View>
+        }
+        ListEmptyComponent={
+          <View style={{ padding: 30, alignItems: "center", gap: 10 }}>
+            <TrackingIcon name="route" color={c.textMuted} size={32} />
+            <Text style={{ color: c.text, fontWeight: "600" }}>
+              {loading ? "Loading trips…" : "Your next trip starts here"}
+            </Text>
+            <Text
+              style={{
+                color: c.textMuted,
+                textAlign: "center",
+                lineHeight: 21,
+              }}
+            >
+              Record a sail to keep its route, distance and speed together.
+            </Text>
+          </View>
+        }
+        renderItem={({ item: trip }) => (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Trip ${new Date(trip.session.startedAt).toLocaleString()}, ${distanceNm(trip.points).toFixed(2)} nautical miles, ${durationLabel(tripDuration(trip, now))}`}
+            onPress={() =>
+              router.push({
+                pathname: "/trip/[id]",
+                params: { id: trip.session.id },
+              })
+            }
+            style={{
+              backgroundColor: c.panelBg,
+              borderRadius: 16,
+              overflow: "hidden",
+              flexDirection: "row",
+              minHeight: 108,
+            }}
+          >
+            <View pointerEvents="none" style={{ width: 104, minHeight: 108 }}>
+              <TripMap points={trip.points} thumbnail />
+            </View>
+            <View
+              style={{ flex: 1, padding: 13, gap: 7, justifyContent: "center" }}
+            >
+              <Text style={{ color: c.text, fontWeight: "600", fontSize: 15 }}>
+                {new Date(trip.session.startedAt).toLocaleDateString(
+                  undefined,
+                  { month: "short", day: "numeric", year: "numeric" },
+                )}
+              </Text>
+              <Text style={{ color: c.textMuted, fontSize: 12 }}>
+                {new Date(trip.session.startedAt).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+                {trip.session.phase === "recording" ? "  ·  ● Recording" : ""}
+              </Text>
+              <Text style={{ color: c.text, fontSize: 14 }}>
+                {distanceNm(trip.points).toFixed(2)} nm ·{" "}
+                {durationLabel(tripDuration(trip, now))}
+              </Text>
+            </View>
+            <View style={{ justifyContent: "center", paddingRight: 12 }}>
+              <TrackingIcon name="chevron" color={c.textMuted} size={16} />
+            </View>
+          </Pressable>
         )}
-        {error ? (
-          <Text accessibilityRole="alert" style={text}>
-            {error}
-          </Text>
-        ) : null}
-        {busy && (
-          <Text accessibilityLiveRegion="polite" style={text}>
-            Working…
-          </Text>
-        )}
-      </ScrollView>
+      />
     </SafeAreaView>
   );
 }
-const styles = StyleSheet.create({
-  page: { padding: 20, gap: 16, paddingBottom: 36 },
-  title: { fontSize: 28, fontWeight: "700" },
-  heading: { fontSize: 18, fontWeight: "600" },
-  section: { gap: 12 },
-  card: { padding: 16, borderWidth: 1, borderRadius: 12, gap: 8 },
-  input: { borderWidth: 1, borderRadius: 8, padding: 14, fontSize: 16 },
-  button: { padding: 16, borderRadius: 8, minHeight: 48 },
-});

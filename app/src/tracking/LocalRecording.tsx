@@ -1,17 +1,12 @@
-import { Alert, Linking, Pressable, Text, View } from "react-native";
-import { File, Paths } from "expo-file-system";
-import * as Sharing from "expo-sharing";
+import { useState } from "react";
+import { Pressable, Text, View } from "react-native";
+import { router } from "expo-router";
 import { useTheme } from "../context/ThemeContext";
 import { themeColors } from "../constants/colors";
 import type { TrackingSession } from "./model";
-import { trackingStore } from "./database";
-import {
-  startLocalTracking,
-  stopTracking,
-  resumeTracking,
-  enableBackgroundTracking,
-  discardStoppedTracking,
-} from "./service";
+import { startLocalTracking, stopTracking } from "./service";
+import TrackingIcon from "./TrackingIcon";
+import { durationLabel } from "./trip";
 export default function LocalRecording({
   session,
   count,
@@ -25,153 +20,186 @@ export default function LocalRecording({
   busy: boolean;
   run: (action: () => Promise<unknown>) => Promise<void>;
 }) {
-  const { theme } = useTheme();
-  const colors = themeColors[theme];
-  const button = (label: string, action: () => void, disabled = busy) => (
-    <Pressable
-      accessibilityRole="button"
-      disabled={disabled}
-      onPress={action}
-      style={{
-        padding: 16,
-        borderRadius: 8,
-        backgroundColor: label === "Start tracking" || label === "Stop tracking" ? "#006b62" : colors.buttonBg,
-        opacity: disabled ? 0.5 : 1,
-      }}
-    >
-      <Text
-        style={{ color: label === "Start tracking" || label === "Stop tracking" ? "white" : colors.text, textAlign: "center", fontWeight: "600" }}
-      >
-        {label}
-      </Text>
-    </Pressable>
-  );
-  async function exportRecording() {
-    if (!session) return;
-    if (!(await Sharing.isAvailableAsync()))
-      throw new Error("File sharing is unavailable on this device.");
-    const data = await (await trackingStore()).exportLocal(session.id);
-    const file = new File(Paths.cache, `veetr-gps-${session.id}.json`);
-    try {
-      file.write(JSON.stringify(data, null, 2));
-      await Sharing.shareAsync(file.uri, {
-        mimeType: "application/json",
-        UTI: "public.json",
-      });
-    } finally {
-      if (file.exists) file.delete();
-    }
-  }
+  const { theme } = useTheme(),
+    c = themeColors[theme];
+  const [help, setHelp] = useState<number | null>(null);
+  const active = session?.phase === "recording";
+  const age = session?.lastRecordedAt
+    ? Math.max(0, now - Date.parse(session.lastRecordedAt))
+    : null;
+  const metrics = session
+    ? [
+        {
+          icon: "points" as const,
+          value: String(count),
+          label: "Saved positions",
+          help: "GPS positions saved privately on this phone. Tap a trip below to explore its route.",
+        },
+        {
+          icon: "gps" as const,
+          value: age === null ? "Waiting" : `${durationLabel(age)} ago`,
+          label: "Last GPS fix",
+          help: "Time since the latest saved GPS position. A long delay can mean poor reception or interrupted recording.",
+        },
+        {
+          icon: "clock" as const,
+          value: durationLabel(
+            (active
+              ? now
+              : Date.parse(session.stoppedAt || session.startedAt)) -
+              Date.parse(session.startedAt),
+          ),
+          label: "Elapsed time",
+          help: "How long this trip has been recording.",
+        },
+        {
+          icon: "stop" as const,
+          value: new Date(session.expiresAt).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          label: "Automatic stop",
+          help: "Recording stops automatically at this time, 12 hours after it started.",
+        },
+      ]
+    : [];
   return (
     <View
       style={{
-        gap: 12,
+        backgroundColor: c.panelBg,
+        borderRadius: 20,
         padding: 16,
-        borderWidth: 1,
-        borderColor: colors.border,
-        borderRadius: 12,
+        gap: 14,
       }}
     >
-      <Text style={{ color: colors.text, fontSize: 18, fontWeight: "600" }}>Your sailing</Text>
-      <Text style={{ color: colors.textMuted }}>Private · saved on this phone</Text>
-      {!session ? (
-        button("Start tracking", () => void run(startLocalTracking))
-      ) : (
-        <>
-          <Text style={{ color: colors.text }}>
-            {session.phase === "recording"
-              ? "● RECORDING"
-              : "NOT RECORDING — saved session"}{" "}
-            · {count} saved positions
-          </Text>
-          <Text style={{ color: colors.text }}>
-            {session.lastRecordedAt
-              ? `Last GPS fix ${Math.max(0, Math.floor((now - Date.parse(session.lastRecordedAt)) / 1000))}s ago`
-              : "Waiting for an accurate GPS fix"}
-          </Text>
-          <Text style={{ color: colors.textSecondary }}>
-            Started {new Date(session.startedAt).toLocaleString()}. Automatic
-            stop at {new Date(session.expiresAt).toLocaleTimeString()}.
-          </Text>
-          {session.phase === "recording" &&
-            session.backgroundEnabled === false && (
-              <>
-                <Text style={{ color: colors.text }}>
-                  Foreground recording only. Keep Veetr open; recording pauses
-                  when you lock the screen or switch apps.
-                </Text>
-                {button(
-                  "Enable background recording",
-                  () => void run(enableBackgroundTracking),
-                )}
-              </>
-            )}
-          {session.phase === "recording" && (
-            <Text style={{ color: colors.text, fontWeight: "600" }}>
-              {session.backgroundEnabled
-                ? "Screen-lock recording ready"
-                : "Screen-lock recording is NOT enabled"}
-            </Text>
-          )}
-          {session.stopReason && (
-            <Text style={{ color: colors.text }}>
-              Stopped:{" "}
-              {session.stopReason === "expired"
-                ? "12-hour recording limit reached"
-                : "Stop button"}
-            </Text>
-          )}
-          {session.phase === "stopping" &&
-            button("Start tracking", () =>
-              Alert.alert(
-                "Start a new recording?",
-                "The previous recording will stay in History. Allow background location to record with the screen locked.",
-                [
-                  { text: "Cancel", style: "cancel" },
-                  {
-                    text: "Start recording",
-                    onPress: () => void run(startLocalTracking),
-                  },
-                ],
-              ),
-            )}
-          {session.lastTaskError && (
-            <Text style={{ color: colors.text }}>
-              Last background task error: {session.lastTaskError}
-            </Text>
-          )}
-          {session.error && (
-            <Text accessibilityRole="alert" style={{ color: colors.text }}>
-              {session.error}
-            </Text>
-          )}
-          {session.phase === "recording" ? (
-            <>
-              {button("Stop tracking", () => void run(stopTracking), false)}
-              {button("Resume GPS", () => void run(resumeTracking))}
-            </>
-          ) : (
-            <>
-              {button("Export recording", () => void run(exportRecording))}
-              {button("Delete recording", () =>
-                Alert.alert(
-                  "Delete local recording?",
-                  "All saved positions will be permanently removed from this phone. Export first if you want to keep them.",
-                  [
-                    { text: "Cancel", style: "cancel" },
-                    {
-                      text: "Delete",
-                      style: "destructive",
-                      onPress: () => void run(discardStoppedTracking),
-                    },
-                  ],
-                ),
-              )}
-            </>
-          )}
-          {button("Location settings", () => void Linking.openSettings())}
-        </>
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <Text style={{ color: active ? "#008c80" : c.text, fontWeight: "600" }}>
+          {active ? "● Recording" : "Ready to sail"}
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Recording privacy and screen lock help"
+          onPress={() => setHelp(help === 4 ? null : 4)}
+          style={{
+            flexDirection: "row",
+            gap: 5,
+            padding: 8,
+            alignItems: "center",
+          }}
+        >
+          <TrackingIcon name="lock" color={c.textMuted} size={15} />
+          <Text style={{ color: c.textMuted, fontSize: 12 }}>Private</Text>
+        </Pressable>
+      </View>
+      {active && (
+        <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+          {metrics.map((m, i) => (
+            <Pressable
+              key={m.label}
+              accessibilityRole="button"
+              accessibilityLabel={`${m.label}: ${m.value}`}
+              accessibilityHint="Tap for an explanation"
+              accessibilityState={{ expanded: help === i }}
+              onPress={() => setHelp(help === i ? null : i)}
+              style={{
+                width: "50%",
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 10,
+                minHeight: 48,
+                paddingVertical: 8,
+              }}
+            >
+              <TrackingIcon
+                name={m.icon}
+                color={
+                  i === 1 && (age === null || age > 60000)
+                    ? "#b7791f"
+                    : c.textMuted
+                }
+              />
+              <Text
+                style={{
+                  color: c.text,
+                  fontSize: 16,
+                  fontWeight: "600",
+                  fontVariant: ["tabular-nums"],
+                }}
+              >
+                {m.value}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
       )}
+      {help !== null && (help === 4 || active) && (
+        <View
+          accessibilityLiveRegion="polite"
+          style={{
+            padding: 12,
+            borderRadius: 12,
+            backgroundColor: c.buttonBg,
+            gap: 4,
+          }}
+        >
+          <Text style={{ color: c.text, fontWeight: "600" }}>
+            {help === 4 ? "Private recording" : metrics[help]?.label}
+          </Text>
+          <Text
+            style={{ color: c.textSecondary, fontSize: 13, lineHeight: 19 }}
+          >
+            {help === 4
+              ? `Trips stay on this phone. ${active ? (session?.backgroundEnabled ? "Recording can continue with the screen locked." : "Keep Veetr open. Enable background recording in Settings → Location & tracking to record with the screen locked.") : "Allow background location when starting to record with the screen locked."}`
+              : metrics[help]?.help}
+          </Text>
+        </View>
+      )}
+      {active && session?.backgroundEnabled === false && (
+        <Pressable
+          onPress={() => router.push("/settings")}
+          accessibilityRole="button"
+        >
+          <Text style={{ color: "#b7791f", fontSize: 13 }}>
+            Keep app open · background GPS is off ›
+          </Text>
+        </Pressable>
+      )}
+      {active && (session?.error || session?.lastTaskError) && (
+        <Pressable
+          onPress={() => router.push("/settings")}
+          accessibilityRole="button"
+        >
+          <Text
+            accessibilityRole="alert"
+            style={{ color: c.textSecondary, fontSize: 13 }}
+          >
+            {session.error || session.lastTaskError} · Help in Settings ›
+          </Text>
+        </Pressable>
+      )}
+      <Pressable
+        accessibilityRole="button"
+        disabled={busy}
+        onPress={() => void run(active ? stopTracking : startLocalTracking)}
+        style={{
+          backgroundColor: "#006b62",
+          borderRadius: 12,
+          padding: 16,
+          opacity: busy ? 0.5 : 1,
+        }}
+      >
+        <Text
+          style={{ color: "white", fontWeight: "600", textAlign: "center" }}
+        >
+          {busy ? "Working…" : active ? "Stop tracking" : "Start tracking"}
+        </Text>
+      </Pressable>
     </View>
   );
 }
