@@ -28,8 +28,11 @@ function serialize<T>(action: () => Promise<T>): Promise<T> {
   control = result.catch(() => {});
   return result;
 }
-export const startTracking = (entry: TrackingEntry, replayEnabled = false) =>
-  serialize(() => startInternal(entry, replayEnabled));
+export const startTracking = (
+  entry: TrackingEntry,
+  replayEnabled = false,
+  takeOver = false,
+) => serialize(() => startInternal(entry, replayEnabled, takeOver));
 export const resumeTracking = () => serialize(resumeInternal);
 export const enableBackgroundTracking = () =>
   serialize(async () => {
@@ -230,7 +233,11 @@ async function requestPermissions(allowForeground = false) {
       "Install a development or release build to use background tracking.",
     );
 }
-async function startInternal(entry: TrackingEntry, replayEnabled = false) {
+async function startInternal(
+  entry: TrackingEntry,
+  replayEnabled = false,
+  takeOver = false,
+) {
   if (!trackingClient)
     throw new Error("Tracking is not configured in this app build.");
   const {
@@ -242,6 +249,7 @@ async function startInternal(entry: TrackingEntry, replayEnabled = false) {
   await store.create({
     ...entry,
     replayEnabled,
+    takeOver,
     id: Crypto.randomUUID(),
     userId: auth.user.id,
     phase: "starting",
@@ -269,10 +277,15 @@ async function resumeInternal() {
     await owner(session);
     if (session.phase === "starting") {
       const reply = await trackingRpc<{ startedAt: string; expiresAt: string }>(
-        session.replayEnabled
-          ? "start_replay_tracking_session"
-          : "start_tracking_session",
+        session.takeOver
+          ? "take_over_tracking_session"
+          : session.replayEnabled
+            ? "start_replay_tracking_session"
+            : "start_tracking_session",
         {
+          ...(session.takeOver
+            ? { p_replay: Boolean(session.replayEnabled) }
+            : {}),
           p_id: session.id,
           p_series: session.seriesId,
           p_boat: session.boatId,

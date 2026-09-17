@@ -460,6 +460,22 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
               />
             )}
             {canEdit && canDelete && <a href={accountHref}>{t("Series team")}</a>}
+            {canEdit && series && <>
+              <TrackingWindow key={series.id} seriesId={series.id} />
+              {race && <section className="tracking-heat">
+                <h3>{t("Heat visibility")}</h3>
+                <p>{t("Publish this heat and register boats in the race’s Fleet tab so invited skippers can join tracking. Opening tracking applies to the whole series.")}</p>
+                <p>{t("{count} boats entered in this heat", { count: race.entries.length })}</p>
+                <label className="check">
+                  <input type="checkbox" checked={race.status !== "draft"} disabled={race.status === "locked"} onChange={e => {
+                    const shared = e.target.checked;
+                    editRace(r => { r.status = shared ? "published" : "draft"; });
+                  }} />
+                  {t("Publish heat for live results and tracking")}
+                </label>
+              </section>}
+            </>}
+
             {series && location.seriesId && !location.heatId && (
               <nav aria-label={t("Series tools")}>
                 <button
@@ -490,7 +506,7 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
               <SeriesBrowser key={`${series.id}/${location.eventId ?? ""}`} seriesList={[series]} location={location} navigate={navigate} edit={canEdit ? edit : undefined} />
             ) : series ? (
               <>
-                {page === "tracking" && <>{canEdit && <TrackingWindow key={series.id} seriesId={series.id} />}<LiveTrackingMap key={series.id} seriesId={series.id} /></>}
+                {page === "tracking" && <LiveTrackingMap key={series.id} seriesId={series.id} />}
                 {(page === "standings" && !location.eventId) && (
                   <div className="categories" aria-label={t("Race categories")}>
                     <button
@@ -756,24 +772,6 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
                           </section>
                         </div>
                         <div className="actions">
-                          <label className="check">
-                            <input
-                              type="checkbox"
-                              checked={race.status !== "draft"}
-                              onChange={(e) => {
-                                const shared = e.target.checked;
-                                editRace((r) => {
-                                  r.status = shared ? "published" : "draft";
-                                });
-                              }}
-                            />
-                            {t("Share live results")}
-                          </label>
-                          <p>
-                            {t(
-                              "Shared results update online as finishes are saved. You can keep editing.",
-                            )}
-                          </p>
                           <button
                             disabled={!race.results.length}
                             onClick={() => {

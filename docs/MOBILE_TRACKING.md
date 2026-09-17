@@ -5,12 +5,12 @@ The first tracking milestone uses the React Native app's phone GPS. It does not 
 ## Participant workflow
 
 1. Create a Veetr account (or set a password for an existing account) at `/account/` on the website.
-2. Own a boat or ask its owner to add you as a boat editor. The organizer must register that boat in at least one published heat in the series.
+2. Accept the referee’s skipper invitation on the website, or retain existing boat-owner/editor access. The organizer must register the boat in a published heat and open tracking. See [Skipper invitations](BOAT_INVITATIONS.md).
 3. In the mobile app, open **Track**, sign in, select the boat and series, and choose **Start sharing location**. The confirmation explains that position, speed and the recent trail become public.
 4. Grant foreground and background location permissions. The Android foreground-service notification and the iOS location indicator remain visible during tracking.
 5. **Stop sharing** immediately persists a local stop and prevents subsequent callbacks from adding positions. It also asks the server to hide the boat. If offline, the app explicitly shows that the stop is awaiting connection; the public map retains the previous, increasingly stale position until stop confirmation or expiry.
 
-One active session is allowed per boat across all phones and series. A second phone cannot take over silently. Sessions expire after 12 hours. Initial start needs connectivity; reconnecting/retrying an uncertain start reuses the same UUID. Force-closing the app can stop GPS updates; reopening the app resumes the saved session when permissions and authentication permit. Finish a session before signing out. Another account cannot upload or inspect the saved session's points in the app.
+One active session is allowed per boat across all phones and series. A second phone cannot take over silently. **Take over tracking** explicitly confirms stopping the previous live session before starting the new one. Sessions expire after 12 hours. Initial start needs connectivity; reconnecting/retrying an uncertain start reuses the same UUID. Force-closing the app can stop GPS updates; reopening the app resumes the saved session when permissions and authentication permit. Finish a session before signing out. Another account cannot upload or inspect the saved session's points in the app.
 
 ## Capture and synchronization
 
@@ -134,3 +134,15 @@ Deployment must go through `.github/workflows/supabase-production.yml`: merge th
 ## One recording across sources
 
 History has one timeline and 10min, 1h, 3h, 6h, 12h and 1d ranges. Start tracking controls both sources: incoming valid Veetr GPS samples take priority; stale/disconnected/invalid device GPS falls back to phone fixes. Device speeds are converted from knots to m/s for persistence, and available wind measurements are retained locally with the same point. Background phone fixes are not replaced with unrelated newer device samples. The local history keeps acknowledged live-upload points, while existing phone archives and legacy device readings remain visible in the combined history. Unknown device GPS accuracy is null, never a fabricated precision estimate. The source/accuracy schema change is migration 202609150002 and must deploy through GitHub Actions before device samples can upload. Phone fallback with the screen locked still needs physical-device verification.
+
+## Finding account and live controls
+
+In the mobile app, open **Settings → Account** to sign in. Sign-in is also above the public regatta browser in **Track**. Both use the same saved account. Account sign-out is blocked while that account has an unfinished shared tracking session.
+
+On the website, officials see **Race tracking → Open tracking** near the top of series, race, and heat pages. The window applies to the series and closes after 12 hours. In a heat, enable **Publish heat for live results and tracking** and enter the boat in Fleet. Publishing a heat and opening tracking are separate prerequisites; neither starts sharing from a phone automatically.
+
+For a TestFlight test, use production website accounts and invitations. The current TestFlight profile inherits the production Supabase project; local website users and mailcatcher invitations belong to a different database. Accept the skipper invitation, sign in on the phone, then choose **Track → Refresh regattas**, select the boat, and **Join regatta & share tracking**. Confirm **Start sharing** and grant location access. Watch the series' **Live map** on the website. Stop sharing on the phone when finished. New mobile UI requires a new TestFlight build; local edits do not update an installed release.
+
+When reusing an existing local `app/ios` directory, run `npx expo prebuild --platform ios --no-install` before rebuilding after Expo plugin changes. An old generated iOS project can omit the location usage descriptions and background location mode even when `app.json` declares them. This was reproduced in the simulator; a web preview cannot detect it.
+
+Saved mobile auth sessions are scoped to the Supabase host. Switching between local development and production therefore requires signing in for that backend and cannot reuse a JWT from the other project. Existing installations using the previous unscoped auth key will need to sign in once after this update; private recordings are unaffected.

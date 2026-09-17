@@ -8,7 +8,8 @@ export const trackingClient =
     ? createClient(url, key, {
         auth: {
           storage: AsyncStorage,
-          storageKey: "veetr-tracking-auth",
+          // Development and production accounts must never share a saved JWT.
+          storageKey: `veetr-tracking-auth:${new URL(url).host}`,
           persistSession: true,
           autoRefreshToken: true,
           detectSessionInUrl: false,

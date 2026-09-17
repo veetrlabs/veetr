@@ -1,3 +1,4 @@
+import AccountSignIn from "../../components/AccountSignIn";
 import RegattaBrowser from "../../regattas/RegattaBrowser";
 import LocalRecording from "../../tracking/LocalRecording";
 import { useEffect, useState } from "react";
@@ -8,7 +9,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -35,8 +35,6 @@ export default function TrackingScreen() {
     [ready, setReady] = useState(false);
   const [showSignIn, setShowSignIn] = useState(false);
   const [entriesLoading, setEntriesLoading] = useState(false);
-  const [email, setEmail] = useState(""),
-    [password, setPassword] = useState("");
   const [entries, setEntries] = useState<TrackingEntry[]>([]),
     [selected, setSelected] = useState<TrackingEntry | null>(null);
   const [session, setSession] = useState<TrackingSession | null>(null),
@@ -175,7 +173,6 @@ export default function TrackingScreen() {
           />
         )}
         <Text style={[styles.heading, text]}>Regattas</Text>
-        <RegattaBrowser />
         {!trackingClient ? (
           <Text style={{ color: colors.textMuted }}>
             Regatta sign-in is currently unavailable.
@@ -185,60 +182,7 @@ export default function TrackingScreen() {
         ) : !auth && !showSignIn ? (
           button("Sign in to join a regatta", () => setShowSignIn(true))
         ) : !auth ? (
-          <View style={styles.section}>
-            <Text style={[styles.heading, text]}>
-              Sign in to your Veetr account
-            </Text>
-            <TextInput
-              accessibilityLabel="Email"
-              placeholder="Email"
-              autoCapitalize="none"
-              autoComplete="email"
-              keyboardType="email-address"
-              value={email}
-              onChangeText={setEmail}
-              placeholderTextColor={colors.textMuted}
-              style={[
-                styles.input,
-                text,
-                { borderColor: colors.border, backgroundColor: colors.inputBg },
-              ]}
-            />
-            <TextInput
-              accessibilityLabel="Password"
-              placeholder="Password"
-              secureTextEntry
-              autoComplete="current-password"
-              value={password}
-              onChangeText={setPassword}
-              placeholderTextColor={colors.textMuted}
-              style={[
-                styles.input,
-                text,
-                { borderColor: colors.border, backgroundColor: colors.inputBg },
-              ]}
-            />
-            {button(
-              "Sign in",
-              () =>
-                void run(async () => {
-                  const { error } =
-                    await trackingClient!.auth.signInWithPassword({
-                      email: email.trim(),
-                      password,
-                    });
-                  if (error) throw error;
-                  setPassword("");
-                  await resumeTracking();
-                }),
-              true,
-              busy || !email.trim() || !password,
-            )}
-            {button(
-              "Create an account or reset password",
-              () => void Linking.openURL(`${site}/account/`),
-            )}
-          </View>
+          <AccountSignIn />
         ) : (
           <>
             <Text style={{ color: colors.textSecondary }}>
@@ -404,12 +348,12 @@ export default function TrackingScreen() {
                   </Text>
                 )}
                 {button(
-                  "Join regatta & share tracking",
+                  selected?.tracking ? "Take over tracking" : "Join regatta & share tracking",
                   () =>
                     selected &&
                     Alert.alert(
-                      "Share your boat’s location?",
-                      `${selected.boatName} will appear publicly in ${selected.seriesName}, live and in replay after you stop sharing. Private recordings are never shared. Allow background location to keep tracking with the screen locked.`,
+                      selected.tracking ? "Take over this boat’s tracking?" : "Share your boat’s location?",
+                      `${selected.tracking ? "This stops the other phone’s live session and starts sharing from this phone. " : ""}${selected.boatName} will appear publicly in ${selected.seriesName}, live and in replay after you stop sharing. Private recordings are never shared. Allow background location to keep tracking with the screen locked.`,
                       [
                         { text: "Cancel", style: "cancel" },
                         {
@@ -423,7 +367,7 @@ export default function TrackingScreen() {
                                   );
                                 await (await trackingStore()).archiveLocal();
                               }
-                              await startTracking(selected, true);
+                              await startTracking(selected, true, Boolean(selected.tracking));
                             }),
                         },
                       ],
@@ -457,6 +401,7 @@ export default function TrackingScreen() {
             )}
           </>
         )}
+        <RegattaBrowser />
         {error ? (
           <Text accessibilityRole="alert" style={text}>
             {error}

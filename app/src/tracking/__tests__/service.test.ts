@@ -281,3 +281,34 @@ test("background capture continues when foreground subscriptions are paused", as
     (AppState as { currentState: string }).currentState = "active";
   }
 });
+
+test("explicit takeover survives an uncertain start and retries with the same session ID", async () => {
+  session = {
+    ...base(),
+    phase: "starting",
+    takeOver: true,
+    replayEnabled: true,
+  };
+  points = [];
+  (trackingRpc as jest.Mock).mockRejectedValueOnce(new Error("Offline"));
+  await expect(resumeTracking()).rejects.toThrow("Offline");
+  expect(session?.phase).toBe("starting");
+  (trackingRpc as jest.Mock).mockResolvedValueOnce({
+    startedAt: base().startedAt,
+    expiresAt: base().expiresAt,
+  });
+  await resumeTracking();
+  expect(trackingRpc).toHaveBeenNthCalledWith(1, "take_over_tracking_session", {
+    p_id: "session",
+    p_series: "series",
+    p_boat: "boat",
+    p_replay: true,
+  });
+  expect(trackingRpc).toHaveBeenNthCalledWith(2, "take_over_tracking_session", {
+    p_id: "session",
+    p_series: "series",
+    p_boat: "boat",
+    p_replay: true,
+  });
+  expect(session?.phase).toBe("recording");
+});

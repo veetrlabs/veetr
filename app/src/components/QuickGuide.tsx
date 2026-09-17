@@ -10,7 +10,7 @@ const topics = [
   ],
   [
     "Private sailing and regattas",
-    "Start tracking records any sail privately on this phone, without an account or internet. To share a regatta track, sign in and choose an eligible regatta and boat. Joining and sharing makes your boat’s position, speed and trail public live and in replay after you stop. Existing live-only sessions are not added to replay. Anyone can browse published regattas and watch without signing in. An account alone does not grant entry: you must own or edit the boat, and the organizer must have entered it in a published heat. Find regattas opens the website; after arranging entry with the organizer, refresh the list. Private recordings are never uploaded automatically. Stop private tracking before joining; the previous recording stays in History.",
+    "Start tracking records any sail privately on this phone, without an account or internet. To share a regatta track, sign in and choose an eligible regatta and boat. Joining and sharing makes your boat’s position, speed and trail public live and in replay after you stop. Existing live-only sessions are not added to replay. Anyone can browse published regattas and watch without signing in. An account alone does not grant entry: you must accept a skipper invitation or own/edit the boat, and the organizer must have entered it in a published heat and opened tracking. Find regattas opens the website; after arranging entry with the organizer, refresh the list. Private recordings are never uploaded automatically. Stop private tracking before joining; the previous recording stays in History.",
   ],
   [
     "Nautical map layer",

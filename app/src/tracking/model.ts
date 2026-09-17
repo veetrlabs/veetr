@@ -2,6 +2,7 @@ export const UPLOAD_INTERVAL_MS = 20_000;
 export const SAMPLE_INTERVAL_MS = 5_000;
 export const MAX_PENDING_POINTS = 10_000;
 export interface TrackingEntry {
+  tracking?: boolean;
   seriesId: string;
   seriesName: string;
   boatId: string;
@@ -12,6 +13,7 @@ export interface TrackingSession extends TrackingEntry {
   userId: string;
   mode?: "local" | "live";
   replayEnabled?: boolean;
+  takeOver?: boolean;
   backgroundEnabled?: boolean;
   backgroundStartedAt?: string;
   lastBackgroundFixAt?: string;

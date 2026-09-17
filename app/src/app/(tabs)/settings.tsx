@@ -1,4 +1,5 @@
 import CalibrationControls from '../../components/CalibrationControls'
+import AccountSettings from '../../components/AccountSettings'
 import QuickGuide from '../../components/QuickGuide'
 import RegattaSettings from '../../components/RegattaSettings'
 import BluetoothSettings from '../../components/BluetoothSettings'
@@ -13,7 +14,7 @@ import DataManager from '../../components/DataManager'
 import ThemeToggle from '../../components/ThemeToggle'
 import { APP_VERSION } from '../../utils/version'
 
-type ViewType = 'guide' | 'bluetooth' | 'main' | 'regatta' | 'calibration' | 'about'
+type ViewType = 'account' | 'guide' | 'bluetooth' | 'main' | 'regatta' | 'calibration' | 'about'
 
 export default function SettingsTab() {
   const insets = useSafeAreaInsets()
@@ -49,6 +50,11 @@ export default function SettingsTab() {
   const renderMain = () => (
     <>
       <Text style={[styles.pageTitle, { color: colors.text }]}>Settings</Text>
+
+      <TouchableOpacity accessibilityRole="button" accessibilityLabel="Account and sign in" style={[styles.menuItem, { borderBottomColor: colors.border }]} onPress={() => navigateTo('account')}>
+        <Text style={[styles.menuItemText, { color: colors.text }]}>Account</Text>
+        <Text style={[styles.arrow, { color: colors.textSubtle }]}>›</Text>
+      </TouchableOpacity>
 
       <TouchableOpacity accessibilityRole="button" accessibilityLabel="Bluetooth settings" style={[styles.menuItem, { borderBottomColor: colors.border }]} onPress={() => navigateTo('bluetooth')}>
         <Text style={[styles.menuItemText, { color: colors.text }]}>Bluetooth settings</Text>
@@ -107,6 +113,7 @@ export default function SettingsTab() {
   )
 
   if (currentView === 'guide') return <QuickGuide onBack={() => navigateTo('main')} />
+  if (currentView === 'account') return <AccountSettings onBack={() => navigateTo('main')} />
 
   if (currentView === 'regatta') return <RegattaSettings onBack={() => navigateTo('main')} onBluetooth={() => navigateTo('bluetooth')} />
 

@@ -483,6 +483,7 @@ export function TrackingWindow({ seriesId }: { seriesId: string }) {
   return (
     <section className="tracking-window">
       <h3>{t("Race tracking")}</h3>
+      <p>{t("To test live tracking: invite the skipper from Fleet, enter the boat in a heat, publish that heat, and open tracking here. The skipper accepts the invitation, signs in to the app, and chooses Track → Refresh regattas → Start sharing.")}</p>
       <p>
         {t(
           "Open tracking before the start so crews can check their GPS. The window closes automatically after 12 hours.",

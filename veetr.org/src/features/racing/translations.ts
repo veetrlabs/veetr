@@ -1,4 +1,9 @@
 export const cs: Record<string, string> = {
+  "Heat visibility": "Zveřejnění rozjížďky",
+  "Publish this heat and register boats in the race’s Fleet tab so invited skippers can join tracking. Opening tracking applies to the whole series.": "Zveřejněte rozjížďku a přihlaste lodě v záložce Lodě daného závodu, aby pozvaní kormidelníci mohli spustit sledování. Otevření sledování platí pro celý seriál.",
+  "{count} boats entered in this heat": "Počet lodí přihlášených do rozjížďky: {count}",
+  "Publish heat for live results and tracking": "Zveřejnit rozjížďku pro živé výsledky a sledování",
+  "To test live tracking: invite the skipper from Fleet, enter the boat in a heat, publish that heat, and open tracking here. The skipper accepts the invitation, signs in to the app, and chooses Track → Refresh regattas → Start sharing.": "Pro test živého sledování pozvěte kormidelníka v záložce Lodě, přihlaste loď do rozjížďky, zveřejněte ji a zde otevřete sledování. Kormidelník přijme pozvánku, přihlásí se do aplikace a zvolí Track → Refresh regattas → Start sharing.",
   "Retry sending invitation": "Zkusit odeslat pozvánku znovu",
   "Sending invitation…": "Odesílání pozvánky…",
   "Invitation email sent": "Pozvánka odeslána e-mailem",
