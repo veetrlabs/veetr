@@ -1,8 +1,10 @@
+import { MySeries } from "./MySeries";
+import { InvitationAcceptance, MyBoats } from "./BoatAccess";
 import {CreationAccess} from "./CreationAccess";
 import { PasswordAuth } from "./PasswordAuth";
 import { appHref } from "./routes";
 import { t } from "./i18n";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   getTeam,
   updateTeamMember,
@@ -19,7 +21,6 @@ interface Props {
   cloudSaved: boolean;
   localSeries: boolean;
   onAttach: () => Promise<void>;
-  onClose: () => void;
 }
 export function AccountPanel({
   userId,
@@ -30,17 +31,13 @@ export function AccountPanel({
   cloudSaved,
   localSeries,
   onAttach,
-  onClose,
 }: Props) {
-  const dialog = useRef<HTMLDialogElement>(null);
+  const [boatRefresh, setBoatRefresh] = useState(0);
   const [email, setEmail] = useState(""),
     [busy, setBusy] = useState(false),
     [message, setMessage] = useState("");
   const [team, setTeam] = useState<TeamMember[] | null>(null),
     [teamError, setTeamError] = useState("");
-  useEffect(() => {
-    dialog.current?.showModal();
-  }, []);
   useEffect(() => {
     void supabase?.auth
       .getSession()
@@ -82,24 +79,10 @@ export function AccountPanel({
     }
   };
   return (
-    <dialog
-      ref={dialog}
-      className="account-dialog"
-      aria-labelledby="account-title"
-      onCancel={onClose}
-    >
-      <div className="section-title">
-        <h2 id="account-title">
-          {userId ? t("Account & team") : t("Sign in to Race Control")}
-        </h2>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label={t("Close account panel")}
-        >
-          {t("×")}
-        </button>
-      </div>
+    <section className={`account-page ${!userId || recovery ? "account-page-auth" : ""}`} aria-labelledby="account-title">
+      <a className="account-back" href={seriesId ? appHref(`?series=${seriesId}`) : appHref("/")}>{t("All series")}</a>
+      <h1 id="account-title">{userId && !recovery ? t("Account & team") : t("Account")}</h1>
+      {supabase && !recovery && <InvitationAcceptance key={userId} userId={userId} onAccepted={() => setBoatRefresh(n => n + 1)} />}
       {!supabase ? (
         <p>
           {t(
@@ -110,7 +93,8 @@ export function AccountPanel({
         <PasswordAuth recovery={recovery} onRecovered={onRecovered}/>
       ) : (
         <>
-          <p><a href={appHref("/")}>{t("All series")}</a></p>
+          <MySeries key={`series-${userId}`} userId={userId} />
+          <MyBoats key={userId} refreshKey={boatRefresh} />
           <CreationAccess key={userId} /><div className="account-identity">
             <div>
               <strong>{email || "Signed-in account"}</strong>
@@ -253,6 +237,6 @@ export function AccountPanel({
           {t(message)}
         </p>
       )}
-    </dialog>
+    </section>
   );
 }

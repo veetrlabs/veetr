@@ -5,7 +5,7 @@ import '../styles/racing-portal.css';
 interface Props {title:string;description:string;}
 const {title,description}=Astro.props;
 ---
-<StarlightPage frontmatter={{title,description,template:'splash',head:[{tag:'link',attrs:{rel:'manifest',href:'/veetr-app.webmanifest'}}]}}>
+<StarlightPage frontmatter={{title,description,template:'splash',head:[{tag:'meta',attrs:{name:'referrer',content:'no-referrer'}},{tag:'link',attrs:{rel:'manifest',href:'/veetr-app.webmanifest'}}]}}>
   <style is:inline set:html={racingStyles()} />
   <div id="veetr-racing" class="race-app not-content">
     <div id="root"><p role="status">Loading… / Načítání…</p></div>

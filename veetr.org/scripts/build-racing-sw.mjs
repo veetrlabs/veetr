@@ -6,5 +6,7 @@ await generateSW({
  cleanupOutdatedCaches:true,clientsClaim:true,skipWaiting:false,
  // Only the application paths are served from cache. Never intercept documentation or marketing navigation.
  ignoreURLParametersMatching:[/.*/],
+ navigateFallback:'boats/',
+ navigateFallbackAllowlist:[/^\/boats\/[^/?]+\/?(?:\?.*)?$/],
  modifyURLPrefix:{'races/index.html':'races/','races/manage/index.html':'races/manage/','boats/index.html':'boats/','account/index.html':'account/'},
 });

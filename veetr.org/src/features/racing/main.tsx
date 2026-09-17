@@ -1,3 +1,4 @@
+import { TrackingWindow } from "./BoatAccess";
 import {LiveTrackingMap} from "./LiveTrackingMap";
 import "leaflet/dist/leaflet.css";
 import {HeatResults} from "./SharedResults";
@@ -39,9 +40,9 @@ import {
   type LocalRecord,
 } from "./storage";
 import { listRemote, publicSeries, pushRemote, supabase, passwordRecoveryRequested, deleteRaceEntity } from "./api";
-import { appHref, integrated, entityId } from "./routes";
+import { appHref, integrated, entityId, boatRouteValue } from "./routes";
 
-const boatId = entityId("boats", new URLSearchParams(window.location.search).get("boat"));
+const boatId = entityId("boats", boatRouteValue(window.location.pathname, window.location.search));
 const boatsPage =
   Boolean(boatId) || new URLSearchParams(window.location.search).has("boats") || location.pathname.startsWith("/boats/");
 
@@ -96,7 +97,7 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
   }, []);
   const [authReady, setAuthReady] = useState(!supabase);
   const [passwordRecovery, setPasswordRecovery] = useState(passwordRecoveryRequested);
-  const [accountOpen, setAccountOpen] = useState(passwordRecoveryRequested || (integrated && window.location.pathname === "/account/"));
+  const [accountPage, setAccountPage] = useState(passwordRecoveryRequested || new URLSearchParams(window.location.search).has("invite") || new URLSearchParams(window.location.search).has("account") || (integrated && window.location.pathname === "/account/"));
   const [editingResults, setEditingResults] = useState(false);
   const [clearResultId, setClearResultId] = useState("");
   const [user, setUser] = useState(""),
@@ -232,7 +233,7 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
     window.addEventListener("online", on);
     window.addEventListener("offline", off);
     const sub = supabase?.auth.onAuthStateChange((_event, session) => {
-      if (_event === "PASSWORD_RECOVERY") { setPasswordRecovery(true); setAccountOpen(true); }
+      if (_event === "PASSWORD_RECOVERY") { setPasswordRecovery(true); setAccountPage(true); }
       identity.current = session?.user.id ?? "";
       setUser(identity.current);
       setAuthReady(true);
@@ -346,11 +347,12 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
     event.preventDefault();
     return new FormData(event.currentTarget);
   };
+  const accountHref = (integrated ? "/account/" : "/?account") + (location.seriesId ? `${integrated ? "?" : "&"}series=${encodeURIComponent(location.seriesId)}` : "");
   return (
     <>
       {integrated && document.getElementById("veetr-account-controls") && createPortal(<>
         <LanguageSelector />
-        <button className="portal-account" onClick={() => setAccountOpen(true)}>{user ? t("Account") : t("Sign in")}</button>
+        <a className="portal-account" href={accountHref}>{user ? t("Account") : t("Sign in")}</a>
       </>, document.getElementById("veetr-account-controls")!)}
       {!integrated && <header>
         <a className="brand" href="/">
@@ -385,12 +387,9 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
               </button>
             )}
           {(
-            <button
-              className="account-trigger"
-              onClick={() => setAccountOpen(true)}
-            >
+            <a className="account-trigger" href={accountHref}>
               {user ? t("Account") : t("Sign in")}
-            </button>
+            </a>
           )}
         </div>
       </header>}
@@ -418,7 +417,7 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
             </button>
           </div>
         )}
-        {boatsPage ? (
+        {!accountPage && (boatsPage ? (
           <Boats boatId={boatId} userId={user} />
         ) : (
           <>
@@ -460,7 +459,7 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
                 } : undefined}
               />
             )}
-            {canEdit && canDelete && <button onClick={() => setAccountOpen(true)}>{t("Series team")}</button>}
+            {canEdit && canDelete && <a href={accountHref}>{t("Series team")}</a>}
             {series && location.seriesId && !location.heatId && (
               <nav aria-label={t("Series tools")}>
                 <button
@@ -491,7 +490,7 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
               <SeriesBrowser key={`${series.id}/${location.eventId ?? ""}`} seriesList={[series]} location={location} navigate={navigate} edit={canEdit ? edit : undefined} />
             ) : series ? (
               <>
-                {page === "tracking" && <LiveTrackingMap key={series.id} seriesId={series.id} />}
+                {page === "tracking" && <>{canEdit && <TrackingWindow key={series.id} seriesId={series.id} />}<LiveTrackingMap key={series.id} seriesId={series.id} /></>}
                 {(page === "standings" && !location.eventId) && (
                   <div className="categories" aria-label={t("Race categories")}>
                     <button
@@ -920,8 +919,8 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
               </>
             ) : null}
           </>
-        )}
-        {accountOpen && (
+        ))}
+        {accountPage && (
           <AccountPanel
             recovery={passwordRecovery}
             onRecovered={() => {
@@ -934,7 +933,6 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
             seriesName={series?.name}
             cloudSaved={Boolean(record?.revision)}
             localSeries={record?.owner === "local"}
-            onClose={() => setAccountOpen(false)}
             onAttach={async () => {
               if (!record || !user) return;
               await serial(async () => {
@@ -949,4 +947,3 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
     </>
   );
 }
-

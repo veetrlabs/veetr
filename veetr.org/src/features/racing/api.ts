@@ -172,3 +172,18 @@ export async function deleteBoat(boatId: string) {
  const {error} = await supabase.rpc("delete_boat", {boat_id: boatId});
  if (error) throw error;
 }
+
+
+export interface OwnedSeries {
+  id: string;
+  name: string;
+  year: number;
+}
+export async function listOwnedSeries(userId: string): Promise<OwnedSeries[]> {
+  if (!supabase) throw new Error("Cloud is not configured");
+  const { data, error } = await supabase.from("series")
+    .select("id,name,year").eq("owner_id", userId)
+    .order("year", { ascending: false }).order("name");
+  if (error) throw error;
+  return data ?? [];
+}

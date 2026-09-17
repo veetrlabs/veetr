@@ -571,30 +571,23 @@ footer small {
   color: #123f38;
   white-space: nowrap;
 }
-.account-dialog {
-  width: min(620px, calc(100vw - 28px));
-  max-height: calc(100dvh - 40px);
-  overflow: auto;
-  padding: 26px;
-  border: 1px solid #c6d0c4;
-  border-radius: 16px;
-  color: #173e36;
+.account-page {
+  width: min(100%, 760px);
+  margin: 2rem auto 4rem;
+  padding: 1rem;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
   background: #fff;
-  box-shadow: 0 20px 90px #071d3640;
+  color: #20242b;
 }
-.account-dialog::backdrop {
-  background: #0b211bb3;
-}
-.account-dialog .section-title {
-  align-items: start;
-}
-.account-dialog .section-title button {
-  min-width: 48px;
-}
-.account-dialog h3 {
-  font-size: 17px;
-  margin-top: 28px;
-}
+.account-page-auth { max-width: 460px; }
+.account-back { display: inline-block; margin-bottom: 1.5rem; }
+.account-page h3 { font-size: 1.25rem; margin-block: 1.75rem 1rem; }
+.account-page form { display: grid; gap: 1rem; }
+.account-page label { display: grid; gap: .5rem; }
+.account-page input { width: 100%; box-sizing: border-box; }
+.account-page .form-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; }
 .account-identity {
   display: flex;
   align-items: center;
@@ -625,10 +618,10 @@ footer small {
   border-bottom: 1px solid #d9dfd3;
   padding: 16px 0;
 }
-.account-dialog .notice {
+.account-page .notice {
   margin: 20px 0 0;
 }
-.account-dialog p {
+.account-page p {
   font-size: 14px;
 }
 .public-directory {
@@ -790,3 +783,12 @@ input.fleet-registration { width: 22px; height: 22px; min-height: 22px; margin: 
 .tracking-map .leaflet-control-zoom a { color:#172b33; background:white; }
 .tracking-map .leaflet-control-attribution { color:#334155; background:rgba(255,255,255,.9); }
 .tracking-map .leaflet-control-attribution a { color:#005e8c; }
+
+.boat-access, .my-boats, .my-series, .tracking-window { margin-block: 1.5rem; }
+.invitation-row { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; margin-block: .5rem; }
+.invitation-row > span { flex-basis: 100%; overflow-wrap: anywhere; }
+.invitation-row > small { flex-basis: 100%; }
+.invitation-error { max-width: 36rem; white-space: normal; }
+.tracking-window, .my-boats article { padding: 1rem; border: 1px solid var(--border, #b5bdc8); border-radius: .6rem; }
+.tracking-race { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; margin-block: 1rem; }
+.boat-access input { min-width: 12rem; max-width: 100%; }

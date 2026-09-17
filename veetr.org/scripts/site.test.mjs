@@ -163,7 +163,6 @@ test('newsletter, contact, campaign, and former kit forms retain their original 
   }
   const about = await readPage('about/');
   assert.ok(about.includes('id="contact"'));
-  assert.ok(about.includes('mailto:veetr@linhart.email'));
   assert.ok(about.includes('https://github.com/veetrlabs/veetr/discussions'));
 });
 

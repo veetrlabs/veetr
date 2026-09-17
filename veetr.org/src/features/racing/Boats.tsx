@@ -1,3 +1,4 @@
+import { BoatInvitations, BoatProfileInvitations } from "./BoatAccess";
 import {BoatTeam} from "./BoatTeam";
 import { appHref } from "./routes";
 import { Sailboat, Search, Plus, ArrowUpRight } from "lucide-react";
@@ -253,6 +254,7 @@ export function Boats({
                 .join(" · ")}
             </p>
             {userId && manager === userId && <BoatTeam key={`${boatId}/${userId}`} boatId={boatId} />}
+            <BoatProfileInvitations key={`invitations/${boatId}/${userId}`} boatId={boatId} userId={userId} />
             <h2>{t("Race results")}</h2>
             {!series.length && <p>{t("No shared race results yet.")}</p>}
             {series.map((s) => (
@@ -381,63 +383,34 @@ export function SeriesFleet({
         )}
       </p>}
       {series.boats.length ? (
-        <div className="table-scroll">
+        onChange ? <BoatInvitations key={series.id} series={series} fleet={{
+          category: (b) => <select
+            aria-label={t("Category for {name}", { name: b.name })}
+            value={b.categoryId}
+            onChange={(e) => {
+              const categoryId = e.target.value;
+              onChange(s => { s.boats.find(v => v.id === b.id)!.categoryId = categoryId; });
+            }}
+          >
+            {series.categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>,
+          actions: (b) => <button
+            aria-label={t("Remove {name}", { name: b.name })}
+            disabled={hasResults(b.id)}
+            aria-describedby={hasResults(b.id) ? "fleet-removal-help" : undefined}
+            onClick={() => onChange(s => {
+              s.boats = s.boats.filter(v => v.id !== b.id);
+              s.events?.forEach(event => { if (event.entries) event.entries = event.entries.filter(id => id !== b.id); });
+              s.races.forEach(r => { r.entries = r.entries.filter(v => v !== b.id); });
+            })}
+          >{t("Remove")}</button>,
+        }} /> : <div className="table-scroll">
           <table className="fleet-table">
-            <thead>
-              <tr>
-                <th scope="col">{t("Boat")}</th>
-                <th scope="col">{t("Category")}</th>
-                {onChange && <th scope="col">{t("Actions")}</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {series.boats.map((b) => (
-                <tr key={b.id}>
-                  <th scope="row">
-                    <a href={appHref(`?boat=${b.id}`)}>{b.name}</a>
-                  </th>
-                  <td>
-                    {onChange ? <select
-                      aria-label={t("Category for {name}", { name: b.name })}
-                      value={b.categoryId}
-                      onChange={(e) => {
-                        const categoryId = e.target.value;
-                        onChange?.((s) => {
-                          s.boats.find((v) => v.id === b.id)!.categoryId =
-                            categoryId;
-                        });
-                      }}
-                    >
-                      {series.categories.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select> : series.categories.find(c => c.id === b.categoryId)?.name}
-                  </td>
-                  {onChange && <td>
-                    <button
-                      aria-label={t("Remove {name}", { name: b.name })}
-                      disabled={hasResults(b.id)}
-                      aria-describedby={
-                        hasResults(b.id) ? "fleet-removal-help" : undefined
-                      }
-                      onClick={() =>
-                        onChange?.((s) => {
-                          s.boats = s.boats.filter((v) => v.id !== b.id);
-                          s.events?.forEach((event) => { if (event.entries) event.entries = event.entries.filter((id) => id !== b.id); });
-                          s.races.forEach((r) => {
-                            r.entries = r.entries.filter((v) => v !== b.id);
-                          });
-                        })
-                      }
-                    >
-                      {t("Remove")}
-                    </button>
-                  </td>}
-                </tr>
-              ))}
-            </tbody>
+            <thead><tr><th scope="col">{t("Boat")}</th><th scope="col">{t("Category")}</th></tr></thead>
+            <tbody>{series.boats.map(b => <tr key={b.id}>
+              <th scope="row"><a href={appHref(`?boat=${b.id}`)}>{b.name}</a></th>
+              <td>{series.categories.find(c => c.id === b.categoryId)?.name}</td>
+            </tr>)}</tbody>
           </table>
         </div>
       ) : (

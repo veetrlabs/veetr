@@ -26,7 +26,7 @@ body:has(#veetr-racing) .content-panel { border: 0; padding-top: 1rem; }
 #veetr-racing th, #veetr-racing td, #veetr-racing .table-scroll, #veetr-racing .directory-toolbar { border-color:var(--sl-color-hairline); }
 #veetr-racing .discarded, #veetr-racing .delete-action { color:#e06a62; }
 :root[data-theme=light] #veetr-racing .discarded, :root[data-theme=light] #veetr-racing .delete-action {color:#b42318;}
-#veetr-racing .account-dialog { background:var(--sl-color-bg); color:var(--sl-color-white); border-color:var(--sl-color-hairline); }
+
 /* Pair notice text and surfaces explicitly; the portal paragraph color must not bleed in. */
 #veetr-racing .notice {
   --notice-bg: #312b17;
@@ -52,7 +52,20 @@ body:has(#veetr-racing) .content-panel { border: 0; padding-top: 1rem; }
 #veetr-racing .portal-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:1rem; margin-bottom:1.25rem; }
 #veetr-racing .portal-toolbar a {font-weight:600; font-size:.9rem; color:var(--sl-color-text-accent);text-decoration:none;}
 #veetr-account-controls {flex-shrink:0;white-space:nowrap;display:flex;align-items:center;gap:.5rem;}
-#veetr-account-controls:has(button) > a {display:none;}
-#veetr-account-controls select, #veetr-account-controls button {font:inherit;font-size:.85rem;min-height:2.5rem;border:1px solid var(--sl-color-hairline);border-radius:.5rem;padding:.4rem .65rem;background:var(--sl-color-bg);color:var(--sl-color-white);}
+#veetr-account-controls:has(.portal-account) > a:not(.portal-account) {display:none;}
+#veetr-account-controls select, #veetr-account-controls button, #veetr-account-controls .portal-account {font:inherit;font-size:.85rem;min-height:2.5rem;border:1px solid var(--sl-color-hairline);border-radius:.5rem;padding:.4rem .65rem;background:var(--sl-color-bg);color:var(--sl-color-white);}
 #veetr-account-controls .portal-account {background:var(--sl-color-text-accent);color:var(--sl-color-bg);font-weight:600;}
 @media(max-width:48rem){#veetr-account-controls select {max-width:5rem;}#veetr-account-controls button{max-width:7rem;}body:has(#veetr-racing) .sl-container {padding-inline:.5rem;}}
+
+/* Account is a normal document page, with neutral surfaces and no overlay. */
+#veetr-racing:has(.account-page) { background: transparent; }
+#veetr-racing .account-page { background: transparent; color: var(--sl-color-white); }
+#veetr-racing .account-page input,
+#veetr-racing .account-page select,
+#veetr-racing .account-page button { background: #202328; color: #f3f4f6; border-color: #555b65; }
+#veetr-racing .account-page .primary { background: #e5e7eb; color: #17191d; border-color: #e5e7eb; }
+:root[data-theme=light] #veetr-racing .account-page input,
+:root[data-theme=light] #veetr-racing .account-page select,
+:root[data-theme=light] #veetr-racing .account-page button { background: #fff; color: #20242b; border-color: #cbd0d8; }
+:root[data-theme=light] #veetr-racing .account-page .primary { background: #252a33; color: #fff; border-color: #252a33; }
+#veetr-account-controls a.portal-account { text-decoration: none; display: inline-flex; align-items: center; }

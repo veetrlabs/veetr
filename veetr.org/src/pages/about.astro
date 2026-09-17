@@ -1,14 +1,26 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { Image } from 'astro:assets';
 import sailing from '../assets/jan-steering.jpg';
 import MarkdownSection from '../components/MarkdownSection.astro';
 import Newsletter from '../components/Newsletter.astro';
 import { frontmatter, Content } from '../content/pages/about.md';
 ---
 
-<BaseLayout title={frontmatter.title} description={frontmatter.description} hero={frontmatter} image={sailing} imageAlt="Jan steering a sailboat">
+<BaseLayout title={frontmatter.title} description={frontmatter.description} hero={frontmatter}>
 
   <MarkdownSection Content={Content} />
+
+  <section class="section" aria-labelledby="founder-title">
+    <div class="shell founder">
+      <div class="prose">
+        <h2 id="founder-title">{frontmatter.founderTitle}</h2>
+        <p>{frontmatter.founderIntro}</p>
+        <p>{frontmatter.founderSailing}</p>
+      </div>
+      <Image class="founder-photo" src={sailing} alt="Jan steering a sailboat" widths={[320, 640]} sizes="(max-width: 40rem) 280px, 320px" width={320} format="webp" loading="lazy" />
+    </div>
+  </section>
 
   <section class="section section-muted">
     <div class="shell stats-row">
@@ -29,7 +41,15 @@ import { frontmatter, Content } from '../content/pages/about.md';
   <section class="section">
     <div class="shell contact-links">
       <a href="https://github.com/veetrlabs/veetr/discussions">Join GitHub Discussions</a>
-      <a href="mailto:veetr@linhart.email">Email veetr@linhart.email</a>
     </div>
   </section>
 </BaseLayout>
+
+<style>
+  .founder { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 20rem); align-items: center; gap: 2.5rem; }
+  .founder-photo { width: 100%; height: auto; border-radius: .85rem; }
+  @media (max-width: 40rem) {
+    .founder { grid-template-columns: 1fr; gap: 1.5rem; }
+    .founder-photo { max-width: 17.5rem; }
+  }
+</style>

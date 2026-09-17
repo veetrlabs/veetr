@@ -76,6 +76,10 @@ Cloud writes use a PostgreSQL RPC transaction with a row/advisory lock, expected
 
 Browser storage can be evicted or cleared, so keep exported backups at race breaks. No promise of permanent storage is made. Public pages do not persist standings offline; the committee's cached series is the offline source of truth on its device. Account-owned local records are hidden when signed out, but IndexedDB is not encrypted: use trusted committee devices. Role revocation is enforced when syncing; an offline client may retain previously downloaded data.
 
+## Skipper invitations
+
+Referees can invite skippers by email from the series Fleet tab. Recipients accept with their verified account and find the boat under **My boats**. Accepted access is scoped to that series and enables the native mobile tracker when the referee opens tracking and the boat has a published heat entry. See [Skipper invitations](BOAT_INVITATIONS.md) for workflow, permissions, and deployment.
+
 ## Data and authorization
 
 The SQL migration creates `series`, `race_officials`, reusable `boats`, `boat_members`, `race_categories`, `series_entries`, `races`, `race_entries`, `race_results`, and `series_changes`. UUIDs, foreign keys, category-scoped finish uniqueness, valid statuses, positive weights, audit actors and timestamps are enforced in PostgreSQL. Auth users live in `auth.users`; no redundant public user table is needed.
@@ -113,6 +117,6 @@ Before deployment, apply Supabase migrations without the development seed. Set S
 
 ## Dynamic content and future rendering
 
-Astro builds generic application shells. React loads series, races, boats, and live results from Supabase at runtime. Creating or editing entities requires no Git change or rebuild. Current query URLs remain supported. Slugs are assigned automatically in Supabase for series and boats, with numeric suffixes for duplicate names, and remain stable on renaming. Public URLs use `/races/?series=orlicka-serie-2026` and `/boats/?boat=luna`. Legacy UUID links are resolved and replaced in browser history with the canonical slug URL. The public routing lookup exposes only entities already visible through the public directory RPCs. Path-style URLs are deferred until hosting supports request routing. There is no build-time database fetch or per-entity URL registry.
+Astro builds generic application shells. React loads series, races, boats, and live results from Supabase at runtime. Creating or editing entities requires no Git change or rebuild. Current query URLs remain supported. Slugs are assigned automatically in Supabase for series and boats, with numeric suffixes for duplicate names, and remain stable on renaming. Public URLs use `/races/?series=orlicka-serie-2026` and `/boats/luna/`. Legacy UUID links are resolved and replaced in browser history with the canonical slug URL. The public routing lookup exposes only entities already visible through the public directory RPCs. Boat profile paths use a shared shell, with Astro middleware in development and Cloudflare Pages rewrites in production. Old `?boat=` links still resolve to the clean path. There is no build-time database fetch or per-entity URL registry.
 
 Per-entity server-rendered HTML is deferred. These can be added later while retaining the existing data and scoring logic; dynamic Astro rendering will require a compatible hosting runtime.

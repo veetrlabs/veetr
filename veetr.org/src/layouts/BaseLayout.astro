@@ -47,6 +47,7 @@ const heroImage = optimizedImage
   },
 }}>
   <div class="site-content not-content">
+    <slot name="before-intro" />
     {hero && <div class="page-intro">
       <p class="eyebrow">{hero.eyebrow}</p>
       <p class="page-support">{hero.heroSupport}</p>

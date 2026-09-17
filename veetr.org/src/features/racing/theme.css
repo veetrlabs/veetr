@@ -89,7 +89,7 @@ label { font-size: 12px; font-weight: 650; color: #456052; }
 .public-series-card:hover { background: #eef5df; box-shadow: 0 6px 20px #183e3608; }
 .welcome { background: linear-gradient(120deg, #fff, #f0f6e5); border-radius: 22px; }
 .welcome h1 { font-size: clamp(38px, 5vw, 64px); max-width: 760px; line-height: 1.06; }
-.account-dialog { border-color: var(--line); border-radius: 20px; }
+
 footer { border-top: 1px solid var(--line); padding-top: 24px; opacity: .9; }
 .boat-directory { padding: 0; }
 .boat-directory .table-scroll { border: 0; border-radius: 0; margin: 0; }

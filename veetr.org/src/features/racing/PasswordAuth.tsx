@@ -21,7 +21,9 @@ export function PasswordAuth({ recovery = false, onRecovered }: { recovery?: boo
       }
       if (!supabase || busy) return;
       setBusy(true); setMessage('');
-      const redirectTo = location.origin + (integrated ? '/account/' : '/');
+      let invite = new URLSearchParams(location.search).get('invite');
+      try { invite ||= sessionStorage.getItem('veetr.boat-invite'); } catch {}
+      const redirectTo = location.origin + (integrated ? '/account/' : '/?account') + (invite ? `${integrated ? '?' : '&'}invite=${encodeURIComponent(invite)}` : '');
       try {
         if (recovery) {
           const { error } = await supabase.auth.updateUser({ password });

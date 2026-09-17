@@ -447,6 +447,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      invite_boat_skipper: { Args: { sid: string; bid: string; recipient: string }; Returns: Json }
+      boat_invitation_roster: { Args: { sid: string }; Returns: Json }
+      revoke_boat_access: { Args: { sid: string; invitation_id?: string; bid?: string; member_id?: string }; Returns: undefined }
+      boat_invitation_preview: { Args: { invite_token: string }; Returns: Json }
+      accept_boat_invitation: { Args: { invite_token: string }; Returns: undefined }
+      prepare_boat_invitation_email: { Args: { invitation_id: string }; Returns: Json }
+      mark_boat_invitation_sent: { Args: { invitation_id: string }; Returns: undefined }
+      my_boats: { Args: Record<PropertyKey, never>; Returns: Json }
+      tracking_window: { Args: { sid: string }; Returns: Json }
+      set_tracking_window: { Args: { sid: string; enabled: boolean }; Returns: undefined }
+      take_over_tracking_session: { Args: { p_id: string; p_series: string; p_boat: string; p_replay?: boolean }; Returns: Json }
       creation_access: {Args: Record<PropertyKey, never>; Returns: Json};
       request_creation_access: {Args: {reason: string}; Returns: undefined};
       review_creation_access: {Args: {request_id: string; approve: boolean}; Returns: undefined};

@@ -1,6 +1,11 @@
 export const integrated = typeof document !== "undefined" && Boolean(document.getElementById("veetr-racing"));
 type Routes = {series:Record<string,string>;boats:Record<string,string>};
 let routes:Routes={series:{},boats:{}};
+export function boatRouteValue(pathname:string, search:string):string|null {
+ const match=pathname.match(/^\/boats\/([^/]+)\/?$/);
+ if(match)try{return decodeURIComponent(match[1]);}catch{return match[1];}
+ return new URLSearchParams(search).get('boat');
+}
 export function entityId(kind:keyof Routes,value:string|null):string|null {
  if(!value)return null;
  return Object.entries(routes[kind]).find(([,slug])=>slug===value)?.[0] || value;
@@ -20,7 +25,7 @@ export async function initializeRoutes() {
  }
  if(location.pathname==='/boats/' && params.has('boat')){
   const id=entityId('boats',params.get('boat'))!;
-  if(routes.boats[id])history.replaceState(null,'',appHref(`?boat=${id}`)+location.hash);
+  history.replaceState(null,'',appHref(`?boat=${encodeURIComponent(id)}`)+location.hash);
  }
 }
 export function appHref(query:string):string {
@@ -28,7 +33,8 @@ export function appHref(query:string):string {
  if(query==='/')return '/races/';
  const params=new URLSearchParams(query.replace(/^\?/,''));
  if(params.has('boats'))return '/boats/';
- if(params.has('boat'))return `/boats/?boat=${encodeURIComponent(routes.boats[params.get('boat')!] || params.get('boat')!)}`;
+ if(params.has('account'))return '/account/';
+ if(params.has('boat'))return `/boats/${encodeURIComponent(routes.boats[params.get('boat')!] || params.get('boat')!)}/`;
  if(params.has('browse'))return '/races/';
  if(params.has('series')) { params.set('public',params.get('series')!); params.delete('series'); }
  if(params.has('public'))return `/races/?series=${encodeURIComponent(routes.series[params.get('public')!] || params.get('public')!)}${['event','heat'].filter(k=>params.has(k)).map(k=>`&${k}=${encodeURIComponent(params.get(k)!)}`).join('')}`;

@@ -4,17 +4,31 @@ import OtaDiagram from '../components/OtaDiagram.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Newsletter from '../components/Newsletter.astro';
 import { frontmatter, Content } from '../content/pages/get-your-veetr.md';
+import { frontmatter as options, Content as OptionsIntro } from '../content/pages/get-your-veetr-options.md';
 import { milestones, stateLabels } from '../data/roadmap';
 const certificationStep = milestones.findIndex(milestone => milestone.salesBlocker) + 1;
 ---
 
 <BaseLayout title={frontmatter.title} description={frontmatter.description} hero={{
-  heroTitle: 'A hobby project getting out of hand.',
-  heroLead: 'What started as an experiment is becoming a sailing system. Here’s what we’ve built, what we’ve learned, and what comes next.',
+  heroTitle: 'Can I get a Veetr device?',
+  heroLead: 'We hit a wall with hardware certification. An electronic device can’t be distributed until it meets strict regulatory standards.',
   eyebrow: 'Get your Veetr · The roadmap',
   heroSupport: 'Built in the open. Tested on the water.',
 }}>
-  <p class="follow-link"><a href="#follow">Follow the journey ↗</a></p>
+  <section slot="before-intro" class="available-now" aria-labelledby="available-now-title">
+    <p class="eyebrow">{options.eyebrow}</p>
+    <h2 id="available-now-title">{options.title}</h2>
+    <div class="options-intro"><OptionsIntro /></div>
+    <div class="options-grid">
+      {options.options.map((option) => (
+        <article class="option-card">
+          <h3>{option.title}</h3>
+          <p>{option.text}</p>
+          <a href={option.href}>{option.linkText} <span aria-hidden="true">→</span></a>
+        </article>
+      ))}
+    </div>
+  </section>
 
   <aside class="certification-note" aria-labelledby="blocker-title">
     <div><p class="eyebrow">Why you can’t buy one yet</p><h2 id="blocker-title">Certification is the blocker.</h2><a href={`#milestone-${certificationStep}`}>See milestone {certificationStep} <span aria-hidden="true">↓</span></a></div>
@@ -54,7 +68,15 @@ const certificationStep = milestones.findIndex(milestone => milestone.salesBlock
 </BaseLayout>
 
 <style>
-  .follow-link { padding-block: 1rem 2rem; }
+  .available-now { padding-block: 0 3rem; }
+  .available-now h2 { margin-bottom: .75rem; }
+  .options-intro { max-width: 44rem; margin-bottom: 1.75rem; }
+  .options-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+  .option-card { display: flex; flex-direction: column; padding: 1.5rem; border: 1px solid var(--sl-color-hairline); border-radius: .85rem; background: var(--veetr-surface); }
+  .option-card h3 { font-size: 1.2rem; }
+  .option-card p { font-size: .95rem; }
+  .option-card > a { margin-top: auto; padding-top: .25rem; font-weight: 600; color: var(--sl-color-text-accent); }
+  @media (max-width: 40rem) { .options-grid { grid-template-columns: 1fr; } }
   .certification-note { display: grid; grid-template-columns: 1fr 1.6fr; gap: 2.5rem; padding: clamp(1.4rem, 3vw, 2.5rem); border: 1px solid var(--sl-color-hairline); border-left: 4px solid #48b3f6; border-radius: .8rem; background: var(--sl-color-accent-low); }
   .certification-note h2 { font-size: 1.6rem; }
   .blocker-copy { font-size: .95rem; }

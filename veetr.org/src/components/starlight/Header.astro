@@ -4,23 +4,36 @@ import ThemeSelect from '@astrojs/starlight/components/ThemeSelect.astro';
 import Search from '@astrojs/starlight/components/Search.astro';
 import { Icon } from '@astrojs/starlight/components';
 
-const links = [
-  { href: '/build/', label: 'Build' },
-  { href: '/get-your-veetr/', label: 'Get' },
+const hardwareLinks = [
+  { href: '/get-your-veetr/', label: 'Get your Veetr' },
+  { href: '/build/', label: 'Build your own' },
   { href: '/docs/', label: 'Docs' },
-  { href: '/about/', label: 'About' },
-  { href: '/boats/', label: 'Boats' },
-  { href: '/races/', label: 'Races' },
+];
+const navigationGroups = [
+  { label: 'Hardware', links: hardwareLinks },
+  { label: 'Race Management', links: [
+    { href: '/boats/', label: 'Boats' },
+    { href: '/races/', label: 'Races' },
+  ] },
 ];
 const pathname = Astro.url.pathname;
+const isCurrent = (href: string) => pathname === href || (href === '/docs/' && pathname.startsWith('/docs/'));
 ---
 
 <div class="veetr-header">
   <SiteTitle />
   <nav class="desktop-links" aria-label="Main navigation">
-    {links.map(({ href, label }) => (
-      <a href={href} aria-current={pathname === href || (href === '/docs/' && pathname.startsWith('/docs/')) ? 'page' : undefined}>{label}</a>
+    {navigationGroups.map((group) => (
+      <details class:list={['nav-group', { active: group.links.some(({ href }) => pathname.startsWith(href)) }]}>
+        <summary>{group.label} <span class="chevron" aria-hidden="true">⌄</span></summary>
+        <div class="group-links">
+          {group.links.map(({ href, label }) => (
+            <a href={href} aria-current={isCurrent(href) ? 'page' : undefined}>{label}</a>
+          ))}
+        </div>
+      </details>
     ))}
+    <a href="/about/" aria-current={isCurrent('/about/') ? 'page' : undefined}>About</a>
   </nav>
   <div class="header-controls">
     <Search />
@@ -35,9 +48,17 @@ const pathname = Astro.url.pathname;
         <Icon class="close-icon" name="close" size="1.25rem" />
       </summary>
       <nav aria-label="Mobile navigation">
-        {links.map(({ href, label }) => (
-          <a href={href} aria-current={pathname === href || (href === '/docs/' && pathname.startsWith('/docs/')) ? 'page' : undefined}>{label}</a>
+        {navigationGroups.map((group) => (
+          <details class:list={['nav-group', { active: group.links.some(({ href }) => pathname.startsWith(href)) }]}>
+            <summary>{group.label} <span class="chevron" aria-hidden="true">⌄</span></summary>
+            <div class="group-links">
+              {group.links.map(({ href, label }) => (
+                <a href={href} aria-current={isCurrent(href) ? 'page' : undefined}>{label}</a>
+              ))}
+            </div>
+          </details>
         ))}
+        <a href="/about/" aria-current={isCurrent('/about/') ? 'page' : undefined}>About</a>
         <div class="mobile-actions">
           <a href="https://github.com/veetrlabs/veetr">GitHub <Icon name="external" /></a>
           <a href="https://app.veetr.org/">Live App <Icon name="right-arrow" /></a>
@@ -54,8 +75,15 @@ const pathname = Astro.url.pathname;
   .desktop-links, .header-controls { display: flex; align-items: center; gap: .4rem; }
   .header-controls { flex-shrink: 0; }
   .header-controls :global(site-search) { margin-inline: .2rem; }
-  .desktop-links a { padding: .55rem .7rem; font-size: .9rem; font-weight: 550; text-decoration: none; color: var(--sl-color-gray-2); border-radius: .5rem; white-space: nowrap; }
-  .desktop-links a:hover, .desktop-links a[aria-current="page"] { color: var(--sl-color-text-accent); background: var(--sl-color-accent-low); }
+  .desktop-links a, .nav-group > summary { padding: .55rem .7rem; font-size: .9rem; font-weight: 550; text-decoration: none; color: var(--sl-color-gray-2); border-radius: .5rem; white-space: nowrap; }
+  .desktop-links a:hover, .desktop-links a[aria-current="page"], .nav-group > summary:hover, .nav-group.active > summary { color: var(--sl-color-text-accent); background: var(--sl-color-accent-low); }
+  .nav-group { position: relative; }
+  .nav-group > summary { display: flex; align-items: center; justify-content: space-between; gap: .5rem; cursor: pointer; list-style: none; }
+  .nav-group > summary::-webkit-details-marker { display: none; }
+  .chevron { transition: transform .15s; }
+  .nav-group[open] > summary .chevron { transform: rotate(180deg); }
+  .group-links { display: grid; gap: .2rem; }
+  .desktop-links .group-links { position: absolute; top: calc(100% + .5rem); left: 0; z-index: 10; min-width: 12rem; padding: .5rem; border: 1px solid var(--sl-color-hairline); border-radius: .75rem; background: var(--sl-color-bg-nav); box-shadow: 0 12px 32px #0003; }
   .github-link { display: grid; place-items: center; width: 2.75rem; height: 2.75rem; color: var(--sl-color-white); }
   #veetr-account-controls > a { padding: .55rem .7rem; border-radius: .5rem; color: var(--sl-color-text-accent); background: var(--sl-color-accent-low); font-size: .9rem; font-weight: 600; text-decoration: none; }
   .mobile-menu { display: none; }
@@ -63,13 +91,16 @@ const pathname = Astro.url.pathname;
   @media (max-width: 76rem) {
     .desktop-links, .github-link { display: none; }
     .mobile-menu { display: block; }
-    summary { display: grid; place-items: center; list-style: none; width: 2.75rem; height: 2.75rem; border: 1px solid var(--sl-color-hairline); border-radius: .6rem; cursor: pointer; color: var(--sl-color-white); }
-    summary::-webkit-details-marker { display: none; }
+    .mobile-menu > summary { display: grid; place-items: center; list-style: none; width: 2.75rem; height: 2.75rem; border: 1px solid var(--sl-color-hairline); border-radius: .6rem; cursor: pointer; color: var(--sl-color-white); }
+    .mobile-menu > summary::-webkit-details-marker { display: none; }
     .close-icon, [open] .menu-icon { display: none; }
     [open] .close-icon { display: block; }
     .mobile-menu nav { position: absolute; top: calc(100% + .5rem); right: 1rem; width: min(24rem, calc(100% - 2rem)); max-height: calc(100dvh - var(--sl-nav-height) - 1.5rem); overflow-y: auto; overscroll-behavior: contain; padding: .75rem; border: 1px solid var(--sl-color-hairline); border-radius: .85rem; background: var(--sl-color-bg-nav); box-shadow: 0 20px 60px #0003; }
     .mobile-menu nav a { display: flex; align-items: center; justify-content: space-between; min-height: 3rem; padding: .65rem 1rem; color: var(--sl-color-white); text-decoration: none; font-weight: 550; border-radius: .45rem; }
     .mobile-menu nav a:hover, .mobile-menu nav a[aria-current="page"] { background: var(--sl-color-accent-low); color: var(--sl-color-text-accent); }
+    .mobile-menu .nav-group > summary { min-height: 3rem; padding: .65rem 1rem; color: var(--sl-color-white); font-size: inherit; }
+    .mobile-menu .nav-group.active > summary { color: var(--sl-color-text-accent); }
+    .mobile-menu .group-links { margin-left: 1rem; padding-left: .35rem; border-left: 1px solid var(--sl-color-hairline); }
     .mobile-actions { border-top: 1px solid var(--sl-color-hairline); margin-top: .5rem; padding-top: .5rem; }
   }
   @media (max-width: 40rem) {
@@ -86,14 +117,14 @@ const pathname = Astro.url.pathname;
 </style>
 
 <script>
-  const menu = document.querySelector<HTMLDetailsElement>('.mobile-menu');
-  if (menu) {
+  document.querySelectorAll<HTMLDetailsElement>('.mobile-menu, .nav-group').forEach((menu) => {
     const close = () => { menu.open = false; };
     document.addEventListener('click', (event) => {
       if (event.target instanceof Node && !menu.contains(event.target)) close();
     });
-    document.addEventListener('keydown', (event) => {
+    menu.addEventListener('keydown', (event) => {
       if (event.key === 'Escape' && menu.open) {
+        event.stopPropagation();
         close();
         menu.querySelector('summary')?.focus();
       }
@@ -103,5 +134,5 @@ const pathname = Astro.url.pathname;
     });
     menu.querySelectorAll('a').forEach((link) => link.addEventListener('click', close));
     window.matchMedia('(max-width: 76rem)').addEventListener('change', close);
-  }
+  });
 </script>
