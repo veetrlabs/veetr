@@ -31,13 +31,13 @@ export default function AccountSettings({ onBack }: { onBack: () => void }) {
     <Text accessibilityRole="header" style={[text, { fontSize: 24, fontWeight: "700" }]}>Account</Text>
     {!ready ? <Text style={text}>Restoring account…</Text> : !auth ? <AccountSignIn /> : <>
       <Text style={text}>Signed in as {auth.user.email}</Text>
-      <Text style={text}>Accept your boat invitation with this account on the website, then open Track to join a regatta. The referee must open tracking and enter your boat in a published heat.</Text>
-      <Pressable accessibilityRole="button" onPress={() => router.push("./tracking")}><Text style={text}>Open Track →</Text></Pressable>
+      <Text style={text}>Accept your boat invitation with this account on the website, then open Regattas to share your boat location. The referee must open tracking and enter your boat in a published heat.</Text>
+      <Pressable accessibilityRole="button" onPress={() => router.push("/regatta-sharing")}><Text style={text}>Share boat location →</Text></Pressable>
       <Pressable accessibilityRole="button" disabled={busy} onPress={async () => {
         setBusy(true); setError("");
         try {
           const session = await (await trackingStore()).get();
-          if (session && session.mode !== "local" && session.userId === auth.user.id) throw new Error("Finish this tracking session in Track before signing out.");
+          if (session && session.mode !== "local" && session.userId === auth.user.id) throw new Error("Finish live sharing in Regattas before signing out.");
           const { error } = await trackingClient!.auth.signOut({ scope: "local" });
           if (error) throw error;
         } catch (e) { setError(e instanceof Error ? e.message : "Sign-out failed."); }

@@ -133,8 +133,9 @@ must match it. The iOS bundle identifier remains `com.veetr.mobile`.
 The `android-testing` EAS profile builds a signed Play Store app bundle, inherits
 the production Supabase settings, and automatically increments Android's version
 code. The EAS workflow in `.eas/workflows/testflight.yml` runs the mobile tests
-and builds both iOS and Android on mobile changes pushed to `main` (or
-`codex/mobile-tracking`). iOS is submitted to TestFlight automatically. Android
+and builds both iOS and Android on mobile changes pushed to `main`.
+Merge tested mobile changes into `main` before releasing; feature branches do
+not automatically submit releases. iOS is submitted to TestFlight automatically. Android
 currently produces an `.aab` for manual upload; automatic Google Play submission
 requires a Play submission service account configured in EAS.
 

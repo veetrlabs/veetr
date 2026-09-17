@@ -6,7 +6,7 @@ The first tracking milestone uses the React Native app's phone GPS. It does not 
 
 1. Create a Veetr account (or set a password for an existing account) at `/account/` on the website.
 2. Accept the referee’s skipper invitation on the website, or retain existing boat-owner/editor access. The organizer must register the boat in a published heat and open tracking. See [Skipper invitations](BOAT_INVITATIONS.md).
-3. In the mobile app, open **Track**, sign in, select the boat and series, and choose **Start sharing location**. The confirmation explains that position, speed and the recent trail become public.
+3. In the mobile app, open **Regattas → Share boat location**, sign in, select the boat and series, and choose **Start live sharing**. The confirmation explains that position, speed and the recent trail become public.
 4. Grant foreground and background location permissions. The Android foreground-service notification and the iOS location indicator remain visible during tracking.
 5. **Stop sharing** immediately persists a local stop and prevents subsequent callbacks from adding positions. It also asks the server to hide the boat. If offline, the app explicitly shows that the stop is awaiting connection; the public map retains the previous, increasingly stale position until stop confirmation or expiry.
 
@@ -91,7 +91,7 @@ Automated builds do not establish battery life, store-review approval, or reliab
 
 ## Standalone offline iPhone test
 
-The Track tab also offers **Record locally** without Supabase configuration, sign-in, or connectivity. Grant background location, start recording, lock the screen, and walk outside. Reopen to inspect the saved-position count and latest-fix age. Stop and use **Export recording** to save JSON through the iOS share sheet. Export does not delete the original; explicitly delete it before beginning another session. Local recordings are never automatically uploaded, including after sign-in or reconnect. One recording is retained at a time, with a 12-hour limit. Map tiles are not available offline.
+The Track tab also offers **Start private recording** without Supabase configuration, sign-in, or connectivity. Grant background location, start recording, lock the screen, and walk outside. Reopen to inspect the saved-position count and latest-fix age. Stop and use **Export recording** to save JSON through the iOS share sheet. Export does not delete the original; explicitly delete it before beginning another session. Local recordings are never automatically uploaded, including after sign-in or reconnect. One recording is retained at a time, with a 12-hour limit. Map tiles are not available offline.
 
 For TestFlight use `eas build --platform ios --profile testflight`, then submit the completed build with `eas submit --platform ios --id BUILD_ID`. The `testflight` profile is a standalone store build with an incrementing build number; it does not need Metro or a Mac to run. Apple signing credentials and App Store Connect access are required. Submission makes it available for TestFlight processing, not a public App Store release. Add the tester in App Store Connect after processing. External testers may require beta review.
 
@@ -123,7 +123,7 @@ This workflow uses the saved EAS signing/submission credentials. It distributes 
 
 ## Public regatta browsing and replay
 
-Track includes a public directory with All, Live, Upcoming and Past filters. It uses published heat dates; draft events stay private. Guests can open a fleet map without authentication. The native map and browser Leaflet map display public boat positions and recent trails; live positions refresh every five seconds while the app is active. Replay controls step through public timestamps, with playback advancing 20 seconds per response. Missing and stale fixes are not interpolated.
+The Regattas tab includes a public directory with All, Live, Upcoming and Past filters. It uses published heat dates; draft events stay private. Guests can open a fleet map without authentication. The native map and browser Leaflet map display public boat positions and recent trails; live positions refresh every five seconds while the app is active. Replay controls step through public timestamps, with playback advancing 20 seconds per response. Missing and stale fixes are not interpolated.
 
 Joining/sharing still requires sign-in, boat owner/editor permission and entry in a published heat. New mobile sharing explicitly consents to public live viewing and subsequent replay. The separate `start_replay_tracking_session` RPC records that consent; old live-only sessions retain their original privacy. Replay and directory bounds recheck publication and boat-editor permission. Private phone recordings never enter these APIs.
 
@@ -137,12 +137,17 @@ History has one timeline and 10min, 1h, 3h, 6h, 12h and 1d ranges. Start trackin
 
 ## Finding account and live controls
 
-In the mobile app, open **Settings → Account** to sign in. Sign-in is also above the public regatta browser in **Track**. Both use the same saved account. Account sign-out is blocked while that account has an unfinished shared tracking session.
+In the mobile app, open **Settings → Account** to sign in. Sign-in is also available through **Regattas → Share boat location**. Both use the same saved account. Account sign-out is blocked while that account has an unfinished shared tracking session.
 
 On the website, officials see **Race tracking → Open tracking** near the top of series, race, and heat pages. The window applies to the series and closes after 12 hours. In a heat, enable **Publish heat for live results and tracking** and enter the boat in Fleet. Publishing a heat and opening tracking are separate prerequisites; neither starts sharing from a phone automatically.
 
-For a TestFlight test, use production website accounts and invitations. The current TestFlight profile inherits the production Supabase project; local website users and mailcatcher invitations belong to a different database. Accept the skipper invitation, sign in on the phone, then choose **Track → Refresh regattas**, select the boat, and **Join regatta & share tracking**. Confirm **Start sharing** and grant location access. Watch the series' **Live map** on the website. Stop sharing on the phone when finished. New mobile UI requires a new TestFlight build; local edits do not update an installed release.
+For a TestFlight test, use production website accounts and invitations. The current TestFlight profile inherits the production Supabase project; local website users and mailcatcher invitations belong to a different database. Accept the skipper invitation, sign in on the phone, then choose **Regattas → Share boat location → Refresh regattas**, select the boat, and **Start live sharing**. Confirm **Start live sharing** and grant location access. Watch the series' **Live map** on the website. Stop sharing on the phone when finished. New mobile UI requires a new TestFlight build; local edits do not update an installed release.
 
 When reusing an existing local `app/ios` directory, run `npx expo prebuild --platform ios --no-install` before rebuilding after Expo plugin changes. An old generated iOS project can omit the location usage descriptions and background location mode even when `app.json` declares them. This was reproduced in the simulator; a web preview cannot detect it.
 
 Saved mobile auth sessions are scoped to the Supabase host. Switching between local development and production therefore requires signing in for that backend and cannot reuse a JWT from the other project. Existing installations using the previous unscoped auth key will need to sign in once after this update; private recordings are unaffected.
+
+
+### Trip navigation
+
+Track contains the private recording controls and saved trips with map previews. Tap a trip for its route, speed and wind charts, export, and deletion. Regattas is a separate tab for published races, results, spectator maps, and live boat sharing. The former History route redirects to Track. Starting live sharing starts GPS tracking automatically; no private recording needs to be started first.
