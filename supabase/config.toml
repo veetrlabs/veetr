@@ -73,7 +73,7 @@ enabled = true
 # in emails.
 site_url = "http://localhost:4321/account/"
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["http://127.0.0.1:5175", "http://localhost:4175", "http://127.0.0.1:4175", "http://localhost:4321/account/", "http://127.0.0.1:4321/account/", "http://localhost:4322/account/", "http://127.0.0.1:4322/account/"]
+additional_redirect_urls = ["http://127.0.0.1:5175", "http://localhost:4175", "http://127.0.0.1:4175", "http://localhost:4321/account/", "http://127.0.0.1:4321/account/", "http://localhost:4322/account/", "http://127.0.0.1:4322/account/", "http://127.0.0.1:5175/**", "http://localhost:4175/**", "http://127.0.0.1:4175/**", "http://localhost:4321/account/**", "http://127.0.0.1:4321/account/**", "http://localhost:4322/account/**", "http://127.0.0.1:4322/account/**", "http://localhost:5175/**"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # If disabled, the refresh token will never expire.

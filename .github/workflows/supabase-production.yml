@@ -62,3 +62,6 @@ jobs:
 
       - name: Deploy request email function
         run: supabase functions deploy creation-request-email --project-ref "$SUPABASE_PROJECT_ID"
+
+      - name: Deploy boat invitation email function
+        run: supabase functions deploy boat-invitation-email --project-ref "$SUPABASE_PROJECT_ID"
