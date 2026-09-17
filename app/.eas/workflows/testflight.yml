@@ -1,4 +1,4 @@
-name: Test and deliver iOS to TestFlight
+name: Test and build mobile releases
 
 on:
   push:
@@ -24,6 +24,15 @@ jobs:
     params:
       platform: ios
       profile: testflight
+  build_android:
+    name: Build Android for Google Play internal testing
+    needs: [test]
+    type: build
+    params:
+      platform: android
+      profile: android-testing
+  # Android bundles are uploaded through Play Console until a Google Play
+  # submission service account is configured in EAS. See app/README.md.
   submit_ios:
     name: Submit to TestFlight
     needs: [build_ios]

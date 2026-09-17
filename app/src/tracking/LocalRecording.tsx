@@ -35,12 +35,22 @@ export default function LocalRecording({
       style={{
         padding: 16,
         borderRadius: 8,
-        backgroundColor: label === "Start tracking" || label === "Stop tracking" ? "#006b62" : colors.buttonBg,
+        backgroundColor:
+          label === "Start private recording" || label === "Stop recording"
+            ? "#006b62"
+            : colors.buttonBg,
         opacity: disabled ? 0.5 : 1,
       }}
     >
       <Text
-        style={{ color: label === "Start tracking" || label === "Stop tracking" ? "white" : colors.text, textAlign: "center", fontWeight: "600" }}
+        style={{
+          color:
+            label === "Start private recording" || label === "Stop recording"
+              ? "white"
+              : colors.text,
+          textAlign: "center",
+          fontWeight: "600",
+        }}
       >
         {label}
       </Text>
@@ -72,10 +82,14 @@ export default function LocalRecording({
         borderRadius: 12,
       }}
     >
-      <Text style={{ color: colors.text, fontSize: 18, fontWeight: "600" }}>Your sailing</Text>
-      <Text style={{ color: colors.textMuted }}>Private · saved on this phone</Text>
+      <Text style={{ color: colors.text, fontSize: 18, fontWeight: "600" }}>
+        Private recording
+      </Text>
+      <Text style={{ color: colors.textMuted }}>
+        Record your route on this phone. Your position is not shared.
+      </Text>
       {!session ? (
-        button("Start tracking", () => void run(startLocalTracking))
+        button("Start private recording", () => void run(startLocalTracking))
       ) : (
         <>
           <Text style={{ color: colors.text }}>
@@ -122,7 +136,7 @@ export default function LocalRecording({
             </Text>
           )}
           {session.phase === "stopping" &&
-            button("Start tracking", () =>
+            button("Start private recording", () =>
               Alert.alert(
                 "Start a new recording?",
                 "The previous recording will stay in History. Allow background location to record with the screen locked.",
@@ -147,7 +161,7 @@ export default function LocalRecording({
           )}
           {session.phase === "recording" ? (
             <>
-              {button("Stop tracking", () => void run(stopTracking), false)}
+              {button("Stop recording", () => void run(stopTracking), false)}
               {button("Resume GPS", () => void run(resumeTracking))}
             </>
           ) : (

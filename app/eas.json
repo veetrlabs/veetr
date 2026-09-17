@@ -20,6 +20,14 @@
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2cWxzbHRnbHBnZmpoZHJoZHljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2NjUwMzIsImV4cCI6MjEwNDI0MTAzMn0.iioYZbuIv3jG9fZhqhgsqMc8hvWeOXABe5qpxqlxfwA"
       }
     },
+    "android-testing": {
+      "extends": "production",
+      "distribution": "store",
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle"
+      }
+    },
     "testflight": {
       "distribution": "store",
       "autoIncrement": true,
@@ -28,6 +36,11 @@
   },
   "submit": {
     "production": {},
+    "android-testing": {
+      "android": {
+        "track": "internal"
+      }
+    },
     "testflight": {
       "ios": {
         "ascAppId": "6811644262"

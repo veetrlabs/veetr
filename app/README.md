@@ -125,6 +125,41 @@ The app expects the Veetr GATT service (`12345678-1234-1234-1234-123456789abc`) 
 
 Production builds use **EAS Build**. EAS produces installable `.ipa` (iOS) and `.aab`/`.apk` (Android) files.
 
+### Android internal testing
+
+The Google Play app uses package name `com.veetr.app`; the Android app config
+must match it. The iOS bundle identifier remains `com.veetr.mobile`.
+
+The `android-testing` EAS profile builds a signed Play Store app bundle, inherits
+the production Supabase settings, and automatically increments Android's version
+code. The EAS workflow in `.eas/workflows/testflight.yml` runs the mobile tests
+and builds both iOS and Android on mobile changes pushed to `main` (or
+`codex/mobile-tracking`). iOS is submitted to TestFlight automatically. Android
+currently produces an `.aab` for manual upload; automatic Google Play submission
+requires a Play submission service account configured in EAS.
+
+To build Android separately, run from `app/`:
+
+```bash
+eas build --platform android --profile android-testing
+```
+
+Download the resulting `.aab` and upload it to Veetr in Google Play Console under
+**Test and release → Testing → Internal testing**. Add release notes, review the
+release, and roll it out to internal testing. Add testers' Google account emails
+on the Testers tab and share the opt-in link with them.
+
+The matching submission profile targets only the internal track. Once a Google
+service account with the required Play Console permissions is configured in EAS,
+uploads can be automated:
+
+```bash
+eas submit --platform android --profile android-testing
+```
+
+The `preview` profile produces a directly installable APK instead; that artifact
+cannot be uploaded as a Google Play app bundle.
+
 ### Setup
 
 ```bash
