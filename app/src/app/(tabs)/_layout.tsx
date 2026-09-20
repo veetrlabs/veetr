@@ -1,5 +1,6 @@
-import { View, Platform } from "react-native";
+import { Platform } from "react-native";
 import { Tabs } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path, Circle, Polygon, Line, Rect } from "react-native-svg";
 import { useTheme } from "../../context/ThemeContext";
 import { themeColors } from "../../constants/colors";
@@ -76,6 +77,9 @@ function TabIcon({
 export default function TabLayout() {
   const { theme } = useTheme();
   const colors = themeColors[theme];
+  const insets = useSafeAreaInsets();
+  // Reserve the system navigation area without shrinking the tab buttons.
+  const bottomPadding = Math.max(insets.bottom, Platform.OS === "ios" ? 20 : 8);
 
   return (
     <Tabs
@@ -87,9 +91,9 @@ export default function TabLayout() {
           backgroundColor: colors.panelBg,
           borderTopColor: colors.border,
           borderTopWidth: 1,
-          paddingBottom: Platform.OS === "ios" ? 20 : 8,
+          paddingBottom: bottomPadding,
           paddingTop: 4,
-          height: Platform.OS === "ios" ? 88 : 64,
+          height: (Platform.OS === "ios" ? 68 : 56) + bottomPadding,
         },
         tabBarLabelStyle: {
           fontSize: 11,

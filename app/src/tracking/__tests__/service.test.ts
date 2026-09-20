@@ -3,7 +3,7 @@ jest.mock("@react-native-async-storage/async-storage", () => ({
   setItem: jest.fn(),
 }));
 import { AppState } from "react-native";
-jest.mock("react-native", () => ({ AppState: { currentState: "active" } }));
+jest.mock("react-native", () => ({ AppState: { currentState: "active" }, Platform: { OS: "android" } }));
 import type { TrackingPoint, TrackingSession } from "../model";
 jest.mock("expo-location", () => ({
   watchPositionAsync: jest.fn(async () => ({ remove: jest.fn() })),
@@ -261,6 +261,7 @@ test("background capture continues when foreground subscriptions are paused", as
     expect.objectContaining({
       pausesUpdatesAutomatically: false,
       showsBackgroundLocationIndicator: true,
+      foregroundService: expect.objectContaining({ killServiceOnDestroy: false }),
     }),
   );
   (AppState as { currentState: string }).currentState = "background";
@@ -422,4 +423,29 @@ test("revoking a ready phone stops native GPS and completes its session", async 
     "stop_race_phone",
     expect.objectContaining({ lid: "link" }),
   );
+});
+
+test('does not claim background readiness when Android cannot start a foreground service', async () => {
+  session = { ...base(), mode: 'local', backgroundEnabled: false };
+  (AppState as { currentState: string }).currentState = 'background';
+  try {
+    await expect(resumeTracking()).rejects.toThrow('Keep Veetr open');
+    expect(Location.startLocationUpdatesAsync).not.toHaveBeenCalled();
+    expect(session?.backgroundEnabled).toBe(false);
+  } finally {
+    (AppState as { currentState: string }).currentState = 'active';
+  }
+});
+
+test('keeps an already started Android service running during a background resume', async () => {
+  session = { ...base(), mode: 'local', backgroundEnabled: true };
+  (AppState as { currentState: string }).currentState = 'background';
+  try {
+    await resumeTracking();
+    expect(Location.startLocationUpdatesAsync).not.toHaveBeenCalled();
+    expect(Location.stopLocationUpdatesAsync).not.toHaveBeenCalled();
+    expect(session?.backgroundEnabled).toBe(true);
+  } finally {
+    (AppState as { currentState: string }).currentState = 'active';
+  }
 });

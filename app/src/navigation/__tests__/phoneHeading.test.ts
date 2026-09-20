@@ -23,3 +23,27 @@ test('GPS course still works when compass is absent or stale', () => {
   expect(compassBearings(80, sample, 120000).heading).toBeNull()
   expect(compassBearings(NaN, null, 100000).course).toBeNull()
 })
+
+import { createCompassFilter } from '../phoneHeading'
+const circularError = (a: number, b: number) => Math.abs(((a - b + 540) % 360) - 180)
+test('filters north-crossing noise without producing a south heading', () => {
+  const filter = createCompassFilter()
+  const outputs = Array.from({ length: 40 }, (_, i) => filter({ ...sample, magHeading: i % 2 ? 3 : 357, receivedAt: 100000 + i * 100 }).magHeading)
+  expect(outputs.every(value => circularError(value, 0) < 4)).toBe(true)
+  expect(outputs.slice(20).every(value => circularError(value, 0) < 1)).toBe(true)
+})
+test('follows a sustained turn and preserves magnetic declination', () => {
+  const filter = createCompassFilter()
+  filter({ ...sample, magHeading: 0, trueHeading: 5 })
+  let output = sample as import('../phoneHeading').CompassSample
+  for (let i = 1; i <= 20; i++) output = filter({ ...sample, magHeading: 90, trueHeading: 95, receivedAt: 100000 + i * 100 })
+  expect(circularError(output.magHeading, 90)).toBeLessThan(2)
+  expect(circularError(output.trueHeading!, output.magHeading + 5)).toBeLessThan(0.001)
+})
+test('discards filter history after bad accuracy or a stale interval', () => {
+  const filter = createCompassFilter()
+  filter(sample)
+  expect(filter({ ...sample, accuracy: 0, magHeading: 120, receivedAt: 100100 }).accuracy).toBe(0)
+  expect(filter({ ...sample, magHeading: 90, receivedAt: 100200 }).magHeading).toBe(90)
+  expect(filter({ ...sample, magHeading: 180, receivedAt: 120000 }).magHeading).toBe(180)
+})

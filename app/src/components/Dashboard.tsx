@@ -33,7 +33,7 @@ export default function Dashboard() {
   const secondaryFont = Math.max(10, Math.min(speedFont * 0.48, (panelHeight - speedHeight - lineHeight) / rows * 0.48, panelWidth / 9, 48))
   const metrics = [
     { label: 'COG', value: angle(nav.fix?.course) },
-    { label: device ? 'HDG' : 'HDG · M', value: angle(device ? d.heading : nav.phoneHeading.heading) },
+    { label: device ? 'HDG' : bearings.reference === 'true' ? 'HDG · T' : 'HDG · M', value: angle(device ? d.heading : bearings.heading) },
     ...(device ? [
       { label: 'APP WIND · kn', value: number(d.windSpeed, 1) },
       { label: 'APP ANGLE', value: `${number(d.windAngle)}°` },

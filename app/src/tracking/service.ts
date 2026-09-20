@@ -5,7 +5,7 @@ import {
   type RacePhone,
 } from "./racePhone";
 import { preferredRecordingPoint } from "./recordingSource";
-import { AppState } from "react-native";
+import { AppState, Platform } from "react-native";
 import * as Location from "expo-location";
 import * as TaskManager from "expo-task-manager";
 import * as Crypto from "expo-crypto";
@@ -78,6 +78,13 @@ async function startGPS(local = false) {
     (await Location.getBackgroundPermissionsAsync()).status === "granted";
   const store = await trackingStore();
   const session = await store.get();
+  // Android can register a task while silently skipping its foreground service
+  // if permission dialogs/network requests outlive the visible activity.
+  if (background && Platform.OS === "android" && AppState.currentState !== "active") {
+    if (session?.backgroundEnabled && await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK)) return;
+    if (session) await store.patch(session.id, { backgroundEnabled: false });
+    throw new Error("Keep Veetr open while starting background recording. Return to Veetr and retry.");
+  }
   if (session) await store.patch(session.id, { backgroundEnabled: false });
   if (!background) {
     if (!local)
@@ -128,7 +135,7 @@ async function startGPS(local = false) {
         : session?.mode === "race"
           ? "Ready for race tracking. Open Veetr to check or stop."
           : "Sharing your boat position. Open Veetr to stop.",
-      killServiceOnDestroy: true,
+      killServiceOnDestroy: false,
     },
   });
   if (!(await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK)))
@@ -262,7 +269,9 @@ async function requestPermissions(allowForeground = false) {
     !allowForeground
   )
     throw new Error(
-      "To record with the screen locked, open Settings → Privacy & Security → Location Services → Veetr and select Always. Keep Precise Location on, then return and start again.",
+      Platform.OS === "android"
+        ? "In Android Settings → Apps → Veetr → Permissions → Location, select Allow all the time and enable precise location. Return to Veetr and start again."
+        : "To record with the screen locked, open Settings → Privacy & Security → Location Services → Veetr and select Always. Keep Precise Location on, then return and start again.",
     );
   if (!(await TaskManager.isAvailableAsync()))
     throw new Error(
@@ -447,8 +456,7 @@ if (!TaskManager.isTaskDefined(LOCATION_TASK))
       try {
         if (error) throw new Error(error.message);
         if (data?.locations) {
-          await recordLocations(data.locations);
-          if (AppState.currentState === "background") {
+          if (data.locations.length && AppState.currentState !== "active") {
             const store = await trackingStore(),
               session = await store.get();
             if (session?.phase === "recording")
@@ -456,6 +464,9 @@ if (!TaskManager.isTaskDefined(LOCATION_TASK))
                 lastBackgroundFixAt: new Date().toISOString(),
               });
           }
+          await recordLocations(data.locations);
+          const store = await trackingStore(), session = await store.get();
+          if (session) await store.patch(session.id, { lastTaskError: undefined });
         }
       } catch (error) {
         const store = await trackingStore(),

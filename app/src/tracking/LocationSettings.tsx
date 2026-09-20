@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Linking, Pressable, Text, View } from "react-native";
+import { Linking, Platform, Pressable, Text, View } from "react-native";
 import { useTheme } from "../context/ThemeContext";
 import { themeColors } from "../constants/colors";
 import { trackingStore } from "./database";
@@ -33,9 +33,9 @@ export default function LocationSettings() {
         Location & tracking
       </Text>
       <Text style={{ color: c.textSecondary, lineHeight: 23 }}>
-        For recording with the screen locked, allow Always location access and
-        turn on Precise Location in your phone’s settings. Avoid force-closing
-        Veetr during a trip.
+        {Platform.OS === "android"
+          ? "For screen-lock recording, allow location all the time and precise location in Android Settings → Apps → Veetr → Permissions. Start recording while Veetr is open. If Android stops recording, check Veetr’s battery settings: allow background usage and remove it from sleeping apps. Do not force-stop Veetr during a trip."
+          : "For recording with the screen locked, allow Always location access and turn on Precise Location in your phone’s settings. Avoid force-closing Veetr during a trip."}
       </Text>
       <Text style={{ color: c.textSecondary, lineHeight: 23 }}>
         If saved positions stop updating, move to an open area and check

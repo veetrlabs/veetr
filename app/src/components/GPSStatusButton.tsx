@@ -43,6 +43,14 @@ export default function GPSStatusButton() {
             </>}
             <NavigationStatus showMode={false} />
             {!!nav.phoneHeading.status && <Text style={{ color: c.textSecondary }}>{nav.phoneHeading.status}</Text>}
+            {nav.phoneHeading.rawSample && <Text selectable style={{ color: c.textSecondary }}>
+              Compass magnetic: raw {nav.phoneHeading.rawSample.magHeading.toFixed(1)}° · filtered {nav.phoneHeading.heading?.toFixed(1) ?? '—'}°
+              {'\n'}Compass true: {nav.phoneHeading.sample?.trueHeading != null && nav.phoneHeading.sample.trueHeading >= 0 ? `${nav.phoneHeading.sample.trueHeading.toFixed(1)}°` : 'unavailable'} · sensor quality {nav.phoneHeading.rawSample.accuracy}/3
+            </Text>}
+            {nav.session?.phase === 'recording' && <Text selectable style={{ color: c.textSecondary }}>
+              Last background GPS: {nav.session.lastBackgroundFixAt ? new Date(nav.session.lastBackgroundFixAt).toLocaleTimeString() : 'not received yet'}
+              {nav.session.lastTaskError ? `\nBackground error: ${nav.session.lastTaskError}` : ''}
+            </Text>}
           </ScrollView>
         </View>
       </View>
