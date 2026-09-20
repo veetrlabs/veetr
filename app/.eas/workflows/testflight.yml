@@ -1,4 +1,4 @@
-name: Test and build mobile releases
+name: Test, build and submit mobile releases
 
 on:
   push:
@@ -16,6 +16,7 @@ jobs:
       - uses: eas/install_node_modules
       - run: npm run typecheck
       - run: npm test -- --runInBand
+      - run: node --test tests/android-config.test.cjs
   build_ios:
     name: Build standalone iPhone app
     needs: [test]
@@ -30,8 +31,13 @@ jobs:
     params:
       platform: android
       profile: android-testing
-  # Android bundles are uploaded through Play Console until a Google Play
-  # submission service account is configured in EAS. See app/README.md.
+  submit_android:
+    name: Submit to Google Play internal testing
+    needs: [build_android]
+    type: submit
+    params:
+      build_id: ${{ needs.build_android.outputs.build_id }}
+      profile: android-testing
   submit_ios:
     name: Submit to TestFlight
     needs: [build_ios]

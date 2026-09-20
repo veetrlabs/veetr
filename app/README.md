@@ -135,28 +135,53 @@ the production Supabase settings, and automatically increments Android's version
 code. The EAS workflow in `.eas/workflows/testflight.yml` runs the mobile tests
 and builds both iOS and Android on mobile changes pushed to `main`.
 Merge tested mobile changes into `main` before releasing; feature branches do
-not automatically submit releases. iOS is submitted to TestFlight automatically. Android
-currently produces an `.aab` for manual upload; automatic Google Play submission
-requires a Play submission service account configured in EAS.
+not automatically submit releases. The workflow submits iOS to TestFlight and
+Android to Google Play's internal testing track after each platform's build
+succeeds. Android submission requires the Google Play service account credential
+in EAS; it is not stored in GitHub or this repository.
 
 To build Android separately, run from `app/`:
+
+First configure `GOOGLE_MAPS_ANDROID_API_KEY` in the EAS environment used by the
+build profile (production for `android-testing`). Enable **Maps SDK for Android**
+in the corresponding Google Cloud project. Restrict the key to that API and the
+Android package `com.veetr.app`, with the **Play app signing certificate SHA-1**
+from Play Console → App integrity → App signing. This is distinct from the upload
+certificate. For directly installed APKs, also allow their signing certificate.
+Google Cloud's billing requirements must be satisfied for the Maps SDK.
+
+`app.config.js` injects the key into `android.config.googleMaps.apiKey` and rejects
+EAS Android builds without it. For local Android builds, set the same variable in
+`.env` before native generation. A native rebuild is required; a JavaScript-only
+update cannot add the Android manifest entry. Map screens and recorded-trip
+previews all depend on this configuration. Verify both on a Play-installed build.
+
+Run the configuration regression check with `node --test tests/android-config.test.cjs`.
 
 ```bash
 eas build --platform android --profile android-testing
 ```
 
-Download the resulting `.aab` and upload it to Veetr in Google Play Console under
+For a manual fallback, download the resulting `.aab` and upload it to Veetr in Google Play Console under
 **Test and release → Testing → Internal testing**. Add release notes, review the
 release, and roll it out to internal testing. Add testers' Google account emails
 on the Testers tab and share the opt-in link with them.
 
-The matching submission profile targets only the internal track. Once a Google
-service account with the required Play Console permissions is configured in EAS,
-uploads can be automated:
+The matching submission profile targets only the internal track. To submit a
+specific existing build manually through the same EAS credential:
 
 ```bash
-eas submit --platform android --profile android-testing
+eas submit --platform android --profile android-testing --id <build-id>
 ```
+
+Manage the submission credential with `eas credentials --platform android`,
+selecting `android-testing` and Google Service Account. The dedicated account
+needs access to Veetr in Play Console and permission to view app information and
+release to testing tracks. Do not grant production publishing or Cloud project
+roles. Store its JSON key only in EAS credentials, never in the repository.
+
+Validate workflow edits with
+`eas workflow:validate .eas/workflows/testflight.yml --non-interactive`.
 
 The `preview` profile produces a directly installable APK instead; that artifact
 cannot be uploaded as a Google Play app bundle.
