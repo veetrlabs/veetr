@@ -149,6 +149,12 @@ export default function Settings() {
         </Text>
       </TouchableOpacity>
 
+      {state.error && (
+        <Text selectable accessibilityRole="alert" style={{ color: colors.text, marginTop: 12 }}>
+          Bluetooth error: {state.error}
+        </Text>
+      )}
+
       <View style={styles.section}>
         <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Device Name</Text>
         <TextInput

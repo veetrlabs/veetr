@@ -18,7 +18,8 @@ function getBleManager(): any | false {
     try {
       const BLE = require('react-native-ble-plx')
       bleManagerInstance = new BLE.BleManager()
-    } catch {
+    } catch (error) {
+      console.error('[BLE] Native module initialization failed:', error)
       bleManagerInstance = false
     }
   }
@@ -317,11 +318,15 @@ export function BLEProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const connectToDevice = useCallback(async (device: any) => {
+    let phase = 'Connecting to device'
     try {
+      console.info('[BLE]', phase)
       const connectedDevice = await device.connect()
       connectedDeviceRef.current = connectedDevice
       lastDeviceRef.current = device
 
+      phase = 'Discovering services and characteristics'
+      console.info('[BLE]', phase)
       await connectedDevice.discoverAllServicesAndCharacteristics()
 
       try {
@@ -331,6 +336,7 @@ export function BLEProvider({ children }: { children: ReactNode }) {
       }
 
       const services: any[] = await connectedDevice.services()
+      console.info('[BLE] Service UUIDs:', services.map(s => s.uuid))
       const service = services.find((s: any) => s.uuid.toLowerCase() === SERVICE_UUID.toLowerCase())
 
       if (!service) throw new Error('Veetr service not found on device')
@@ -338,6 +344,7 @@ export function BLEProvider({ children }: { children: ReactNode }) {
       serviceUuidRef.current = service.uuid
 
       const characteristics: any[] = await service.characteristics()
+      console.info('[BLE] Characteristic UUIDs:', characteristics.map(c => c.uuid))
       const sensorChar = characteristics.find((c: any) => c.uuid.toLowerCase() === SENSOR_DATA_CHAR_UUID.toLowerCase())
       const cmdChar = characteristics.find((c: any) => c.uuid.toLowerCase() === COMMAND_CHAR_UUID.toLowerCase())
 
@@ -379,6 +386,7 @@ export function BLEProvider({ children }: { children: ReactNode }) {
       })
       disconnectedSubRef.current = () => sub.remove()
 
+      console.info('[BLE] Connected; sensor notifications registered')
       dispatch({ type: 'CONNECT_SUCCESS' })
 
       // Request firmware version after connection
@@ -399,12 +407,14 @@ export function BLEProvider({ children }: { children: ReactNode }) {
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      dispatch({ type: 'CONNECT_ERROR', payload: errorMessage })
+      console.error('[BLE]', phase, error)
+      dispatch({ type: 'CONNECT_ERROR', payload: `${phase}: ${errorMessage}` })
     }
   }, [handleSensorData])
 
   const connect = useCallback(async () => {
     try {
+      console.info('[BLE] Connect requested')
       const bleManager = getBleManager()
 
       dispatch({ type: 'CONNECT_START' })
@@ -427,14 +437,30 @@ export function BLEProvider({ children }: { children: ReactNode }) {
       }
 
       let found = false
-      bleManager.startDeviceScan(null, null, (error: any, scannedDevice: any) => {
+      console.info('[BLE] Adapter state:', await bleManager.state())
+      console.info('[BLE] Scanning for a device named Veetr')
+      scanTimeoutRef.current = setTimeout(() => {
+        if (!found) {
+          void bleManager.stopDeviceScan().catch((error: unknown) => console.warn('[BLE] Stop scan failed:', error))
+          dispatch({ type: 'CONNECT_ERROR', payload: 'No Veetr device found. Ensure the device is powered on and nearby.' })
+        }
+        scanTimeoutRef.current = null
+      }, 30000)
+
+      await bleManager.startDeviceScan(null, null, (error: any, scannedDevice: any) => {
         if (error) {
+          console.error('[BLE] Scan failed:', error)
+          if (scanTimeoutRef.current) {
+            clearTimeout(scanTimeoutRef.current)
+            scanTimeoutRef.current = null
+          }
           dispatch({ type: 'CONNECT_ERROR', payload: error.message })
           return
         }
         if (!found && scannedDevice && scannedDevice.name?.includes(DEVICE_NAME_PREFIX)) {
+          console.info('[BLE] Found Veetr device; connecting')
           found = true
-          bleManager.stopDeviceScan()
+          void bleManager.stopDeviceScan().catch((error: unknown) => console.warn('[BLE] Stop scan failed:', error))
           if (scanTimeoutRef.current) {
             clearTimeout(scanTimeoutRef.current)
             scanTimeoutRef.current = null
@@ -443,14 +469,12 @@ export function BLEProvider({ children }: { children: ReactNode }) {
         }
       })
 
-      scanTimeoutRef.current = setTimeout(() => {
-        if (!found) {
-          bleManager.stopDeviceScan()
-          dispatch({ type: 'CONNECT_ERROR', payload: 'No Veetr device found. Ensure the device is powered on and nearby.' })
-        }
-        scanTimeoutRef.current = null
-      }, 30000)
     } catch (error) {
+      if (scanTimeoutRef.current) {
+        clearTimeout(scanTimeoutRef.current)
+        scanTimeoutRef.current = null
+      }
+      console.error('[BLE] Connection attempt failed:', error)
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
       dispatch({ type: 'CONNECT_ERROR', payload: errorMessage })
     }

@@ -35,6 +35,11 @@ export default function BluetoothSettings({ onBack }: { onBack: () => void }) {
               {state.isConnecting ? 'Connecting...' : state.isConnected ? 'Disconnect' : 'Connect to Veetr'}
             </Text>
           </TouchableOpacity>
+          {state.error && (
+            <Text selectable accessibilityRole="alert" style={{ color: colors.text, marginTop: 12 }}>
+              Bluetooth error: {state.error}
+            </Text>
+          )}
         </View>
 
         <View style={[styles.card, { backgroundColor: colors.panelBg }]}>
