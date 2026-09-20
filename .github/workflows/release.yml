@@ -34,8 +34,8 @@ jobs:
         echo "App package.json version: $APP_VERSION"
         
         # Check firmware version
-        FW_VERSION=$(grep "#define FIRMWARE_VERSION" firmware/src/main.cpp | sed 's/.*"\(.*\)".*/\1/')
-        echo "Firmware main.cpp version: $FW_VERSION"
+        FW_VERSION=$(grep "#define FIRMWARE_VERSION" firmware/include/firmware_version.h | sed 's/.*"\(.*\)".*/\1/')
+        echo "Firmware version: $FW_VERSION"
         
         # Validate all versions match the tag
         ERRORS=0

@@ -40,12 +40,12 @@
 #include "refresh_rate_calc.h"
 
 // Firmware version
-#define FIRMWARE_VERSION "0.0.28"
+#include "firmware_version.h"
 
 // Debug flags - uncomment for verbose output
 // #define DEBUG_BLE_DATA
 #define DEBUG_WIND_SENSOR
-// #define DEBUG_GPS
+#define DEBUG_GPS
 #define DEBUG_BNO080
 
 // Persistent storage for settings
@@ -55,7 +55,7 @@ float refreshRateSeconds = 1.0f; // Default 1.0 second refresh rate
 int refreshRate = 1000; // Refresh rate in milliseconds
 bool otaInProgress = false; // Flag to pause sensor data during firmware updates
 unsigned long lastOTAActivity = 0; // Track last OTA activity for debugging
-const unsigned long OTA_TIMEOUT_MS = 60000; // 1 minute timeout for OTA updates  
+const unsigned long OTA_TIMEOUT_MS = 60000; // 1 minute timeout for OTA updates
 const unsigned long OTA_ACTIVITY_TIMEOUT_MS = 15000; // 15 second activity timeout
 const unsigned long OTA_STATUS_INTERVAL_MS = 5000; // Status check every 5 seconds
 
@@ -82,34 +82,19 @@ static OtaState otaState;
 static BleOtaHandler otaHandler;
 extern OtaBackend otaBackend;
 
-// BNO080 IMU Sensor (I2C)
-#define BNO080_SDA 21
-#define BNO080_SCL 22
+#include "board/pins_esp32s3_rlcd.h"
+#include "display/display_lvgl.h"
+#include "display/display_driver.h"
+
 BNO080 imu;
 bool imuAvailable = false; // Track if IMU is working
 
 // Calibration - simple angle offsets (works for arbitrary mounting orientations)
 float rollOffset = 0.0;      // Roll offset when level
-float pitchOffset = 0.0;     // Pitch offset when level  
+float pitchOffset = 0.0;     // Pitch offset when level
 float headingOffset = 0.0;   // Heading offset when pointing north
 bool levelCalibrated = false;
 bool northCalibrated = false;
-
-// RS485 Wind Sensor Configuration
-#define RS485_DE 14
-#define RS485_RX 32
-#define RS485_TX 33
-#define RS485_UART 2
-
-// GPS Module Configuration (using UART1)
-#define GPS_RX 17
-#define GPS_TX 16
-#define GPS_UART 1
-
-// Discovery Mode Configuration
-#define DISCOVERY_BUTTON_PIN 0     // GPIO0 (BOOT button on ESP32 dev boards)
-#define DISCOVERY_LED_PIN 2        // GPIO2 for discovery status LED (built-in LED)
-#define DISCOVERY_TIMEOUT_MS (5 * 60 * 1000)  // 5 minutes timeout
 
 bool discoveryModeActive = false;
 unsigned long discoveryModeStartTime = 0;
@@ -124,13 +109,16 @@ ModbusMaster windSensor;
 // GPS Module
 HardwareSerial gpsSerial(GPS_UART);
 TinyGPSPlus gps;
+DisplayStatus displayStatus = {0, 0, 0.0f, 0.0f, 0, 0, 0, false, false, false};
+static unsigned long lastClockTickMs = 0;
+static volatile bool usbSerialConnected = false;
 
 // Regatta start line data structure
 struct RegattaData {
   bool hasStartLine;         // True if both port and starboard positions are set
   double portLat;           // Port end GPS latitude
   double portLon;           // Port end GPS longitude
-  double starboardLat;      // Starboard end GPS latitude  
+  double starboardLat;      // Starboard end GPS latitude
   double starboardLon;      // Starboard end GPS longitude
   float distanceToLine;     // Current distance to start line in meters
 };
@@ -153,6 +141,111 @@ void resetBLEForNewName(const String& newName);
 void handleDiscoveryButton();
 void startDiscoveryMode();
 void stopDiscoveryMode();
+
+static int bcdToDecimal(uint8_t value) {
+  return ((value >> 4) * 10) + (value & 0x0F);
+}
+
+static void startRtcClock() {
+  // PCF85063A Control_1 bit 5 is STOP; clear it so the oscillator advances.
+  Wire.beginTransmission(0x51);
+  Wire.write(0x00);
+  if (Wire.endTransmission(false) != 0 || Wire.requestFrom(0x51, 1) != 1) return;
+
+  uint8_t control1 = Wire.read();
+  Wire.beginTransmission(0x51);
+  Wire.write(0x00);
+  Wire.write(control1 & ~(1 << 5));
+  Wire.endTransmission();
+}
+
+static void handleUsbCdcEvent(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
+  (void)arg;
+  (void)event_data;
+  if (event_base != ARDUINO_USB_CDC_EVENTS) return;
+
+  switch (event_id) {
+    case ARDUINO_USB_CDC_CONNECTED_EVENT:
+      usbSerialConnected = true;
+      break;
+    case ARDUINO_USB_CDC_DISCONNECTED_EVENT:
+      usbSerialConnected = false;
+      break;
+    default:
+      break;
+  }
+}
+
+static void updateDisplayStatus() {
+  displayStatus.satellites = gps.satellites.isValid() ? gps.satellites.value() : 0;
+
+  displayStatus.usbConnected = usbSerialConnected;
+  float batteryVoltage = analogReadMilliVolts(4) * 0.003f;
+  displayStatus.batteryPercent = constrain((int)roundf((batteryVoltage - 2.5f) * 100.0f / 1.7f), 0, 100);
+
+  Wire.beginTransmission(0x70);
+  Wire.write(0x35);
+  Wire.write(0x17);
+  if (Wire.endTransmission() == 0) {
+    delay(1);
+    Wire.beginTransmission(0x70);
+    Wire.write(0x7C);
+    Wire.write(0xA2);
+    if (Wire.endTransmission() == 0) {
+      delay(15);
+      if (Wire.requestFrom(0x70, 6) == 6) {
+        uint16_t rawTemperature = ((uint16_t)Wire.read() << 8) | Wire.read();
+        Wire.read();
+        uint16_t rawHumidity = ((uint16_t)Wire.read() << 8) | Wire.read();
+        Wire.read();
+        displayStatus.temperatureC = -45.0f + 175.0f * rawTemperature / 65535.0f;
+        displayStatus.humidityPercent = 100.0f * rawHumidity / 65535.0f;
+        displayStatus.environmentValid = true;
+      }
+    }
+    Wire.beginTransmission(0x70);
+    Wire.write(0xB0);
+    Wire.write(0x98);
+    Wire.endTransmission();
+  }
+
+  Wire.beginTransmission(0x51);
+  Wire.write(0x04);
+  if (Wire.endTransmission(false) == 0 && Wire.requestFrom(0x51, 3) == 3) {
+    int second = bcdToDecimal(Wire.read() & 0x7F);
+    int minute = bcdToDecimal(Wire.read() & 0x7F);
+    int hour = bcdToDecimal(Wire.read() & 0x3F);
+    static int lastRtcHour = -1;
+    static int lastRtcMinute = -1;
+    static int lastRtcSecond = -1;
+    if (hour < 24 && minute < 60 && second < 60 &&
+        (hour != lastRtcHour || minute != lastRtcMinute || second != lastRtcSecond)) {
+      displayStatus.hour = hour;
+      displayStatus.minute = minute;
+      displayStatus.second = second;
+      displayStatus.clockValid = true;
+      lastRtcHour = hour;
+      lastRtcMinute = minute;
+      lastRtcSecond = second;
+      lastClockTickMs = millis();
+    }
+  }
+}
+
+static void tickDisplayClock() {
+  unsigned long now = millis();
+  if (lastClockTickMs == 0) lastClockTickMs = now;
+  while (displayStatus.clockValid && now - lastClockTickMs >= 1000) {
+    lastClockTickMs += 1000;
+    if (++displayStatus.second == 60) {
+      displayStatus.second = 0;
+      if (++displayStatus.minute == 60) {
+        displayStatus.minute = 0;
+        displayStatus.hour = (displayStatus.hour + 1) % 24;
+      }
+    }
+  }
+}
 void updateDiscoveryStatus();
 
 WindSensorReader<ModbusMaster, HardwareSerial, HardwareSerial> windReader(
@@ -165,13 +258,14 @@ WindSensorReader<ModbusMaster, HardwareSerial, HardwareSerial> windReader(
     millis,
     SERIAL_8E1,
     SERIAL_8N1,
-    &Serial);
+    nullptr  // Serial is USBCDC (not HardwareSerial) with USB_CDC_ON_BOOT
+);
 
 
 
 // Safe BLE transmission function to prevent data corruption
 bool safeBLESend(const String& data, bool isCommand) {
-  Serial.printf("[BLE DEBUG] Attempting to send %d chars, command=%s\n", 
+  Serial.printf("[BLE DEBUG] Attempting to send %d chars, command=%s\n",
                data.length(), isCommand ? "true" : "false");
   Serial.printf("[BLE DEBUG] Connected devices: %d\n", pServer ? pServer->getConnectedCount() : 0);
 
@@ -216,7 +310,7 @@ class MyServerCallbacks: public NimBLEServerCallbacks {
       connectedDeviceCount++;
       deviceConnected = true;
       Serial.printf("BLE Client connected (total: %d)\n", connectedDeviceCount);
-      
+
       // Send firmware version after connection
       delay(1000); // Give client time to set up characteristics
       if (pSensorDataCharacteristic) {
@@ -225,23 +319,23 @@ class MyServerCallbacks: public NimBLEServerCallbacks {
         doc["version"] = FIRMWARE_VERSION;
         String versionData;
         serializeJson(doc, versionData);
-        
+
         if (safeBLESend(versionData, true)) {
           Serial.printf("Sent firmware version on connect: %s\n", FIRMWARE_VERSION);
         } else {
           Serial.println("Failed to send firmware version on connect");
         }
       }
-      
+
       // Continue advertising if we haven't reached max connections AND discovery mode is active
       if (connectedDeviceCount < CONFIG_BT_NIMBLE_MAX_CONNECTIONS && discoveryModeActive) {
         delay(100); // Small delay before restarting advertising
         NimBLEDevice::startAdvertising();
-        Serial.printf("Continuing advertising for additional connections... (%d/%d connected)\n", 
+        Serial.printf("Continuing advertising for additional connections... (%d/%d connected)\n",
                      connectedDeviceCount, CONFIG_BT_NIMBLE_MAX_CONNECTIONS);
       } else {
         if (connectedDeviceCount >= CONFIG_BT_NIMBLE_MAX_CONNECTIONS) {
-          Serial.printf("Maximum connections reached (%d/%d)\n", 
+          Serial.printf("Maximum connections reached (%d/%d)\n",
                        connectedDeviceCount, CONFIG_BT_NIMBLE_MAX_CONNECTIONS);
         } else {
           Serial.println("Discovery mode not active, stopping advertising for new connections");
@@ -255,9 +349,9 @@ class MyServerCallbacks: public NimBLEServerCallbacks {
         deviceConnected = false;
         bleRSSI = 0; // Reset RSSI when all devices disconnected
       }
-      Serial.printf("BLE Client disconnected (remaining: %d/%d)\n", 
+      Serial.printf("BLE Client disconnected (remaining: %d/%d)\n",
                    connectedDeviceCount, CONFIG_BT_NIMBLE_MAX_CONNECTIONS);
-      
+
       // Restart advertising when a device disconnects if discovery mode is active
       delay(500);
       if (!NimBLEDevice::getAdvertising()->isAdvertising() && discoveryModeActive && connectedDeviceCount < CONFIG_BT_NIMBLE_MAX_CONNECTIONS) {
@@ -272,27 +366,27 @@ class MyServerCallbacks: public NimBLEServerCallbacks {
 class CommandCallbacks: public NimBLECharacteristicCallbacks {
     void onWrite(NimBLECharacteristic *pCharacteristic) {
       std::string value = pCharacteristic->getValue();
-      
+
       if (value.length() > 0) {
         Serial.printf("[BLE RECV] Received %d bytes\n", value.length());
-        
+
         #ifdef DEBUG_BLE_DATA
         Serial.print("BLE Command received: ");
         Serial.println(value.c_str());
         #endif
-        
+
         // Parse JSON command - increased buffer size for base64 chunk data
         // Base64 chunks can be ~440 bytes total with JSON overhead
         DynamicJsonDocument doc(512);
         DeserializationError error = deserializeJson(doc, value.c_str());
-        
+
         if (!error) {
           BleCommand command;
           parseBleCommandDoc(doc, command);
-          
-          Serial.printf("[BLE RECV] Parsed JSON - action: '%s', cmd: '%s'\n", 
+
+          Serial.printf("[BLE RECV] Parsed JSON - action: '%s', cmd: '%s'\n",
                        command.action.c_str(), command.cmd.c_str());
-          
+
           // Log OTA-related commands with extra detail
           if (command.cmd == "START_FW_UPDATE" || command.cmd == "FW_CHUNK" || command.cmd == "VERIFY_FW" || command.cmd == "APPLY_FW") {
             Serial.printf("[OTA CMD] Received: %s\n", command.cmd.c_str());
@@ -300,7 +394,7 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
               Serial.printf("[OTA CMD] Chunk index: %d\n", command.index);
             }
           }
-          
+
           if (command.action == "resetHeelAngle") {
             // Calibrate vessel level position (boat is level, any heading)
             if (imuAvailable) {
@@ -309,21 +403,21 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
                 float accelX = imu.getAccelX();
                 float accelY = imu.getAccelY();
                 float accelZ = imu.getAccelZ();
-                
+
                 float currentRoll = 0.0f;
                 float currentPitch = 0.0f;
                 computeRollPitchDegrees(accelX, accelY, accelZ, currentRoll, currentPitch);
-                
+
                 // Store these as offsets
                 rollOffset = currentRoll;
                 pitchOffset = currentPitch;
                 levelCalibrated = true;
-                
+
                 // Save to NVS
                 preferences.putFloat("rollOffset", rollOffset);
                 preferences.putFloat("pitchOffset", pitchOffset);
                 preferences.putBool("levelCal", true);
-                
+
                 Serial.printf("Level calibrated - Roll offset: %.2f°, Pitch offset: %.2f°\n", rollOffset, pitchOffset);
               } else {
                 Serial.println("Level calibration failed - can't read IMU sensor");
@@ -341,9 +435,9 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
                 float quatJ = imu.getQuatJ();
                 float quatK = imu.getQuatK();
                 float quatReal = imu.getQuatReal();
-                
+
                 float quatMag = sqrt(quatI*quatI + quatJ*quatJ + quatK*quatK + quatReal*quatReal);
-                
+
                 if (quatMag > 0.1) {
                   // Calculate current tilt-compensated heading from rotation vector quaternion
                   float currentHeading = 0.0f;
@@ -352,14 +446,14 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
                     Serial.println("Compass calibration failed - rotation vector not ready");
                     return;
                   }
-                  
+
                   // Store this as the heading offset (when bow points north, this should become 0°)
                   headingOffset = currentHeading;
                   preferences.putFloat("headingOffset", headingOffset);
-                  
+
                   northCalibrated = true;
                   preferences.putBool("northCal", true);
-                  
+
                   Serial.printf("North calibrated - heading offset: %.1f°\n", headingOffset);
                 } else {
                   Serial.println("Compass calibration failed - rotation vector not ready");
@@ -375,27 +469,27 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
             if (gps.location.isValid()) {
               double lat = gps.location.lat();
               double lon = gps.location.lng();
-              
+
               // Validate coordinates are within valid ranges
               if (!isValidGpsCoordinates(lat, lon)) {
                 Serial.println("Cannot set regatta port position - GPS coordinates out of valid range");
               } else {
                 regattaData.portLat = lat;
                 regattaData.portLon = lon;
-                
+
                 // Save to NVS
                 preferences.begin("veetr", false);
                 preferences.putDouble("portLat", regattaData.portLat);
                 preferences.putDouble("portLon", regattaData.portLon);
                 preferences.end();
-                
+
                 // Check if we now have both ends of the line
                 if (regattaData.starboardLat != 0.0 && regattaData.starboardLon != 0.0) {
                   regattaData.hasStartLine = true;
                 }
-                
+
                 Serial.printf("Regatta port position set and saved: %.6f, %.6f\n", regattaData.portLat, regattaData.portLon);
-                
+
                 // Send updated coordinates back to PWA
                 DynamicJsonDocument response(256);
                 response["type"] = "regatta_coords";
@@ -403,7 +497,7 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
                 response["portLon"] = regattaData.portLon;
                 response["starboardLat"] = regattaData.starboardLat;
                 response["starboardLon"] = regattaData.starboardLon;
-                
+
                 String responseStr;
                 serializeJson(response, responseStr);
                 safeBLESend(responseStr, true);
@@ -416,27 +510,27 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
             if (gps.location.isValid()) {
               double lat = gps.location.lat();
               double lon = gps.location.lng();
-              
+
               // Validate coordinates are within valid ranges
               if (!isValidGpsCoordinates(lat, lon)) {
                 Serial.println("Cannot set regatta starboard position - GPS coordinates out of valid range");
               } else {
                 regattaData.starboardLat = lat;
                 regattaData.starboardLon = lon;
-                
+
                 // Save to NVS
                 preferences.begin("veetr", false);
                 preferences.putDouble("starboardLat", regattaData.starboardLat);
                 preferences.putDouble("starboardLon", regattaData.starboardLon);
                 preferences.end();
-                
+
                 // Check if we now have both ends of the line
                 if (regattaData.portLat != 0.0 && regattaData.portLon != 0.0) {
                   regattaData.hasStartLine = true;
                 }
-                
+
                 Serial.printf("Regatta starboard position set and saved: %.6f, %.6f\n", regattaData.starboardLat, regattaData.starboardLon);
-                
+
                 // Send updated coordinates back to PWA
                 DynamicJsonDocument response(256);
                 response["type"] = "regatta_coords";
@@ -444,7 +538,7 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
                 response["portLon"] = regattaData.portLon;
                 response["starboardLat"] = regattaData.starboardLat;
                 response["starboardLon"] = regattaData.starboardLon;
-                
+
                 String responseStr;
                 serializeJson(response, responseStr);
                 safeBLESend(responseStr, true);
@@ -457,26 +551,26 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
             regattaData.portLat = 0.0;
             regattaData.portLon = 0.0;
             regattaData.hasStartLine = false;
-            
+
             // Clear from NVS
             preferences.begin("veetr", false);
             preferences.remove("portLat");
             preferences.remove("portLon");
             preferences.end();
-            
+
             Serial.println("Regatta port position cleared");
           }
           else if (command.action == "regattaClearStarboard") {
             regattaData.starboardLat = 0.0;
             regattaData.starboardLon = 0.0;
             regattaData.hasStartLine = false;
-            
+
             // Clear from NVS
             preferences.begin("veetr", false);
             preferences.remove("starboardLat");
             preferences.remove("starboardLon");
             preferences.end();
-            
+
             Serial.println("Regatta starboard position cleared");
           }
           else if (command.action == "regattaGet") {
@@ -487,10 +581,10 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
             response["portLon"] = regattaData.portLon;
             response["starboardLat"] = regattaData.starboardLat;
             response["starboardLon"] = regattaData.starboardLon;
-            
+
             String responseStr;
             serializeJson(response, responseStr);
-            
+
             if (safeBLESend(responseStr, true)) {
               Serial.printf("Sent regatta coordinates: port(%.6f,%.6f) starboard(%.6f,%.6f)\n",
                            regattaData.portLat, regattaData.portLon,
@@ -507,7 +601,7 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
               preferences.putFloat("refreshRate", refreshRateSeconds);
               refreshRate = clampRefreshRateMs(refreshRateSeconds, 500, 2000);
               Serial.printf("Refresh rate changed to %.1f seconds (%lu ms)\n", refreshRateSeconds, refreshRateMs(refreshRateSeconds));
-              
+
               // Send confirmation response
               DynamicJsonDocument response(128);
               response["type"] = "refresh_rate_updated";
@@ -574,7 +668,7 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
             response["version"] = FIRMWARE_VERSION;
             String responseStr;
             serializeJson(response, responseStr);
-            
+
             if (safeBLESend(responseStr, true)) {
               Serial.printf("Sent firmware version: %s\n", FIRMWARE_VERSION);
             } else {
@@ -589,7 +683,7 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
             response["deviceName"] = deviceName;
             String responseStr;
             serializeJson(response, responseStr);
-            
+
             if (safeBLESend(responseStr, true)) {
               Serial.printf("Sent device name: %s\n", deviceName.c_str());
             } else {
@@ -606,7 +700,7 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
             response["starboardLon"] = regattaData.starboardLon;
             String responseStr;
             serializeJson(response, responseStr);
-            
+
             if (safeBLESend(responseStr, true)) {
               Serial.println("[Regatta] Sent start line coordinates");
             } else {
@@ -615,7 +709,7 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
           }
           else if (doc["cmd"] == "START_FW_UPDATE") {
             Serial.println("[BLE OTA] Starting firmware update using ESP32 Update library");
-            
+
             OtaResponse otaResponse;
             bool started = otaHandler.handleStart(doc.as<JsonObjectConst>(), otaBackend, otaState, millis(), otaResponse);
             if (doc.containsKey("size")) {
@@ -649,7 +743,7 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
           }
           else if (doc["cmd"] == "STOP_FW_UPDATE") {
             Serial.println("[BLE OTA] Stopping firmware update");
-            
+
             OtaResponse otaResponse;
             otaHandler.handleStop(otaBackend, otaState, otaResponse);
             Serial.println("[BLE OTA] Update aborted");
@@ -676,7 +770,7 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
                 response["progress"] = status.progress;
               }
             }
-            
+
             String responseStr;
             serializeJson(response, responseStr);
             safeBLESend(responseStr, true);
@@ -732,7 +826,7 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
           }
           else if (doc["cmd"] == "APPLY_FW") {
             Serial.println("[BLE OTA] Applying firmware update - restarting...");
-            
+
             // Send response before restart
             OtaResponse otaResponse;
             otaHandler.handleApply(otaResponse);
@@ -744,7 +838,7 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
             String responseStr;
             serializeJson(response, responseStr);
             safeBLESend(responseStr, true);
-            
+
             delay(1000); // Give time for response to be sent
             ESP.restart();
           }
@@ -761,19 +855,19 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
 // Function to read BLE connection RSSI
 void updateBLERSSI() {
   static BleRssiState rssiState;
-  
+
   // Only update RSSI every 3 seconds to reduce noise
   if (millis() - rssiState.lastUpdateMs < 3000) {
     return;
   }
-  
+
   if (deviceConnected && pServer) {
     // Get the actual RSSI from connected devices
     std::vector<uint16_t> connIds = pServer->getPeerDevices();
     if (!connIds.empty()) {
       // Use NimBLE API to get RSSI for the first connected device
       uint16_t connHandle = connIds[0];
-      
+
       // Call the NimBLE function to read RSSI
       int8_t rssi = 0;
       if (ble_gap_conn_rssi(connHandle, &rssi) == 0) {
@@ -781,7 +875,7 @@ void updateBLERSSI() {
       } else {
         updateBleRssiState(rssiState, millis(), true, true, false, 0);
       }
-      
+
       #ifdef DEBUG_BLE_DATA
       static unsigned long lastRSSIDebug = 0;
       if (millis() - lastRSSIDebug > 10000) { // Debug every 10 seconds
@@ -840,15 +934,18 @@ void startDiscoveryMode() {
   Serial.println("[DISCOVERY] Starting discovery mode for 5 minutes...");
   discoveryModeActive = true;
   discoveryModeStartTime = millis();
-  
+
   // Turn on discovery LED (solid, not blinking initially)
   digitalWrite(DISCOVERY_LED_PIN, HIGH);
   Serial.printf("[DISCOVERY] LED pin %d set to HIGH\n", DISCOVERY_LED_PIN);
-  
+
   // Start BLE advertising if not already active
   if (!NimBLEDevice::getAdvertising()->isAdvertising()) {
-    NimBLEDevice::startAdvertising();
-    Serial.println("[DISCOVERY] BLE advertising started");
+    if (NimBLEDevice::startAdvertising()) {
+      Serial.println("[DISCOVERY] BLE advertising started");
+    } else {
+      Serial.println("[DISCOVERY] ERROR: BLE advertising failed to start");
+    }
   } else {
     Serial.println("[DISCOVERY] BLE advertising already active");
   }
@@ -857,17 +954,17 @@ void startDiscoveryMode() {
 void stopDiscoveryMode() {
   Serial.println("[DISCOVERY] Stopping discovery mode");
   discoveryModeActive = false;
-  
+
   // Turn off discovery LED
   digitalWrite(DISCOVERY_LED_PIN, LOW);
   Serial.printf("[DISCOVERY] LED pin %d set to LOW\n", DISCOVERY_LED_PIN);
-  
+
   // Stop BLE advertising if no devices are connected
   if (pServer && pServer->getConnectedCount() == 0) {
     NimBLEDevice::getAdvertising()->stop();
     Serial.println("[DISCOVERY] BLE advertising stopped (no connected devices)");
   } else {
-    Serial.printf("[DISCOVERY] BLE advertising continues (%d devices connected)\n", 
+    Serial.printf("[DISCOVERY] BLE advertising continues (%d devices connected)\n",
                   pServer ? pServer->getConnectedCount() : 0);
   }
 }
@@ -898,12 +995,12 @@ void updateDiscoveryStatus() {
 }
 
 // ModbusMaster callback functions for RS485 control
-void preTransmission() { 
-  digitalWrite(RS485_DE, HIGH); 
+void preTransmission() {
+  digitalWrite(RS485_DE, HIGH);
 }
 
-void postTransmission() { 
-  digitalWrite(RS485_DE, LOW); 
+void postTransmission() {
+  digitalWrite(RS485_DE, LOW);
 }
 
 // Current sensor data
@@ -941,25 +1038,25 @@ bool isGPSDataValid();
 // Generate random BLE address to help bypass client cache
 void generateRandomBLEAddress() {
   uint8_t randomAddr[6];
-  
+
   // Generate random MAC address
   esp_fill_random(randomAddr, 6);
-  
+
   // Ensure it's a valid random address (first two bits should be '11')
   normalizeRandomBleAddress(randomAddr, sizeof(randomAddr));
-  
+
   Serial.printf("[BLE] Generated random address: %02X:%02X:%02X:%02X:%02X:%02X\n",
-               randomAddr[5], randomAddr[4], randomAddr[3], 
+               randomAddr[5], randomAddr[4], randomAddr[3],
                randomAddr[2], randomAddr[1], randomAddr[0]);
 }
 
 // Reset BLE with new name and random address to bypass client cache
 void resetBLEForNewName(const String& newName) {
   Serial.printf("[BLE] Preparing reset for device name: '%s'\n", newName.c_str());
-  
+
   // Generate new random address before restart to help bypass client cache
   generateRandomBLEAddress();
-  
+
   Serial.println("[BLE] ESP32 will restart with new name and random address");
 }
 
@@ -989,22 +1086,19 @@ void setupBLE() {
   String deviceName = preferences.getString("deviceName", "Veetr");
   Serial.printf("[BLE] Initializing as '%s'\n", deviceName.c_str());
   Serial.printf("[BLE] Max connections configured: %d\n", CONFIG_BT_NIMBLE_MAX_CONNECTIONS);
-  
+
   // Initialize NimBLE with device name
   NimBLEDevice::init(deviceName.c_str());
   // Request a larger MTU to support bigger notifications; client decides final value
   // Using 185 aligns with widely supported browser stacks
   NimBLEDevice::setMTU(185);
-  
-  // Use random address type to help bypass client cache on name changes
-  NimBLEDevice::setOwnAddrType(BLE_OWN_ADDR_RANDOM);
-  
+
   // Set TX power for good range
   NimBLEDevice::setPower(ESP_PWR_LVL_P3); // +3dBm
-  
+
   // Setup the BLE server
   setupBLEServer();
-  
+
   Serial.printf("BLE Server started as '%s'\n", deviceName.c_str());
 }
 
@@ -1013,26 +1107,26 @@ void restartBLE() {
   // Get device name from preferences
   String deviceName = preferences.getString("deviceName", "Veetr");
   Serial.printf("[BLE Restart] Using device name from preferences: '%s'\n", deviceName.c_str());
-  
+
   // Ensure BLE is completely deinitialized first (only when restarting)
   Serial.println("[BLE Restart] Deinitializing existing BLE stack...");
   NimBLEDevice::deinit(true); // true = clear all bonding info
   delay(100); // Give time for cleanup
-  
+
   // Initialize NimBLE with new device name
   Serial.printf("[BLE Restart] Initializing NimBLE with name: '%s'\n", deviceName.c_str());
   Serial.printf("[BLE Restart] Max connections configured: %d\n", CONFIG_BT_NIMBLE_MAX_CONNECTIONS);
-  
+
   NimBLEDevice::init(deviceName.c_str());
   // Request larger MTU after re-init as well
   NimBLEDevice::setMTU(185);
-  
+
   // Set TX power for balance between range and power consumption
   NimBLEDevice::setPower(ESP_PWR_LVL_P3); // +3dBm for better range
-  
+
   // Setup the BLE server
   setupBLEServer();
-  
+
   Serial.printf("NimBLE Server restarted as '%s', waiting for client connections...\n", deviceName.c_str());
   Serial.printf("Multiple connections supported (max %d)\n", CONFIG_BT_NIMBLE_MAX_CONNECTIONS);
 }
@@ -1051,7 +1145,7 @@ void setupBLEServer() {
                       SENSOR_DATA_UUID,
                       NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::NOTIFY
                     );
-  
+
   pCommandCharacteristic = pService->createCharacteristic(
                       COMMAND_UUID,
                       NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::WRITE_NR
@@ -1068,11 +1162,11 @@ void setupBLEServer() {
   pAdvertising->setMinPreferred(0x06);  // 7.5ms intervals
   pAdvertising->setMaxPreferred(0x12);  // 22.5ms intervals
   pAdvertising->setAdvertisementType(BLE_GAP_CONN_MODE_UND);  // Undirected connectable
-  
+
   // Include device name in advertising data
   String deviceName = preferences.getString("deviceName", "Veetr");
   pAdvertising->setName(deviceName.c_str());
-  
+
   Serial.printf("[BLE] BLE server configured for up to %d connections\n", CONFIG_BT_NIMBLE_MAX_CONNECTIONS);
   Serial.println("[BLE] Advertising configured - press discovery button to enable connections");
 }
@@ -1081,11 +1175,11 @@ void setupBLEServer() {
 void updateBLEData() {
   if (deviceConnected && pSensorDataCharacteristic) {
     String jsonData = getSensorDataJson();
-    
+
     // Ensure payload fits within conservative BLE MTU limits; if not, try reducing optional fields
     if (jsonData.length() > MAX_BLE_PACKET_SIZE) {
       Serial.printf("[BLE] JSON %d bytes exceeds safe limit %d; reducing optional fields...\n", jsonData.length(), MAX_BLE_PACKET_SIZE);
-      
+
       String reduced;
       if (reduceBlePayload(jsonData, MAX_BLE_PACKET_SIZE, reduced)) {
         jsonData = reduced;
@@ -1095,24 +1189,24 @@ void updateBLEData() {
         return; // Skip sending to avoid fragmentation/corruption
       }
     }
-    
+
     // Validate JSON format
     if (!isBleJsonEnvelopeValid(jsonData.c_str(), jsonData.length())) {
       Serial.println("[BLE] ERROR: Invalid JSON format");
       return;
     }
-    
+
     #ifdef DEBUG_BLE_DATA
-    Serial.printf("[BLE] %lu: Sending %d bytes to %d devices: %s\n", 
+    Serial.printf("[BLE] %lu: Sending %d bytes to %d devices: %s\n",
                   millis(), jsonData.length(), connectedDeviceCount, jsonData.c_str());
     #endif
-    
+
     // Send to all connected devices
     // Double-check connection state before sending
     if (pServer->getConnectedCount() > 0) {
       if (safeBLESend(jsonData, false)) {
         #ifdef DEBUG_BLE_DATA
-        Serial.printf("[BLE] Successfully sent %d bytes to %d devices\n", 
+        Serial.printf("[BLE] Successfully sent %d bytes to %d devices\n",
                       jsonData.length(), connectedDeviceCount);
         #endif
       } else {
@@ -1125,12 +1219,29 @@ void updateBLEData() {
 }
 
 void setup() {
-  // Initialize serial communication first
+  // Show feedback immediately while serial and peripheral initialization proceeds.
+  display_boot_splash();
+  delay(300);
+
+  // Initialize serial communication after the splash has reached the panel.
   Serial.begin(115200);
+#ifdef ARDUINO_USB_CDC_ON_BOOT
+  Serial.onEvent(handleUsbCdcEvent);
+#endif
+  analogReadResolution(12);
+  analogSetPinAttenuation(4, ADC_11db);
   delay(1000); // Give serial time to initialize
+
+#ifdef ARDUINO_USB_CDC_ON_BOOT
+  // USB CDC needs host enumeration; wait up to 3s for serial to be ready
+  unsigned long serialTimeout = millis() + 3000;
+  while (!Serial && millis() < serialTimeout) { delay(100); }
+  usbSerialConnected = static_cast<bool>(Serial);
+#endif
+
   Serial.println("\n=== Veetr Starting ===");
   Serial.printf("[Boot] Firmware Version: %s\n", FIRMWARE_VERSION);
-  
+
   // Debug OTA partition information
   const esp_partition_t* configured = esp_ota_get_boot_partition();
   const esp_partition_t* running = esp_ota_get_running_partition();
@@ -1139,10 +1250,10 @@ void setup() {
   if (configured != running) {
     Serial.println("[Boot] WARNING: Configured partition differs from running partition!");
   }
-  
+
   // Initialize Preferences for persistent storage
   preferences.begin("settings", false);
-  
+
   // Load simple offset calibrations
   levelCalibrated = preferences.getBool("levelCal", false);
   if (levelCalibrated) {
@@ -1153,7 +1264,7 @@ void setup() {
   } else {
     Serial.println("[Boot] No level calibration found");
   }
-  
+
   northCalibrated = preferences.getBool("northCal", false);
   if (northCalibrated) {
     headingOffset = preferences.getFloat("headingOffset", 0.0f);
@@ -1161,27 +1272,27 @@ void setup() {
   } else {
     Serial.println("[Boot] No north calibration found");
   }
-  
+
   // Load other settings
   deadWindAngle = preferences.getInt("deadWindAngle", 40);
   refreshRateSeconds = preferences.getFloat("refreshRate", 1.0f);
   String deviceName = preferences.getString("deviceName", "Veetr");
-  
+
   Serial.print("[Boot] Loaded deadWindAngle from NVS: ");
   Serial.println(deadWindAngle);
   Serial.print("[Boot] Loaded refreshRate from NVS: ");
   Serial.println(refreshRateSeconds);
   Serial.print("[Boot] Loaded deviceName from NVS: ");
   Serial.println(deviceName);
-  
+
   // Load regatta line coordinates from NVS
   regattaData.portLat = preferences.getDouble("portLat", 0.0);
   regattaData.portLon = preferences.getDouble("portLon", 0.0);
   regattaData.starboardLat = preferences.getDouble("starboardLat", 0.0);
   regattaData.starboardLon = preferences.getDouble("starboardLon", 0.0);
-  
+
   // Check if we have a complete start line
-  if (regattaData.portLat != 0.0 && regattaData.portLon != 0.0 && 
+  if (regattaData.portLat != 0.0 && regattaData.portLon != 0.0 &&
       regattaData.starboardLat != 0.0 && regattaData.starboardLon != 0.0) {
     regattaData.hasStartLine = true;
     Serial.printf("[Boot] Loaded regatta start line from NVS - Port: %.6f,%.6f Starboard: %.6f,%.6f\n",
@@ -1190,40 +1301,40 @@ void setup() {
   } else {
     Serial.println("[Boot] No saved regatta start line");
   }
-  
+
   // Update refresh rate from loaded value
   refreshRate = clampRefreshRateMs(refreshRateSeconds, 500, 2000);
   Serial.printf("[Boot] Refresh rate set to %d ms (%.1f seconds)\n", refreshRate, refreshRateSeconds);
-  
+
   // Initialize I2C for BNO080 with detection
   Wire.begin(BNO080_SDA, BNO080_SCL);
   Wire.setClock(400000); // Set I2C to 400kHz Fast mode (BNO08X supports up to 400kHz)
-  Wire.setTimeout(100); // Set I2C timeout to 100ms to prevent long blocking
-  
+  Wire.setTimeOut(100); // Prevent I2C peripheral hangs on ESP32-S3 when device NACKs
+  startRtcClock();
+
   Serial.print("Testing BNO080 connection... ");
   Serial.printf("I2C SDA=%d, SCL=%d\n", BNO080_SDA, BNO080_SCL);
-  
+
   // Test I2C bus first
   Wire.beginTransmission(0x4A); // BNO080 default I2C address
   uint8_t i2cError = Wire.endTransmission();
   Serial.printf("I2C scan result: %d (0=success, 2=NACK, 4=other error)\n", i2cError);
-  
+
   if (imu.begin()) {
     Serial.println("BNO080 begin() successful, configuring sensor...");
-    
-    // Enable accelerometer for fast heel/pitch (50ms = 20Hz)
-    imu.enableAccelerometer(50);
-    Serial.println("Accelerometer configuration sent (20Hz)");
-    
-    // Enable rotation vector (gyro + accel + mag fusion with tilt compensation)
-    // This includes magnetometer, so heading will be tilt-compensated
-    imu.enableRotationVector(100); // 100ms = 10Hz for stable heading
+
+    // Enable rotation vector (gyro+accel+mag fusion, tilt-compensated heading).
+    // IMPORTANT: Must NOT enable any other sensor reports (accel, gyro, mag)
+    // or the rotation vector will stop producing data on this hardware revision.
+    // The rotation vector internally uses all three sensors.
+    imu.enableRotationVector(100); // 100ms = 10Hz
     Serial.println("Rotation vector configuration sent (10Hz)");
-    
+    delay(500); // Give sensor time to process the command
+
     // Give sensor more time to initialize and start providing data
     Serial.println("Waiting for sensor data...");
     delay(500); // Longer delay for BNO080 to stabilize
-    
+
     // Try multiple times to get data
     bool dataFound = false;
     for (int attempt = 0; attempt < 10; attempt++) {
@@ -1236,11 +1347,11 @@ void setup() {
       Serial.print(".");
     }
     Serial.println();
-    
+
     if (dataFound) {
       imuAvailable = true;
       Serial.println("BNO080 connected and working!");
-      
+
       // Test reading actual data
       float testI = imu.getQuatI();
       float testReal = imu.getQuatReal();
@@ -1254,102 +1365,86 @@ void setup() {
     imuAvailable = false;
     Serial.println("Not detected - check wiring/address");
     Serial.println("Trying alternative I2C address 0x4B...");
-    
+
     // Try alternative address
     Wire.beginTransmission(0x4B);
     i2cError = Wire.endTransmission();
     Serial.printf("I2C scan 0x4B result: %d\n", i2cError);
   }
-  
+
   if (imuAvailable) {
     Serial.println("BNO080 IMU sensor enabled");
   } else {
     Serial.println("BNO080 IMU sensor disabled - tilt will be set to 0");
   }
-  
-  // Scan I2C bus for all devices
-  Serial.println("Scanning I2C bus...");
-  int devicesFound = 0;
-  for (byte address = 1; address < 127; address++) {
-    Wire.beginTransmission(address);
-    byte error = Wire.endTransmission();
-    
-    if (error == 0) {
-      Serial.printf("I2C device found at address 0x%02X\n", address);
-      devicesFound++;
-    }
-  }
-  
-  if (devicesFound == 0) {
-    Serial.println("No I2C devices found. Check wiring and power.");
-  } else {
-    Serial.printf("Found %d I2C device(s)\n", devicesFound);
-  }
-  
+
   // Initialize BLE with the loaded device name
   Serial.printf("[Boot] Initializing BLE with device name: '%s'\n", deviceName.c_str());
   setupBLE();
-  
+
   // Initialize Discovery Mode GPIO
   pinMode(DISCOVERY_BUTTON_PIN, INPUT_PULLUP);  // Button with internal pullup
   pinMode(DISCOVERY_LED_PIN, OUTPUT);           // LED output
   digitalWrite(DISCOVERY_LED_PIN, LOW);         // Start with LED off
   Serial.printf("[Boot] Discovery button: GPIO%d, LED: GPIO%d\n", DISCOVERY_BUTTON_PIN, DISCOVERY_LED_PIN);
-  
+
   // Test button reading at startup
   int buttonTest = digitalRead(DISCOVERY_BUTTON_PIN);
   Serial.printf("[Boot] Button test reading: %d (%s)\n", buttonTest, buttonTest == HIGH ? "NOT PRESSED" : "PRESSED");
   Serial.println("[Boot] Press discovery button to toggle BLE discovery mode");
-  
+
   // IMPORTANT: Start discovery mode automatically on boot
   Serial.println("[Boot] Auto-starting discovery mode for 5 minutes...");
   startDiscoveryMode();
-  
+
   // Initialize GPS module
   gpsSerial.begin(9600, SERIAL_8N1, GPS_RX, GPS_TX);
   Serial.println("GPS module initialized");
-  
+
   // Initialize RS485 for wind sensor with ModbusMaster
   // Try both sensor configurations - start with 9600 baud format first
   rs485.begin(9600, SERIAL_8E1, RS485_RX, RS485_TX); // Ultrasonic sensor (9600,8E1,IEEE754)
   pinMode(RS485_DE, OUTPUT);
   digitalWrite(RS485_DE, LOW);
-  
+
   windSensor.begin(1, rs485); // Sensor ID 1
   windSensor.preTransmission(preTransmission);
   windSensor.postTransmission(postTransmission);
-  
+
   // Set shorter timeout to prevent long delays - default is often 2000ms
   windSensor.idle([]() {
     // Allow other tasks during Modbus idle time
     yield();
   });
-  
+
   // Try to set a shorter timeout if the library supports it
   // Note: Not all ModbusMaster versions support this
   #ifdef MODBUS_RESPONSE_TIMEOUT
   windSensor.setResponseTimeout(500); // 500ms timeout instead of default 2000ms
   #endif
-  
+
   Serial.println("RS485 wind sensor initialized with ModbusMaster");
   Serial.printf("RS485 pins: RX=%d, TX=%d, DE=%d\n", RS485_RX, RS485_TX, RS485_DE);
   Serial.println("RS485 settings: Auto-detect between IEEE754 float (9600,8E1) and integer (4800,8N1) formats");
   Serial.println("Anemometer format: Auto-detect between IEEE 754 float and integer data types");
-  
+
   // Test wind sensor connection
   delay(1000);
   Serial.println("Testing wind sensor connection...");
-  
+
   float testSpeed;
   int testDirection;
   bool testResult = windReader.read(testSpeed, testDirection);
   if (testResult) {
-    Serial.printf("Wind sensor test PASSED: %.2f m/s (%.1f kt) @ %d°\n", 
+    Serial.printf("Wind sensor test PASSED: %.2f m/s (%.1f kt) @ %d°\n",
                   testSpeed, testSpeed * 1.944, testDirection);
   } else {
     Serial.println("Wind sensor test FAILED - check connections and power");
   }
-  
+
+  // Initialize RLCD display with LVGL
+  display_lvgl_init();
+
   Serial.println("Setup complete");
 }
 
@@ -1357,39 +1452,39 @@ void loop() {
   // Handle discovery button and mode
   handleDiscoveryButton();
   updateDiscoveryStatus();
-  
+
   // Handle OTA progress LED blinking using official component
   if (otaState.active) {
     unsigned long currentTime = millis();
-    
+
     // Periodic status reporting (every 5 seconds)
     static unsigned long lastStatusReport = 0;
     if (currentTime - lastStatusReport > 5000) {
       OtaTimeoutStatus status = computeOtaTimeoutStatus(otaState.startTimeMs, currentTime, 50, 60);
-      Serial.printf("[BLE OTA] Status: Active for %lu ms (%lu minutes) using official Espressif component\n", 
+      Serial.printf("[BLE OTA] Status: Active for %lu ms (%lu minutes) using official Espressif component\n",
                    status.elapsedMs, status.elapsedMinutes);
-      
+
       // Warn when approaching timeout (at 50 minutes)
       if (status.shouldWarn) {
         Serial.printf("[BLE OTA] WARNING: Approaching timeout in %lu minutes\n", 60 - status.elapsedMinutes);
       }
-      
+
       lastStatusReport = currentTime;
     }
-    
+
     // Check for total OTA timeout (60 minutes - allow for very large firmware and slow BLE)
     OtaTimeoutStatus status = computeOtaTimeoutStatus(otaState.startTimeMs, currentTime, 50, 60);
     if (status.timedOut) {
-      Serial.printf("[BLE OTA] Total timeout after %lu ms (%lu minutes). Component will handle cleanup.\n", 
+      Serial.printf("[BLE OTA] Total timeout after %lu ms (%lu minutes). Component will handle cleanup.\n",
                    status.elapsedMs, status.elapsedMinutes);
       resetOtaState(otaState);
-      
+
       // Turn off LED and resume normal operation
       digitalWrite(DISCOVERY_LED_PIN, LOW);
       Serial.println("[BLE OTA] Timeout recovery complete - resuming sensor data transmission");
       return;
     }
-    
+
     static unsigned long lastOTABlink = 0;
     if (millis() - lastOTABlink >= 100) { // Very fast blink every 100ms
       digitalWrite(DISCOVERY_LED_PIN, !digitalRead(DISCOVERY_LED_PIN));
@@ -1398,24 +1493,33 @@ void loop() {
     delay(10); // Small delay to prevent tight loop, but keep responsive
     return;
   }
-  
+
+  // Handle serial debug commands
+  if (Serial.available() > 0) {
+    int cmd = Serial.read();
+    if (cmd == 'd' || cmd == 'D') {
+      Serial.println("[Debug] Display framebuffer dump requested");
+      display_serial_dump();
+    }
+  }
+
   // Check if it's time to update data
   if (millis() >= nextUpdate) {
     // Read sensor data
     readSensors();
-    
+
     // Calculate regatta data if start line is set
     calculateRegattaData();
-    
+
     // Update BLE RSSI if connected
     updateBLERSSI();
-    
+
     // Update BLE clients with sensor data
     updateBLEData();
-    
+
     // Set next update time
     nextUpdate = millis() + refreshRate;
-    
+
     // Print concise status summary every 5 seconds
     static unsigned long lastStatusTime = 0;
     if (millis() - lastStatusTime > 5000) {
@@ -1428,15 +1532,15 @@ void loop() {
         unsigned long remaining = (DISCOVERY_TIMEOUT_MS - (millis() - discoveryModeStartTime)) / 1000;
         Serial.printf("Discovery:%lus ", remaining);
       }
-      if (!isnan(currentData.speed) && currentData.speed > 0) 
+      if (!isnan(currentData.speed) && currentData.speed > 0)
         Serial.printf("Spd:%.1fkt ", currentData.speed);
-      if (!isnan(currentData.windSpeed)) 
+      if (!isnan(currentData.windSpeed))
         Serial.printf("Wind:%.1fkt AWA:%d° ", currentData.windSpeed, currentData.windAngle);
-      if (!isnan(currentData.tilt)) 
+      if (!isnan(currentData.tilt))
         Serial.printf("Tilt:%.1f° ", currentData.tilt);
-      if (currentData.HDM >= 0 && currentData.HDM <= 359) 
+      if (currentData.HDM >= 0 && currentData.HDM <= 359)
         Serial.printf("Hdm:%d° ", currentData.HDM);
-      
+
       // GPS status - only show satellite count if we have actual GPS data
       if (gps.charsProcessed() > 10) {
         // We're receiving GPS data
@@ -1451,10 +1555,18 @@ void loop() {
         // No GPS data being received
         Serial.print("GPS:no data ");
       }
-      
+
       Serial.println();
       lastStatusTime = millis();
     }
+  }
+
+  // Animate the RLCD independently of the 1 Hz sensor acquisition cycle.
+  tickDisplayClock();
+  static unsigned long nextDisplayFrame = 0;
+  if (millis() >= nextDisplayFrame) {
+    display_lvgl_update(currentData, displayStatus);
+    nextDisplayFrame = millis() + 80;  // 12.5 Hz animation
   }
 }
 
@@ -1489,7 +1601,7 @@ static bool accelBufferFull = false;
 // Store accelerometer reading for movement analysis
 void storeAccelReading(float accelX, float accelY, float accelZ) {
   if (!imuAvailable) return;
-  
+
   AccelPoint point;
   point.x = accelX;
   point.y = accelY;
@@ -1497,10 +1609,10 @@ void storeAccelReading(float accelX, float accelY, float accelZ) {
   point.magnitude = sqrt(accelX * accelX + accelY * accelY + accelZ * accelZ);
   point.timestamp = millis();
   point.valid = true;
-  
+
   accelBuffer[accelIndex] = point;
   accelIndex = (accelIndex + 1) % ACCEL_BUFFER_SIZE;
-  
+
   if (!accelBufferFull && accelIndex == 0) {
     accelBufferFull = true;
   }
@@ -1511,16 +1623,16 @@ bool isAccelerometerMovementDetected() {
   if (!imuAvailable || (!accelBufferFull && accelIndex < 3)) {
     return false; // Not enough data or no IMU
   }
-  
+
   static unsigned long lastAnalysisTime = 0;
   static bool lastResult = false;
-  
+
   // Only analyze every 500ms to reduce CPU load
   if (millis() - lastAnalysisTime < 500) {
     return lastResult;
   }
   lastAnalysisTime = millis();
-  
+
   int validPoints = accelBufferFull ? ACCEL_BUFFER_SIZE : accelIndex;
   if (validPoints < 3) return false;
 
@@ -1537,7 +1649,7 @@ bool isAccelerometerMovementDetected() {
   const float MOVEMENT_RANGE_THRESHOLD = 1.0;    // m/s² - total acceleration range indicating movement
   const float MIN_AVERAGE_ACCEL = 8.0;           // m/s² - minimum for valid readings (gravity ~9.81)
   const float MAX_AVERAGE_ACCEL = 12.0;          // m/s² - maximum for valid readings
-  
+
   AccelStats stats;
   bool movementDetected = detectAccelMovement(
     magnitudes,
@@ -1557,7 +1669,7 @@ bool isAccelerometerMovementDetected() {
     lastAccelDebugTime = millis();
   }
   #endif
-  
+
   lastResult = movementDetected;
   return movementDetected;
 }
@@ -1566,24 +1678,24 @@ bool isAccelerometerMovementDetected() {
 bool isMovementConsistent() {
   static unsigned long lastAnalysisTime = 0;
   static bool lastResult = false;
-  
+
   // Only analyze movement every 2 seconds to reduce CPU load
   if (millis() - lastAnalysisTime < 2000) {
     return lastResult;
   }
   lastAnalysisTime = millis();
-  
+
   if (!gpsTrackBufferFull && gpsTrackIndex < 3) {
     lastResult = false;
     return false; // Need at least 3 points
   }
-  
+
   int validPoints = gpsTrackBufferFull ? GPS_TRACK_BUFFER_SIZE : gpsTrackIndex;
   if (validPoints < 3) {
     lastResult = false;
     return false;
   }
-  
+
   GpsTrackPoint ordered[GPS_TRACK_BUFFER_SIZE];
   for (int i = 0; i < validPoints; i++) {
     int idx = (gpsTrackIndex - validPoints + i + GPS_TRACK_BUFFER_SIZE) % GPS_TRACK_BUFFER_SIZE;
@@ -1608,12 +1720,12 @@ bool isMovementConsistent() {
 float filterGPSSpeed(float rawSpeed, int satellites, float hdop) {
   // Basic GPS quality check - less strict than before
   bool goodGPSQuality = (satellites >= 4 && hdop <= 3.0);
-  
+
   // If GPS quality is very poor, don't trust readings
   if (!goodGPSQuality) {
     return filterGpsSpeed(rawSpeed, false, imuAvailable, false, false, lastValidSpeed);
   }
-  
+
   // Store current GPS point in track buffer
   GPSPoint currentPoint;
   currentPoint.lat = gps.location.lat();
@@ -1621,14 +1733,14 @@ float filterGPSSpeed(float rawSpeed, int satellites, float hdop) {
   currentPoint.speed = rawSpeed;
   currentPoint.timestamp = millis();
   currentPoint.valid = gps.location.isValid();
-  
+
   gpsTrackBuffer[gpsTrackIndex] = currentPoint;
   gpsTrackIndex = (gpsTrackIndex + 1) % GPS_TRACK_BUFFER_SIZE;
-  
+
   if (!gpsTrackBufferFull && gpsTrackIndex == 0) {
     gpsTrackBufferFull = true;
   }
-  
+
   // Basic speed smoothing with smaller window
   const int SPEED_SMOOTH_SIZE = 3;
   float recentSpeeds[SPEED_SMOOTH_SIZE];
@@ -1644,11 +1756,11 @@ float filterGPSSpeed(float rawSpeed, int satellites, float hdop) {
   }
 
   float smoothedSpeed = smoothGpsSpeed(recentSpeeds, recentValid, recentCount, rawSpeed);
-  
+
   // Enhanced movement detection combining GPS track and accelerometer
   bool gpsMovementDetected = isMovementConsistent();
   bool accelMovementDetected = isAccelerometerMovementDetected();
-  
+
   return filterGpsSpeed(smoothedSpeed,
                         true,
                         imuAvailable,
@@ -1662,36 +1774,37 @@ void readSensors() {
   #ifdef DEBUG_BLE_DATA
   unsigned long startTime = millis();
   #endif
-  
+
   // Read GPS data first
   bool gpsDataValid = readGPS();
-  
+  updateDisplayStatus();
+
   #ifdef DEBUG_BLE_DATA
   unsigned long gpsTime = millis();
   #endif
-  
+
   // Apply track-based GPS speed filtering
   if (gpsDataValid && gps.speed.isValid()) {
     static unsigned long lastGPSDebugTime = 0;
-    
+
     float rawSpeed = gps.speed.knots();
     int satellites = gps.satellites.isValid() ? gps.satellites.value() : 0;
     float hdop = gps.hdop.isValid() ? gps.hdop.hdop() : 99.9;
-    
+
     // Use enhanced GPS filtering with accelerometer data
     currentData.speed = filterGPSSpeed(rawSpeed, satellites, hdop);
-    
+
     #ifdef DEBUG_GPS
-    Serial.printf("[GPS Filter] Raw: %.2f, Filtered: %.2f, Sats: %d, HDOP: %.1f, GPS Track: %s, Accel: %s\n", 
+    Serial.printf("[GPS Filter] Raw: %.2f, Filtered: %.2f, Sats: %d, HDOP: %.1f, GPS Track: %s, Accel: %s\n",
                   rawSpeed, currentData.speed, satellites, hdop,
                   isMovementConsistent() ? "MOVING" : "STATIONARY",
                   imuAvailable ? (isAccelerometerMovementDetected() ? "MOVING" : "STATIONARY") : "N/A");
     #endif
-    
+
     // Additional debug for enhanced movement detection (always show when speed > 0.3 knots raw)
     if (rawSpeed > 0.3) {
-      Serial.printf("[Enhanced GPS] Raw: %.3f kt, Filtered: %.3f kt, GPS: %s, Accel: %s\n", 
-                    rawSpeed, currentData.speed, 
+      Serial.printf("[Enhanced GPS] Raw: %.3f kt, Filtered: %.3f kt, GPS: %s, Accel: %s\n",
+                    rawSpeed, currentData.speed,
                     isMovementConsistent() ? "MOVING" : "STATIONARY",
                     imuAvailable ? (isAccelerometerMovementDetected() ? "MOVING" : "STATIONARY") : "N/A");
     }
@@ -1709,10 +1822,10 @@ void readSensors() {
   if (windReader.read(sensorWindSpeed, sensorWindAngle)) {
     // Speed is already in m/s from the sensor, convert to knots (1 m/s = 1.944 knots)
     currentData.windSpeed = sensorWindSpeed * 1.944;
-    
+
     // Store wind angle directly (0-360°)
     currentData.windAngle = sensorWindAngle;
-    
+
     #ifdef DEBUG_WIND_SENSOR
     Serial.printf("Wind: %.1f kt @ %d°\\n", currentData.windSpeed, currentData.windAngle);
     #endif
@@ -1726,11 +1839,11 @@ void readSensors() {
       lastErrorTime = millis();
     }
   }
-  
+
   #ifdef DEBUG_BLE_DATA
   unsigned long windTime = millis();
   #endif
-  
+
   // Enhanced GPS debug output (only when needed)
   #ifdef DEBUG_GPS
   Serial.print("[GPS Debug] TinyGPS++ chars processed: ");
@@ -1761,7 +1874,7 @@ void readSensors() {
   //   char c = gpsSerial.read();
   //   Serial.write(c);
   // }
-  
+
   // Calculate true wind: if speed is very low, set true wind = apparent wind
   const float SPEED_THRESHOLD = 0.5; // knots
   if (!isnan(currentData.windSpeed) && currentData.windAngle >= 0 && currentData.windAngle <= 359) {
@@ -1778,99 +1891,133 @@ void readSensors() {
     currentData.trueWindSpeed = NAN;
     currentData.trueWindAngle = -999;
   }
-  
+
   // Read tilt from BNO080 (only if available)
   if (imuAvailable) {
     static unsigned long lastIMURead = 0;
-    const unsigned long IMU_READ_INTERVAL = 20; // Read IMU every 20ms (50Hz to match magnetometer)
-    
+    const unsigned long IMU_READ_INTERVAL = 50; // Read IMU every 50ms (20Hz to match accel rate)
+
     if (millis() - lastIMURead >= IMU_READ_INTERVAL) {
       lastIMURead = millis();
-      
+
+      // Re-enable sensor features if no data received for a while
+      static unsigned long lastRvReEnable = 0;
+      static bool rvEverWorked = false;
+      static unsigned long lastDataReceived = 0;
+      unsigned long now_ = millis();
+      // Trigger recovery if: data stopped for 3s, OR no data ever after 10s
+      bool needRecovery = (rvEverWorked && lastDataReceived > 0 && now_ - lastDataReceived > 3000)
+                       || (!rvEverWorked && lastDataReceived == 0 && now_ - lastRvReEnable > 10000);
+      if (needRecovery && now_ - lastRvReEnable > 5000) {
+        lastRvReEnable = now_;
+        Wire.end();
+        Wire.begin(BNO080_SDA, BNO080_SCL);
+        Wire.setClock(400000);
+        Wire.setTimeOut(100);
+        delay(5);
+        // Preserve magnetometer-referenced heading during recovery.
+        imu.enableRotationVector(100);
+      }
+
       if (imu.dataAvailable()) {
+        lastDataReceived = millis();
         // dataAvailable() processes incoming sensor reports from BNO080
         // It updates internal variables: rawAccelX/Y/Z, rawMagX/Y/Z, rawQuatI/J/K/Real
-        
+
         // **USE ACCELEROMETER FOR FAST HEEL/PITCH CALCULATION**
         // The rotation vector (quaternion) updates too slowly (~4-6 seconds)
         // Accelerometer updates fast and reliably every cycle
-        
-        // Get accelerometer readings (in m/s²)
+
+        // Get accelerometer readings (in m/s²) — only valid after enableAccelerometer is called
         float accelX = imu.getAccelX();
         float accelY = imu.getAccelY();
         float accelZ = imu.getAccelZ();
-        
+
         // Calculate heel (roll) from gravity vector
-        // When level: accelZ ≈ 9.8, accelX ≈ 0, accelY ≈ 0
-        // When heeled right: accelX increases (positive), accelZ decreases
         float rawRoll = 0.0f;
         float rawPitch = 0.0f;
-        computeRollPitchDegrees(accelX, accelY, accelZ, rawRoll, rawPitch);
-        
+        // Only compute if we have valid accel data (non-zero gravity)
+        if (fabsf(accelZ) > 1.0f) {
+          computeRollPitchDegrees(accelX, accelY, accelZ, rawRoll, rawPitch);
+        }
+
         // Apply calibration offsets
         float roll = rawRoll - rollOffset;
         float pitch = rawPitch - pitchOffset;
-        
+
         currentData.tilt = roll;
         currentData.pitch = pitch;
-        
+
         #ifdef DEBUG_BNO080
         if (levelCalibrated) {
-          Serial.printf("[BNO080] Accel-based - Raw: R=%.2f° P=%.2f° → Heel: %.2f° Pitch: %.2f°\n", 
+          Serial.printf("[BNO080] Accel-based - Raw: R=%.2f° P=%.2f° → Heel: %.2f° Pitch: %.2f°\n",
                        rawRoll, rawPitch, roll, pitch);
         } else {
           Serial.printf("[BNO080] Uncalibrated - Heel: %.2f° Pitch: %.2f°\n", roll, pitch);
         }
         #endif
-        
-        // Compass calculation - only update when magnetometer actually changes
-        // **USE ROTATION VECTOR FOR TILT-COMPENSATED COMPASS**
-        // BNO080's rotation vector fuses gyro + accel + mag - heading is tilt-compensated!
+
+        // Compass calculation — use rotation vector for tilt-compensated heading
+        // BNO080's rotation vector internally fuses gyro + accel + mag
         float quatI = imu.getQuatI();
         float quatJ = imu.getQuatJ();
         float quatK = imu.getQuatK();
         float quatReal = imu.getQuatReal();
-        
-        // Check if quaternion is valid (non-zero)
+
         float heading = 0.0f;
-        if (computeHeadingDegreesFromQuaternion(quatI, quatJ, quatK, quatReal, heading)) {
-          
+          if (computeHeadingDegreesFromQuaternion(quatI, quatJ, quatK, quatReal, heading)) {
+          rvEverWorked = true;
+
+          // After rotation vector converges, enable accelerometer for heel/pitch.
+          // IMPORTANT: On this hardware, enabling accel BEFORE rotation vector
+          // prevents rotvec from producing data. But enabling it after works.
+          static bool accelEnabled = false;
+          if (!accelEnabled) {
+            delay(50); // Brief pause before sending command
+            imu.enableAccelerometer(50);
+            accelEnabled = true;
+            #ifdef DEBUG_BNO080
+            Serial.println("[BNO080] Accelerometer enabled (20Hz) after rotation vector convergence");
+            #endif
+          }
+
           // Apply calibration offset
           if (northCalibrated) {
             heading = heading - headingOffset;
             if (heading < 0) heading += 360.0f;
             if (heading >= 360) heading -= 360.0f;
           }
-          
+
           currentData.HDM = (int)round(heading);
-          
+
           #ifdef DEBUG_BNO080
-          Serial.printf("[BNO080] Heading from rotation vector: %.1f° → Calibrated: %d°\n", 
+          Serial.printf("[BNO080] Heading from rotation vector: %.1f° → Calibrated: %d°\n",
                        heading + (northCalibrated ? headingOffset : 0), currentData.HDM);
           #endif
         } else {
           #ifdef DEBUG_BNO080
-          Serial.println("[BNO080] Rotation vector not ready");
+          float qMag = sqrtf(quatI*quatI + quatJ*quatJ + quatK*quatK + quatReal*quatReal);
+          float radAcc = imu.getQuatRadianAccuracy();
+          Serial.printf("[BNO080] Rotation vector not ready (i=%.4f j=%.4f k=%.4f real=%.4f mag=%.4f acc=%.4f)\n",
+                        quatI, quatJ, quatK, quatReal, qMag, radAcc);
           #endif
         }
-        
-        // Read accelerometer data
+
+        // Read and store accelerometer data
         currentData.accelX = imu.getAccelX();
         currentData.accelY = imu.getAccelY();
         currentData.accelZ = imu.getAccelZ();
-        
-        // Store accelerometer data for movement analysis
         storeAccelReading(currentData.accelX, currentData.accelY, currentData.accelZ);
-        
+
         #ifdef DEBUG_BNO080
         static unsigned long lastAccelDebug = 0;
         if (millis() - lastAccelDebug > 2000) { // Debug every 2 seconds
-          Serial.printf("[BNO080] Accel: X=%.2f Y=%.2f Z=%.2f m/s²\n", 
+          Serial.printf("[BNO080] Accel: X=%.2f Y=%.2f Z=%.2f m/s²\n",
                         currentData.accelX, currentData.accelY, currentData.accelZ);
           lastAccelDebug = millis();
         }
         #endif
-        
+
       } else {
         // No new data available
         static unsigned long lastNoDataWarning = 0;
@@ -1888,7 +2035,7 @@ void readSensors() {
     currentData.accelY = NAN;
     currentData.accelZ = NAN;
   }
-  
+
   #ifdef DEBUG_BLE_DATA
   unsigned long endTime = millis();
   static unsigned long lastTimingReport = 0;
@@ -1896,12 +2043,72 @@ void readSensors() {
     Serial.printf("[Timing] Total: %lums, GPS: %lums, Filter: %lums, Wind: %lums, IMU: %lums\n",
                   endTime - startTime,
                   gpsTime - startTime,
-                  filterTime - gpsTime, 
+                  filterTime - gpsTime,
                   windTime - filterTime,
                   endTime - windTime);
     lastTimingReport = millis();
   }
   #endif
+
+  // Comprehensive all-sensors debug dump (every 2 seconds)
+  static unsigned long lastSensorDump = 0;
+  if (millis() - lastSensorDump > 2000) {
+    lastSensorDump = millis();
+
+    // --- GPS Diagnostics ---
+    int gpsAvail = gpsSerial.available();
+    Serial.printf("[DIAG] GPS serial avail=%d charsProcessed=%d failedCS=%d\n",
+                  gpsAvail, gps.charsProcessed(), gps.failedChecksum());
+
+    // --- IMU Diagnostics ---
+    if (!imuAvailable) {
+      Serial.println("[DIAG] IMU: NOT AVAILABLE (begin() failed or I2C no response)");
+    } else {
+      int reportCount = 0;
+      for (int i = 0; i < 10; i++) {
+        if (imu.dataAvailable()) {
+          reportCount++;
+          // Update currentData with values from the last drained report
+          currentData.accelX = imu.getAccelX();
+          currentData.accelY = imu.getAccelY();
+          currentData.accelZ = imu.getAccelZ();
+          float qI = imu.getQuatI(), qJ = imu.getQuatJ(), qK = imu.getQuatK(), qR = imu.getQuatReal();
+          float hdg = 0.0f;
+          if (computeHeadingDegreesFromQuaternion(qI, qJ, qK, qR, hdg)) {
+            if (northCalibrated) { hdg -= headingOffset; if (hdg < 0) hdg += 360; if (hdg >= 360) hdg -= 360; }
+            currentData.HDM = (int)round(hdg);
+          }
+          float rawRoll, rawPitch;
+          computeRollPitchDegrees(currentData.accelX, currentData.accelY, currentData.accelZ, rawRoll, rawPitch);
+          currentData.tilt = rawRoll - rollOffset;
+          currentData.pitch = rawPitch - pitchOffset;
+        } else break;
+      }
+
+      // Probe I2C bus health
+      auto i2cProbe = [](int addr) -> int {
+        Wire.beginTransmission(addr);
+        return Wire.endTransmission();
+      };
+      int p4B = i2cProbe(0x4B);
+      Serial.printf("[DIAG] IMU: I2C probe 0x4B=%d\n", p4B);
+
+      bool hasAccel = (currentData.accelX != 0.0f || currentData.accelY != 0.0f || currentData.accelZ != 0.0f);
+      Serial.printf("[DIAG] IMU: drained=%d accel=%s heading=%d\n",
+                    reportCount, hasAccel ? "YES" : "NO", currentData.HDM);
+    }
+
+    Serial.println("=== SENSOR READINGS ===");
+    Serial.printf("GPS: Lat=%.6f Lon=%.6f SOG=%.2fkt COG=%.1f Sats=%d HDOP=%.1f\n",
+                  gps.location.lat(), gps.location.lng(),
+                  currentData.speed, gps.course.deg(),
+                  gps.satellites.value(), gps.hdop.hdop());
+    Serial.printf("Wind (Apparent): %.1fkt @ %d\n", currentData.windSpeed, currentData.windAngle);
+    Serial.printf("Wind (True): %.1fkt @ %d\n", currentData.trueWindSpeed, currentData.trueWindAngle);
+    Serial.printf("IMU: Heel=%.1f Pitch=%.1f Heading=%d\n", currentData.tilt, currentData.pitch, currentData.HDM);
+    Serial.printf("Accel: X=%.2f Y=%.2f Z=%.2f m/s²\n", currentData.accelX, currentData.accelY, currentData.accelZ);
+    Serial.println("=======================");
+  }
 }
 
 // Generate JSON string with current sensor data using marine standard terminology

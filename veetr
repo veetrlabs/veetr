@@ -197,7 +197,7 @@ function syncVersions(version) {
   }
 
   // Update firmware version
-  const firmwarePath = path.join(__dirname, 'firmware/src/main.cpp')
+  const firmwarePath = path.join(__dirname, 'firmware/include/firmware_version.h')
   if (fs.existsSync(firmwarePath)) {
     let content = fs.readFileSync(firmwarePath, 'utf8')
     content = content.replace(
@@ -205,7 +205,7 @@ function syncVersions(version) {
       `#define FIRMWARE_VERSION "${version}"`
     )
     fs.writeFileSync(firmwarePath, content)
-    console.log(`${c.success('✓')} Updated firmware/src/main.cpp to ${version}`)
+    console.log(`${c.success('✓')} Updated firmware/include/firmware_version.h to ${version}`)
   }
 }
 
@@ -222,7 +222,7 @@ function handleVersion() {
   }
   
   try {
-    const firmwareContent = fs.readFileSync(path.join(__dirname, 'firmware/src/main.cpp'), 'utf8')
+    const firmwareContent = fs.readFileSync(path.join(__dirname, 'firmware/include/firmware_version.h'), 'utf8')
     const versionMatch = firmwareContent.match(/#define FIRMWARE_VERSION "(.+)"/)
     if (versionMatch) {
       console.log(`   Firmware: ${c.success('v' + versionMatch[1])}`)
@@ -242,14 +242,14 @@ function handleBuild(args) {
     console.log('Building everything...')
     runCommand('npm install', 'Installing app dependencies', { cwd: path.join(__dirname, 'pwa') })
     runCommand('npm run build', 'Building web app', { cwd: path.join(__dirname, 'pwa') })
-    runCommand('pio run', 'Building firmware', { cwd: path.join(__dirname, 'firmware') })
+    runCommand('pio run -e esp32dev -e esp32s3-rlcd', 'Building firmware', { cwd: __dirname })
   } else if (target === 'app') {
     console.log('Building web app...')
     runCommand('npm install', 'Installing app dependencies', { cwd: path.join(__dirname, 'pwa') })
     runCommand('npm run build', 'Building web app', { cwd: path.join(__dirname, 'pwa') })
   } else if (target === 'firmware') {
     console.log('Building firmware...')
-    runCommand('pio run', 'Building firmware', { cwd: path.join(__dirname, 'firmware') })
+    runCommand('pio run -e esp32dev -e esp32s3-rlcd', 'Building firmware', { cwd: __dirname })
   } else {
     console.error(`${c.error('❌ Unknown build target:')} ${target}`)
     console.log(`Available targets: app, firmware, all`)

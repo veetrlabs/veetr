@@ -84,7 +84,7 @@ jobs:
 
     - name: Test firmware build
       run: |
-        pio run --project-dir . --environment esp32dev
+        pio run --project-dir . --environment esp32dev --environment esp32s3-rlcd
 
     - name: Run firmware unit tests (native)
       run: |

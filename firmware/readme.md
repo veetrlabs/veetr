@@ -751,6 +751,22 @@ For enhanced security when deployed on boats, the ESP32 implements a button-acti
 
 ## Development
 
+Run these commands from the repository root:
+
+```sh
+pio test -e native
+pio run -e esp32dev -e esp32s3-rlcd
+pio run -e esp32s3-rlcd -t upload --upload-port <serial-port>
+```
+
+On macOS, if Xcode blocks native tests but standalone Command Line Tools are installed,
+use `DEVELOPER_DIR=/Library/Developer/CommandLineTools pio test -e native`.
+The RLCD target's wiring is documented in [RLCD to sensors](../docs/RLCD_TO_SENSORS.md).
+The LVGL Editor preview outputs are local generated files; the device builds use
+the checked-in sources in `src/screens/` and `src/display/`.
+Tagged release downloads currently target `esp32dev`; build the RLCD image with
+the explicit `esp32s3-rlcd` environment above.
+
 ### Sensor Calibration and Configuration
 
 #### GPS Module (NEO-7M)
@@ -835,7 +851,9 @@ For enhanced security when deployed on boats, the ESP32 implements a button-acti
 **Note:** The `/data/www` folder contains the web application files for reference and local development, but in the new BLE architecture, these files should be hosted externally (e.g., GitHub Pages) rather than uploaded to the ESP32's filesystem.
 
 **Key Code Files:**
-- `src/main.cpp`: Main ESP32 firmware with BLE server, sensor management, and JSON API
+- `src/main_esp32dev.cpp`: ESP32 firmware with BLE server, sensor management, and JSON API
+- `src/main_esp32s3_rlcd.cpp`: ESP32-S3 RLCD firmware with onboard display
+- `include/firmware_version.h`: Shared firmware version used by both targets
 - Uses NimBLE-Arduino for efficient BLE communication
 - Implements robust error handling for missing or failed sensors
 - Provides standardized marine JSON API over BLE notifications
