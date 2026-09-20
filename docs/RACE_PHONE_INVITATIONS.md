@@ -14,7 +14,7 @@ Open the invitation, install Veetr if needed, then tap the invitation again. The
 
 Readiness opens 12 hours before the expected start and expires 18 hours after it, or when the referee finishes/revokes access or the sailor stops. The schedule is informational: changing 11:00 to 11:30 doesn't publish location automatically. The referee explicitly starts sharing. The app checks race state using background location callbacks and its foreground timer; this is not a synchronized remote wake-up. A force-closed app cannot be started remotely. If race control hasn't been reached for 60 seconds, new capture for this race stops until connectivity returns. Already queued points are retried; the server only accepts points inside the actual live intervals, ready session and expiry/end boundary. There may be gaps under poor connectivity.
 
-Account users can open **Regattas → Share boat location**, then a ready-race card for their connected boat. Legacy connected boats stay visible with closed/unpublished reasons. Guest phone credentials remain separate from account sign-in and are not included in trip exports.
+All sailors open **Regattas → My boat · join with invitation**, or tap their referee’s boat invitation directly in WhatsApp/email. The Regattas screen accepts a pasted invitation and returns to the connected boat’s readiness screen. No fleet picker or account sign-in is required. Account settings contain only account controls. The old sharing route remains only for finishing existing legacy sessions. Guest phone credentials remain separate from account sign-in and are not included in trip exports.
 
 ## Link and release configuration
 

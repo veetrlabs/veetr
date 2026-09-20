@@ -103,7 +103,7 @@ export default function RegattaBrowser({ onShare }: { onShare?: () => void } = {
       />}
     >
       <Text style={{ color: c.text, fontSize: 28, fontWeight: "700" }}>Regattas</Text>
-      {onShare && button("Share boat location", onShare)}
+      {onShare && button("My boat · join with invitation", onShare)}
       <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
         {(["All", "Live", "Upcoming", "Past"] as RegattaFilter[]).map((f) =>
           button(f, () => setFilter(f), filter === f),

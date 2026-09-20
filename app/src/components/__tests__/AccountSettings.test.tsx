@@ -30,7 +30,7 @@ beforeEach(() => {
   mockSignOut.mockResolvedValue({ error: null });
   mockStoreGet.mockResolvedValue(null);
 });
-test('Settings account signs in with the shared client and opens live sharing', async () => {
+test('Settings account signs in without exposing the old fleet tracking picker', async () => {
   const ui = render(<AccountSettings onBack={jest.fn()} />);
   await ui.findByLabelText('Email');
   fireEvent.changeText(ui.getByLabelText('Email'), ' skipper@example.test ');
@@ -39,8 +39,8 @@ test('Settings account signs in with the shared client and opens live sharing', 
   await waitFor(() => expect(mockSignIn).toHaveBeenCalledWith({ email: 'skipper@example.test', password: 'test-password' }));
   await act(async () => mockAuthChanged('SIGNED_IN', { user: { id: 'skipper', email: 'skipper@example.test' } }));
   expect(ui.getByText('Signed in as skipper@example.test')).toBeTruthy();
-  fireEvent.press(ui.getByText('Share boat location →'));
-  expect(mockPush).toHaveBeenCalledWith('/regatta-sharing');
+  expect(ui.queryByText('Share boat location →')).toBeNull();
+  expect(mockPush).not.toHaveBeenCalled();
 });
 test('an unfinished shared tracking session blocks Settings sign-out', async () => {
   mockGetSession.mockResolvedValue({ data: { session: { user: { id: 'skipper', email: 'skipper@example.test' } } } });

@@ -5,10 +5,11 @@ import {
   Pressable,
   ScrollView,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router } from "expo-router";
+import { router, type Href } from "expo-router";
 import { useTheme } from "../context/ThemeContext";
 import { themeColors } from "../constants/colors";
 import { trackingRpc } from "./client";
@@ -20,10 +21,13 @@ import {
   savedRacePhone,
   type RacePhone,
 } from "./racePhone";
+import { invitationToken } from "./invitationLink";
 import type { TrackingSession } from "./model";
 export default function RacePhoneScreen({ token }: { token?: string }) {
   const { theme } = useTheme(),
     c = themeColors[theme];
+  const [invitation, setInvitation] = useState("");
+  const [showInvitation, setShowInvitation] = useState(false);
   const [phone, setPhone] = useState<RacePhone | null>(null),
     [session, setSession] = useState<TrackingSession | null>(null);
   const [error, setError] = useState(""),
@@ -93,7 +97,8 @@ export default function RacePhoneScreen({ token }: { token?: string }) {
     <Pressable
       accessibilityRole="button"
       disabled={disabled}
-      onPress={fn}
+      accessibilityState={{ disabled }}
+      onPress={disabled ? undefined : fn}
       style={{
         padding: 18,
         borderRadius: 12,
@@ -122,10 +127,19 @@ export default function RacePhoneScreen({ token }: { token?: string }) {
         {!loaded ? (
           <Text style={{ color: c.text }}>Opening your invitation…</Text>
         ) : !phone ? (
-          <Text style={{ color: c.text }}>
-            Open the private race invitation sent by your referee to connect
-            this phone.
-          </Text>
+          <View style={{ gap: 12 }}>
+            <Text
+              accessibilityRole="header"
+              style={{ color: c.text, fontSize: 28, fontWeight: "700" }}
+            >
+              Join your boat
+            </Text>
+            <Text style={{ color: c.text }}>
+              Open the boat invitation your referee sent through WhatsApp or
+              email, or paste it below. It connects this phone to the right boat
+              and race. No account needed.
+            </Text>
+          </View>
         ) : (
           <>
             <Text style={{ color: c.text, fontSize: 32, fontWeight: "700" }}>
@@ -244,11 +258,54 @@ export default function RacePhoneScreen({ token }: { token?: string }) {
             )}
           </>
         )}
+        {loaded && !token && (!phone || showInvitation) && (
+          <View style={{ gap: 12 }}>
+            <TextInput
+              accessibilityLabel="Boat invitation link"
+              placeholder="Paste your Veetr invitation link"
+              placeholderTextColor={c.textSecondary}
+              value={invitation}
+              onChangeText={setInvitation}
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={{
+                padding: 16,
+                borderWidth: 1,
+                borderColor: c.border,
+                borderRadius: 12,
+                color: c.text,
+              }}
+            />
+            {button(
+              "Open invitation",
+              () => {
+                const nextToken = invitationToken(invitation);
+                if (!nextToken) {
+                  setError(
+                    "Paste the complete Veetr boat invitation link sent by your referee.",
+                  );
+                  return;
+                }
+                setError("");
+                router.push(`/join/${nextToken}` as Href);
+              },
+              true,
+            )}
+          </View>
+        )}
+        {loaded &&
+          !token &&
+          phone &&
+          !showInvitation &&
+          !own &&
+          button("Use another invitation", () => setShowInvitation(true))}
         {!!error && (
           <Text accessibilityRole="alert" style={{ color: c.text }}>
             {error}
           </Text>
         )}
+        {session && session.mode !== "race" && session.mode !== "local" &&
+          button("Manage existing live sharing", () => router.push("/regatta-sharing"))}
         {session?.mode === "race" &&
           !own &&
           button("Open current race", () => router.replace("../race-phone"))}

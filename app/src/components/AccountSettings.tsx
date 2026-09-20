@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
 import type { Session } from "@supabase/supabase-js";
 import AccountSignIn from "./AccountSignIn";
 import { trackingClient } from "../tracking/client";
@@ -11,7 +10,7 @@ import { themeColors } from "../constants/colors";
 
 export default function AccountSettings({ onBack }: { onBack: () => void }) {
   const { theme } = useTheme(), colors = themeColors[theme];
-  const insets = useSafeAreaInsets(), router = useRouter();
+  const insets = useSafeAreaInsets();
   const [auth, setAuth] = useState<Session | null>(null);
   const [ready, setReady] = useState(!trackingClient), [busy, setBusy] = useState(false), [error, setError] = useState("");
   useEffect(() => {
@@ -31,8 +30,6 @@ export default function AccountSettings({ onBack }: { onBack: () => void }) {
     <Text accessibilityRole="header" style={[text, { fontSize: 24, fontWeight: "700" }]}>Account</Text>
     {!ready ? <Text style={text}>Restoring account…</Text> : !auth ? <AccountSignIn /> : <>
       <Text style={text}>Signed in as {auth.user.email}</Text>
-      <Text style={text}>Accept your boat invitation with this account on the website, then open Regattas to share your boat location. The referee must open tracking and enter your boat in a published heat.</Text>
-      <Pressable accessibilityRole="button" onPress={() => router.push("/regatta-sharing")}><Text style={text}>Share boat location →</Text></Pressable>
       <Pressable accessibilityRole="button" disabled={busy} onPress={async () => {
         setBusy(true); setError("");
         try {

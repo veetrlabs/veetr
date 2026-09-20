@@ -1,5 +1,4 @@
 import AccountSettings from "../../components/AccountSettings";
-import { router } from "expo-router";
 import LocationSettings from "../../tracking/LocationSettings";
 import CalibrationControls from "../../components/CalibrationControls";
 import QuickGuide from "../../components/QuickGuide";
@@ -247,15 +246,7 @@ export default function SettingsTab() {
               <Text style={styles.back}>‹ Settings</Text>
             </TouchableOpacity>
             <LocationSettings />
-            <TouchableOpacity
-              accessibilityRole="button"
-              onPress={() => router.push("/regatta-sharing")}
-              style={{ paddingVertical: 18 }}
-            >
-              <Text style={{ color: colors.text, fontSize: 16 }}>
-                Share boat location in a regatta
-              </Text>
-            </TouchableOpacity>
+
           </>
         )}
         {currentView === "main" && renderMain()}
