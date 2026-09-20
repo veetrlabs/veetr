@@ -117,7 +117,7 @@ test("skipper invitations preserve profile rights and enforce tracking windows, 
   await login(owner);
   await rpc("set_tracking_window", [sid, false]);
   await login(skipper);
-  assert.deepEqual(await rpc("my_tracking_entries"), []);
+  assert.equal((await rpc("my_tracking_entries"))[0].open, false);
   await assert.rejects(
     rpc("start_tracking_session", [id(), sid, bid]),
     /Tracking is closed/,

@@ -1,3 +1,9 @@
+import {
+  racePhoneRpc,
+  raceIsSharing,
+  raceCaptureAllowed,
+  type RacePhone,
+} from "./racePhone";
 import { preferredRecordingPoint } from "./recordingSource";
 import { AppState } from "react-native";
 import * as Location from "expo-location";
@@ -55,6 +61,7 @@ export const discardStoppedTracking = () => serialize(discardInternal);
 const message = (error: unknown) =>
   error instanceof Error ? error.message : "Tracking failed. Try again.";
 async function owner(session: TrackingSession) {
+  if (session.mode === "race") return;
   const auth = await trackingClient?.auth.getSession();
   if (auth?.data.session?.user.id !== session.userId)
     throw new Error(
@@ -118,7 +125,9 @@ async function startGPS(local = false) {
       notificationTitle: "Veetr regatta tracking",
       notificationBody: local
         ? "Recording GPS on this phone. Open Veetr to stop."
-        : "Sharing your boat position. Open Veetr to stop.",
+        : session?.mode === "race"
+          ? "Ready for race tracking. Open Veetr to check or stop."
+          : "Sharing your boat position. Open Veetr to stop.",
       killServiceOnDestroy: true,
     },
   });
@@ -139,11 +148,31 @@ async function flush() {
     return;
   try {
     await owner(session);
-    if (session.phase === "stopping")
-      await trackingRpc("stop_tracking_session", {
-        p_id: session.id,
-        p_stopped_at: session.stoppedAt,
+    if (session.mode === "race") {
+      const info = await racePhoneRpc<RacePhone>(
+        session.raceLinkId!,
+        "race_phone_status",
+        { session_id: session.id },
+      );
+      await store.patch(session.id, {
+        raceActive: raceIsSharing(info),
+        raceCheckedAt: new Date().toISOString(),
       });
+      if (
+        (!info.valid || info.ready === false) &&
+        session.phase !== "stopping"
+      ) {
+        await store.patch(session.id, {
+          phase: "stopping",
+          stoppedAt: new Date().toISOString(),
+          error: "Race connection ended. Ask the referee for a new invitation.",
+        });
+        await stopGPS();
+        session.phase = "stopping";
+        session.stoppedAt = new Date().toISOString();
+      }
+    }
+    if (session.phase === "stopping") await stopRemoteSession(session);
     // Limit each wakeup; later callbacks/foreground retries continue draining an offline backlog.
     for (let i = 0; i < 10; i++) {
       // Give a local stop priority over draining a large offline backlog.
@@ -154,10 +183,17 @@ async function flush() {
         return;
       const batch = await store.batch(session.id);
       if (!batch.length) break;
-      const accepted = await trackingRpc<number>("ingest_tracking_points", {
-        p_session: session.id,
-        p_points: batch,
-      });
+      const accepted =
+        session.mode === "race"
+          ? await racePhoneRpc<number>(
+              session.raceLinkId!,
+              "ingest_race_phone_points",
+              { p_session: session.id, p_points: batch },
+            )
+          : await trackingRpc<number>("ingest_tracking_points", {
+              p_session: session.id,
+              p_points: batch,
+            });
       if (accepted !== batch.length)
         throw new Error("The server did not acknowledge the complete batch.");
       await store.acknowledge(
@@ -275,6 +311,34 @@ async function resumeInternal() {
       return;
     }
     await owner(session);
+    if (session.mode === "race") {
+      if (session.phase === "starting") {
+        await startGPS();
+        const info = await racePhoneRpc<RacePhone>(
+          session.raceLinkId!,
+          "arm_race_phone",
+          { p_session: session.id },
+        );
+        const current = await store.get();
+        await store.patch(session.id, {
+          startedAt: info.startedAt!,
+          expiresAt: info.expiresAt,
+          phase: current?.phase === "stopping" ? "stopping" : "recording",
+          raceActive: raceIsSharing(info),
+          raceCheckedAt: new Date().toISOString(),
+        });
+      }
+      session = (await store.get())!;
+      if (
+        session.phase === "recording" &&
+        Date.parse(session.expiresAt) > Date.now()
+      )
+        await startGPS();
+      else if (session.phase === "recording") return stopInternal("expired");
+      else await stopGPS();
+      await syncTracking(true);
+      return;
+    }
     if (session.phase === "starting") {
       const reply = await trackingRpc<{ startedAt: string; expiresAt: string }>(
         session.takeOver
@@ -306,6 +370,8 @@ async function resumeInternal() {
     } else await stopGPS();
     await syncTracking(true);
   } catch (error) {
+    if (session.mode === "race" && session.phase === "starting")
+      await stopGPS();
     await store.patch(session.id, { error: message(error) });
     throw error;
   }
@@ -338,10 +404,7 @@ async function discardInternal() {
   await stopGPS();
   await syncing?.catch(() => {});
   // Never forget an active server session on an uncertain network response.
-  await trackingRpc("stop_tracking_session", {
-    p_id: session.id,
-    p_stopped_at: session.stoppedAt,
-  });
+  await stopRemoteSession(session);
   await store.clear(session.id);
 }
 export async function recordLocations(locations: LocationFix[]) {
@@ -351,6 +414,16 @@ export async function recordLocations(locations: LocationFix[]) {
   if (Date.now() >= Date.parse(session.expiresAt))
     return stopTracking("expired");
   try {
+    if (session.mode === "race") {
+      await syncTracking().catch(() => {});
+      const current = await store.get();
+      if (
+        !current ||
+        current.phase !== "recording" ||
+        !raceCaptureAllowed(current)
+      )
+        return;
+    }
     // Capture is fully offline; only uploads require a current authenticated session.
     const points = locations
       .map((f) => preferredRecordingPoint(normalizeFix(f)))
@@ -405,6 +478,41 @@ export async function recordDevicePoint(
   if (!session || session.phase !== "recording") return;
   if (Date.now() >= Date.parse(session.expiresAt))
     return stopTracking("expired");
+  if (!raceCaptureAllowed(session)) return;
   await store.append(session.id, [point]);
   await syncTracking();
 }
+
+async function stopRemoteSession(session: TrackingSession) {
+  if (session.mode === "race")
+    return racePhoneRpc(session.raceLinkId!, "stop_race_phone", {
+      p_session: session.id,
+      stopped_at: session.stoppedAt,
+    });
+  return trackingRpc("stop_tracking_session", {
+    p_id: session.id,
+    p_stopped_at: session.stoppedAt,
+  });
+}
+export const readyForRace = (phone: RacePhone) =>
+  serialize(async () => {
+    await requestPermissions();
+    const store = await trackingStore();
+    const previous = await store.get();
+    if (previous?.mode === "local" && previous.phase === "stopping")
+      await store.archiveLocal();
+    await store.create({
+      ...phone,
+      id: Crypto.randomUUID(),
+      userId: "",
+      mode: "race",
+      raceLinkId: phone.linkId,
+      raceName: phone.raceName,
+      scheduledStart: phone.scheduledStart,
+      phase: "starting",
+      raceActive: false,
+      startedAt: new Date().toISOString(),
+      expiresAt: phone.expiresAt,
+    });
+    await resumeInternal();
+  });

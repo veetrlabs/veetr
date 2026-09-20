@@ -1,3 +1,4 @@
+import RacePhones from "./RacePhones";
 import { useEffect, useState, type ReactNode } from "react";
 import { t } from "./i18n";
 import { appHref } from "./routes";
@@ -114,6 +115,7 @@ export function BoatInvitations({ series, fleet }: {
   }
   return (
     <section className="boat-access">
+      <RacePhones series={series} />
       {!fleet && <h2>{t("Skipper access")}</h2>}
       <p>
         {t(

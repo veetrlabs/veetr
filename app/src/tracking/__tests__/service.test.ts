@@ -1,3 +1,7 @@
+jest.mock("@react-native-async-storage/async-storage", () => ({
+  getItem: jest.fn(async () => "device-secret"),
+  setItem: jest.fn(),
+}));
 import { AppState } from "react-native";
 jest.mock("react-native", () => ({ AppState: { currentState: "active" } }));
 import type { TrackingPoint, TrackingSession } from "../model";
@@ -311,4 +315,111 @@ test("explicit takeover survives an uncertain start and retries with the same se
     p_replay: true,
   });
   expect(session?.phase).toBe("recording");
+});
+
+test("a ready race phone waits privately and begins sharing after referee activation", async () => {
+  session = {
+    ...base(),
+    mode: "race",
+    userId: "",
+    raceLinkId: "link",
+    raceActive: false,
+  };
+  points = [];
+  let active = false;
+  (trackingRpc as jest.Mock).mockImplementation(async (name, args) =>
+    name === "race_phone_status"
+      ? { valid: true, eligible: true, active, ready: true }
+      : name === "ingest_race_phone_points"
+        ? args.p_points.length
+        : undefined,
+  );
+  await syncTracking(true);
+  await recordLocations([
+    {
+      timestamp: Date.now(),
+      coords: {
+        latitude: 49,
+        longitude: 14,
+        accuracy: 5,
+        speed: 2,
+        heading: 90,
+      },
+    },
+  ]);
+  expect(points).toHaveLength(0);
+  expect(trackingClient!.auth.getSession).not.toHaveBeenCalled();
+  active = true;
+  await syncTracking(true);
+  await recordLocations([
+    {
+      timestamp: Date.now(),
+      coords: {
+        latitude: 49,
+        longitude: 14,
+        accuracy: 5,
+        speed: 2,
+        heading: 90,
+      },
+    },
+  ]);
+  expect(points).toHaveLength(1);
+  await syncTracking(true);
+  expect(points).toHaveLength(0);
+  active = false;
+  await syncTracking(true);
+  await recordLocations([
+    {
+      timestamp: Date.now(),
+      coords: {
+        latitude: 49,
+        longitude: 14,
+        accuracy: 5,
+        speed: 2,
+        heading: 90,
+      },
+    },
+  ]);
+  expect(points).toHaveLength(0);
+});
+test("a stale race-control connection does not keep capturing positions indefinitely", async () => {
+  session = {
+    ...base(),
+    mode: "race",
+    raceLinkId: "link",
+    raceActive: true,
+    raceCheckedAt: new Date(Date.now() - 120000).toISOString(),
+  };
+  points = [];
+  (trackingRpc as jest.Mock).mockRejectedValue(new Error("Offline"));
+  await syncTracking(true).catch(() => {});
+  await recordLocations([
+    {
+      timestamp: Date.now(),
+      coords: {
+        latitude: 49,
+        longitude: 14,
+        accuracy: 5,
+        speed: 2,
+        heading: 90,
+      },
+    },
+  ]);
+  expect(points).toHaveLength(0);
+});
+test("revoking a ready phone stops native GPS and completes its session", async () => {
+  session = { ...base(), mode: "race", raceLinkId: "link", raceActive: true };
+  points = [];
+  (trackingRpc as jest.Mock).mockImplementation(async (name) =>
+    name === "race_phone_status"
+      ? { valid: false, ready: true, eligible: true, active: true }
+      : undefined,
+  );
+  await syncTracking(true);
+  expect(Location.stopLocationUpdatesAsync).toHaveBeenCalled();
+  expect(session).toBeNull();
+  expect(trackingRpc).toHaveBeenCalledWith(
+    "stop_race_phone",
+    expect.objectContaining({ lid: "link" }),
+  );
 });

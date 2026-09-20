@@ -3,6 +3,8 @@ export const SAMPLE_INTERVAL_MS = 5_000;
 export const MAX_PENDING_POINTS = 10_000;
 export interface TrackingEntry {
   tracking?: boolean;
+  open?: boolean;
+  eligible?: boolean;
   seriesId: string;
   seriesName: string;
   boatId: string;
@@ -11,7 +13,12 @@ export interface TrackingEntry {
 export interface TrackingSession extends TrackingEntry {
   id: string;
   userId: string;
-  mode?: "local" | "live";
+  mode?: "local" | "live" | "race";
+  raceLinkId?: string;
+  raceName?: string;
+  scheduledStart?: string;
+  raceActive?: boolean;
+  raceCheckedAt?: string;
   replayEnabled?: boolean;
   takeOver?: boolean;
   backgroundEnabled?: boolean;

@@ -18,9 +18,16 @@
       "infoPlist": {
         "NSBluetoothAlwaysUsageDescription": "Connect to Veetr sailing sensor",
         "NSBluetoothPeripheralUsageDescription": "Communicate with Veetr device",
+        "UIBackgroundModes": [
+          "location",
+          "bluetooth-central"
+        ],
         "ITSAppUsesNonExemptEncryption": false
       },
-      "bundleIdentifier": "com.veetr.mobile"
+      "bundleIdentifier": "com.veetr.mobile",
+      "associatedDomains": [
+        "applinks:veetr.org"
+      ]
     },
     "android": {
       "adaptiveIcon": {
@@ -36,7 +43,24 @@
         "android.permission.BLUETOOTH_ADMIN"
       ],
       "edgeToEdgeEnabled": true,
-      "package": "com.veetr.app"
+      "package": "com.veetr.app",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "veetr.org",
+              "pathPrefix": "/join/"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
     },
     "scheme": "veetr",
     "web": {

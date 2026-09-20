@@ -1,3 +1,4 @@
+import ReadyRaceOptions from "../tracking/ReadyRaceOptions";
 import AccountSignIn from "../components/AccountSignIn";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
@@ -112,7 +113,10 @@ export default function RegattaSharingScreen() {
     };
   }, [auth?.user.id]);
   const ownSession =
-    session && session.mode !== "local" && session.userId === auth?.user.id
+    session &&
+    session.mode !== "local" &&
+    session.mode !== "race" &&
+    session.userId === auth?.user.id
       ? session
       : null;
   const text = { color: colors.text };
@@ -181,6 +185,7 @@ export default function RegattaSharingScreen() {
           <AccountSignIn />
         ) : (
           <>
+            <ReadyRaceOptions />
             <Text style={{ color: colors.textSecondary }}>
               {auth.user.email}
             </Text>
@@ -294,7 +299,10 @@ export default function RegattaSharingScreen() {
                 </Text>
                 {entriesLoading && <Text style={text}>Loading regattas…</Text>}
                 {!entriesLoading && !entries.length && (
-                  <Text style={text}>No approved regatta entries yet.</Text>
+                  <Text style={text}>
+                    No connected boats yet. Open your referee’s invitation to
+                    connect a boat.
+                  </Text>
                 )}
                 {button(
                   "Find regattas",
@@ -327,6 +335,15 @@ export default function RegattaSharingScreen() {
                       {entry.seriesName}
                     </Text>
                     <Text style={text}>{entry.boatName}</Text>
+                    {entry.eligible === false ? (
+                      <Text style={text}>
+                        Waiting for entry in a published heat
+                      </Text>
+                    ) : entry.open === false ? (
+                      <Text style={text}>
+                        Waiting for the referee to open tracking
+                      </Text>
+                    ) : null}
                   </Pressable>
                 ))}
                 {button(
@@ -381,6 +398,8 @@ export default function RegattaSharingScreen() {
                   busy ||
                     entriesLoading ||
                     !selected ||
+                    selected.open === false ||
+                    selected.eligible === false ||
                     Boolean(
                       session?.mode === "local" && session.phase !== "stopping",
                     ),
