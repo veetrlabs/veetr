@@ -1,7 +1,7 @@
 import ReadyRaceOptions from "../tracking/ReadyRaceOptions";
 import AccountSignIn from "../components/AccountSignIn";
-import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { router, type Href } from "expo-router";
+import { useEffect, useRef, useState } from "react";
 import {
   Alert,
   Linking,
@@ -29,6 +29,7 @@ const site = (process.env.EXPO_PUBLIC_SITE_URL || "https://veetr.org").replace(
   "",
 );
 export default function RegattaSharingScreen() {
+  const scroll = useRef<ScrollView>(null);
   const { theme } = useTheme(),
     colors = themeColors[theme];
   const [auth, setAuth] = useState<Session | null>(null),
@@ -129,7 +130,8 @@ export default function RegattaSharingScreen() {
     <Pressable
       accessibilityRole="button"
       disabled={disabled}
-      onPress={action}
+      accessibilityState={{ disabled }}
+      onPress={disabled ? undefined : action}
       style={[
         styles.button,
         {
@@ -162,6 +164,7 @@ export default function RegattaSharingScreen() {
       edges={["top"]}
     >
       <ScrollView
+        ref={scroll}
         contentContainerStyle={styles.page}
         keyboardShouldPersistTaps="handled"
       >
@@ -169,8 +172,8 @@ export default function RegattaSharingScreen() {
         <Text style={[styles.title, text]}>Share boat location</Text>
         {!ownSession && (
           <Text style={{ color: colors.textSecondary }}>
-            Choose your boat and regatta, then start live sharing. This starts
-            GPS tracking and shares your position on the public map.
+            Choose your boat to see its tracking status and next step. Your
+            location is shared only after you confirm.
           </Text>
         )}
         {!trackingClient ? (
@@ -185,11 +188,21 @@ export default function RegattaSharingScreen() {
           <AccountSignIn />
         ) : (
           <>
-            <ReadyRaceOptions />
+            {!selected && !session && <ReadyRaceOptions />}
             <Text style={{ color: colors.textSecondary }}>
               {auth.user.email}
             </Text>
-            {session && session.mode !== "local" && !ownSession ? (
+            {session?.mode === "race" ? (
+              <View style={styles.section}>
+                <Text style={text}>
+                  This phone is connected to {session.boatName} for race
+                  tracking.
+                </Text>
+                {button("Open my race", () =>
+                  router.push("/race-phone" as Href),
+                )}
+              </View>
+            ) : session && session.mode !== "local" && !ownSession ? (
               <Text style={text}>
                 A saved tracking session belongs to another account. Sign in
                 with that account to finish syncing.
@@ -295,7 +308,7 @@ export default function RegattaSharingScreen() {
             ) : (
               <View style={styles.section}>
                 <Text style={[styles.heading, text]}>
-                  Choose a boat to track
+                  {selected ? selected.boatName : "Choose a boat to track"}
                 </Text>
                 {entriesLoading && <Text style={text}>Loading regattas…</Text>}
                 {!entriesLoading && !entries.length && (
@@ -304,54 +317,76 @@ export default function RegattaSharingScreen() {
                     connect a boat.
                   </Text>
                 )}
-                {button(
-                  "Find regattas",
-                  () => void Linking.openURL(`${site}/races/`),
-                )}
-                {entries.map((entry) => (
-                  <Pressable
-                    key={`${entry.seriesId}/${entry.boatId}`}
-                    accessibilityRole="radio"
-                    accessibilityState={{
-                      checked:
-                        selected?.seriesId === entry.seriesId &&
-                        selected?.boatId === entry.boatId,
-                    }}
-                    onPress={() => setSelected(entry)}
-                    disabled={busy}
-                    style={[
-                      styles.card,
-                      {
-                        borderColor:
-                          selected?.seriesId === entry.seriesId &&
-                          selected?.boatId === entry.boatId
-                            ? "#009688"
-                            : colors.border,
-                        backgroundColor: colors.panelBg,
-                      },
-                    ]}
-                  >
-                    <Text style={[styles.heading, text]}>
-                      {entry.seriesName}
+                {!selected &&
+                  button(
+                    "Find regattas",
+                    () => void Linking.openURL(`${site}/races/`),
+                  )}
+                {selected ? (
+                  <View style={styles.section}>
+                    <Text style={text}>{selected.seriesName}</Text>
+                    {button("Choose another boat", () => setSelected(null))}
+                    <Text accessibilityLiveRegion="polite" style={text}>
+                      {selected.eligible === false
+                        ? "This boat is not entered in a published heat yet. Ask the referee to add it and publish the heat, then refresh."
+                        : selected.open === false
+                          ? "Live sharing is closed. Ask the referee to open tracking, then refresh. To get ready before the start, open the race invitation sent by your referee."
+                          : "Live sharing is available. Press Start live sharing below to confirm and turn on GPS. Your boat will appear on the public race map."}
                     </Text>
-                    <Text style={text}>{entry.boatName}</Text>
-                    {entry.eligible === false ? (
-                      <Text style={text}>
-                        Waiting for entry in a published heat
+                  </View>
+                ) : (
+                  entries.map((entry) => (
+                    <Pressable
+                      key={`${entry.seriesId}/${entry.boatId}`}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Open tracking for ${entry.boatName} in ${entry.seriesName}`}
+                      onPress={() => {
+                        setSelected(entry);
+                        scroll.current?.scrollTo({ y: 0, animated: false });
+                      }}
+                      disabled={busy}
+                      style={[
+                        styles.card,
+                        {
+                          borderColor: colors.border,
+                          backgroundColor: colors.panelBg,
+                        },
+                      ]}
+                    >
+                      <Text style={[styles.heading, text]}>
+                        {entry.boatName}
                       </Text>
-                    ) : entry.open === false ? (
-                      <Text style={text}>
-                        Waiting for the referee to open tracking
-                      </Text>
-                    ) : null}
-                  </Pressable>
-                ))}
+                      <Text style={text}>{entry.seriesName}</Text>
+                      <Text style={text}>View tracking options →</Text>
+                      {entry.eligible === false ? (
+                        <Text style={text}>
+                          Waiting for entry in a published heat
+                        </Text>
+                      ) : entry.open === false ? (
+                        <Text style={text}>
+                          Waiting for the referee to open tracking
+                        </Text>
+                      ) : null}
+                    </Pressable>
+                  ))
+                )}
                 {button(
                   "Refresh regattas",
                   () =>
                     void run(async () => {
-                      setEntries(await trackingRpc("my_tracking_entries"));
-                      setSelected(null);
+                      const rows = await trackingRpc<TrackingEntry[]>(
+                        "my_tracking_entries",
+                      );
+                      setEntries(rows);
+                      setSelected((current) =>
+                        current
+                          ? (rows.find(
+                              (row) =>
+                                row.boatId === current.boatId &&
+                                row.seriesId === current.seriesId,
+                            ) ?? null)
+                          : null,
+                      );
                     }),
                 )}
                 {session?.mode === "local" && session.phase !== "stopping" && (
@@ -359,51 +394,53 @@ export default function RegattaSharingScreen() {
                     Stop private tracking before joining a regatta.
                   </Text>
                 )}
-                {button(
-                  selected?.tracking
-                    ? "Take over live sharing"
-                    : "Start live sharing",
-                  () =>
-                    selected &&
-                    Alert.alert(
-                      selected.tracking
-                        ? "Take over this boat’s tracking?"
-                        : "Share your boat’s location?",
-                      `${selected.tracking ? "This stops the other phone’s live session and starts sharing from this phone. " : ""}${selected.boatName} will appear publicly in ${selected.seriesName}, live and in replay after you stop sharing. Private recordings are never shared. Allow background location to keep tracking with the screen locked.`,
-                      [
-                        { text: "Cancel", style: "cancel" },
-                        {
-                          text: selected.tracking
-                            ? "Take over"
-                            : "Start live sharing",
-                          onPress: () =>
-                            void run(async () => {
-                              if (session?.mode === "local") {
-                                if (session.phase !== "stopping")
-                                  throw new Error(
-                                    "Stop private tracking first.",
-                                  );
-                                await (await trackingStore()).archiveLocal();
-                              }
-                              await startTracking(
-                                selected,
-                                true,
-                                Boolean(selected.tracking),
-                              );
-                            }),
-                        },
-                      ],
-                    ),
-                  true,
-                  busy ||
-                    entriesLoading ||
-                    !selected ||
-                    selected.open === false ||
-                    selected.eligible === false ||
-                    Boolean(
-                      session?.mode === "local" && session.phase !== "stopping",
-                    ),
-                )}
+                {selected &&
+                  button(
+                    selected.tracking
+                      ? "Take over live sharing"
+                      : "Start live sharing",
+                    () =>
+                      selected &&
+                      Alert.alert(
+                        selected.tracking
+                          ? "Take over this boat’s tracking?"
+                          : "Share your boat’s location?",
+                        `${selected.tracking ? "This stops the other phone’s live session and starts sharing from this phone. " : ""}${selected.boatName} will appear publicly in ${selected.seriesName}, live and in replay after you stop sharing. Private recordings are never shared. Allow background location to keep tracking with the screen locked.`,
+                        [
+                          { text: "Cancel", style: "cancel" },
+                          {
+                            text: selected.tracking
+                              ? "Take over"
+                              : "Start live sharing",
+                            onPress: () =>
+                              void run(async () => {
+                                if (session?.mode === "local") {
+                                  if (session.phase !== "stopping")
+                                    throw new Error(
+                                      "Stop private tracking first.",
+                                    );
+                                  await (await trackingStore()).archiveLocal();
+                                }
+                                await startTracking(
+                                  selected,
+                                  true,
+                                  Boolean(selected.tracking),
+                                );
+                              }),
+                          },
+                        ],
+                      ),
+                    true,
+                    busy ||
+                      entriesLoading ||
+                      !selected ||
+                      selected.open === false ||
+                      selected.eligible === false ||
+                      Boolean(
+                        session?.mode === "local" &&
+                        session.phase !== "stopping",
+                      ),
+                  )}
               </View>
             )}
             {button(
