@@ -112,8 +112,20 @@ void test_json_includes_regatta_line_when_valid() {
   TEST_ASSERT_TRUE(strstr(json.c_str(), "\"ln\"") != nullptr);
 }
 
+void test_unknown_speed_is_null_not_stationary() {
+  SensorData data = makeData();
+  data.speed = NAN;
+  BleRegattaSnapshot regatta = {false, NAN};
+  String json = buildSensorDataJson(data, makeGps(true), true, -60, regatta);
+  TEST_ASSERT_TRUE(hasKey(json, "\"SOG\":null"));
+  data.speed = 0;
+  json = buildSensorDataJson(data, makeGps(true), true, -60, regatta);
+  TEST_ASSERT_TRUE(hasKey(json, "\"SOG\":0"));
+}
+
 int main(int, char**) {
   UNITY_BEGIN();
+  RUN_TEST(test_unknown_speed_is_null_not_stationary);
   RUN_TEST(test_json_includes_wind_when_valid);
   RUN_TEST(test_json_excludes_wind_when_invalid);
   RUN_TEST(test_json_excludes_imu_when_unavailable);

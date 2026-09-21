@@ -5,7 +5,7 @@ import {PGlite} from '@electric-sql/pglite';
 import {randomUUID} from 'node:crypto';
 test('real season roundtrips source scores, dates, repeat counts and public standings',async()=>{
  const db=new PGlite();try{
- await db.exec(`create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key,email text);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;`);
+ await db.exec(`create role service_role; create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key,email text);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;`);
  const dir=new URL('../migrations/',import.meta.url);for(const f of (await readdir(dir)).filter(f=>f.endsWith('.sql')).sort())await db.exec(await readFile(new URL(f,dir),'utf8'));
  const uid=randomUUID();await db.query('insert into auth.users(id) values($1)',[uid]);await db.query('insert into public.series_creators values($1)',[uid]);await db.query("select set_config('request.jwt.claim.sub',$1,false)",[uid]);
  const doc=JSON.parse(await readFile(new URL('../../veetr.org/imports/orlik-2026/series.json',import.meta.url),'utf8'));

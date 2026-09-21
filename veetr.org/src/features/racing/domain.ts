@@ -24,6 +24,7 @@ export interface DiscardRule {
   discard: number;
 }
 export interface RaceEvent {
+  scheduledStart?: string;
   id: string;
   name: string;
   order: number;
@@ -130,6 +131,7 @@ export function validateSeries(s: Series): void {
       throw new Error("Events need unique IDs and order.");
     s.events.forEach((e) => {
       validateDiscardRules(e.discards);
+      if (e.scheduledStart && !Number.isFinite(Date.parse(e.scheduledStart))) throw new Error("Invalid race start");
       if (e.countAs !== undefined && (!Number.isInteger(e.countAs) || e.countAs < 1 || e.countAs > 10)) throw new Error("Invalid race count");
       if (
         !e.name.trim() ||

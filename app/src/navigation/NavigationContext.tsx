@@ -1,3 +1,6 @@
+import { usePhoneMotion } from './usePhoneMotion';
+import { phoneMotion } from './phoneMotion';
+import { createSpeedFilter } from './speedFilter';
 import { usePhoneHeading } from './usePhoneHeading';
 import { usePhoneStartLine } from './usePhoneStartLine';
 import {
@@ -24,6 +27,7 @@ function useNavigationState() {
   const { state } = useBLE();
   const phoneStartLine = usePhoneStartLine();
   const phoneHeading = usePhoneHeading();
+  usePhoneMotion();
   const [phone, setPhone] = useState<TrackingPoint | null>(null);
   const [session, setSession] = useState<TrackingSession | null>(null);
   const [trail, setTrail] = useState<TrackingPoint[]>([]);
@@ -35,10 +39,13 @@ function useNavigationState() {
       watcher: Location.LocationSubscription | null = null,
       generation = 0;
     let trailKey = "";
+    let filterSpeed = createSpeedFilter();
     async function update() {
       const version = ++generation;
       watcher?.remove();
       watcher = null;
+      filterSpeed = createSpeedFilter();
+      setPhone(null);
       if (AppState.currentState !== "active") return;
       try {
         const granted =
@@ -59,7 +66,7 @@ function useNavigationState() {
             if (!alive || version !== generation) return;
             const fix = normalizeFix(location);
             if (fix) {
-              setPhone(fix);
+              setPhone(filterSpeed(fix, phoneMotion.state(location.timestamp)));
               setError("");
             }
           },
@@ -94,7 +101,7 @@ function useNavigationState() {
           if (last)
             setPhone((previous) =>
               !previous || last.recordedAt > previous.recordedAt
-                ? last
+                ? filterSpeed(last, phoneMotion.state(Date.parse(last.recordedAt)))
                 : previous,
             );
         })

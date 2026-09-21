@@ -42,7 +42,8 @@ inline String buildSensorDataJson(const SensorData& data,
                                  const BleRegattaSnapshot& regatta) {
   DynamicJsonDocument doc(1024);
 
-  doc["SOG"] = round((bleIsNan(data.speed) ? 0.0f : data.speed) * 10) / 10.0f;
+  if (bleIsNan(data.speed)) doc["SOG"] = nullptr;
+  else doc["SOG"] = round(data.speed * 10) / 10.0f;
 
   if (gps.locationValid) {
     doc["lat"] = round(gps.lat * 100000) / 100000.0;

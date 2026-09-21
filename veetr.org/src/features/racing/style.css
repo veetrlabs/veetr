@@ -792,3 +792,36 @@ input.fleet-registration { width: 22px; height: 22px; min-height: 22px; margin: 
 .tracking-window, .my-boats article { padding: 1rem; border: 1px solid var(--border, #b5bdc8); border-radius: .6rem; }
 .tracking-race { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; margin-block: 1rem; }
 .boat-access input { min-width: 12rem; max-width: 100%; }
+
+/* Editing is a single form, not a stack of nested cards. */
+.entity-editor, .entity-details:has(.race-edit) { max-width: 54rem; margin-inline: auto; }
+.entity-editor section, .race-invitation-form, .boat-invitation-editor { padding: 0; border: 0; background: transparent; box-shadow: none; }
+.race-invitation-form { display: grid; gap: 1rem; margin-top: 1.5rem; }
+.race-invitation-form h2, .race-invitation-form p { margin: 0; }
+.race-invitation-form > button { justify-self: start; }
+.invitation-result, .race-tracking-controls { padding-top: 1rem; border-top: 1px solid var(--sl-color-gray-5, #44505d); }
+.race-tracking-controls summary { cursor: pointer; font-weight: 600; }
+.race-tracking-controls li { margin-block: 1rem; }
+.race-invitation-form .actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-block: .75rem; }
+
+.race-confirmation { position: fixed; inset: 0; margin: auto; width: min(32rem, calc(100vw - 2rem)); box-sizing: border-box; max-height: calc(100dvh - 2rem); overflow: auto; padding: 1.5rem; border: 1px solid var(--sl-color-gray-5, #44505d); border-radius: 1rem; color: var(--sl-color-white, #edf2f7); background: var(--sl-color-bg, #101c29); box-shadow: 0 1rem 4rem #0006; }
+.race-confirmation::backdrop { background: #0009; }
+.race-confirmation h2 { margin-bottom: 1rem; }
+.race-confirmation .actions { justify-content: flex-end; margin-bottom: 0; }
+
+.race-share-dialog { width: min(42rem, calc(100vw - 2rem)); }
+.race-share-dialog > h2 { margin-top: 1rem; }
+
+.fleet-action-list { display: grid; gap: .75rem; margin-block: 1rem; }
+.fleet-action-list a, .fleet-action-list button { display: block; text-align: left; padding: .75rem; }
+.boat-invitation-editor > .boat-access { padding: 0; border: 0; background: transparent; }
+.boat-access-table td { white-space: normal; overflow-wrap: anywhere; }
+
+.fleet-context-menu { position: fixed; z-index: 10000; width: max-content; min-width: 12rem; max-width: min(19rem, calc(100vw - 1rem)); box-sizing: border-box; padding: .375rem 0; border: 1px solid var(--sl-color-gray-5, #44505d); border-radius: .5rem; background: var(--sl-color-bg, #101c29); color: var(--sl-color-white, #edf2f7); box-shadow: 0 .4rem 1.2rem #0003; }
+.fleet-context-menu > a, .fleet-context-menu > button { display: block; box-sizing: border-box; width: 100%; margin: 0; padding: .65rem 1rem; min-height: 44px; border: 0; border-radius: 0; background: transparent; color: inherit; font: inherit; font-size: .95rem; font-weight: 400; line-height: 1.4; text-align: left; text-decoration: none; white-space: normal; cursor: pointer; }
+.fleet-context-menu > :is(a, button):is(:hover, :focus-visible):not(:disabled) { background: var(--sl-color-gray-6, #203047); outline: none; }
+.fleet-context-menu > button.danger { border-top: 1px solid var(--sl-color-gray-5, #44505d); margin-top: .375rem; color: #e87575; }
+.fleet-context-menu > button:disabled { opacity: .45; cursor: not-allowed; }
+
+.fleet-table .fleet-tracking-status { white-space: normal; min-width: 10rem; max-width: 18rem; font-size: .875rem; }
+.fleet-tracking-status small { display: block; margin-top: .25rem; }

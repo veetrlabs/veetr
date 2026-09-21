@@ -4,7 +4,7 @@ import {PGlite} from '@electric-sql/pglite';
 import {readdir,readFile} from 'node:fs/promises';
 test('creation access is denied by default and only admins can approve requests',async()=>{
  const db=new PGlite();try{
- await db.exec(`create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;`);
+ await db.exec(`create role service_role; create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;`);
  const dir=new URL('../migrations/',import.meta.url);for(const f of (await readdir(dir)).filter(f=>f.endsWith('.sql')).sort())await db.exec(await readFile(new URL(f,dir),'utf8'));
  const user='11111111-1111-4111-8111-111111111111',admin='22222222-2222-4222-8222-222222222222';
  await db.query('insert into auth.users values($1,$2,now()),($3,$4,now())',[user,'user@example.test',admin,'admin@example.test']);await db.query('insert into public.platform_admins values($1)',[admin]);

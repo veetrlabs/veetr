@@ -1,3 +1,5 @@
+import { createSpeedFilter } from '../navigation/speedFilter';
+import { phoneMotion } from '../navigation/phoneMotion';
 import {
   racePhoneRpc,
   raceIsSharing,
@@ -163,6 +165,9 @@ async function flush() {
       );
       await store.patch(session.id, {
         raceActive: raceIsSharing(info),
+        scheduledStart: info.scheduledStart,
+        expiresAt: info.expiresAt,
+        raceName: info.raceName,
         raceCheckedAt: new Date().toISOString(),
       });
       if (
@@ -416,6 +421,8 @@ async function discardInternal() {
   await stopRemoteSession(session);
   await store.clear(session.id);
 }
+let speedFilterSession: string | null = null;
+let filterPhoneSpeed = createSpeedFilter();
 export async function recordLocations(locations: LocationFix[]) {
   const store = await trackingStore(),
     session = await store.get();
@@ -434,8 +441,15 @@ export async function recordLocations(locations: LocationFix[]) {
         return;
     }
     // Capture is fully offline; only uploads require a current authenticated session.
-    const points = locations
-      .map((f) => preferredRecordingPoint(normalizeFix(f)))
+    if (speedFilterSession !== session.id) {
+      speedFilterSession = session.id;
+      filterPhoneSpeed = createSpeedFilter();
+    }
+    const points = [...locations].sort((a, b) => a.timestamp - b.timestamp)
+      .map((f) => {
+        const point = normalizeFix(f);
+        return preferredRecordingPoint(point ? filterPhoneSpeed(point, phoneMotion.state(f.timestamp)) : null);
+      })
       .filter((p): p is NonNullable<typeof p> => p !== null);
     if (points.length) await store.append(session.id, points);
     else

@@ -1,5 +1,6 @@
 import RacePhones from "./RacePhones";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useId, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { t } from "./i18n";
 import { appHref } from "./routes";
 import type { Series } from "./domain";
@@ -20,9 +21,9 @@ import {
   type MyBoat,
 } from "./boatAccessApi";
 
-export function BoatProfileInvitations({ boatId, userId }: { boatId: string; userId: string }) {
+export function BoatProfileInvitations({ boatId, userId, accessOnly = false }: { boatId: string; userId: string; accessOnly?: boolean }) {
   const [series, setSeries] = useState<Series[]>([]);
-  const [selected, setSelected] = useState("");
+  const [selected, setSelected] = useState(() => typeof window === "undefined" ? "" : new URLSearchParams(window.location.search).get("accessSeries") ?? "");
   const [loading, setLoading] = useState(Boolean(userId));
   const [error, setError] = useState("");
   useEffect(() => {
@@ -47,8 +48,8 @@ export function BoatProfileInvitations({ boatId, userId }: { boatId: string; use
     return () => { live = false; window.removeEventListener("focus", load); };
   }, [boatId, userId]);
   const current = series.find(s => s.id === selected) ?? series[0];
-  return <section className="boat-access">
-    <h2>{t("Invite skipper")}</h2>
+  return <div className="boat-invitation-editor">
+
     {!userId ? <p><a href={appHref("?account")}>{t("Sign in to invite a skipper for a series you manage.")}</a></p>
       : loading ? <p role="status">{t("Loading your series…")}</p>
       : error ? <p role="alert">{error}</p>
@@ -57,9 +58,60 @@ export function BoatProfileInvitations({ boatId, userId }: { boatId: string; use
         <label>{t("Series")}<select value={current.id} onChange={e => setSelected(e.target.value)}>
           {series.map(s => <option key={s.id} value={s.id}>{s.name} · {s.year}</option>)}
         </select></label>
-        <BoatInvitations key={current.id} series={{ ...current, boats: current.boats.filter(b => b.id === boatId) }} />
+        {accessOnly ? <BoatInvitations key={current.id} series={{...current, boats: current.boats.filter(b => b.id === boatId)}} /> : <RacePhones key={current.id} series={{ ...current, boats: current.boats.filter(b => b.id === boatId) }} />}
       </>}
-  </section>;
+  </div>;
+}
+
+export function FleetBoatActions({name, children}: {name: string; children: ReactNode}) {
+  const trigger = useRef<HTMLButtonElement>(null);
+  const menu = useRef<HTMLDivElement>(null);
+  const id = useId();
+  const [open, setOpen] = useState(false);
+  const [position, setPosition] = useState({top: 0, left: 0});
+  const close = () => {setOpen(false); trigger.current?.focus();};
+  useLayoutEffect(() => {
+    if (!open) return;
+    const panel = menu.current!;
+    const place = () => {
+      const rect = trigger.current!.getBoundingClientRect();
+      const height = panel.offsetHeight;
+      const top = rect.bottom + 4 + height <= window.innerHeight - 8 ? rect.bottom + 4 : Math.max(8, rect.top - height - 4);
+      setPosition({top, left: Math.max(8, Math.min(rect.right - panel.offsetWidth, window.innerWidth - panel.offsetWidth - 8))});
+    };
+    place();
+    const items = panel.querySelectorAll<HTMLElement>('a, button');
+    items.forEach(item => {item.setAttribute('role', 'menuitem'); item.tabIndex = -1;});
+    panel.querySelector<HTMLElement>('a, button:not(:disabled)')?.focus({preventScroll: true});
+    const outside = (e: PointerEvent) => {
+      if (!panel.contains(e.target as Node) && !trigger.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('pointerdown', outside);
+    window.addEventListener('resize', place);
+    window.addEventListener('scroll', place, true);
+    return () => {
+      document.removeEventListener('pointerdown', outside);
+      window.removeEventListener('resize', place);
+      window.removeEventListener('scroll', place, true);
+    };
+  }, [open]);
+  return <>
+    <button ref={trigger} type="button" aria-label={t("Actions for {name}", {name})} aria-haspopup="menu" aria-expanded={open} aria-controls={open ? id : undefined}
+      onClick={() => setOpen(!open)} onKeyDown={e => {if (e.key === 'ArrowDown') {e.preventDefault(); setOpen(true);}}}><span aria-hidden="true">▾</span></button>
+    {open && createPortal(<div className="race-app"><div ref={menu} id={id} role="menu" aria-label={t("Actions for {name}", {name})} className="fleet-context-menu" style={position}
+      onClick={e => {if ((e.target as HTMLElement).closest('a, button:not(:disabled)')) close();}}
+      onKeyDown={e => {
+        if (e.key === 'Escape') {e.preventDefault(); close();}
+        if (e.key === 'Tab') {e.preventDefault(); close();}
+        if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) {
+          e.preventDefault();
+          const items = Array.from(menu.current!.querySelectorAll<HTMLElement>('a, button:not(:disabled)'));
+          const index = items.indexOf(document.activeElement as HTMLElement);
+          const next = e.key === 'Home' ? 0 : e.key === 'End' ? items.length - 1 : (index + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+          items[next]?.focus();
+        }
+      }}>{children}</div></div>, document.body)}
+  </>;
 }
 
 export function BoatInvitations({ series, fleet }: {
@@ -72,7 +124,6 @@ export function BoatInvitations({ series, fleet }: {
   const [roster, setRoster] = useState<BoatRoster | null>(null);
   const [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
-    [selected, setSelected] = useState(""),
     [copied, setCopied] = useState("");
   const [emailError, setEmailError] = useState<{ boatId: string; message: string } | null>(null);
   const [sendingBoat, setSendingBoat] = useState("");
@@ -113,27 +164,30 @@ export function BoatInvitations({ series, fleet }: {
       setSendingBoat("");
     }
   }
+  if (fleet) return <div className="table-scroll">
+    <table className="fleet-table">
+      <thead><tr><th scope="col">{t("Boat")}</th><th scope="col">{t("Category")}</th><th scope="col">{t("Actions")}</th></tr></thead>
+      <tbody>{series.boats.map(boat => <tr key={boat.id}>
+        <th scope="row"><a href={appHref(`?boat=${boat.id}`)}>{boat.name}</a></th>
+        <td>{fleet.category(boat)}</td>
+        <td><FleetBoatActions name={boat.name}>
+          <a href={appHref(`?boat=${boat.id}`)}>{t("Boat details")}</a>
+          <a href={`${appHref(`?boat=${boat.id}`)}?accessBoat=1&accessSeries=${encodeURIComponent(series.id)}`}>{t("Manage skipper access")}</a>
+          {fleet.actions(boat)}
+        </FleetBoatActions></td>
+      </tr>)}</tbody>
+    </table>
+  </div>;
   return (
     <section className="boat-access">
-      <RacePhones series={series} />
-      {!fleet && <h2>{t("Skipper access")}</h2>}
+      <h2>{t("Skipper access")}</h2>
       <p>
         {t(
           "Invite a skipper for this series. Boat profile management and race results remain separate.",
         )}
       </p>
       {!roster && !error && <p role="status">{t("Loading team…")}</p>}
-      <div className="table-scroll">
-        <table className={fleet ? "fleet-table" : undefined}>
-          <thead>
-            <tr>
-              <th>{t("Boat")}</th>
-              {fleet && <th scope="col">{t("Category")}</th>}
-              <th>{t("Connection")}</th>
-              <th>{t("Actions")}</th>
-            </tr>
-          </thead>
-          <tbody>
+      <div className="boat-access-list">
             {series.boats.map((boat) => {
               const members = (roster?.members ?? []).filter(
                   (m) => m.boatId === boat.id,
@@ -142,10 +196,9 @@ export function BoatInvitations({ series, fleet }: {
                   (i) => i.boatId === boat.id && i.status !== "accepted",
                 );
               return (
-                <tr key={boat.id}>
-                  <th scope="row"><a href={appHref(`?boat=${boat.id}`)}>{boat.name}</a></th>
-                  {fleet && <td>{fleet.category(boat)}</td>}
-                  <td>
+                <article key={boat.id}>
+                  {series.boats.length > 1 && <h3>{boat.name}</h3>}
+                  <div className="boat-access-content">
                     {roster &&
                       !members.length &&
                       !invitations.length &&
@@ -230,19 +283,8 @@ export function BoatInvitations({ series, fleet }: {
                       </div>
                     ))}
                     {emailError?.boatId === boat.id && <p className="invitation-error" role="alert">{t(emailError.message)}</p>}
-                  </td>
-                  <td>
-                    {fleet?.actions(boat)}
-                    <button
-                      disabled={busy}
-                      aria-expanded={selected === boat.id}
-                      onClick={() =>
-                        setSelected(selected === boat.id ? "" : boat.id)
-                      }
-                    >
-                      {t("Invite skipper")}
-                    </button>
-                    {selected === boat.id && (
+                  </div>
+                  <div className="boat-access-content">
                       <form
                         onSubmit={(e) => {
                           e.preventDefault();
@@ -255,7 +297,6 @@ export function BoatInvitations({ series, fleet }: {
                               boat.id,
                               email,
                             );
-                            setSelected("");
                             await refresh();
                             await emailInvitation(invite.id);
                           }, boat.id);
@@ -273,13 +314,10 @@ export function BoatInvitations({ series, fleet }: {
                         </label>
                         <button disabled={busy}>{t("Send invitation")}</button>
                       </form>
-                    )}
-                  </td>
-                </tr>
+                  </div>
+                </article>
               );
             })}
-          </tbody>
-        </table>
       </div>
       {error && <p role="alert">{t(error)}</p>}
     </section>

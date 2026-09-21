@@ -287,7 +287,10 @@ static void draw_compass_overlay(const SensorData &data) {
 // ─── Helper to format speed as a short string ───
 
 static void format_speed(float value, char *buf, size_t len) {
-    if (isnan(value) || value < 0.0f) value = 0.0f;
+    if (!isfinite(value) || value < 0.0f) {
+        snprintf(buf, len, "--");
+        return;
+    }
     if (value < 10.0f)
         snprintf(buf, len, "%.1f", value);
     else

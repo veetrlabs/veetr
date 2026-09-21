@@ -66,3 +66,12 @@ inline bool isGpsMovementConsistentTrack(const GpsTrackPoint* points, int count,
 
   return false;
 }
+
+// Net displacement rather than per-fix jumps: slow sailing can accumulate a
+// meaningful track while indoor jitter remains inside position uncertainty.
+inline bool gpsDisplacementExceedsUncertainty(double lat1, double lon1,
+                                               double lat2, double lon2,
+                                               unsigned long spanMs, float uncertaintyM) {
+  return spanMs >= 5000 && spanMs <= 30000 && isfinite(uncertaintyM) &&
+    calculateDistanceMeters(lat1, lon1, lat2, lon2) > fmaxf(3.0f, uncertaintyM);
+}

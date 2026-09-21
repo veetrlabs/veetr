@@ -25,6 +25,7 @@
 #include "sensor_data.h"
 #include "gps_validation.h"
 #include "imu_math.h"
+#include "imu_service.h"
 #include "regatta_math.h"
 #include "base64.h"
 #include "accel_movement.h"
@@ -45,8 +46,8 @@
 // Debug flags - uncomment for verbose output
 // #define DEBUG_BLE_DATA
 #define DEBUG_WIND_SENSOR
-#define DEBUG_GPS
-#define DEBUG_BNO080
+// #define DEBUG_GPS
+// #define DEBUG_BNO080
 
 // Persistent storage for settings
 Preferences preferences;
@@ -87,6 +88,7 @@ extern OtaBackend otaBackend;
 #include "display/display_driver.h"
 
 BNO080 imu;
+static ImuService imuService;
 bool imuAvailable = false; // Track if IMU is working
 
 // Calibration - simple angle offsets (works for arbitrary mounting orientations)
@@ -398,7 +400,7 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
           if (command.action == "resetHeelAngle") {
             // Calibrate vessel level position (boat is level, any heading)
             if (imuAvailable) {
-              if (imu.dataAvailable()) {
+              if (imuService.accelReports > 0 && millis() - imuService.lastAccelMs < 1000) {
                 // Get current heel/pitch from accelerometer
                 float accelX = imu.getAccelX();
                 float accelY = imu.getAccelY();
@@ -429,7 +431,7 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
           else if (command.action == "resetCompassNorth") {
             // Calibrate compass north (bow points north, any heel angle)
             if (imuAvailable) {
-              if (imu.dataAvailable()) {
+              if (imuService.quaternionReports > 0 && millis() - imuService.lastQuaternionMs < 1000) {
                 // Use rotation vector (includes magnetometer fusion)
                 float quatI = imu.getQuatI();
                 float quatJ = imu.getQuatJ();
@@ -1004,7 +1006,7 @@ void postTransmission() {
 }
 
 // Current sensor data
-SensorData currentData = {0};
+SensorData currentData = {NAN, NAN, -999, NAN, -999, NAN, NAN, -1, NAN, NAN, NAN};
 
 // GPS status
 bool gpsDataValid = false;
@@ -1019,6 +1021,9 @@ void calculateRegattaData();
 
 // Function prototypes
 void readSensors();
+void serviceFastSensors();
+void storeAccelReading(float, float, float);
+static bool fastSensorsReady = false;
 String getSensorDataJson();
 void setupBLE();
 void updateBLEData();
@@ -1323,13 +1328,9 @@ void setup() {
   if (imu.begin()) {
     Serial.println("BNO080 begin() successful, configuring sensor...");
 
-    // Enable rotation vector (gyro+accel+mag fusion, tilt-compensated heading).
-    // IMPORTANT: Must NOT enable any other sensor reports (accel, gyro, mag)
-    // or the rotation vector will stop producing data on this hardware revision.
-    // The rotation vector internally uses all three sensors.
-    imu.enableRotationVector(100); // 100ms = 10Hz
-    Serial.println("Rotation vector configuration sent (10Hz)");
-    delay(500); // Give sensor time to process the command
+    // Start magnetic rotation reports; the fast reader enables acceleration
+    // after the first valid quaternion, without blocking the acquisition loop.
+    imu.enableRotationVector(100);
 
     // Give sensor more time to initialize and start providing data
     Serial.println("Waiting for sensor data...");
@@ -1411,17 +1412,9 @@ void setup() {
   windSensor.preTransmission(preTransmission);
   windSensor.postTransmission(postTransmission);
 
-  // Set shorter timeout to prevent long delays - default is often 2000ms
-  windSensor.idle([]() {
-    // Allow other tasks during Modbus idle time
-    yield();
-  });
-
-  // Try to set a shorter timeout if the library supports it
-  // Note: Not all ModbusMaster versions support this
-  #ifdef MODBUS_RESPONSE_TIMEOUT
-  windSensor.setResponseTimeout(500); // 500ms timeout instead of default 2000ms
-  #endif
+  // ModbusMaster's 2 s response timeout is blocking, but its idle callback
+  // can service the IMU, GPS, display and telemetry on this same task.
+  windSensor.idle([]() { serviceFastSensors(); yield(); });
 
   Serial.println("RS485 wind sensor initialized with ModbusMaster");
   Serial.printf("RS485 pins: RX=%d, TX=%d, DE=%d\n", RS485_RX, RS485_TX, RS485_DE);
@@ -1445,6 +1438,7 @@ void setup() {
   // Initialize RLCD display with LVGL
   display_lvgl_init();
 
+  fastSensorsReady = true;
   Serial.println("Setup complete");
 }
 
@@ -1503,6 +1497,8 @@ void loop() {
     }
   }
 
+  serviceFastSensors();
+
   // Check if it's time to update data
   if (millis() >= nextUpdate) {
     // Read sensor data
@@ -1514,8 +1510,7 @@ void loop() {
     // Update BLE RSSI if connected
     updateBLERSSI();
 
-    // Update BLE clients with sensor data
-    updateBLEData();
+    // Fast service publishes telemetry independently of slow sensor reads.
 
     // Set next update time
     nextUpdate = millis() + refreshRate;
@@ -1560,7 +1555,16 @@ void loop() {
       lastStatusTime = millis();
     }
   }
+}
 
+// Called from loop and while Modbus waits. All I2C/display access stays on one task.
+void serviceFastSensors() {
+  if (!fastSensorsReady || otaState.active) return;
+  readGpsStream(gpsSerial, gps, 256);
+  if (imuAvailable) {
+    imuService.poll(imu, currentData, millis, rollOffset, pitchOffset,
+                    headingOffset, northCalibrated, storeAccelReading);
+  }
   // Animate the RLCD independently of the 1 Hz sensor acquisition cycle.
   tickDisplayClock();
   static unsigned long nextDisplayFrame = 0;
@@ -1568,10 +1572,26 @@ void loop() {
     display_lvgl_update(currentData, displayStatus);
     nextDisplayFrame = millis() + 80;  // 12.5 Hz animation
   }
+  static unsigned long lastSend = 0;
+  if (millis() - lastSend >= static_cast<unsigned long>(refreshRate)) {
+    lastSend = millis();
+    updateBLEData();
+  }
+#ifdef DEBUG_SENSOR_TIMING
+  static unsigned long lastStats = 0;
+  if (millis() - lastStats >= 5000) {
+    Serial.printf("[IMU timing] quat=%lu accel=%lu quatAge=%lums accelAge=%lums maxPoll=%lums\n",
+      static_cast<unsigned long>(imuService.quaternionReports),
+      static_cast<unsigned long>(imuService.accelReports),
+      millis() - imuService.lastQuaternionMs, millis() - imuService.lastAccelMs,
+      imuService.maxPollMs);
+    lastStats = millis();
+  }
+#endif
 }
 
 // GPS track-based filtering variables
-const int GPS_TRACK_BUFFER_SIZE = 10;  // Track last 10 positions
+const int GPS_TRACK_BUFFER_SIZE = 30;  // Track up to 30 recent positions
 struct GPSPoint {
   double lat;
   double lon;
@@ -1581,7 +1601,7 @@ struct GPSPoint {
 };
 
 // Accelerometer-based movement detection variables
-const int ACCEL_BUFFER_SIZE = 8;  // Track last 8 acceleration readings
+const int ACCEL_BUFFER_SIZE = 64;  // About 3 seconds of 20 Hz acceleration
 struct AccelPoint {
   float x, y, z;
   float magnitude;
@@ -1640,7 +1660,7 @@ bool isAccelerometerMovementDetected() {
   int count = 0;
   for (int i = 0; i < validPoints; i++) {
     int idx = (accelIndex - validPoints + i + ACCEL_BUFFER_SIZE) % ACCEL_BUFFER_SIZE;
-    if (!accelBuffer[idx].valid) continue;
+    if (!accelBuffer[idx].valid || millis() - accelBuffer[idx].timestamp > 3000) continue;
     magnitudes[count++] = accelBuffer[idx].magnitude;
   }
 
@@ -1676,54 +1696,52 @@ bool isAccelerometerMovementDetected() {
 
 // Analyze GPS track to determine if movement is real
 bool isMovementConsistent() {
-  static unsigned long lastAnalysisTime = 0;
-  static bool lastResult = false;
-
-  // Only analyze movement every 2 seconds to reduce CPU load
-  if (millis() - lastAnalysisTime < 2000) {
-    return lastResult;
+  const int count = gpsTrackBufferFull ? GPS_TRACK_BUFFER_SIZE : gpsTrackIndex;
+  if (count < 3) return false;
+  const unsigned long now = millis();
+  const int newest = (gpsTrackIndex - 1 + GPS_TRACK_BUFFER_SIZE) % GPS_TRACK_BUFFER_SIZE;
+  for (int i = 0; i < count - 1; ++i) {
+    const int oldest = (gpsTrackIndex - count + i + GPS_TRACK_BUFFER_SIZE) % GPS_TRACK_BUFFER_SIZE;
+    const auto& first = gpsTrackBuffer[oldest];
+    const auto& last = gpsTrackBuffer[newest];
+    if (!first.valid || now - first.timestamp > 30000) continue;
+    return gpsDisplacementExceedsUncertainty(first.lat, first.lon, last.lat, last.lon,
+      last.timestamp - first.timestamp, gps.hdop.hdop() * 6.0f);
   }
-  lastAnalysisTime = millis();
+  return false;
+}
 
-  if (!gpsTrackBufferFull && gpsTrackIndex < 3) {
-    lastResult = false;
-    return false; // Need at least 3 points
+
+bool hasRecentQuietAccel() {
+  float magnitudes[ACCEL_BUFFER_SIZE];
+  int count = 0;
+  unsigned long oldestAge = 0;
+  const unsigned long now = millis();
+  const int available = accelBufferFull ? ACCEL_BUFFER_SIZE : accelIndex;
+  for (int i = 0; i < available; ++i) {
+    const auto& sample = accelBuffer[i];
+    const unsigned long age = now - sample.timestamp;
+    if (!sample.valid || age > 3000) continue;
+    magnitudes[count++] = sample.magnitude;
+    if (age > oldestAge) oldestAge = age;
   }
-
-  int validPoints = gpsTrackBufferFull ? GPS_TRACK_BUFFER_SIZE : gpsTrackIndex;
-  if (validPoints < 3) {
-    lastResult = false;
-    return false;
-  }
-
-  GpsTrackPoint ordered[GPS_TRACK_BUFFER_SIZE];
-  for (int i = 0; i < validPoints; i++) {
-    int idx = (gpsTrackIndex - validPoints + i + GPS_TRACK_BUFFER_SIZE) % GPS_TRACK_BUFFER_SIZE;
-    ordered[i].lat = gpsTrackBuffer[idx].lat;
-    ordered[i].lon = gpsTrackBuffer[idx].lon;
-    ordered[i].valid = gpsTrackBuffer[idx].valid;
-  }
-
-  bool movementDetected = isGpsMovementConsistentTrack(
-    ordered,
-    validPoints,
-    3.0f,
-    5.0f,
-    45.0f
-  );
-
-  lastResult = movementDetected;
-  return movementDetected;
+  if (count < 20 || oldestAge < 2000 || imuService.accelReports == 0 ||
+      now - imuService.lastAccelMs > 600) return false;
+  const auto stats = computeAccelStats(magnitudes, count);
+  return stats.avgMagnitude > 8 && stats.avgMagnitude < 12 &&
+         stats.stdDev < 0.12f && stats.range < 0.4f;
 }
 
 // Enhanced GPS speed filtering with accelerometer data
 float filterGPSSpeed(float rawSpeed, int satellites, float hdop) {
   // Basic GPS quality check - less strict than before
-  bool goodGPSQuality = (satellites >= 4 && hdop <= 3.0);
+  bool goodGPSQuality = (satellites >= 4 && isfinite(hdop) && hdop > 0 && hdop <= 3.0);
 
   // If GPS quality is very poor, don't trust readings
   if (!goodGPSQuality) {
-    return filterGpsSpeed(rawSpeed, false, imuAvailable, false, false, lastValidSpeed);
+    gpsTrackIndex = 0;
+    gpsTrackBufferFull = false;
+    return filterGpsSpeed(rawSpeed, false, imuAvailable, false, false, lastValidSpeed, hasRecentQuietAccel());
   }
 
   // Store current GPS point in track buffer
@@ -1766,7 +1784,8 @@ float filterGPSSpeed(float rawSpeed, int satellites, float hdop) {
                         imuAvailable,
                         gpsMovementDetected,
                         accelMovementDetected,
-                        lastValidSpeed);
+                        lastValidSpeed,
+                        hasRecentQuietAccel());
 }
 
 // Read sensor data
@@ -1801,15 +1820,12 @@ void readSensors() {
                   imuAvailable ? (isAccelerometerMovementDetected() ? "MOVING" : "STATIONARY") : "N/A");
     #endif
 
-    // Additional debug for enhanced movement detection (always show when speed > 0.3 knots raw)
-    if (rawSpeed > 0.3) {
-      Serial.printf("[Enhanced GPS] Raw: %.3f kt, Filtered: %.3f kt, GPS: %s, Accel: %s\n",
-                    rawSpeed, currentData.speed,
-                    isMovementConsistent() ? "MOVING" : "STATIONARY",
-                    imuAvailable ? (isAccelerometerMovementDetected() ? "MOVING" : "STATIONARY") : "N/A");
-    }
+
   } else {
-    currentData.speed = 0.0;
+    currentData.speed = NAN;
+    lastValidSpeed = 0;
+    gpsTrackIndex = 0;
+    gpsTrackBufferFull = false;
   }
 
   #ifdef DEBUG_BLE_DATA
@@ -1891,224 +1907,6 @@ void readSensors() {
     currentData.trueWindSpeed = NAN;
     currentData.trueWindAngle = -999;
   }
-
-  // Read tilt from BNO080 (only if available)
-  if (imuAvailable) {
-    static unsigned long lastIMURead = 0;
-    const unsigned long IMU_READ_INTERVAL = 50; // Read IMU every 50ms (20Hz to match accel rate)
-
-    if (millis() - lastIMURead >= IMU_READ_INTERVAL) {
-      lastIMURead = millis();
-
-      // Re-enable sensor features if no data received for a while
-      static unsigned long lastRvReEnable = 0;
-      static bool rvEverWorked = false;
-      static unsigned long lastDataReceived = 0;
-      unsigned long now_ = millis();
-      // Trigger recovery if: data stopped for 3s, OR no data ever after 10s
-      bool needRecovery = (rvEverWorked && lastDataReceived > 0 && now_ - lastDataReceived > 3000)
-                       || (!rvEverWorked && lastDataReceived == 0 && now_ - lastRvReEnable > 10000);
-      if (needRecovery && now_ - lastRvReEnable > 5000) {
-        lastRvReEnable = now_;
-        Wire.end();
-        Wire.begin(BNO080_SDA, BNO080_SCL);
-        Wire.setClock(400000);
-        Wire.setTimeOut(100);
-        delay(5);
-        // Preserve magnetometer-referenced heading during recovery.
-        imu.enableRotationVector(100);
-      }
-
-      if (imu.dataAvailable()) {
-        lastDataReceived = millis();
-        // dataAvailable() processes incoming sensor reports from BNO080
-        // It updates internal variables: rawAccelX/Y/Z, rawMagX/Y/Z, rawQuatI/J/K/Real
-
-        // **USE ACCELEROMETER FOR FAST HEEL/PITCH CALCULATION**
-        // The rotation vector (quaternion) updates too slowly (~4-6 seconds)
-        // Accelerometer updates fast and reliably every cycle
-
-        // Get accelerometer readings (in m/s²) — only valid after enableAccelerometer is called
-        float accelX = imu.getAccelX();
-        float accelY = imu.getAccelY();
-        float accelZ = imu.getAccelZ();
-
-        // Calculate heel (roll) from gravity vector
-        float rawRoll = 0.0f;
-        float rawPitch = 0.0f;
-        // Only compute if we have valid accel data (non-zero gravity)
-        if (fabsf(accelZ) > 1.0f) {
-          computeRollPitchDegrees(accelX, accelY, accelZ, rawRoll, rawPitch);
-        }
-
-        // Apply calibration offsets
-        float roll = rawRoll - rollOffset;
-        float pitch = rawPitch - pitchOffset;
-
-        currentData.tilt = roll;
-        currentData.pitch = pitch;
-
-        #ifdef DEBUG_BNO080
-        if (levelCalibrated) {
-          Serial.printf("[BNO080] Accel-based - Raw: R=%.2f° P=%.2f° → Heel: %.2f° Pitch: %.2f°\n",
-                       rawRoll, rawPitch, roll, pitch);
-        } else {
-          Serial.printf("[BNO080] Uncalibrated - Heel: %.2f° Pitch: %.2f°\n", roll, pitch);
-        }
-        #endif
-
-        // Compass calculation — use rotation vector for tilt-compensated heading
-        // BNO080's rotation vector internally fuses gyro + accel + mag
-        float quatI = imu.getQuatI();
-        float quatJ = imu.getQuatJ();
-        float quatK = imu.getQuatK();
-        float quatReal = imu.getQuatReal();
-
-        float heading = 0.0f;
-          if (computeHeadingDegreesFromQuaternion(quatI, quatJ, quatK, quatReal, heading)) {
-          rvEverWorked = true;
-
-          // After rotation vector converges, enable accelerometer for heel/pitch.
-          // IMPORTANT: On this hardware, enabling accel BEFORE rotation vector
-          // prevents rotvec from producing data. But enabling it after works.
-          static bool accelEnabled = false;
-          if (!accelEnabled) {
-            delay(50); // Brief pause before sending command
-            imu.enableAccelerometer(50);
-            accelEnabled = true;
-            #ifdef DEBUG_BNO080
-            Serial.println("[BNO080] Accelerometer enabled (20Hz) after rotation vector convergence");
-            #endif
-          }
-
-          // Apply calibration offset
-          if (northCalibrated) {
-            heading = heading - headingOffset;
-            if (heading < 0) heading += 360.0f;
-            if (heading >= 360) heading -= 360.0f;
-          }
-
-          currentData.HDM = (int)round(heading);
-
-          #ifdef DEBUG_BNO080
-          Serial.printf("[BNO080] Heading from rotation vector: %.1f° → Calibrated: %d°\n",
-                       heading + (northCalibrated ? headingOffset : 0), currentData.HDM);
-          #endif
-        } else {
-          #ifdef DEBUG_BNO080
-          float qMag = sqrtf(quatI*quatI + quatJ*quatJ + quatK*quatK + quatReal*quatReal);
-          float radAcc = imu.getQuatRadianAccuracy();
-          Serial.printf("[BNO080] Rotation vector not ready (i=%.4f j=%.4f k=%.4f real=%.4f mag=%.4f acc=%.4f)\n",
-                        quatI, quatJ, quatK, quatReal, qMag, radAcc);
-          #endif
-        }
-
-        // Read and store accelerometer data
-        currentData.accelX = imu.getAccelX();
-        currentData.accelY = imu.getAccelY();
-        currentData.accelZ = imu.getAccelZ();
-        storeAccelReading(currentData.accelX, currentData.accelY, currentData.accelZ);
-
-        #ifdef DEBUG_BNO080
-        static unsigned long lastAccelDebug = 0;
-        if (millis() - lastAccelDebug > 2000) { // Debug every 2 seconds
-          Serial.printf("[BNO080] Accel: X=%.2f Y=%.2f Z=%.2f m/s²\n",
-                        currentData.accelX, currentData.accelY, currentData.accelZ);
-          lastAccelDebug = millis();
-        }
-        #endif
-
-      } else {
-        // No new data available
-        static unsigned long lastNoDataWarning = 0;
-        if (millis() - lastNoDataWarning > 30000) { // Warn every 30 seconds
-          Serial.println("[BNO080] Warning: No new data available");
-          lastNoDataWarning = millis();
-        }
-      }
-    }
-  } else {
-    // IMU not available - set all values to 0/NaN
-    currentData.tilt = 0.0;
-    currentData.HDM = -1; // Use -1 to indicate invalid heading
-    currentData.accelX = NAN;
-    currentData.accelY = NAN;
-    currentData.accelZ = NAN;
-  }
-
-  #ifdef DEBUG_BLE_DATA
-  unsigned long endTime = millis();
-  static unsigned long lastTimingReport = 0;
-  if (millis() - lastTimingReport > 5000) { // Report timing every 5 seconds
-    Serial.printf("[Timing] Total: %lums, GPS: %lums, Filter: %lums, Wind: %lums, IMU: %lums\n",
-                  endTime - startTime,
-                  gpsTime - startTime,
-                  filterTime - gpsTime,
-                  windTime - filterTime,
-                  endTime - windTime);
-    lastTimingReport = millis();
-  }
-  #endif
-
-  // Comprehensive all-sensors debug dump (every 2 seconds)
-  static unsigned long lastSensorDump = 0;
-  if (millis() - lastSensorDump > 2000) {
-    lastSensorDump = millis();
-
-    // --- GPS Diagnostics ---
-    int gpsAvail = gpsSerial.available();
-    Serial.printf("[DIAG] GPS serial avail=%d charsProcessed=%d failedCS=%d\n",
-                  gpsAvail, gps.charsProcessed(), gps.failedChecksum());
-
-    // --- IMU Diagnostics ---
-    if (!imuAvailable) {
-      Serial.println("[DIAG] IMU: NOT AVAILABLE (begin() failed or I2C no response)");
-    } else {
-      int reportCount = 0;
-      for (int i = 0; i < 10; i++) {
-        if (imu.dataAvailable()) {
-          reportCount++;
-          // Update currentData with values from the last drained report
-          currentData.accelX = imu.getAccelX();
-          currentData.accelY = imu.getAccelY();
-          currentData.accelZ = imu.getAccelZ();
-          float qI = imu.getQuatI(), qJ = imu.getQuatJ(), qK = imu.getQuatK(), qR = imu.getQuatReal();
-          float hdg = 0.0f;
-          if (computeHeadingDegreesFromQuaternion(qI, qJ, qK, qR, hdg)) {
-            if (northCalibrated) { hdg -= headingOffset; if (hdg < 0) hdg += 360; if (hdg >= 360) hdg -= 360; }
-            currentData.HDM = (int)round(hdg);
-          }
-          float rawRoll, rawPitch;
-          computeRollPitchDegrees(currentData.accelX, currentData.accelY, currentData.accelZ, rawRoll, rawPitch);
-          currentData.tilt = rawRoll - rollOffset;
-          currentData.pitch = rawPitch - pitchOffset;
-        } else break;
-      }
-
-      // Probe I2C bus health
-      auto i2cProbe = [](int addr) -> int {
-        Wire.beginTransmission(addr);
-        return Wire.endTransmission();
-      };
-      int p4B = i2cProbe(0x4B);
-      Serial.printf("[DIAG] IMU: I2C probe 0x4B=%d\n", p4B);
-
-      bool hasAccel = (currentData.accelX != 0.0f || currentData.accelY != 0.0f || currentData.accelZ != 0.0f);
-      Serial.printf("[DIAG] IMU: drained=%d accel=%s heading=%d\n",
-                    reportCount, hasAccel ? "YES" : "NO", currentData.HDM);
-    }
-
-    Serial.println("=== SENSOR READINGS ===");
-    Serial.printf("GPS: Lat=%.6f Lon=%.6f SOG=%.2fkt COG=%.1f Sats=%d HDOP=%.1f\n",
-                  gps.location.lat(), gps.location.lng(),
-                  currentData.speed, gps.course.deg(),
-                  gps.satellites.value(), gps.hdop.hdop());
-    Serial.printf("Wind (Apparent): %.1fkt @ %d\n", currentData.windSpeed, currentData.windAngle);
-    Serial.printf("Wind (True): %.1fkt @ %d\n", currentData.trueWindSpeed, currentData.trueWindAngle);
-    Serial.printf("IMU: Heel=%.1f Pitch=%.1f Heading=%d\n", currentData.tilt, currentData.pitch, currentData.HDM);
-    Serial.printf("Accel: X=%.2f Y=%.2f Z=%.2f m/s²\n", currentData.accelX, currentData.accelY, currentData.accelZ);
-    Serial.println("=======================");
-  }
 }
 
 // Generate JSON string with current sensor data using marine standard terminology
@@ -2155,7 +1953,7 @@ bool readGPS() {
   GpsReadResult readResult = readGpsStream(gpsSerial, gps, 256);
 
   // Return true only if we have valid, recent location data
-  return readResult.newData && isGPSDataValid();
+  return isGPSDataValid() && gps.speed.isValid() && gps.speed.age() < 2000;
 }
 
 // Regatta Functions

@@ -278,17 +278,20 @@ export function SeriesBrowser({
   );
 }
 export function EntityDetails({
+  onEditingChange,
   series,
   location,
   edit,
   onDelete,
 }: {
+  onEditingChange?: (value: boolean) => void;
   onDelete?: () => Promise<void>;
   series: Series;
   location: Location;
   edit?: (fn: (s: Series) => void, seriesId?: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
+  const changeEditing = (value: boolean) => { setEditing(value); onEditingChange?.(value); };
   const event = eventsFor(series).find((e) => e.id === location.eventId);
   const heat = series.races.find((r) => r.id === location.heatId);
   const entity = heat ?? event ?? series;
@@ -298,22 +301,22 @@ export function EntityDetails({
       <div className="section-title entity-header">
         <h1>{entity.name}</h1>
         {edit && !editing && (
-          <button onClick={() => setEditing(true)}>
+          <button onClick={() => changeEditing(true)}>
             {t(heat ? "Edit heat" : event ? "Edit race" : "Edit series")}
           </button>
         )}
-      {onDelete && <DeleteAction onDelete={onDelete} description={t(heat ? "Delete this heat and all its results?" : event ? "Delete this race, all its heats and results? Boat profiles will remain." : "Delete this series, all its races, heats and results? Boat profiles will remain.")} />}
+      {onDelete && !editing && <DeleteAction onDelete={onDelete} description={t(heat ? "Delete this heat and all its results?" : event ? "Delete this race, all its heats and results? Boat profiles will remain." : "Delete this series, all its races, heats and results? Boat profiles will remain.")} />}
       </div>
-      {!event && !heat && series.description && <p>{series.description}</p>}
+      {!editing && !event && !heat && series.description && <p>{series.description}</p>}
       {edit && editing && (
         <Editor
           series={series}
           event={heat ? undefined : event}
           heat={heat}
-          onCancel={() => setEditing(false)}
+          onCancel={() => changeEditing(false)}
           save={(fn) => {
             edit(fn, series.id);
-            setEditing(false);
+            changeEditing(false);
           }}
         />
       )}
@@ -359,6 +362,7 @@ function Editor({
             Object.assign(
               s.events!.find((v) => v.id === event.id)!,
               {
+                scheduledStart: d.get("scheduledStart") ? new Date(String(d.get("scheduledStart"))).toISOString() : undefined,
                 name: String(d.get("name")),
                 weight: Number(d.get("weight")),
                 completed: d.get("completed") === "on",
@@ -446,6 +450,10 @@ function Editor({
           </label>
         </>
       )}
+      {event && <label>{t("Race start (your local time)")}
+        <input name="scheduledStart" type="datetime-local" defaultValue={event.scheduledStart ? new Date(Date.parse(event.scheduledStart) - new Date(event.scheduledStart).getTimezoneOffset() * 60000).toISOString().slice(0,16) : ""} />
+        <small>{t("Invitations use this start time. Change it here if the race is postponed.")}</small>
+      </label>}
       {event && (
         <label className="check">
           <input

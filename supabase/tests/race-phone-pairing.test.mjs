@@ -47,6 +47,7 @@ test("race phone capabilities enforce pairing, readiness, activation, privacy an
       "utf8",
     ),
   );
+  doc.events[0].scheduledStart = new Date().toISOString();
   await rpc("save_series", [doc, 0, id()]);
   const sid = doc.id,
     bid = doc.boats[0].id;
@@ -58,6 +59,29 @@ test("race phone capabilities enforce pairing, readiness, activation, privacy an
     new Date().toISOString(),
   ]);
   const link = await rpc("create_race_tracking_link", [eid, bid]);
+  await db.exec("reset role");
+  await db.query("update public.boats set owner_id=$1 where id=$2",[owner,bid]);
+  await login(owner);
+  const recipients=await rpc("race_invitation_recipients",[sid,bid]);
+  assert.equal(recipients[0].id,owner);
+  await assert.rejects(rpc("prepare_race_invitation_email",[link.token,id()]),/configured boat administrator/);
+  const email=await rpc("prepare_race_invitation_email",[link.token,owner]);
+  assert.equal(email.email,recipients[0].email);
+  assert.equal(email.token,link.token);
+  await assert.rejects(rpc("prepare_race_invitation_email",[link.token,owner]),/Wait a minute/);
+  await login(null,"anon");
+  await assert.rejects(rpc("race_invitation_recipients",[sid,bid]),/permission denied/);
+  await login(owner);
+
+  const postponed = new Date(Date.now()+3600000).toISOString();
+  doc.events[0].scheduledStart = postponed;
+  await rpc("save_series", [doc, 1, id()]);
+  const updated = await rpc("preview_race_tracking_link", [link.token]);
+  assert.equal(Date.parse(updated.scheduledStart),Date.parse(postponed));
+  assert.equal(Date.parse(updated.expiresAt),Date.parse(postponed)+18*3600000);
+  assert.equal(await rpc("configure_race_tracking",[sid,eventId,new Date().toISOString()]),eid);
+  assert.equal(Date.parse((await rpc("preview_race_tracking_link",[link.token])).scheduledStart),Date.parse(postponed),"old clients cannot override the race start from an invitation");
+
   const secret = id() + id(),
     another = id() + id(),
     session = id();

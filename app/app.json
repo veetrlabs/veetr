@@ -79,6 +79,12 @@
           "isAndroidBackgroundLocationEnabled": true,
           "isAndroidForegroundServiceEnabled": true
         }
+      ],
+      [
+        "expo-sensors",
+        {
+          "motionPermission": "Use motion sensors to reduce GPS speed drift when your phone is stationary."
+        }
       ]
     ],
     "experiments": {

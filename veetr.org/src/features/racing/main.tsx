@@ -1,4 +1,4 @@
-import { TrackingWindow } from "./BoatAccess";
+import RacePhones from "./RacePhones";
 import {LiveTrackingMap} from "./LiveTrackingMap";
 import "leaflet/dist/leaflet.css";
 import {HeatResults} from "./SharedResults";
@@ -98,6 +98,8 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
   const [authReady, setAuthReady] = useState(!supabase);
   const [passwordRecovery, setPasswordRecovery] = useState(passwordRecoveryRequested);
   const [accountPage, setAccountPage] = useState(passwordRecoveryRequested || new URLSearchParams(window.location.search).has("invite") || new URLSearchParams(window.location.search).has("account") || (integrated && window.location.pathname === "/account/"));
+  const [entityEditing, setEntityEditing] = useState(false);
+  useEffect(() => setEntityEditing(false), [location.seriesId, location.eventId, location.heatId]);
   const [editingResults, setEditingResults] = useState(false);
   const [clearResultId, setClearResultId] = useState("");
   const [user, setUser] = useState(""),
@@ -432,6 +434,7 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
             )}
             {location.seriesId && series && (
               <EntityDetails
+                onEditingChange={setEntityEditing}
                 key={`${location.seriesId}/${location.eventId ?? ""}/${location.heatId ?? ""}`}
                 series={series}
                 location={location}
@@ -459,9 +462,10 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
                 } : undefined}
               />
             )}
+            {!entityEditing && <>
             {canEdit && canDelete && <a href={accountHref}>{t("Series team")}</a>}
             {canEdit && series && <>
-              <TrackingWindow key={series.id} seriesId={series.id} />
+              {location.eventId && <RacePhones key={`${series.id}/${location.eventId}`} series={series} eventId={location.eventId} />}
               {race && <section className="tracking-heat">
                 <h3>{t("Heat visibility")}</h3>
                 <p>{t("Publish this heat and register boats in the race’s Fleet tab so invited skippers can join tracking. Opening tracking applies to the whole series.")}</p>
@@ -916,6 +920,7 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
                 )}
               </>
             ) : null}
+            </>}
           </>
         ))}
         {accountPage && (

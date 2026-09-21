@@ -1,47 +1,27 @@
 #pragma once
+#include <math.h>
 
-inline float filterGpsSpeed(float smoothedSpeed,
-                            bool goodGpsQuality,
-                            bool imuAvailable,
-                            bool gpsMovementDetected,
-                            bool accelMovementDetected,
-                            float& lastValidSpeed) {
+// Speeds are knots. A quiet accelerometer alone is not proof of zero velocity.
+inline float filterGpsSpeed(float speed, bool goodGpsQuality,
+                            bool imuAvailable, bool gpsMovementDetected,
+                            bool accelMovementDetected, float& lastValidSpeed,
+                            bool recentQuietAccel = false) {
+  if (!isfinite(speed) || speed < 0) {
+    lastValidSpeed = 0;
+    return NAN;
+  }
+  const bool quiet = imuAvailable && recentQuietAccel && !accelMovementDetected;
+  const bool noise = !gpsMovementDetected &&
+    (speed < 0.29f || (quiet && speed < (goodGpsQuality ? 0.58f : 1.17f)));
+  if (noise) {
+    lastValidSpeed = 0;
+    return 0;
+  }
+  // Never retain a previous speed indefinitely when the fix quality degrades.
   if (!goodGpsQuality) {
-    return lastValidSpeed * 0.95f;
+    lastValidSpeed = 0;
+    return NAN;
   }
-
-  bool realMovementDetected = false;
-  if (imuAvailable) {
-    realMovementDetected = gpsMovementDetected || accelMovementDetected;
-  } else {
-    realMovementDetected = gpsMovementDetected;
-  }
-
-  float noiseThreshold = 0.08f;
-  if (imuAvailable && accelMovementDetected && gpsMovementDetected) {
-    noiseThreshold = 0.05f;
-  } else if (imuAvailable && !accelMovementDetected && !gpsMovementDetected) {
-    noiseThreshold = 0.12f;
-  }
-
-  if (smoothedSpeed < noiseThreshold) {
-    if (realMovementDetected) {
-      lastValidSpeed = smoothedSpeed;
-      return smoothedSpeed;
-    }
-    lastValidSpeed = 0.0f;
-    return 0.0f;
-  }
-
-  const float HYSTERESIS_FACTOR = 0.1f;
-  if (lastValidSpeed < noiseThreshold) {
-    if (smoothedSpeed > (noiseThreshold + HYSTERESIS_FACTOR)) {
-      lastValidSpeed = smoothedSpeed;
-      return smoothedSpeed;
-    }
-    return 0.0f;
-  }
-
-  lastValidSpeed = smoothedSpeed;
-  return smoothedSpeed;
+  lastValidSpeed = speed;
+  return speed;
 }

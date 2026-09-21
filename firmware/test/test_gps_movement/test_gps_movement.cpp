@@ -31,8 +31,16 @@ void test_consistent_movement_is_true() {
   TEST_ASSERT_TRUE(moving);
 }
 
+void test_net_displacement_recognizes_slow_sailing_but_not_jitter() {
+  TEST_ASSERT_TRUE(gpsDisplacementExceedsUncertainty(49, 14, 49.0001, 14, 20000, 6));
+  TEST_ASSERT_FALSE(gpsDisplacementExceedsUncertainty(49, 14, 49.00001, 14, 20000, 6));
+  TEST_ASSERT_FALSE(gpsDisplacementExceedsUncertainty(49, 14, 49.0001, 14, 1000, 6));
+  TEST_ASSERT_FALSE(gpsDisplacementExceedsUncertainty(49, 14, 49.0001, 14, 40000, 6));
+}
+
 int main(int, char**) {
   UNITY_BEGIN();
+  RUN_TEST(test_net_displacement_recognizes_slow_sailing_but_not_jitter);
   RUN_TEST(test_stationary_track_is_false);
   RUN_TEST(test_consistent_movement_is_true);
   return UNITY_END();

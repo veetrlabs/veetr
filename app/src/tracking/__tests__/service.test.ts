@@ -330,7 +330,7 @@ test("a ready race phone waits privately and begins sharing after referee activa
   let active = false;
   (trackingRpc as jest.Mock).mockImplementation(async (name, args) =>
     name === "race_phone_status"
-      ? { valid: true, eligible: true, active, ready: true }
+      ? { valid: true, eligible: true, active, ready: true, scheduledStart: "2026-09-22T09:00:00Z", expiresAt: "2026-09-23T03:00:00Z", raceName: "Postponed race" }
       : name === "ingest_race_phone_points"
         ? args.p_points.length
         : undefined,
@@ -350,6 +350,8 @@ test("a ready race phone waits privately and begins sharing after referee activa
   ]);
   expect(points).toHaveLength(0);
   expect(trackingClient!.auth.getSession).not.toHaveBeenCalled();
+  expect(session!.scheduledStart).toBe("2026-09-22T09:00:00Z");
+  expect(session!.expiresAt).toBe("2026-09-23T03:00:00Z");
   active = true;
   await syncTracking(true);
   await recordLocations([

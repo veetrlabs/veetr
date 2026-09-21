@@ -77,13 +77,23 @@ test("provider failure never marks delivery, and missing configuration performs 
 test("local mailcatcher uses authorized stored invitation and marks only successful delivery", async () => {
   const calls = [];
   const messages = [];
-  const localEnv = { ...env, RESEND_API_KEY: undefined, PORTAL_URL: "http://localhost:4321" };
+  const localEnv = {
+    ...env,
+    RESEND_API_KEY: undefined,
+    PORTAL_URL: "http://localhost:4321",
+  };
   const db = async (url) => {
     calls.push(url);
-    if (url.endsWith("prepare_boat_invitation_email")) return Response.json({ email: "skipper@example.test", boat: "Boat", series: "Series", token: id });
+    if (url.endsWith("prepare_boat_invitation_email"))
+      return Response.json({
+        email: "skipper@example.test",
+        boat: "Boat",
+        series: "Series",
+        token: id,
+      });
     return Response.json({});
   };
-  const handle = createInvitationHandler(localEnv, db, async message => {
+  const handle = createInvitationHandler(localEnv, db, async (message) => {
     messages.push(message);
     return new Response(null, { status: 200 });
   });
@@ -93,7 +103,63 @@ test("local mailcatcher uses authorized stored invitation and marks only success
   assert.equal(calls.length, 2);
   assert.ok(calls[1].endsWith("mark_boat_invitation_sent"));
   calls.length = 0;
-  const failing = createInvitationHandler(localEnv, db, async () => { throw new Error("SMTP unavailable"); });
+  const failing = createInvitationHandler(localEnv, db, async () => {
+    throw new Error("SMTP unavailable");
+  });
   assert.equal((await failing(request())).status, 500);
   assert.equal(calls.length, 1);
+});
+
+test("race email validates the capability and uses only a configured recipient from the database", async () => {
+  const token = id + id;
+  const calls = [];
+  const handle = createInvitationHandler(env, async (url, init) => {
+    calls.push({ url, init });
+    if (url.endsWith("prepare_race_invitation_email"))
+      return Response.json({
+        id,
+        email: "admin@example.test",
+        boat: "Luna",
+        race: "Autumn",
+        token,
+        deliveryKey: "delivery",
+      });
+    return Response.json({ id: "sent" });
+  });
+  const reply = await handle(
+    new Request("https://function.test", {
+      method: "POST",
+      headers: { authorization: "Bearer official" },
+      body: JSON.stringify({
+        raceToken: token,
+        recipientId: id,
+        email: "attacker@example.test",
+      }),
+    }),
+  );
+  assert.equal(reply.status, 200);
+  assert.equal(calls[0].init.headers.Authorization, "Bearer official");
+  assert.deepEqual(JSON.parse(calls[0].init.body), { token, recipient_id: id });
+  const email = JSON.parse(calls[1].init.body);
+  assert.deepEqual(email.to, ["admin@example.test"]);
+  assert.match(email.text, /\/join\//);
+  assert.match(email.text, /No account needed/);
+  assert.doesNotMatch(email.text, /account\/\?invite/);
+  assert.ok(calls[2].url.endsWith("mark_race_invitation_sent"));
+});
+test("race email rejects malformed tokens before touching the database", async () => {
+  let calls = 0;
+  const handle = createInvitationHandler(env, async () => {
+    calls++;
+    return Response.json({});
+  });
+  const reply = await handle(
+    new Request("https://function.test", {
+      method: "POST",
+      headers: { authorization: "Bearer official" },
+      body: JSON.stringify({ raceToken: "bad", recipientId: id }),
+    }),
+  );
+  assert.equal(reply.status, 400);
+  assert.equal(calls, 0);
 });

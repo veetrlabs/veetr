@@ -12,7 +12,7 @@ test("permission request, notification, and review workflow", async (t) => {
   const db = new PGlite();
   t.after(() => db.close());
   await db.exec(`
-    create role anon; create role authenticated; create schema auth;
+    create role service_role; create role anon; create role authenticated; create schema auth;
     create table auth.users(id uuid primary key, email text, email_confirmed_at timestamptz);
     create function auth.uid() returns uuid language sql stable as
     $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
