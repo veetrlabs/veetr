@@ -1,9 +1,9 @@
+import { EditEntityButton } from "./EditEntityButton";
 import { BoatShareDialog, phoneTrackingStatus, type RaceTrackingEvent } from "./RacePhones";
 import { BoatInvitations, BoatProfileInvitations, FleetBoatActions } from "./BoatAccess";
 import {BoatTeam} from "./BoatTeam";
 import { appHref } from "./routes";
-import { Sailboat, Search, Plus, ArrowUpRight } from "lucide-react";
-import { DeleteAction } from "./DeleteAction";
+import { DeleteSection } from "./DeleteAction";
 import { t } from "./i18n";
 import React, { useEffect, useState } from "react";
 import {
@@ -153,7 +153,6 @@ export function Boats({
 }) {
   const [boats, setBoats] = useState<RegisteredBoat[]>([]),
     [series, setSeries] = useState<Series[]>([]),
-    [query, setQuery] = useState(""),
     [error, setError] = useState(""),
     [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -205,19 +204,8 @@ export function Boats({
       clearInterval(timer);
     };
   }, [boatId, userId]);
-  const [creating, setCreating] = useState(false);
   const [accessOnly, setAccessOnly] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).has("accessBoat"));
   const [inviting, setInviting] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).has("inviteBoat"));
-  const [sort, setSort] = useState<"name" | "className" | "length">("name");
-  const [descending, setDescending] = useState(false);
-  const visibleBoats = boats
-    .filter(b => `${b.name} ${b.className ?? ""}`.toLowerCase().includes(query.toLowerCase()))
-    .sort((a, b) => {
-      const x = a[sort], y = b[sort];
-      if (x === undefined || x === "") return y === undefined || y === "" ? 0 : 1;
-      if (y === undefined || y === "") return -1;
-      return (typeof x === "number" && typeof y === "number" ? x - y : String(x).localeCompare(String(y), undefined, {numeric: true})) * (descending ? -1 : 1);
-    });
   const boat = boats.find((b) => b.id === boatId);
   if (boatId && (inviting || accessOnly) && boat) return <section className="entity-editor">
     <button onClick={() => {setInviting(false); setAccessOnly(false);}}>{t("Back to boat")}</button>
@@ -227,15 +215,12 @@ export function Boats({
   if (boatId && userId && editing && editable) return <section className="entity-editor">
     <h1>{t("Edit boat")}: {editing.name}</h1>
     <EditBoat boat={editing} onCancel={() => setEditing(null)} onSaved={updated => { setBoats(old => old.map(b => b.id === updated.id ? updated : b)); setEditing(null); }} />
-  </section>;
-  if (!boatId && userId && creating) return <section className="entity-editor">
-    <h1>{t("Create a new boat")}</h1><button onClick={() => setCreating(false)}>{t("Cancel")}</button>
-    <NewBoat standalone onCreated={boat => {setBoats(old => [...old, boat]);setCreating(false);}} />
+    {manager === userId && <DeleteSection description={t("Delete this boat profile? It must be removed from every series first.")} onDelete={async () => {await deleteBoat(editing.id); window.location.href=appHref("/");}} />}
   </section>;
   if (boatId)
     return (
       <section>
-        <a href={appHref("?boats")}>{t("← All boats")}</a>
+        <a href={appHref("/")}>{t("Back to series")}</a>
         {loading ? (
           <p>{t("Loading boat…")}</p>
         ) : !boat ? (
@@ -245,11 +230,8 @@ export function Boats({
             <div className="section-title entity-header">
               <h1>{boat.name}</h1>
               {userId && editable && !editing && (
-                <button onClick={() => setEditing({ ...boat })}>
-                  {t("Edit boat")}
-                </button>
+                <EditEntityButton label={t("Edit boat")} onClick={() => setEditing({ ...boat })} />
               )}
-            {userId && manager === userId && <DeleteAction description={t("Delete this boat profile? It must be removed from every series first.")} onDelete={async () => {await deleteBoat(boat.id); window.location.href=appHref("?boats");}} />}
             </div>
 
             {userId && editing && editable && (
@@ -299,57 +281,7 @@ export function Boats({
         {error && <p role="alert">{t(error)}</p>}
       </section>
     );
-  return (
-    <section className="boat-directory">
-      <div className="directory-heading">
-        <div>
-          <p className="directory-eyebrow">{t("Boat directory")}</p>
-          <h1>{t("Boats")} <span className="directory-count">{boats.length}</span></h1>
-          <p className="directory-description">{t("Explore the fleet. Follow each boat’s racing history.")}</p>
-        </div>
-        {userId && <button className="directory-create" aria-expanded={creating} aria-controls="directory-new-boat" onClick={() => setCreating(!creating)}>
-          <Plus size={18} aria-hidden="true" />{t(creating ? "Cancel" : "Create a new boat")}
-        </button>}
-      </div>
-      {userId && creating && <div id="directory-new-boat" className="directory-new-boat">
-        <h2>{t("Create a new boat")}</h2>
-        <NewBoat standalone onCreated={boat => {setBoats(old => [...old, boat]);setCreating(false);}} />
-      </div>}
-      <div className="directory-toolbar">
-        <label className="directory-search">
-          <Search size={18} aria-hidden="true" />
-          <input type="search" aria-label={t("Find a boat")} value={query} onChange={e => setQuery(e.target.value)} placeholder={t("Name or class")} />
-        </label>
-        <span className="directory-results">{t("{count} boats", {count: visibleBoats.length})}</span>
-      </div>
-      <div className="table-scroll">
-        <table>
-          <thead><tr>
-            {([ ["name", "Boat"], ["className", "Class"], ["length", "Length (m)"] ] as const).map(([key, label]) => (
-              <th key={key} scope="col" aria-sort={sort === key ? descending ? "descending" : "ascending" : "none"}>
-                <button className="table-sort" aria-label={t("Sort by {name}", {name: t(label)})} onClick={() => {setDescending(sort === key ? !descending : false); setSort(key);}}>
-                  {t(label)} <span aria-hidden="true">{sort === key ? descending ? "↓" : "↑" : "↕"}</span>
-                </button>
-              </th>
-            ))}
-          </tr></thead>
-          <tbody>
-            {visibleBoats.map(b => (
-              <tr key={b.id}>
-                <th scope="row"><a className="directory-boat-link" href={appHref(`?boat=${b.id}`)}><span className="directory-boat-icon"><Sailboat size={20} aria-hidden="true" /></span><span>{b.name}</span><ArrowUpRight className="directory-link-arrow" size={16} aria-hidden="true" /></a></th>
-                <td>{b.className || "—"}</td>
-                <td>{b.length ?? "—"}</td>
-              </tr>
-            ))}
-            {!loading && !visibleBoats.length && <tr><td colSpan={3}>{t("No matching boats.")}</td></tr>}
-          </tbody>
-        </table>
-      </div>
-      {loading && <p>{t("Loading boats…")}</p>}
-      {!loading && !boats.length && !error && <p>{t("No boats yet.")}</p>}
-      {error && <p role="alert">{t(error)}</p>}
-    </section>
-  );
+  return null;
 }
 export function SeriesFleet({
   series,

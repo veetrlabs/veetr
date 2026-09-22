@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseTrackingPositions, positionAge } from "./tracking";
+import { parseTrackingPositions, positionAge, positionsForHeat } from "./tracking";
 const now = Date.now(),
   point = {
     boatId: "boat",
@@ -34,4 +34,11 @@ test("malformed feeds fail closed", () => {
   ])
     assert.throws(() => parseTrackingPositions(value), /Invalid tracking/);
   assert.deepEqual(parseTrackingPositions([]), []);
+});
+
+test("heat maps include only entered boats, including an empty heat", () => {
+  const positions = parseTrackingPositions([point, {...point, boatId: 'other-heat'}]);
+  assert.deepEqual(positionsForHeat(positions, ['boat']), [positions[0]]);
+  assert.deepEqual(positionsForHeat(positions, []), []);
+  assert.deepEqual(positionsForHeat(positions, ['missing']), []);
 });

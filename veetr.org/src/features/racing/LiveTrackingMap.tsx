@@ -1,29 +1,20 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import type * as Leaflet from "leaflet";
-import { supabase } from "./api";
+import { replayCoordinate } from "./replay";
+import { useHeatReplay } from "./useHeatReplay";
 import { t } from "./i18n";
 import {
-  parseTrackingPositions,
+  positionsForHeat,
   positionAge,
-  type TrackingPosition,
 } from "./tracking";
 
-async function fetchPositions(seriesId: string) {
-  if (!supabase) throw new Error("Tracking is not configured.");
-  const { data, error } = await supabase.rpc("public_tracking_positions", {
-    p_series: seriesId,
-  });
-  if (error) throw error;
-  return parseTrackingPositions(data);
-}
-export function LiveTrackingMap({ seriesId }: { seriesId: string }) {
-  const [positions, setPositions] = useState<TrackingPosition[]>([]),
-    [now, setNow] = useState(Date.now());
-  const [loading, setLoading] = useState(true),
-    [error, setError] = useState(""),
-    [mapError, setMapError] = useState(false);
+export function LiveTrackingMap({ seriesId, eventId, heatId, boatIds }: { seriesId: string; eventId: string; heatId?: string; boatIds: string[] }) {
+  const replay = useHeatReplay(seriesId, eventId, heatId);
+  const positions = useMemo(() => positionsForHeat(replay.positions, boatIds), [replay.positions, boatIds]);
+  const displayTime = replay.shownAt;
+  const formatTime = (stamp: number) => new Date(stamp).toLocaleString(document.documentElement.lang || undefined);
+  const [mapError, setMapError] = useState(false);
   const [mapReady, setMapReady] = useState(false),
-    [seamarks, setSeamarks] = useState(true),
     [seamarkError, setSeamarkError] = useState(false);
   const nautical = useRef<Leaflet.TileLayer | null>(null);
   const element = useRef<HTMLDivElement>(null),
@@ -32,58 +23,10 @@ export function LiveTrackingMap({ seriesId }: { seriesId: string }) {
     layer = useRef<Leaflet.LayerGroup | null>(null),
     fitted = useRef(false);
   useEffect(() => {
-    let alive = true,
-      timer: ReturnType<typeof setTimeout>,
-      fetching = false;
-    setPositions([]);
-    setLoading(true);
-    setError("");
-    fitted.current = false;
-    const refresh = async () => {
-      if (fetching) return;
-      clearTimeout(timer);
-      if (document.hidden) {
-        timer = setTimeout(refresh, 5000);
-        return;
-      }
-      fetching = true;
-      try {
-        const rows = await fetchPositions(seriesId);
-        if (alive) {
-          setPositions(rows);
-          setError("");
-        }
-      } catch {
-        if (alive) {
-          setPositions([]);
-          setError("Live positions are unavailable. Retrying…");
-        }
-      } finally {
-        fetching = false;
-        if (alive) {
-          setLoading(false);
-          setNow(Date.now());
-          timer = setTimeout(refresh, 5000);
-        }
-      }
-    };
-    void refresh();
-    const visibility = () => {
-      if (!document.hidden) void refresh();
-    };
-    document.addEventListener("visibilitychange", visibility);
-    const clock = setInterval(() => setNow(Date.now()), 1000);
-    return () => {
-      alive = false;
-      clearTimeout(timer);
-      clearInterval(clock);
-      document.removeEventListener("visibilitychange", visibility);
-    };
-  }, [seriesId]);
-  useEffect(() => {
     let alive = true;
     void import("leaflet")
-      .then((L) => {
+      .then((module) => {
+        const L = module.default ?? module;
         if (!alive || !element.current) return;
         leaflet.current = L;
         map.current = L.map(element.current).setView([49.7, 14.2], 6);
@@ -99,7 +42,8 @@ export function LiveTrackingMap({ seriesId }: { seriesId: string }) {
         layer.current = L.layerGroup().addTo(map.current);
         setMapReady(true);
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error("Unable to initialize tracking map", error);
         if (alive) setMapError(true);
       });
     return () => {
@@ -110,7 +54,7 @@ export function LiveTrackingMap({ seriesId }: { seriesId: string }) {
     };
   }, []);
   const staleIds = positions
-    .filter((p) => positionAge(p, now) > 60)
+    .filter((p) => positionAge(p, displayTime) > 60)
     .map((p) => p.boatId)
     .join(",");
   useEffect(() => {
@@ -119,8 +63,9 @@ export function LiveTrackingMap({ seriesId }: { seriesId: string }) {
       group = layer.current;
     if (!L || !m || !group) return;
     group.clearLayers();
+    const moving: {marker: Leaflet.CircleMarker; position: typeof positions[number]}[] = [];
     for (const p of positions) {
-      const stale = positionAge(p, now) > 60,
+      const stale = positionAge(p, displayTime) > 60,
         color = stale ? "#64748b" : "#007f73";
       if (p.trail.length > 1)
         L.polyline(p.trail, { color, weight: 3, opacity: 0.5 }).addTo(group);
@@ -130,7 +75,7 @@ export function LiveTrackingMap({ seriesId }: { seriesId: string }) {
         (p.sogMps === null
           ? ""
           : ` · ${(p.sogMps * 1.94384449).toFixed(1)} kn`);
-      L.circleMarker([p.latitude, p.longitude], {
+      const marker = L.circleMarker(replayCoordinate(p, displayTime), {
         radius: 8,
         color: "#fff",
         weight: 2,
@@ -139,6 +84,7 @@ export function LiveTrackingMap({ seriesId }: { seriesId: string }) {
       })
         .bindTooltip(label, { permanent: true, direction: "top" })
         .addTo(group);
+      moving.push({marker, position: p});
     }
     if (positions.length && !fitted.current) {
       m.fitBounds(
@@ -147,26 +93,35 @@ export function LiveTrackingMap({ seriesId }: { seriesId: string }) {
       );
       fitted.current = true;
     }
-  }, [positions, staleIds, mapReady]);
+    let animation = 0;
+    const started = performance.now();
+    if (replay.playing && !replay.following) {
+      const animate = (now: number) => {
+        const at = displayTime + Math.min(now - started, 100) * replay.speed;
+        for (const {marker, position} of moving) marker.setLatLng(replayCoordinate(position, at));
+        animation = requestAnimationFrame(animate);
+      };
+      animation = requestAnimationFrame(animate);
+    }
+    return () => cancelAnimationFrame(animation);
+  }, [positions, staleIds, mapReady, displayTime, replay.playing, replay.following, replay.speed]);
   useEffect(() => {
     if (!mapReady || !map.current || !leaflet.current) return;
     setSeamarkError(false);
-    if (seamarks) {
-      nautical.current = leaflet.current
-        .tileLayer("https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png", {
-          maxNativeZoom: 18,
-          maxZoom: 19,
-          attribution:
-            '&copy; <a href="https://www.openseamap.org/">OpenSeaMap</a> contributors',
-        })
-        .on("tileerror", () => setSeamarkError(true))
-        .addTo(map.current);
-    }
+    nautical.current = leaflet.current
+      .tileLayer("https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png", {
+        maxNativeZoom: 18,
+        maxZoom: 19,
+        attribution:
+          '&copy; <a href="https://www.openseamap.org/">OpenSeaMap</a> contributors',
+      })
+      .on("tileerror", () => setSeamarkError(true))
+      .addTo(map.current);
     return () => {
       nautical.current?.remove();
       nautical.current = null;
     };
-  }, [mapReady, seamarks]);
+  }, [mapReady]);
   function fitFleet() {
     if (map.current && leaflet.current && positions.length)
       map.current.fitBounds(
@@ -180,32 +135,12 @@ export function LiveTrackingMap({ seriesId }: { seriesId: string }) {
     <section className="live-tracking" aria-labelledby="tracking-title">
       <div className="tracking-heading">
         <div>
-          <h2 id="tracking-title">{t("Live boat tracking")}</h2>
-          <p>
-            {t(
-              "Positions shared by participating boats across this series. Updates target every 20 seconds.",
-            )}
-          </p>
+          <h2 id="tracking-title">{t(heatId ? "Heat map" : "Race map")}</h2>
         </div>
         <button onClick={fitFleet} disabled={!positions.length}>
           {t("Fit fleet")}
         </button>
       </div>
-      <label className="tracking-layer-toggle">
-        <input
-          type="checkbox"
-          checked={seamarks}
-          onChange={(e) => setSeamarks(e.target.checked)}
-        />
-        {t("Nautical seamarks (OpenSeaMap)")}
-      </label>
-      {seamarks && (
-        <p>
-          {t(
-            "Seamarks are a community overlay, not a complete nautical chart. Depths are not included.",
-          )}
-        </p>
-      )}
       {seamarkError && (
         <p role="status">
           {t(
@@ -213,15 +148,6 @@ export function LiveTrackingMap({ seriesId }: { seriesId: string }) {
           )}
         </p>
       )}
-      <p role="status">
-        {error
-          ? t(error)
-          : loading
-            ? t("Loading live positions…")
-            : positions.length
-              ? `${positions.filter((p) => positionAge(p, now) <= 60).length} ${t("live")} · ${positions.filter((p) => positionAge(p, now) > 60).length} ${t("stale")}`
-              : t("No boats are sharing their location right now.")}
-      </p>
       {mapError && (
         <p role="status">
           {t(
@@ -233,8 +159,25 @@ export function LiveTrackingMap({ seriesId }: { seriesId: string }) {
         ref={element}
         className="tracking-map"
         role="region"
-        aria-label={t("Live boat positions map")}
+        aria-label={t("Recorded boat positions map")}
       />
+      <div className="replay-controls">
+        {heatId && replay.heats.find(h=>h.id===heatId)?.start === null && <p>{t("The referee has not set this heat’s start time yet.")}</p>}
+        {replay.error ? <p role="alert">{t(replay.error)} <button onClick={replay.retry}>{t("Retry")}</button></p> : !replay.bounds && <p role="status">{t(replay.loading ? "Loading replay…" : "No recording is available for this selection.")}</p>}
+        {replay.bounds && <>
+          <div className="replay-toolbar">
+            <button onClick={replay.togglePlay} disabled={!!replay.error || replay.bounds.start === replay.bounds.end}>{t(replay.playing ? "Pause replay" : "Play replay")}</button>
+            <label>{t("Playback speed")} <select value={replay.speed} onChange={e => replay.setSpeed(Number(e.target.value))}>
+              {[1, 10, 30, 60, 120].map(speed => <option key={speed} value={speed}>{speed}×</option>)}
+            </select></label>
+            <output>{formatTime(replay.at)}</output>
+          </div>
+          <label className="replay-timeline">{t("Replay time")}
+            <input type="range" min={replay.bounds.start} max={replay.bounds.end} step="any" value={replay.at}
+              aria-valuetext={formatTime(replay.at)} onChange={e => replay.seek(Number(e.target.value))} />
+          </label>
+        </>}
+      </div>
       <p>
         {t(
           "Grey markers have not reported for over 60 seconds. GPS tracks are not official finish results.",
@@ -269,8 +212,8 @@ export function LiveTrackingMap({ seriesId }: { seriesId: string }) {
                 </td>
                 <td>{p.cogDeg === null ? "—" : p.cogDeg.toFixed(0)}</td>
                 <td>
-                  {positionAge(p, now)} s {t("ago")}
-                  {positionAge(p, now) > 60 ? ` · ${t("stale")}` : ""}
+                  {new Date(p.recordedAt).toLocaleTimeString()}
+                  {positionAge(p, displayTime) > 60 ? ` · ${t("stale")}` : ""}
                 </td>
                 <td>
                   {p.latitude.toFixed(5)}, {p.longitude.toFixed(5)} · ±

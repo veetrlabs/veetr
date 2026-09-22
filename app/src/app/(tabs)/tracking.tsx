@@ -102,7 +102,7 @@ export default function TrackingScreen() {
                 }}
               >
                 <Text style={{ color: c.text }}>
-                  Regatta tracking · manage in Regattas ›
+                  Race tracking · manage in Races ›
                 </Text>
               </Pressable>
             )}

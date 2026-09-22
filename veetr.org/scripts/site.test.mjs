@@ -347,7 +347,7 @@ test('legacy shop legal URLs redirect to their preserved policies', async () => 
 
 
 test('race management is mounted in the shared website shell', async () => {
-  for (const route of ['races/', 'races/manage/', 'boats/', 'account/']) {
+  for (const route of ['races/', 'races/manage/', 'races/new/', 'boats/', 'account/']) {
     const html = await readPage(route);
     assert.match(html, /id="veetr-racing"/);
     assert.match(html, /id="veetr-account-controls"/);
@@ -355,7 +355,8 @@ test('race management is mounted in the shared website shell', async () => {
     assert.match(html, /class="veetr-header/);
     assert.doesNotMatch(html, /<iframe/);
   }
-  assert.match(home, /href="\/boats\/"/);
+  assert.doesNotMatch(home, /href="\/boats\/"/);
+  assert.match(home, />Race management<\/a>/);
   assert.match(home, /href="\/races\/"/);
   assert.doesNotMatch(home, /id="veetr-racing"/);
   const manifest = JSON.parse(await readFile(new URL('veetr-app.webmanifest', dist), 'utf8'));

@@ -26,6 +26,28 @@ All sailors open **Regattas → My boat · join with invitation**, or tap their 
 - Website rewrites serve the same landing shell for all private links. Do not add these invitations to the service-worker navigation cache.
 - Deploy migration `202609200001_race_phone_pairing.sql`, then the website, then rebuild/install the native apps to apply associated domains/intent filters. Native JavaScript changes alone do not configure universal links.
 
+The Google Play Console **App signing → Digital Asset Links JSON** snippet verified on 2026-09-22 gives this public certificate fingerprint for `com.veetr.app`:
+
+```text
+6F:17:22:5C:42:28:6E:44:82:E9:B5:DD:28:FD:0D:F8:CC:7C:3A:12:61:DC:A0:2E:C6:A3:3A:40:26:03:8F:F0
+```
+
+Configure it as `PUBLIC_ANDROID_APP_LINK_FINGERPRINTS` in Cloudflare Pages project `veetr-site`, then rebuild the production deployment. Confirm `https://veetr.org/.well-known/assetlinks.json` contains the package and fingerprint above. This fingerprint is public identification, not a private signing key. Recheck Play Console after signing-key upgrades.
+
 ## Verification
 
 Database tests cover anonymous capabilities, no direct table access, single-phone binding and retry, account entry visibility, no pre-start or paused publication, replay, revocation, and finishing all phones. Mobile service tests cover activation, pause, stale race-control contact and native GPS shutdown on revocation. Before declaring outdoor readiness, test signed iPhone and Android builds with a real invitation, screen locked, referee start/pause/finish, lost connectivity, and return after force-close. Simulator tests cannot establish real-device background reliability.
+
+## Website heat map and replay
+
+Both race and heat details have a **Map & replay** tab. The race map covers the full race recording; the heat map is restricted to that heat’s start/end interval and entrants. Both use the same controls with one continuous timeline, play/pause and 1–120× playback. It follows the latest positions by default. Scrubbing backward pauses following so spectators can inspect earlier moments while fresh data continues arriving. Moving to the end resumes following; playback also resumes following when it catches up. Metadata and chunk versions refresh every ten seconds even while viewing history. There are no Live, Full recording or heat selector buttons; the detail page determines the scope.
+
+Officials mark **Start heat / End heat** or edit actual timestamps afterward, including for older recordings. These boundaries are stored independently of results in `heat_tracking_intervals`; they do not start/stop phone tracking or change scoring. Phone tracking can continue between heats. A heat without timestamps explains that the referee must set its start time.
+
+`public_race_replay` returns time bounds, published heat choices and positions. Selecting a heat restricts points to its actual interval and entrants. Historical trails cover up to five minutes (at most 60 fixes per boat); boats with no fix for five minutes disappear. Public access requires published/locked heats and entered boats. Revoked invitations and legacy sessions without replay consent are excluded. Finishing race tracking preserves previously shared history.
+
+Guest recordings belong to their race event. Legacy account sessions have no event ID and are restricted to the heat's UTC date. Apply migrations `202609220002_heat_replay.sql` and `202609220003_race_replay_intervals.sql` before deploying the website.
+
+Replay now uses `public_replay_tracks` for authorized raw GPS data. The browser caches up to eight five-minute chunks in memory, fetching pages of at most 2,000 points. Playback and scrubbing compute frames locally; they do not request animation frames from the server. A short look-ahead is loaded before chunk boundaries. Metadata includes content versions so removed access and late uploads invalidate affected chunks. For growing chunks, the server verifies the cached prefix and returns only appended points; a changed prefix triggers a full chunk replacement. Failed metadata refresh clears cached positions.
+
+Interpolation uses nearby fixes from the same phone session and never bridges gaps over 60 seconds. Coordinates between fixes are estimates. The cache is discarded when the map unmounts, with no persistent browser track storage. Apply migration `202609220005_replay_track_chunks.sql` before deploying this client; the older frame RPCs remain compatible for older clients.

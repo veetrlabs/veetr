@@ -825,3 +825,38 @@ input.fleet-registration { width: 22px; height: 22px; min-height: 22px; margin: 
 
 .fleet-table .fleet-tracking-status { white-space: normal; min-width: 10rem; max-width: 18rem; font-size: .875rem; }
 .fleet-tracking-status small { display: block; margin-top: .25rem; }
+
+.series-creation-page { max-width: 42rem; margin-inline: auto; }
+.series-creation-page h1 { margin-bottom: 1.5rem; }
+.series-creation-form fieldset { display: grid; gap: 1rem; border: 0; padding: 0; margin: 0 0 1.5rem; min-width: 0; }
+a.directory-create { display: inline-flex; align-items: center; min-height: 44px; padding: .7rem 1rem; font-weight: 600; text-decoration: none; }
+
+.race-creation-page { max-width: 54rem; margin-inline: auto; }
+.race-creation-page .race-edit { border-top: 0; padding-top: 0; }
+.entity-form-fields { display: block; border: 0; padding: 0; margin: 0; min-width: 0; }
+.entity-form-fields > label { max-width: 760px; }
+.entity-form-fields > div:not(.form-actions) { margin-top: 20px; }
+
+.replay-controls { margin-block: 1rem; }
+.replay-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; margin-block: .75rem; }
+.replay-toolbar label { display: flex; align-items: center; gap: .5rem; }
+.replay-toolbar select { width: auto; }
+.replay-toolbar button[aria-pressed="true"] { background: var(--sl-color-accent-low); border-color: var(--sl-color-accent); }
+.replay-timeline { display: block; }
+.replay-timeline input { display: block; width: 100%; min-height: 44px; padding: 0; }
+.replay-range { display: flex; justify-content: space-between; flex-wrap: wrap; gap: .5rem; font-size: .85rem; }
+
+.entity-delete-options { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--line); }
+.entity-delete-options > summary { cursor: pointer; width: fit-content; }
+.entity-delete-options > summary:focus-visible { outline: 3px solid #377bf0; outline-offset: 3px; }
+.entity-delete-content { margin-top: 1rem; }
+
+.section-title.entity-header { display: flex; flex-wrap: nowrap; justify-content: flex-start; align-items: center; gap: .5rem; }
+.entity-header h1 { min-width: 0; }
+.entity-header .entity-edit-button { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 44px; width: 44px; min-height: 44px; padding: .5rem; margin: 0; border: 0; background: transparent; color: var(--ink); box-shadow: none; }
+.entity-header .entity-edit-button:hover { background: var(--surface); }
+
+.series-team-editor { margin-top: 2rem; }
+.series-team-editor form { display: grid; gap: 1rem; }
+.series-team-editor label { display: grid; gap: .5rem; }
+.series-team-editor input { width: 100%; box-sizing: border-box; }

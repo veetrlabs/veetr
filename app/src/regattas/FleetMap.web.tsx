@@ -71,6 +71,6 @@ export default function FleetMap({
   return createElement("div", {
     ref: element,
     style: { flex: 1, minHeight: 250 },
-    "aria-label": "Regatta map",
+    "aria-label": "Race map",
   });
 }

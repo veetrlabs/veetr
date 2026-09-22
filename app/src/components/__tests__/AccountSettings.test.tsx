@@ -47,7 +47,7 @@ test('an unfinished shared tracking session blocks Settings sign-out', async () 
   mockStoreGet.mockResolvedValue({ userId: 'skipper', mode: 'shared', phase: 'recording' });
   const ui = render(<AccountSettings onBack={jest.fn()} />);
   fireEvent.press(await ui.findByText('Sign out'));
-  expect(await ui.findByText('Finish live sharing in Regattas before signing out.')).toBeTruthy();
+  expect(await ui.findByText('Finish live sharing in Races before signing out.')).toBeTruthy();
   expect(mockSignOut).not.toHaveBeenCalled();
 });
 test('sign-in failure stays visible on the account form', async () => {

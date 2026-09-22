@@ -34,7 +34,7 @@ export default function AccountSettings({ onBack }: { onBack: () => void }) {
         setBusy(true); setError("");
         try {
           const session = await (await trackingStore()).get();
-          if (session && session.mode !== "local" && session.userId === auth.user.id) throw new Error("Finish live sharing in Regattas before signing out.");
+          if (session && session.mode !== "local" && session.userId === auth.user.id) throw new Error("Finish live sharing in Races before signing out.");
           const { error } = await trackingClient!.auth.signOut({ scope: "local" });
           if (error) throw error;
         } catch (e) { setError(e instanceof Error ? e.message : "Sign-out failed."); }

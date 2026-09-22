@@ -11,6 +11,11 @@ export function entityId(kind:keyof Routes,value:string|null):string|null {
  return Object.entries(routes[kind]).find(([,slug])=>slug===value)?.[0] || value;
 }
 export async function initializeRoutes() {
+ // The all-boats directory is retired; boat profile URLs still use this shell.
+ if ((location.pathname === '/boats/' || location.pathname === '/boats') && !new URLSearchParams(location.search).has('boat')) {
+  location.replace('/races/');
+  return;
+ }
  try {const cached=localStorage.getItem('veetr.public-routes');if(cached)routes=JSON.parse(cached);}catch{}
  const url=import.meta.env?.VITE_SUPABASE_URL,key=import.meta.env?.VITE_SUPABASE_ANON_KEY;
  if(url&&key)try {
@@ -21,7 +26,7 @@ export async function initializeRoutes() {
  if(location.pathname==='/races/manage/' && !params.has('public') && !params.has('series')) history.replaceState(null,'','/races/'+location.search+location.hash);
  if((location.pathname==='/races/' || location.pathname==='/races/manage/') && (params.has('public') || params.has('series'))){
   const id=entityId('series',params.get('public') || params.get('series'))!;
-  history.replaceState(null,'',appHref(`?public=${id}${["event","heat"].filter(k=>params.has(k)).map(k=>`&${k}=${encodeURIComponent(params.get(k)!)}`).join("")}`)+location.hash);
+  history.replaceState(null,'',appHref(`?public=${id}${["event","heat","new-race","new-heat"].filter(k=>params.has(k)).map(k=>`&${k}=${encodeURIComponent(params.get(k)!)}`).join("")}`)+location.hash);
  }
  if(location.pathname==='/boats/' && params.has('boat')){
   const id=entityId('boats',params.get('boat'))!;
@@ -32,11 +37,12 @@ export function appHref(query:string):string {
  if(!integrated)return query;
  if(query==='/')return '/races/';
  const params=new URLSearchParams(query.replace(/^\?/,''));
- if(params.has('boats'))return '/boats/';
+ if(params.has('boats'))return '/races/';
  if(params.has('account'))return '/account/';
  if(params.has('boat'))return `/boats/${encodeURIComponent(routes.boats[params.get('boat')!] || params.get('boat')!)}/`;
+ if(params.has('new-series'))return '/races/new/';
  if(params.has('browse'))return '/races/';
  if(params.has('series')) { params.set('public',params.get('series')!); params.delete('series'); }
- if(params.has('public'))return `/races/?series=${encodeURIComponent(routes.series[params.get('public')!] || params.get('public')!)}${['event','heat'].filter(k=>params.has(k)).map(k=>`&${k}=${encodeURIComponent(params.get(k)!)}`).join('')}`;
+ if(params.has('public'))return `/races/?series=${encodeURIComponent(routes.series[params.get('public')!] || params.get('public')!)}${['event','heat','new-race','new-heat'].filter(k=>params.has(k)).map(k=>`&${k}=${encodeURIComponent(params.get(k)!)}`).join('')}`;
  return `/races/${params.size?`?${params}`:''}`;
 }

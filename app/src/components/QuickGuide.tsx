@@ -9,8 +9,8 @@ const topics = [
     "Start private recording begins one recording. Fresh Veetr GPS and instruments are used when available; phone GPS takes over when the device disconnects or its GPS is unavailable. Wind values are absent during phone-only tracking. History shows speed and wind in knots over the selected time range, including 3h and 6h. Gaps mean no samples were saved. Veetr GPS accuracy is unknown when the device does not report it. Background operation still depends on iOS permissions and device connectivity.",
   ],
   [
-    "Private sailing and regattas",
-    "In Track, tap Start private recording to record on this phone without an account or internet. Saved trips and map previews appear below. To share a race, open your referee’s private boat invitation from WhatsApp or email, or paste it under Regattas → My boat · join with invitation. No account is needed. The invitation identifies your boat and race. Press Ready to race in advance; sharing begins when the referee enables tracking. Allow background location, keep internet available and do not force-close the app. Your shared position and route are public live and in replay. Return to Regattas to check readiness or stop sharing. Private recordings stay under Track and are never shared automatically.",
+    "Private sailing and races",
+    "In Track, tap Start private recording to record on this phone without an account or internet. Saved trips and map previews appear below. To share a race, open your referee’s private boat invitation from WhatsApp or email, or paste it under Races → My boat · join with invitation. No account is needed. The invitation identifies your boat and race. Press Ready to race in advance; sharing begins when the referee enables tracking. Allow background location, keep internet available and do not force-close the app. Your shared position and route are public live and in replay. Return to Races to check readiness or stop sharing. Private recordings stay under Track and are never shared automatically.",
   ],
   [
     "Nautical map layer",

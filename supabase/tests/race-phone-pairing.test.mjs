@@ -53,6 +53,7 @@ test("race phone capabilities enforce pairing, readiness, activation, privacy an
     bid = doc.boats[0].id;
 
   const eventId = doc.events?.[0]?.id ?? doc.races[0].id;
+  const heatId = doc.races.find(r => r.eventId === eventId && r.entries.includes(bid)).id;
   const eid = await rpc("configure_race_tracking", [
     sid,
     eventId,
@@ -145,12 +146,24 @@ test("race phone capabilities enforce pairing, readiness, activation, privacy an
   await rpc("ingest_race_phone_points", [link.id, secret, session, [live]]);
   await rpc("ingest_race_phone_points", [link.id, secret, session, [live]]);
   assert.equal((await rpc("public_tracking_positions", [sid])).length, 1);
+  const replay = await rpc("public_heat_replay", [heatId, live.recordedAt]);
+  assert.equal(replay.positions.length, 1);
+  assert.equal(replay.positions[0].boatId, bid);
+  assert.equal(Date.parse(replay.start), Date.parse(live.recordedAt));
+  assert.equal(Date.parse(replay.end), Date.parse(live.recordedAt));
+  assert.equal((await rpc("public_heat_replay", [id()])).start, null);
+  const otherHeat = doc.races.find(r => r.eventId !== eventId);
+  assert.equal((await rpc("public_heat_replay", [otherHeat.id])).positions.length, 0);
+  await assert.rejects(rpc("heat_replay_points", [heatId]), /permission denied/);
+
   await assert.rejects(
     rpc("ingest_race_phone_points", [link.id, another, session, [point(3)]]),
     /Invalid phone/,
   );
   await login(owner);
   await rpc("set_race_tracking_active", [eid, false]);
+  // JS fixes use milliseconds; move beyond the database window-closing timestamp.
+  await new Promise(resolve => setTimeout(resolve, 5));
   await login(null, "anon");
   await rpc("ingest_race_phone_points", [link.id, secret, session, [point(3)]]);
   assert.equal((await rpc("public_tracking_positions", [sid])).length, 0);
@@ -188,6 +201,7 @@ test("race phone capabilities enforce pairing, readiness, activation, privacy an
     (await rpc("public_regatta_replay", [sid, live.recordedAt])).length,
     0,
   );
+  assert.equal((await rpc("public_heat_replay", [heatId])).start, null);
   await rpc("stop_race_phone", [
     link.id,
     secret,
@@ -223,8 +237,54 @@ test("race phone capabilities enforce pairing, readiness, activation, privacy an
     (await rpc("public_regatta_replay", [sid, finalPoint.recordedAt])).length,
     1,
   );
+  assert.equal((await rpc("public_heat_replay", [heatId, finalPoint.recordedAt])).positions.length, 1);
   await assert.rejects(
     rpc("arm_race_phone", [connected.linkId, another, id()]),
     /expired or revoked/,
   );
+  const tracks = await rpc("public_replay_tracks", [sid, eventId]);
+  assert.equal(tracks.points.length, 0); // Metadata alone never downloads tracks.
+  assert.ok(tracks.chunks.length);
+  const chunkStart = new Date(tracks.chunks[0].start).toISOString();
+  const chunk = await rpc("public_replay_tracks", [sid, eventId, null, chunkStart, 0]);
+  assert.ok(chunk.points.length);
+  assert.equal(chunk.points[0].boatId, bid);
+  const unchanged = await rpc("public_replay_tracks", [sid, eventId, null, chunkStart, 0, chunk.points.length, tracks.chunks[0].version]);
+  assert.equal(unchanged.append,true);
+  assert.equal(unchanged.points.length,0);
+  const invalidVersion = await rpc("public_replay_tracks", [sid, eventId, null, chunkStart, 0, chunk.points.length, 'old-version']);
+  assert.equal(invalidVersion.append,false);
+  assert.equal(invalidVersion.points.length,chunk.points.length);
+
+  assert.equal((await rpc("public_replay_tracks", [sid, id(), null, chunkStart, 0])).points.length, 0);
+  assert.equal((await rpc("public_replay_tracks", [sid, eventId, heatId, chunkStart, 0])).points.length, 0);
+  const raceReplay = await rpc("public_race_replay", [sid, eventId]);
+  assert.equal(raceReplay.positions.length, 1);
+  assert.equal(raceReplay.heats[0].id, heatId);
+  assert.equal((await rpc("public_race_replay", [sid, eventId, heatId])).start, null);
+  assert.equal((await rpc("public_race_replay", [sid, id()])).start, null);
+  await login(other);
+  await assert.rejects(rpc("mark_heat_tracking", [heatId, "start"]), /official/);
+  await login(owner);
+  await rpc("mark_heat_tracking", [heatId, "start"]);
+  await assert.rejects(rpc("mark_heat_tracking", [heatId, "start"]), /already/);
+  await rpc("mark_heat_tracking", [heatId, "end"]);
+  await assert.rejects(rpc("mark_heat_tracking", [heatId, "end"]), /already/);
+  const before = new Date(Date.parse(finalPoint.recordedAt)-1000).toISOString();
+  const after = new Date(Date.parse(finalPoint.recordedAt)+1).toISOString();
+  await rpc("set_heat_tracking_times", [heatId, before, after]);
+  await assert.rejects(rpc("set_heat_tracking_times", [heatId, after, before]), /valid past/);
+  await assert.rejects(rpc("set_heat_tracking_times", [heatId, "2099-01-01", null]), /valid past/);
+  await login(null, "anon");
+  assert.equal((await rpc("public_race_replay", [sid, eventId, heatId])).positions.length, 1);
+  await login(owner);
+  await rpc("set_heat_tracking_times", [heatId, new Date(Date.parse(before)-2000).toISOString(), before]);
+  await login(null, "anon");
+  assert.equal((await rpc("public_race_replay", [sid, eventId, heatId])).positions.length, 0);
+  assert.equal((await rpc("public_race_replay", [sid, eventId])).positions.length, 1);
+  await db.exec("reset role");
+  await db.query("update public.races set status='draft' where id=$1", [heatId]);
+  await login(null, "anon");
+  assert.equal((await rpc("public_heat_replay", [heatId])).start, null);
+
 });

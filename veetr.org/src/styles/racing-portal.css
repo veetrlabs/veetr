@@ -10,11 +10,11 @@ body:has(#veetr-racing) .content-panel { border: 0; padding-top: 1rem; }
 #veetr-racing h1, #veetr-racing h2, #veetr-racing h3 { color:var(--sl-color-white); }
 #veetr-racing button, #veetr-racing input, #veetr-racing select, #veetr-racing textarea { font-family:inherit; color:var(--sl-color-white); border-color:var(--sl-color-gray-4); background:var(--sl-color-bg); }
 #veetr-racing button:hover, #veetr-racing tbody tr:hover { background:var(--sl-color-gray-6); }
-#veetr-racing .primary, #veetr-racing .directory-create, #veetr-racing .section-title > button:not(.delete-action) { background:var(--sl-color-text-accent); border-color:var(--sl-color-text-accent); color:var(--sl-color-bg); }
+#veetr-racing .primary, #veetr-racing .directory-create, #veetr-racing .section-title > button:not(.delete-action):not(.entity-edit-button) { background:var(--sl-color-text-accent); border-color:var(--sl-color-text-accent); color:var(--sl-color-bg); }
 /* Keep the accent foreground/background paired through interactive states. */
 #veetr-racing .primary:is(:hover, :active, :focus-visible),
 #veetr-racing .directory-create:is(:hover, :active, :focus-visible),
-#veetr-racing .section-title > button:not(.delete-action):is(:hover, :active, :focus-visible) {
+#veetr-racing .section-title > button:not(.delete-action):not(.entity-edit-button):is(:hover, :active, :focus-visible) {
   background:var(--sl-color-text-accent);
   color:var(--sl-color-bg);
   border-color:var(--sl-color-text-accent);
@@ -51,11 +51,8 @@ body:has(#veetr-racing) .content-panel { border: 0; padding-top: 1rem; }
 #veetr-racing .notice button:hover { background: transparent; text-decoration: underline; }
 #veetr-racing .portal-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:1rem; margin-bottom:1.25rem; }
 #veetr-racing .portal-toolbar a {font-weight:600; font-size:.9rem; color:var(--sl-color-text-accent);text-decoration:none;}
-#veetr-account-controls {flex-shrink:0;white-space:nowrap;display:flex;align-items:center;gap:.5rem;}
-#veetr-account-controls:has(.portal-account) > a:not(.portal-account) {display:none;}
-#veetr-account-controls select, #veetr-account-controls button, #veetr-account-controls .portal-account {font:inherit;font-size:.85rem;min-height:2.5rem;border:1px solid var(--sl-color-hairline);border-radius:.5rem;padding:.4rem .65rem;background:var(--sl-color-bg);color:var(--sl-color-white);}
-#veetr-account-controls .portal-account {background:var(--sl-color-text-accent);color:var(--sl-color-bg);font-weight:600;}
-@media(max-width:48rem){#veetr-account-controls select {max-width:5rem;}#veetr-account-controls button{max-width:7rem;}body:has(#veetr-racing) .sl-container {padding-inline:.5rem;}}
+#veetr-language-controls select {font:inherit;min-height:2.75rem;border:1px solid var(--sl-color-hairline);border-radius:.5rem;padding:.4rem .65rem;background:var(--sl-color-bg);color:var(--sl-color-white);}
+@media(max-width:48rem){body:has(#veetr-racing) .sl-container {padding-inline:.5rem;}}
 
 /* Account is a normal document page, with neutral surfaces and no overlay. */
 #veetr-racing:has(.account-page) { background: transparent; }
@@ -68,4 +65,6 @@ body:has(#veetr-racing) .content-panel { border: 0; padding-top: 1rem; }
 :root[data-theme=light] #veetr-racing .account-page select,
 :root[data-theme=light] #veetr-racing .account-page button { background: #fff; color: #20242b; border-color: #cbd0d8; }
 :root[data-theme=light] #veetr-racing .account-page .primary { background: #252a33; color: #fff; border-color: #252a33; }
-#veetr-account-controls a.portal-account { text-decoration: none; display: inline-flex; align-items: center; }
+
+#veetr-racing .entity-edit-button { background: transparent; color: var(--sl-color-gray-2); }
+#veetr-racing .entity-edit-button:hover { background: var(--sl-color-accent-low); color: var(--sl-color-text-accent); }

@@ -1,10 +1,9 @@
-import {CreationAccess} from "./CreationAccess";
 import { appHref } from "./routes";
 import { t } from "./i18n";
 import React, { useEffect, useState } from "react";
 import { listPublicSeries, type PublicSeriesSummary } from "./api";
 import { eventsFor, type Series } from "./domain";
-export function PublicDirectory({editableSeries = [], create, signedIn = false}: {editableSeries?: Series[]; create?: () => void; signedIn?: boolean}) {
+export function PublicDirectory({editableSeries = [], signedIn = false}: {editableSeries?: Series[]; signedIn?: boolean}) {
   const [series, setSeries] = useState<PublicSeriesSummary[]>([]),
     [loading, setLoading] = useState(true),
     [error, setError] = useState(""),
@@ -41,10 +40,10 @@ export function PublicDirectory({editableSeries = [], create, signedIn = false}:
   );
   return (
     <section className="public-directory">
-      <div className="section-title"><h1>{t("Racing on record.")}</h1>{signedIn && <CreationAccess onCreate={create ?? (()=>{})} />}</div>
+      <div className="section-title"><h1>{t("Racing on record.")}</h1>{signedIn && <a className="directory-create" href={appHref("?new-series")}>{t("New series")}</a>}</div>
       <p>
         {t(
-          "Follow published regatta results, explore the fleet, and see how the series unfolds.",
+          "Follow published race results, explore the fleet, and see how the series unfolds.",
         )}
       </p>
       {error && <p role="status">{t(error)}</p>}

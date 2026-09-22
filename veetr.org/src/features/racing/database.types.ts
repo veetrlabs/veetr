@@ -462,6 +462,12 @@ export type Database = {
       request_creation_access: {Args: {reason: string}; Returns: undefined};
       review_creation_access: {Args: {request_id: string; approve: boolean}; Returns: undefined};
       list_creation_requests: {Args: Record<PropertyKey, never>; Returns: Json};
+      public_replay_tracks: { Args: {p_series: string; p_event: string; p_heat?: string; p_from?: string; p_offset?: number; p_known_count?: number; p_known_version?: string}; Returns: Json };
+      public_race_replay: { Args: { p_series: string; p_event: string; p_heat?: string; p_at?: string }; Returns: Json }
+      public_heat_tracking_times: { Args: {p_heat: string}; Returns: Json }
+      mark_heat_tracking: { Args: {p_heat: string; p_action: string}; Returns: undefined }
+      set_heat_tracking_times: { Args: {p_heat: string; p_start: string; p_end: string | null}; Returns: undefined }
+      public_heat_replay: { Args: { p_heat: string; p_at?: string }; Returns: Json }
       public_tracking_positions: { Args: { p_series: string }; Returns: Json }
       my_tracking_entries: { Args: Record<PropertyKey, never>; Returns: Json }
       start_tracking_session: { Args: { p_id: string; p_series: string; p_boat: string }; Returns: Json }

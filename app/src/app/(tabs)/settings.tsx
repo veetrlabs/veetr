@@ -117,12 +117,12 @@ export default function SettingsTab() {
 
       <TouchableOpacity
         accessibilityRole="button"
-        accessibilityLabel="Regatta"
+        accessibilityLabel="Race"
         style={[styles.menuItem, { borderBottomColor: colors.border }]}
         onPress={() => navigateTo("regatta")}
       >
         <Text style={[styles.menuItemText, { color: colors.text }]}>
-          Regatta
+          Race
         </Text>
         <Text style={[styles.arrow, { color: colors.textSubtle }]}>›</Text>
       </TouchableOpacity>

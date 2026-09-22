@@ -44,7 +44,7 @@ export default function RegattaBrowser({ onShare }: { onShare?: () => void } = {
     async function load() {
       if (!trackingClient)
         throw new Error(
-          "Regattas are unavailable. Check your connection and try again.",
+          "Races are unavailable. Check your connection and try again.",
         );
       const reply = await trackingClient.rpc("public_regatta_directory");
       let directory: Regatta[];
@@ -102,7 +102,7 @@ export default function RegattaBrowser({ onShare }: { onShare?: () => void } = {
         colors={["#006b62"]}
       />}
     >
-      <Text style={{ color: c.text, fontSize: 28, fontWeight: "700" }}>Regattas</Text>
+      <Text style={{ color: c.text, fontSize: 28, fontWeight: "700" }}>Races</Text>
       {onShare && button("My boat · join with invitation", onShare)}
       <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
         {(["All", "Live", "Upcoming", "Past"] as RegattaFilter[]).map((f) =>

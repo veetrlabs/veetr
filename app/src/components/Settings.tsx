@@ -105,7 +105,7 @@ export default function Settings() {
         <Text style={[styles.arrow, { color: colors.textSubtle }]}>›</Text>
       </TouchableOpacity>
       <TouchableOpacity style={[styles.menuItem, { borderBottomColor: colors.border }]} onPress={() => navigateTo('regatta')}>
-        <Text style={[styles.menuItemText, { color: colors.text }]}>Regatta</Text>
+        <Text style={[styles.menuItemText, { color: colors.text }]}>Race</Text>
         <Text style={[styles.arrow, { color: colors.textSubtle }]}>›</Text>
       </TouchableOpacity>
       <TouchableOpacity style={[styles.menuItem, { borderBottomColor: colors.border }]} onPress={() => navigateTo('calibration')}>
@@ -188,7 +188,7 @@ export default function Settings() {
     <>
       <View style={[styles.menuHeader, { borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={() => navigateTo('main')}><Text style={styles.back}>‹ Back</Text></TouchableOpacity>
-        <Text style={[styles.menuTitle, { color: colors.text }]}>Regatta</Text>
+        <Text style={[styles.menuTitle, { color: colors.text }]}>Race</Text>
         <TouchableOpacity onPress={closeMenu}><Text style={[styles.close, { color: colors.textMuted }]}>✕</Text></TouchableOpacity>
       </View>
 

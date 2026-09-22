@@ -9,6 +9,8 @@ export interface TrackingPosition {
   cogDeg: number | null;
   source: "phone" | "veetr";
   trail: [number, number][];
+  futureFixes?: {recordedAt: string; latitude: number; longitude: number}[];
+  nextFix?: {recordedAt: string; latitude: number; longitude: number} | null;
 }
 export function positionAge(
   position: Pick<TrackingPosition, "recordedAt">,
@@ -38,6 +40,11 @@ export function parseTrackingPositions(value: unknown): TrackingPosition[] {
       (p.cogDeg !== null &&
         (!coordinate(p.cogDeg, 360) || p.cogDeg < 0 || p.cogDeg >= 360)) ||
       (p.source !== "phone" && p.source !== "veetr") ||
+      (p.futureFixes != null && (!Array.isArray(p.futureFixes) || p.futureFixes.some(
+        (f: TrackingPosition["nextFix"]) => !f || !Number.isFinite(Date.parse(f.recordedAt)) ||
+          !coordinate(f.latitude,90) || !coordinate(f.longitude,180)))) ||
+      (p.nextFix != null && (!Number.isFinite(Date.parse(p.nextFix.recordedAt)) ||
+        !coordinate(p.nextFix.latitude, 90) || !coordinate(p.nextFix.longitude, 180))) ||
       !Array.isArray(p.trail) ||
       p.trail.some(
         (c: unknown) =>
@@ -50,4 +57,9 @@ export function parseTrackingPositions(value: unknown): TrackingPosition[] {
       throw new Error("Invalid tracking response");
   }
   return value;
+}
+
+export function positionsForHeat(positions: TrackingPosition[], boatIds: string[]): TrackingPosition[] {
+  const entered = new Set(boatIds);
+  return positions.filter(position => entered.has(position.boatId));
 }

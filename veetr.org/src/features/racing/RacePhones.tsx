@@ -220,8 +220,9 @@ export default function RacePhones({
   }
   const cannotShare =
     busy || !rosterLoaded || !chosen || !boat || !starts || ended;
+  const invitation = current?.phones.find((p) => p.boatId === boat?.id);
   function withInvitation(send: (url: string) => Promise<void>) {
-    if (cannotShare) return;
+    if (cannotShare || invitation) return;
     const action = async () => {
       let url = link;
       if (!url) {
@@ -240,14 +241,7 @@ export default function RacePhones({
       }
       await send(url);
     };
-    if (!link && current?.phones.some((p) => p.boatId === boat.id)) {
-      setConfirmation({
-        title: "Create a new invitation",
-        message:
-          "Replace this boat’s invitation? Its previous phone will lose tracking access.",
-        action,
-      });
-    } else void run(action);
+    void run(action);
   }
   return (
     <div className="race-invitation-form">
@@ -347,13 +341,29 @@ export default function RacePhones({
               {t("This race has ended. Update its start time in Edit race")}
             </p>
           )}
-          {!link && current?.phones.some((p) => p.boatId === boat?.id) && (
-            <p>
-              {t(
-                "An invitation already exists for this boat. Creating a new one disables the previous link and disconnects its phone. Use this only to replace the invitation or change phones.",
-              )}
-            </p>
-          )}
+          {invitation ? (
+            <div className="invitation-result">
+              <h3>{t("Invitation status")}</h3>
+              <p role="status">{t(invitation.connected ? "Accepted — phone connected" : "Pending — not accepted yet")}</p>
+              {invitation.connected && <p>{t(phoneTrackingStatus(invitation, current))}</p>}
+              <p>{t("Cancel this invitation to disable its link and disconnect its phone. You can then share a new invitation.")}</p>
+              <button
+                type="button"
+                className="danger"
+                disabled={busy}
+                onClick={() => setConfirmation({
+                  title: "Cancel invitation",
+                  message: "Cancel this invitation? Its link will stop working and its phone will lose tracking access.",
+                  action: async () => {
+                    await rpc("revoke_race_tracking_link", { lid: invitation.id });
+                    setLink("");
+                    setCopied(false);
+                    setEmailSent(false);
+                  },
+                })}
+              >{t("Cancel invitation")}</button>
+            </div>
+          ) : (
           <div className="invitation-result">
             <h3>{t("Share invitation")}</h3>
             <p role="status">
@@ -463,6 +473,7 @@ export default function RacePhones({
               </p>
             )}
           </div>
+          )}
         </>
       )}
       {raceControls && !current && (
@@ -472,18 +483,12 @@ export default function RacePhones({
           )}
         </p>
       )}
-      {current && (
+      {current && raceControls && (
         <details
           className="race-tracking-controls"
           open={raceControls || undefined}
         >
-          <summary>
-            {t(
-              raceControls
-                ? "Race tracking"
-                : "This boat’s tracking access",
-            )}
-          </summary>
+          <summary>{t("Race tracking")}</summary>
           {raceControls && (
             <>
               <p>
@@ -536,46 +541,6 @@ export default function RacePhones({
               </div>
             </>
           )}
-          {!raceControls && (
-            <p>
-              <a href={appHref(`?public=${series.id}&event=${chosen.id}`)}>
-                {t("Open race tracking controls")}
-              </a>
-            </p>
-          )}
-          {!raceControls && <ul>
-            {current.phones
-              .filter((p) => raceControls || p.boatId === boat?.id)
-              .map((p) => (
-                <li key={p.id}>
-                  {series.boats.find((b) => b.id === p.boatId)?.name}:{" "}
-                  {t(
-                    !p.connected
-                      ? "Invitation not opened"
-                      : !p.ready
-                        ? "Connected · not ready"
-                        : !p.lastSeen ||
-                            Date.now() - Date.parse(p.lastSeen) > 60000
-                          ? "Ready · phone not recently reachable"
-                          : current.active && p.eligible
-                            ? "Ready · live sharing enabled"
-                            : "Ready · waiting",
-                  )}
-                  {!p.eligible && ` · ${t("Add boat to a published heat")}`}{" "}
-                  <button
-                    disabled={busy}
-                    onClick={() =>
-                      void run(async () => {
-                        await rpc("revoke_race_tracking_link", { lid: p.id });
-                        setLink("");
-                      })
-                    }
-                  >
-                    {t("Revoke phone access")}
-                  </button>
-                </li>
-              ))}
-          </ul>}
         </details>
       )}
       {error && <p role="alert">{t(error)}</p>}

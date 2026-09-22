@@ -61,7 +61,7 @@ beforeEach(() => {
 });
 test("the legacy sharing screen no longer loads or offers the series fleet", async () => {
   const ui = render(<RegattaSharingScreen />);
-  expect(await ui.findByText("Go to Regattas")).toBeTruthy();
+  expect(await ui.findByText("Go to Races")).toBeTruthy();
   expect(trackingRpc).not.toHaveBeenCalled();
   expect(ui.queryByText("Luna")).toBeNull();
   expect(ui.queryByText("Start live sharing")).toBeNull();

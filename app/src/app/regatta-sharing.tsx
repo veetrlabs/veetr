@@ -142,17 +142,17 @@ export default function RegattaSharingScreen() {
         <Text style={[styles.title, text]}>Share boat location</Text>
         {!ownSession && (
           <Text style={{ color: colors.textSecondary }}>
-            Boat invitations and race readiness are under the Regattas tab.
+            Boat invitations and race readiness are under the Races tab.
           </Text>
         )}
         {!trackingClient ? (
           <Text style={{ color: colors.textMuted }}>
-            Regatta sign-in is currently unavailable.
+            Race sign-in is currently unavailable.
           </Text>
         ) : !ready ? (
           <Text style={text}>Restoring account…</Text>
         ) : !auth && !showSignIn ? (
-          button("Sign in for regatta tracking", () => setShowSignIn(true))
+          button("Sign in for race tracking", () => setShowSignIn(true))
         ) : !auth ? (
           <AccountSignIn />
         ) : (
@@ -279,7 +279,7 @@ export default function RegattaSharingScreen() {
                   Join your boat using the private race invitation from your
                   referee. No account or fleet selection is needed.
                 </Text>
-                {button("Go to Regattas", () => router.replace("/regattas"))}
+                {button("Go to Races", () => router.replace("/regattas"))}
               </View>
             )}
             {button(

@@ -131,7 +131,7 @@ async function startGPS(local = false) {
     activityType: Location.ActivityType.OtherNavigation,
     showsBackgroundLocationIndicator: true,
     foregroundService: {
-      notificationTitle: "Veetr regatta tracking",
+      notificationTitle: "Veetr race tracking",
       notificationBody: local
         ? "Recording GPS on this phone. Open Veetr to stop."
         : session?.mode === "race"

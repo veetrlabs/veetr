@@ -1,6 +1,5 @@
 ---
 import SiteTitle from '@astrojs/starlight/components/SiteTitle.astro';
-import ThemeSelect from '@astrojs/starlight/components/ThemeSelect.astro';
 import Search from '@astrojs/starlight/components/Search.astro';
 import { Icon } from '@astrojs/starlight/components';
 
@@ -11,13 +10,9 @@ const hardwareLinks = [
 ];
 const navigationGroups = [
   { label: 'Hardware', links: hardwareLinks },
-  { label: 'Race Management', links: [
-    { href: '/boats/', label: 'Boats' },
-    { href: '/races/', label: 'Races' },
-  ] },
 ];
 const pathname = Astro.url.pathname;
-const isCurrent = (href: string) => pathname === href || (href === '/docs/' && pathname.startsWith('/docs/'));
+const isCurrent = (href: string) => pathname === href || (['/docs/', '/races/'].includes(href) && pathname.startsWith(href));
 ---
 
 <div class="veetr-header">
@@ -33,15 +28,12 @@ const isCurrent = (href: string) => pathname === href || (href === '/docs/' && p
         </div>
       </details>
     ))}
+    <a href="/races/" aria-current={isCurrent('/races/') ? 'page' : undefined}>Race management</a>
     <a href="/about/" aria-current={isCurrent('/about/') ? 'page' : undefined}>About</a>
+    <div id="veetr-account-controls" class="account-menu-item"><a href="/account/" aria-current={isCurrent('/account/') ? 'page' : undefined}>Account</a></div>
   </nav>
   <div class="header-controls">
     <Search />
-    <a class="github-link" href="https://github.com/veetrlabs/veetr" aria-label="Veetr on GitHub">
-      <Icon name="github" size="1.25rem" />
-    </a>
-    <ThemeSelect />
-    <div id="veetr-account-controls"><a href="/account/">Account</a></div>
     <details class="mobile-menu">
       <summary aria-label="Site navigation">
         <Icon class="menu-icon" name="list-format" size="1.25rem" />
@@ -58,11 +50,9 @@ const isCurrent = (href: string) => pathname === href || (href === '/docs/' && p
             </div>
           </details>
         ))}
+        <a href="/races/" aria-current={isCurrent('/races/') ? 'page' : undefined}>Race management</a>
         <a href="/about/" aria-current={isCurrent('/about/') ? 'page' : undefined}>About</a>
-        <div class="mobile-actions">
-          <a href="https://github.com/veetrlabs/veetr">GitHub <Icon name="external" /></a>
-          <a href="https://app.veetr.org/">Live App <Icon name="right-arrow" /></a>
-        </div>
+        <div id="veetr-mobile-account-controls" class="account-menu-item"><a href="/account/" aria-current={isCurrent('/account/') ? 'page' : undefined}>Account</a></div>
       </nav>
     </details>
   </div>
@@ -75,8 +65,8 @@ const isCurrent = (href: string) => pathname === href || (href === '/docs/' && p
   .desktop-links, .header-controls { display: flex; align-items: center; gap: .4rem; }
   .header-controls { flex-shrink: 0; }
   .header-controls :global(site-search) { margin-inline: .2rem; }
-  .desktop-links a, .nav-group > summary { padding: .55rem .7rem; font-size: .9rem; font-weight: 550; text-decoration: none; color: var(--sl-color-gray-2); border-radius: .5rem; white-space: nowrap; }
-  .desktop-links a:hover, .desktop-links a[aria-current="page"], .nav-group > summary:hover, .nav-group.active > summary { color: var(--sl-color-text-accent); background: var(--sl-color-accent-low); }
+  .desktop-links :global(a), .nav-group > summary { padding: .55rem .7rem; font-size: .9rem; font-weight: 550; text-decoration: none; color: var(--sl-color-gray-2); border-radius: .5rem; white-space: nowrap; }
+  .desktop-links :global(a:hover), .desktop-links :global(a[aria-current="page"]), .nav-group > summary:hover, .nav-group.active > summary { color: var(--sl-color-text-accent); background: var(--sl-color-accent-low); }
   .nav-group { position: relative; }
   .nav-group > summary { display: flex; align-items: center; justify-content: space-between; gap: .5rem; cursor: pointer; list-style: none; }
   .nav-group > summary::-webkit-details-marker { display: none; }
@@ -84,29 +74,26 @@ const isCurrent = (href: string) => pathname === href || (href === '/docs/' && p
   .nav-group[open] > summary .chevron { transform: rotate(180deg); }
   .group-links { display: grid; gap: .2rem; }
   .desktop-links .group-links { position: absolute; top: calc(100% + .5rem); left: 0; z-index: 10; min-width: 12rem; padding: .5rem; border: 1px solid var(--sl-color-hairline); border-radius: .75rem; background: var(--sl-color-bg-nav); box-shadow: 0 12px 32px #0003; }
-  .github-link { display: grid; place-items: center; width: 2.75rem; height: 2.75rem; color: var(--sl-color-white); }
-  #veetr-account-controls > a { padding: .55rem .7rem; border-radius: .5rem; color: var(--sl-color-text-accent); background: var(--sl-color-accent-low); font-size: .9rem; font-weight: 600; text-decoration: none; }
+  .veetr-header :global(.account-menu-item:has(.portal-account) > a:not(.portal-account)) { display: none; }
   .mobile-menu { display: none; }
-  a:focus-visible, summary:focus-visible { outline: 2px solid var(--sl-color-text-accent); outline-offset: 4px; }
+  :global(.veetr-header a:focus-visible), summary:focus-visible { outline: 2px solid var(--sl-color-text-accent); outline-offset: 4px; }
   @media (max-width: 76rem) {
-    .desktop-links, .github-link { display: none; }
+    .desktop-links { display: none; }
     .mobile-menu { display: block; }
     .mobile-menu > summary { display: grid; place-items: center; list-style: none; width: 2.75rem; height: 2.75rem; border: 1px solid var(--sl-color-hairline); border-radius: .6rem; cursor: pointer; color: var(--sl-color-white); }
     .mobile-menu > summary::-webkit-details-marker { display: none; }
     .close-icon, [open] .menu-icon { display: none; }
     [open] .close-icon { display: block; }
     .mobile-menu nav { position: absolute; top: calc(100% + .5rem); right: 1rem; width: min(24rem, calc(100% - 2rem)); max-height: calc(100dvh - var(--sl-nav-height) - 1.5rem); overflow-y: auto; overscroll-behavior: contain; padding: .75rem; border: 1px solid var(--sl-color-hairline); border-radius: .85rem; background: var(--sl-color-bg-nav); box-shadow: 0 20px 60px #0003; }
-    .mobile-menu nav a { display: flex; align-items: center; justify-content: space-between; min-height: 3rem; padding: .65rem 1rem; color: var(--sl-color-white); text-decoration: none; font-weight: 550; border-radius: .45rem; }
-    .mobile-menu nav a:hover, .mobile-menu nav a[aria-current="page"] { background: var(--sl-color-accent-low); color: var(--sl-color-text-accent); }
+    .mobile-menu nav :global(a) { display: flex; align-items: center; justify-content: space-between; min-height: 3rem; padding: .65rem 1rem; color: var(--sl-color-white); text-decoration: none; font-weight: 550; border-radius: .45rem; }
+    .mobile-menu nav :global(a:hover), .mobile-menu nav :global(a[aria-current="page"]) { background: var(--sl-color-accent-low); color: var(--sl-color-text-accent); }
     .mobile-menu .nav-group > summary { min-height: 3rem; padding: .65rem 1rem; color: var(--sl-color-white); font-size: inherit; }
     .mobile-menu .nav-group.active > summary { color: var(--sl-color-text-accent); }
     .mobile-menu .group-links { margin-left: 1rem; padding-left: .35rem; border-left: 1px solid var(--sl-color-hairline); }
-    .mobile-actions { border-top: 1px solid var(--sl-color-hairline); margin-top: .5rem; padding-top: .5rem; }
   }
   @media (max-width: 40rem) {
-    :global(:root) { --sl-nav-height: 8rem; }
-    .veetr-header { flex-wrap: wrap; align-content: center; gap: .5rem; }
-    .header-controls { width: 100%; justify-content: space-between; gap: .15rem; }
+    .veetr-header { gap: .5rem; }
+    .header-controls { gap: .15rem; }
     .header-controls :global(site-search) { margin: 0; }
   }
   @media (max-width: 24rem) {

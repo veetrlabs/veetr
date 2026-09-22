@@ -1,5 +1,6 @@
 ---
 import Footer from '../Footer.astro';
+import ThemeSelect from '@astrojs/starlight/components/ThemeSelect.astro';
 import CookieBanner from '../CookieBanner.astro';
 import EditLink from '@astrojs/starlight/components/EditLink.astro';
 import Pagination from '@astrojs/starlight/components/Pagination.astro';
@@ -9,7 +10,12 @@ import Pagination from '@astrojs/starlight/components/Pagination.astro';
   <div class="docs-page-meta"><EditLink /></div>
   <Pagination />
 </div>
-<Footer />
+<Footer>
+  <div slot="preferences" class="footer-preferences">
+    <ThemeSelect />
+    <div id="veetr-language-controls"></div>
+  </div>
+</Footer>
 <CookieBanner />
 
 <style>

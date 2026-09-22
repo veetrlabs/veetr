@@ -1,6 +1,7 @@
-import { DeleteAction } from "./DeleteAction";
+import { EditEntityButton } from "./EditEntityButton";
+import { DeleteSection } from "./DeleteAction";
 import { t } from "./i18n";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   type Series,
   type RaceEvent,
@@ -9,12 +10,15 @@ import {
   eventsFor,
   materializeEvents,
   eventEntries,
+  validateDiscardRules,
 } from "./domain";
 import { Discards } from "./EventScoring";
 export interface Location {
   seriesId?: string;
   eventId?: string;
   heatId?: string;
+  newRace?: boolean;
+  newHeat?: boolean;
 }
 export function Breadcrumbs({
   location,
@@ -60,6 +64,19 @@ export function Breadcrumbs({
     </nav>
   );
 }
+function raceDate(series: Series, event: RaceEvent): string {
+  if (event.scheduledStart) {
+    const start = new Date(event.scheduledStart);
+    if (Number.isFinite(start.getTime())) {
+      return `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-${String(start.getDate()).padStart(2, "0")}`;
+    }
+  }
+  return series.races
+    .filter(heat => (heat.eventId ?? heat.id) === event.id && heat.date)
+    .map(heat => heat.date)
+    .sort()[0] ?? "";
+}
+
 export function SeriesBrowser({
   seriesList,
   location,
@@ -93,8 +110,10 @@ export function SeriesBrowser({
       ? eventsFor(series).map((e) => ({
           id: e.id,
           name: e.name,
-          detail: String(e.order),
-          status: e.completed ? t("Completed") : t(e.scheduleStatus ?? "In progress"),
+          detail: raceDate(series, e),
+          status: e.completed
+            ? t("Completed")
+            : t(e.scheduleStatus ?? "In progress"),
           count: series.races.filter((r) => (r.eventId ?? r.id) === e.id)
             .length,
           kind: "event",
@@ -109,12 +128,17 @@ export function SeriesBrowser({
         }));
   const canFilter = !series || Boolean(event);
   const visible = rows
-    .filter((r) =>
-      !canFilter || `${r.name} ${r.detail} ${r.status}`
-        .toLowerCase()
-        .includes(query.toLowerCase()),
+    .filter(
+      (r) =>
+        !canFilter ||
+        `${r.name} ${r.detail} ${r.status}`
+          .toLowerCase()
+          .includes(query.toLowerCase()),
     )
     .sort((a, b) => {
+      if (sort === "detail" && series && (!a.detail || !b.detail)) {
+        return a.detail ? -1 : b.detail ? 1 : 0;
+      }
       const x =
         sort === "count"
           ? a.count
@@ -143,61 +167,48 @@ export function SeriesBrowser({
     <section>
       <div className="section-title">
         {series ? <h2>{heading}</h2> : <h1>{heading}</h1>}
-        {(series ? edit : create) && <button
-          onClick={() => {
-            if (!series) {
-              create?.();
-              return;
-            }
-            edit?.((s) => {
-              materializeEvents(s);
-              if (event) {
-                s.races.push({
-                  id: id(),
-                  eventId: event.id,
-                  name: `Heat ${s.races.filter((r) => r.eventId === event.id).length + 1}`,
-                  date: new Date().toISOString().slice(0, 10),
-                  order: Math.max(0, ...s.races.map((r) => r.order)) + 1,
-                  weight: 1,
-                  status: "published",
-                  entries: eventEntries(s, event.id),
-                  results: [],
-                });
-              } else {
-                s.events!.push({
-                  id: id(),
-                  name: `Race ${s.events!.length + 1}`,
-                  order: Math.max(0, ...s.events!.map((e) => e.order)) + 1,
-                  weight: 1,
-                  completed: false,
-                  discards: [],
-                  entries: s.boats.map((b) => b.id),
-                });
+        {(series ? edit : create) && (
+          <button
+            onClick={() => {
+              if (!series) {
+                create?.();
+                return;
               }
-            });
-          }}
-        >
-          {t(event ? "New heat" : series ? "New race" : "New series")}
-        </button>}
+              if (!event) {
+                navigate({ seriesId: series.id, newRace: true });
+                return;
+              }
+              navigate({
+                seriesId: series.id,
+                eventId: event.id,
+                newHeat: true,
+              });
+            }}
+          >
+            {t(event ? "New heat" : series ? "New race" : "New series")}
+          </button>
+        )}
       </div>
-      {canFilter && <div className="inline">
-        <label>
-          {t(event ? "Filter heats" : "Filter series")}
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={t("Name, date or status")}
-          />
-        </label>
-      </div>}
+      {canFilter && (
+        <div className="inline">
+          <label>
+            {t(event ? "Filter heats" : "Filter series")}
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={t("Name, date or status")}
+            />
+          </label>
+        </div>
+      )}
       <div className="table-scroll">
         <table>
           <thead>
             <tr>
               {[
                 ["name", "Name"],
-                ["detail", event ? t("Date") : series ? t("Order") : t("Year")],
+                ["detail", series ? t("Date") : t("Year")],
                 ["status", "Status"],
                 [
                   "count",
@@ -255,7 +266,7 @@ export function SeriesBrowser({
                     {r.name}
                   </button>
                 </th>
-                <td>{r.detail}</td>
+                <td>{r.detail || "—"}</td>
                 <td>{r.status}</td>
                 <td>{r.count}</td>
               </tr>
@@ -279,36 +290,41 @@ export function SeriesBrowser({
 }
 export function EntityDetails({
   onEditingChange,
+  team,
   series,
   location,
   edit,
   onDelete,
 }: {
   onEditingChange?: (value: boolean) => void;
+  team?: React.ReactNode;
   onDelete?: () => Promise<void>;
   series: Series;
   location: Location;
   edit?: (fn: (s: Series) => void, seriesId?: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
-  const changeEditing = (value: boolean) => { setEditing(value); onEditingChange?.(value); };
+  const changeEditing = (value: boolean) => {
+    setEditing(value);
+    onEditingChange?.(value);
+  };
   const event = eventsFor(series).find((e) => e.id === location.eventId);
   const heat = series.races.find((r) => r.id === location.heatId);
   const entity = heat ?? event ?? series;
   return (
     <section className="entity-details">
-
       <div className="section-title entity-header">
         <h1>{entity.name}</h1>
         {edit && !editing && (
-          <button onClick={() => changeEditing(true)}>
-            {t(heat ? "Edit heat" : event ? "Edit race" : "Edit series")}
-          </button>
+          <EditEntityButton label={t(heat ? "Edit heat" : event ? "Edit race" : "Edit series")} onClick={() => changeEditing(true)} />
         )}
-      {onDelete && !editing && <DeleteAction onDelete={onDelete} description={t(heat ? "Delete this heat and all its results?" : event ? "Delete this race, all its heats and results? Boat profiles will remain." : "Delete this series, all its races, heats and results? Boat profiles will remain.")} />}
+
       </div>
-      {!editing && !event && !heat && series.description && <p>{series.description}</p>}
+      {!editing && !event && !heat && series.description && (
+        <p>{series.description}</p>
+      )}
       {edit && editing && (
+        <>
         <Editor
           series={series}
           event={heat ? undefined : event}
@@ -319,192 +335,318 @@ export function EntityDetails({
             changeEditing(false);
           }}
         />
+        {!event && !heat && team}
+        {onDelete && (
+          <DeleteSection
+            onDelete={onDelete}
+            description={t(
+              heat
+                ? "Delete this heat and all its results?"
+                : event
+                  ? "Delete this race, all its heats and results? Boat profiles will remain."
+                  : "Delete this series, all its races, heats and results? Boat profiles will remain.",
+            )}
+          />
+        )}
+        </>
       )}
     </section>
   );
 }
-function Editor({
+export function Editor({
+  creating = false,
   series,
   event,
   heat,
   onCancel,
   save,
 }: {
+  creating?: boolean;
   series: Series;
   event?: RaceEvent;
   heat?: ControlRace;
   onCancel: () => void;
-  save: (fn: (s: Series) => void) => void;
+  save: (fn: (s: Series) => void) => void | Promise<void>;
 }) {
   const [rules, setRules] = useState(event?.discards ?? series.discards ?? []);
   const [categories, setCategories] = useState(series.categories);
   const target = heat ?? event ?? series;
+  const [busy, setBusy] = useState(false),
+    [error, setError] = useState("");
+  const submitting = useRef(false);
   return (
     <form
       className="race-edit"
-      aria-label={t("Edit {name}", { name: target.name })}
-      onSubmit={(e) => {
+      aria-label={
+        creating
+          ? t(heat ? "New heat" : "New race")
+          : t("Edit {name}", { name: target.name })
+      }
+      onSubmit={async (e) => {
         e.preventDefault();
+        if (submitting.current) return;
         const d = new FormData(e.currentTarget);
-        save((s) => {
-          materializeEvents(s);
-          if (heat) {
-            const r = s.races.find((r) => r.id === heat.id)!;
-            r.name = String(d.get("name"));
-            r.eventId = String(d.get("event"));
-            r.date = String(d.get("date"));
-            r.weight = Number(d.get("weight"));
-            r.status = d.get("shared") === "on" ? "published" : "draft";
-            const entries = eventEntries(s, r.eventId!);
-            if (r.results.some((v) => !entries.includes(v.boatId))) throw new Error("The destination race must include all boats with recorded results");
-            r.entries = entries;
-          } else if (event) {
-            Object.assign(
-              s.events!.find((v) => v.id === event.id)!,
-              {
-                scheduledStart: d.get("scheduledStart") ? new Date(String(d.get("scheduledStart"))).toISOString() : undefined,
+        submitting.current = true;
+        setBusy(true);
+        setError("");
+        try {
+          const heatDetails = heat ? heatDetailsFromForm(d) : undefined;
+          const eventDetails = event ? raceEventDetails(d, rules) : undefined;
+          await save((s) => {
+            materializeEvents(s);
+            if (heat) {
+              const r = s.races.find((r) => r.id === heat.id)!;
+              Object.assign(r, heatDetails);
+              if (!eventsFor(s).some((event) => event.id === r.eventId))
+                throw new Error("Select a race for this heat.");
+              const entries = eventEntries(s, r.eventId!);
+              if (r.results.some((v) => !entries.includes(v.boatId)))
+                throw new Error(
+                  "The destination race must include all boats with recorded results",
+                );
+              r.entries = entries;
+            } else if (event) {
+              Object.assign(
+                s.events!.find((v) => v.id === event.id)!,
+                eventDetails,
+              );
+            } else {
+              Object.assign(s, {
                 name: String(d.get("name")),
-                weight: Number(d.get("weight")),
-                completed: d.get("completed") === "on",
+                year: Number(d.get("year")),
+                description: String(d.get("description")),
+                status: String(d.get("status")),
                 discards: rules,
-              },
-            );
-          } else {
-            Object.assign(s, {
-              name: String(d.get("name")),
-              year: Number(d.get("year")),
-              description: String(d.get("description")),
-              status: String(d.get("status")),
-              discards: rules,
-              categories,
-            });
-          }
-        });
+                categories,
+              });
+            }
+          });
+        } catch (error) {
+          setError(error instanceof Error ? error.message : String(error));
+        } finally {
+          submitting.current = false;
+          setBusy(false);
+        }
       }}
     >
-      <h2>{t(heat ? "Edit heat" : event ? "Edit race" : "Edit series")}</h2>
-      <label>
-        {t("Name")}
-        <input name="name" required defaultValue={target.name} />
-      </label>
-      {!heat && !event ? (
-        <>
-          <label>
-            {t("Year")}
-            <input
-              name="year"
-              type="number"
-              min="1900"
-              max="2200"
-              defaultValue={series.year}
-            />
-          </label>
-          <label>
-            {t("Description")}
-            <textarea name="description" defaultValue={series.description} />
-          </label>
-          <label>
-            {t("Status")}
-            <select name="status" defaultValue={series.status}>
-              <option value="draft">{t("draft")}</option>
-              <option value="active">{t("active")}</option>
-              <option value="completed">{t("completed")}</option>
-            </select>
-          </label>
-        </>
-      ) : (
+      {error && <p role="alert">{t(error)}</p>}
+      <fieldset disabled={busy} className="entity-form-fields">
+        {!creating && (
+          <h2>{t(heat ? "Edit heat" : event ? "Edit race" : "Edit series")}</h2>
+        )}
         <label>
-          {t("Weight")}
+          {t("Name")}
           <input
-            name="weight"
-            type="number"
-            min="0.1"
-            step="0.1"
-            defaultValue={heat?.weight ?? event?.weight}
+            name="name"
+            required
+            defaultValue={target.name}
+            autoFocus={creating}
           />
         </label>
-      )}
-      {heat && (
-        <>
-          <label>
-            {t("Race")}
-            <select name="event" defaultValue={heat.eventId ?? heat.id}>
-              {eventsFor(series).map((e) => (
-                <option key={e.id} value={e.id}>
-                  {e.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            {t("Date")}
-            <input name="date" type="date" defaultValue={heat.date} />
-          </label>
-          <label className="check">
-            <input
-              name="shared"
-              type="checkbox"
-              defaultChecked={heat.status !== "draft"}
-            />
-            {t("Share live results")}
-          </label>
-        </>
-      )}
-      {event && <label>{t("Race start (your local time)")}
-        <input name="scheduledStart" type="datetime-local" defaultValue={event.scheduledStart ? new Date(Date.parse(event.scheduledStart) - new Date(event.scheduledStart).getTimezoneOffset() * 60000).toISOString().slice(0,16) : ""} />
-        <small>{t("Invitations use this start time. Change it here if the race is postponed.")}</small>
-      </label>}
-      {event && (
-        <label className="check">
-          <input
-            name="completed"
-            type="checkbox"
-            defaultChecked={event.completed}
-          />
-          {t("Race completed")}
-        </label>
-      )}
-      {!heat && !event && (
-        <div>
-          <h3>{t("Categories")}</h3>
-          {categories.map((c, i) => (
-            <label key={c.id}>
-              {t("Category name")}
+        {!heat && !event ? (
+          <>
+            <label>
+              {t("Year")}
               <input
-                value={c.name}
-                onChange={(e) =>
-                  setCategories(
-                    categories.map((v, j) =>
-                      j === i ? { ...v, name: e.target.value } : v,
-                    ),
-                  )
-                }
+                name="year"
+                type="number"
+                min="1900"
+                max="2200"
+                defaultValue={series.year}
               />
             </label>
-          ))}
-          <button
-            type="button"
-            onClick={() =>
-              setCategories([...categories, { id: id(), name: "New category" }])
-            }
-          >
-            {t("Add category")}
-          </button>
-        </div>
-      )}
-      {!heat && (
-        <Discards
-          value={rules}
-          onChange={setRules}
-          label={event ? t("Heat discards") : t("Series discards")}
-        />
-      )}
+            <label>
+              {t("Description")}
+              <textarea name="description" defaultValue={series.description} />
+            </label>
+            <label>
+              {t("Status")}
+              <select name="status" defaultValue={series.status}>
+                <option value="draft">{t("draft")}</option>
+                <option value="active">{t("active")}</option>
+                <option value="completed">{t("completed")}</option>
+              </select>
+            </label>
+          </>
+        ) : (
+          <label>
+            {t("Weight")}
+            <input
+              name="weight"
+              type="number"
+              min="0.1"
+              max="100"
+              required
+              step="0.1"
+              defaultValue={heat?.weight ?? event?.weight}
+            />
+          </label>
+        )}
+        {heat && (
+          <>
+            <label>
+              {t("Race")}
+              <select name="event" defaultValue={heat.eventId ?? heat.id}>
+                {eventsFor(series).map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              {t("Date")}
+              <input name="date" type="date" defaultValue={heat.date} />
+            </label>
+            <label className="check">
+              <input
+                name="shared"
+                type="checkbox"
+                defaultChecked={heat.status !== "draft"}
+              />
+              {t("Share live results")}
+            </label>
+          </>
+        )}
+        {event && (
+          <label>
+            {t("Race start (your local time)")}
+            <input
+              name="scheduledStart"
+              type="datetime-local"
+              defaultValue={
+                event.scheduledStart
+                  ? new Date(
+                      Date.parse(event.scheduledStart) -
+                        new Date(event.scheduledStart).getTimezoneOffset() *
+                          60000,
+                    )
+                      .toISOString()
+                      .slice(0, 16)
+                  : ""
+              }
+            />
+            <small>
+              {t(
+                "Invitations use this start time. Change it here if the race is postponed.",
+              )}
+            </small>
+          </label>
+        )}
+        {event && (
+          <label className="check">
+            <input
+              name="completed"
+              type="checkbox"
+              defaultChecked={event.completed}
+            />
+            {t("Race completed")}
+          </label>
+        )}
+        {!heat && !event && (
+          <div>
+            <h3>{t("Categories")}</h3>
+            {categories.map((c, i) => (
+              <label key={c.id}>
+                {t("Category name")}
+                <input
+                  value={c.name}
+                  onChange={(e) =>
+                    setCategories(
+                      categories.map((v, j) =>
+                        j === i ? { ...v, name: e.target.value } : v,
+                      ),
+                    )
+                  }
+                />
+              </label>
+            ))}
+            <button
+              type="button"
+              onClick={() =>
+                setCategories([
+                  ...categories,
+                  { id: id(), name: "New category" },
+                ])
+              }
+            >
+              {t("Add category")}
+            </button>
+          </div>
+        )}
+        {!heat && (
+          <Discards
+            value={rules}
+            onChange={setRules}
+            label={event ? t("Heat discards") : t("Series discards")}
+          />
+        )}
+      </fieldset>
       <div className="form-actions">
-        <button type="submit" className="primary">{t("Save")}</button>
-        <button type="button" onClick={onCancel}>
+        <button type="submit" className="primary" disabled={busy}>
+          {t(
+            busy
+              ? "Saving…"
+              : creating
+                ? heat
+                  ? "Create heat"
+                  : "Create race"
+                : "Save",
+          )}
+        </button>
+        <button type="button" onClick={onCancel} disabled={busy}>
           {t("Cancel")}
         </button>
       </div>
     </form>
   );
+}
+
+export function raceEventDetails(
+  data: FormData,
+  discards: RaceEvent["discards"],
+) {
+  const name = String(data.get("name") ?? "").trim();
+  const weight = Number(data.get("weight"));
+  const start = String(data.get("scheduledStart") ?? "");
+  if (!name) throw new Error("Enter a race name.");
+  if (!Number.isFinite(weight) || weight <= 0 || weight > 100)
+    throw new Error("Enter a weight between 0.1 and 100.");
+  if (start && !Number.isFinite(Date.parse(start)))
+    throw new Error("Enter a valid race start time.");
+  validateDiscardRules(discards);
+  return {
+    name,
+    weight,
+    scheduledStart: start ? new Date(start).toISOString() : undefined,
+    completed: data.get("completed") === "on",
+    discards,
+  };
+}
+
+export function heatDetailsFromForm(data: FormData) {
+  const name = String(data.get("name") ?? "").trim();
+  const date = String(data.get("date") ?? "");
+  const weight = Number(data.get("weight"));
+  const eventId = String(data.get("event") ?? "");
+  if (!name) throw new Error("Enter a heat name.");
+  if (!eventId) throw new Error("Select a race for this heat.");
+  if (!Number.isFinite(weight) || weight < 0.1 || weight > 100)
+    throw new Error("Enter a weight between 0.1 and 100.");
+  if (
+    date &&
+    (!/^\d{4}-\d{2}-\d{2}$/.test(date) ||
+      !Number.isFinite(Date.parse(date)) ||
+      new Date(date).toISOString().slice(0, 10) !== date)
+  )
+    throw new Error("Enter a valid heat date.");
+  return {
+    name,
+    date,
+    weight,
+    eventId,
+    status: (data.get("shared") === "on"
+      ? "published"
+      : "draft") as ControlRace["status"],
+  };
 }

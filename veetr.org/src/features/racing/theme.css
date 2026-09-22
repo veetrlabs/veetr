@@ -39,8 +39,8 @@ section { border-color: var(--line); border-radius: var(--radius); padding: 28px
 button { border-color: #d9e2d9; border-radius: 10px; font-size: 14px; min-height: 44px; transition: background-color .15s, border-color .15s, box-shadow .15s; }
 button:hover { border-color: #adc0ab; background: #f0f5e9; }
 button:active:not(:disabled) { background: #e5eddc; }
-.primary, .section-title > button:not(.delete-action), .directory-create { background: var(--ink); color: #fff; border-color: var(--ink); box-shadow: 0 2px 5px #183e3610; }
-.primary:hover, .section-title > button:not(.delete-action):hover, .directory-create:hover { background: #2d574b; }
+.primary, .section-title > button:not(.delete-action):not(.entity-edit-button), .directory-create { background: var(--ink); color: #fff; border-color: var(--ink); box-shadow: 0 2px 5px #183e3610; }
+.primary:hover, .section-title > button:not(.delete-action):not(.entity-edit-button):hover, .directory-create:hover { background: #2d574b; }
 .delete-action { color: #a83c32; border-color: #ead2cf; background: #fff; }
 nav:not(.breadcrumbs) { gap: 6px; padding: 12px 0; margin-bottom: 18px; border-bottom: 0; overflow-x: auto; }
 nav:not(.breadcrumbs) button { flex-shrink: 0; color: #607369; padding: 10px 18px; }

@@ -150,6 +150,9 @@
 .site-footer h2 { font-size: .875rem; color: var(--sl-color-white); margin: 0 0 1rem; }
 .site-footer a { display: block; width: fit-content; padding-block: .35rem; text-decoration: none; color: var(--sl-color-gray-2); }
 .site-footer a:hover { color: var(--sl-color-text-accent); text-decoration: underline; }
+.footer-preferences { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+.footer-preferences select { min-height: 2.75rem; }
+#veetr-language-controls:empty { display: none; }
 .footer-bottom { margin-top: 2rem; padding-block: 1.5rem; border-top: 1px solid var(--sl-color-hairline); color: var(--sl-color-gray-3); }
 .cookie-banner { position: fixed; z-index: 60; right: 1rem; bottom: 1rem; width: min(34rem, calc(100% - 2rem)); display: flex; align-items: center; gap: 1rem; padding: 1rem; border: 1px solid var(--sl-color-hairline); border-radius: .85rem; background: var(--sl-color-bg-nav); color: var(--sl-color-white); box-shadow: 0 10px 40px #0002; font-size: .875rem; }
 .cookie-banner[data-hidden] { display: none; }

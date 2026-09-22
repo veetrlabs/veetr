@@ -1,4 +1,10 @@
+import {SeriesTeam} from "./SeriesTeam";
+import {HeatCreation} from "./HeatCreation";
+import {RaceCreation} from "./RaceCreation";
+import {CreationAccess} from "./CreationAccess";
+import {SeriesCreation} from "./SeriesCreation";
 import RacePhones from "./RacePhones";
+import {HeatTrackingTimes} from "./HeatTrackingTimes";
 import {LiveTrackingMap} from "./LiveTrackingMap";
 import "leaflet/dist/leaflet.css";
 import {HeatResults} from "./SharedResults";
@@ -22,7 +28,6 @@ import { statuses } from "@veetr/scoring";
 import {
   id,
   eventsFor,
-  newSeries,
   normalize,
   setFinish,
   recordFinish,
@@ -44,7 +49,7 @@ import { appHref, integrated, entityId, boatRouteValue } from "./routes";
 
 const boatId = entityId("boats", boatRouteValue(window.location.pathname, window.location.search));
 const boatsPage =
-  Boolean(boatId) || new URLSearchParams(window.location.search).has("boats") || location.pathname.startsWith("/boats/");
+  Boolean(boatId);
 
 function download(series: Series) {
   const url = URL.createObjectURL(
@@ -56,18 +61,24 @@ function download(series: Series) {
   a.click();
   URL.revokeObjectURL(url);
 }
+function isNewSeriesPage() {
+  return window.location.pathname === "/races/new/" || new URLSearchParams(window.location.search).has("new-series");
+}
 function readRoute(): Location {
   const params = new URLSearchParams(window.location.search);
   return {
     seriesId: entityId("series", params.get("series") ?? params.get("public")) ?? undefined,
     eventId: params.get("event") ?? undefined,
     heatId: params.get("heat") ?? undefined,
+    newRace: params.has("new-race"),
+    newHeat: params.has("new-heat"),
   };
 }
 export default function App({ updateAvailable = false, updateServiceWorker = async (_reload?: boolean) => {} }: {updateAvailable?: boolean; updateServiceWorker?: (reload?: boolean) => Promise<void>}) {
   const language = useLanguage();
+  const [newSeriesPage, setNewSeriesPage] = useState(isNewSeriesPage);
   const [records, setRecords] = useState<LocalRecord[]>([]),
-    [page, setPage] = useState(window.location.hash === "#tracking" ? "tracking" : readRoute().heatId ? "finish" : "manage"),
+    [page, setPage] = useState(window.location.hash.startsWith("#tracking") && readRoute().eventId ? "tracking" : readRoute().heatId ? "finish" : "manage"),
     [category, setCategory] = useState(""),
     [raceId, setRaceId] = useState(readRoute().heatId ?? "");
   const [location, setLocation] = useState<Location>(readRoute);
@@ -76,21 +87,25 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
     if (next.seriesId) params.set("series", next.seriesId);
     if (next.eventId) params.set("event", next.eventId);
     if (next.heatId) params.set("heat", next.heatId);
+    if (next.newRace) params.set("new-race", "");
+    if (next.newHeat) params.set("new-heat", "");
     window.history.pushState(
       null,
       "",
       appHref(params.size ? `?${params}` : "/"),
     );
+    setNewSeriesPage(false);
     setLocation(next);
     setRaceId(next.heatId ?? "");
     setPage(next.heatId ? "finish" : "manage");
   };
   useEffect(() => {
     const restore = () => {
+      setNewSeriesPage(isNewSeriesPage());
       const next = readRoute();
       setLocation(next);
         setRaceId(next.heatId ?? "");
-      setPage(window.location.hash === "#tracking" ? "tracking" : next.heatId ? "finish" : "manage");
+      setPage(window.location.hash.startsWith("#tracking") && next.eventId ? "tracking" : next.heatId ? "finish" : "manage");
     };
     window.addEventListener("popstate", restore);
     return () => window.removeEventListener("popstate", restore);
@@ -313,6 +328,24 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
       void sync();
     });
   };
+  const saveNewEntity = (change: (s: Series) => void): Promise<void> => {
+    const seriesId = location.seriesId;
+    const task = chain.current.then(async () => {
+      setBusy(true);
+      try {
+        requireAccount(identity.current, user);
+        if (!seriesId || !canEdit) throw new Error("Series editing access required");
+        const old = current.current.find(record => record.series.id === seriesId);
+        if (!old) throw new Error("Series editing access required");
+        const next = structuredClone(old.series);
+        change(next);
+        validateSeries(next);
+        await persist(stageChange(old, next));
+      } finally { setBusy(false); }
+    });
+    chain.current = task.catch(() => {});
+    return task.then(() => { void sync(); });
+  };
   const editRace = (change: (r: ControlRace, s: Series) => void) => {
     if (race)
       edit((s) =>
@@ -322,22 +355,32 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
         ),
       );
   };
-  const create = () =>
-    serial(async () => {
-      requireAccount(identity.current, user);
-      if (!canCreate) throw new Error("Organizer approval required to create a series");
-      const s = newSeries();
-      await persist({
-        series: s,
-        revision: 0,
-        pending: true,
-        owner: user,
-        mutationId: id(),
-        savedAt: new Date().toISOString(),
-      });
-      navigate({ seriesId: s.id });
-      void sync();
+  const create = (s: Series): Promise<void> => {
+    const task = chain.current.then(async () => {
+      setBusy(true);
+      try {
+        // Recheck permission after a long-open form or an account change.
+        requireAccount(identity.current, user);
+        if (!supabase) throw new Error("Organizer approval required to create a series");
+        const result = await supabase.rpc("can_create_series");
+        if (result.error) throw result.error;
+        if (!result.data) throw new Error("Organizer approval required to create a series");
+        requireAccount(identity.current, user);
+        setCreator(user);
+        validateSeries(s);
+        await persist({
+          series: s, revision: 0, pending: true, owner: user,
+          mutationId: id(), savedAt: new Date().toISOString(),
+        });
+        navigate({seriesId: s.id});
+      } finally {
+        setBusy(false);
+      }
     });
+    // Preserve the workspace queue while returning errors to the form.
+    chain.current = task.catch(() => {});
+    return task.then(() => { void sync(); });
+  };
   const finishers = race?.results ?? [];
   const pending =
     series?.boats.filter(
@@ -352,23 +395,24 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
   const accountHref = (integrated ? "/account/" : "/?account") + (location.seriesId ? `${integrated ? "?" : "&"}series=${encodeURIComponent(location.seriesId)}` : "");
   return (
     <>
-      {integrated && document.getElementById("veetr-account-controls") && createPortal(<>
-        <LanguageSelector />
-        <a className="portal-account" href={accountHref}>{user ? t("Account") : t("Sign in")}</a>
-      </>, document.getElementById("veetr-account-controls")!)}
+      {integrated && ["veetr-account-controls", "veetr-mobile-account-controls"].map((id) => {
+        const target = document.getElementById(id);
+        return target && createPortal(
+          <a className="portal-account" href={accountHref} aria-current={accountPage ? "page" : undefined}>{t("Account")}</a>,
+          target,
+          id,
+        );
+      })}
+      {integrated && document.getElementById("veetr-language-controls") && createPortal(
+        <LanguageSelector />,
+        document.getElementById("veetr-language-controls")!,
+      )}
       {!integrated && <header>
         <a className="brand" href="/">
           veetr<span>{t("RACE CONTROL")}</span>
         </a>
         <div className="connection">
           <LanguageSelector />
-          <a
-            className="public-results-link"
-            href="?boats"
-            aria-current={boatsPage ? "page" : undefined}
-          >
-            {t("Boats")}
-          </a>
           <a className="public-results-link" href={appHref("?browse")}>{t("All series")}</a>
           {user &&
             (!online || records.some((r) => r.owner === user && r.pending)) && (
@@ -419,12 +463,20 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
             </button>
           </div>
         )}
-        {!accountPage && (boatsPage ? (
+        {!accountPage && (newSeriesPage ? (
+          <section className="series-creation-page">
+            {!authReady ? <p role="status">{t("Restoring session…")}</p> : !user ? <>
+              <h1>{t("New series")}</h1>
+              <p>{t("Sign in before making changes to the race workspace.")}</p>
+              <a href={accountHref}>{t("Sign in")}</a>
+            </> : <CreationAccess key={user}><SeriesCreation onCreate={create} /></CreationAccess>}
+          </section>
+        ) : boatsPage ? (
           <Boats boatId={boatId} userId={user} />
         ) : (
           <>
             {!authReady && <p role="status">{t("Restoring session…")}</p>}
-            {!location.seriesId && <PublicDirectory signedIn={Boolean(user)} editableSeries={visible.map(r => r.series)} create={canCreate ? create : undefined} />}
+            {!location.seriesId && <PublicDirectory signedIn={Boolean(user)} editableSeries={visible.map(r => r.series)} />}
             {location.seriesId && (
               <Breadcrumbs
                 location={location}
@@ -432,8 +484,33 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
                 navigate={navigate}
               />
             )}
+            {location.newHeat ? (
+              series && canEdit && location.eventId ? <HeatCreation key={`${series.id}/${location.eventId}`} series={series} eventId={location.eventId} save={saveNewEntity} navigate={navigate} /> :
+              <section><h1>{t("New heat")}</h1><p role="status">{t(!authReady ? "Restoring session…" : "Series editing access required")}</p><button onClick={() => navigate({seriesId: location.seriesId, eventId: location.eventId})}>{t("Cancel")}</button></section>
+            ) : location.newRace ? (
+              series && canEdit ? <RaceCreation key={series.id} series={series} save={saveNewEntity} navigate={navigate} /> :
+              <section><h1>{t("New race")}</h1><p role="status">{t(!authReady ? "Restoring session…" : "Series editing access required")}</p><button onClick={() => navigate({seriesId: location.seriesId})}>{t("Cancel")}</button></section>
+            ) : <>
             {location.seriesId && series && (
               <EntityDetails
+                team={!location.eventId && !location.heatId && canDelete ? (
+                  <SeriesTeam
+                    key={`${user}/${series.id}`}
+                    userId={user}
+                    seriesId={series.id}
+                    seriesName={series.name}
+                    cloudSaved={Boolean(record?.revision)}
+                    localSeries={record?.owner === "local"}
+                    onAttach={async () => {
+                      if (!record || !user) return;
+                      await serial(async () => {
+                        requireAccount(identity.current, user);
+                        await persist({ ...record, owner: user, pending: true });
+                      });
+                      await sync();
+                    }}
+                  />
+                ) : undefined}
                 onEditingChange={setEntityEditing}
                 key={`${location.seriesId}/${location.eventId ?? ""}/${location.heatId ?? ""}`}
                 series={series}
@@ -463,7 +540,6 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
               />
             )}
             {!entityEditing && <>
-            {canEdit && canDelete && <a href={accountHref}>{t("Series team")}</a>}
             {canEdit && series && <>
               {location.eventId && <RacePhones key={`${series.id}/${location.eventId}`} series={series} eventId={location.eventId} />}
               {race && <section className="tracking-heat">
@@ -503,14 +579,21 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
                 >
                   {t("Fleet")}
                 </button>
-                <button className={page === "tracking" ? "selected" : ""} aria-current={page === "tracking" ? "page" : undefined} onClick={() => setPage("tracking")}>{t("Live map")}</button>
+                {location.eventId && <button className={page === "tracking" ? "selected" : ""} onClick={() => {window.history.replaceState(null, "", window.location.pathname + window.location.search + "#tracking"); setPage("tracking");}}>{t("Map & replay")}</button>}
+              </nav>
+            )}
+            {series && race && location.heatId && canEdit && <HeatTrackingTimes key={race.id} heatId={race.id}/>}
+            {series && race && location.heatId && (
+              <nav aria-label={t("Heat tools")}>
+                <button className={page === "finish" ? "selected" : ""} aria-current={page === "finish" ? "page" : undefined} onClick={() => { window.history.replaceState(null, "", window.location.pathname + window.location.search); setPage("finish"); }}>{t("Results")}</button>
+                <button className={page === "tracking" ? "selected" : ""} onClick={() => {window.history.replaceState(null, "", window.location.pathname + window.location.search + "#tracking"); setPage("tracking");}}>{t("Map & replay")}</button>
               </nav>
             )}
             {location.seriesId && !series ? <p role="status">{t("Series unavailable or still loading.")}</p> : series && page === "manage" ? (
               <SeriesBrowser key={`${series.id}/${location.eventId ?? ""}`} seriesList={[series]} location={location} navigate={navigate} edit={canEdit ? edit : undefined} />
             ) : series ? (
               <>
-                {page === "tracking" && <LiveTrackingMap key={series.id} seriesId={series.id} />}
+                {page === "tracking" && location.eventId && <LiveTrackingMap key={location.heatId ?? location.eventId} seriesId={series.id} eventId={location.eventId} heatId={location.heatId} boatIds={location.heatId && race ? race.entries : [...new Set(series.races.filter(r => (r.eventId ?? r.id) === location.eventId).flatMap(r => r.entries))]} />}
                 {(page === "standings" && !location.eventId) && (
                   <div className="categories" aria-label={t("Race categories")}>
                     <button
@@ -921,6 +1004,7 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
               </>
             ) : null}
             </>}
+            </>}
           </>
         ))}
         {accountPage && (
@@ -933,17 +1017,7 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
             }}
             userId={user}
             seriesId={canEdit && canDelete ? series?.id : undefined}
-            seriesName={series?.name}
-            cloudSaved={Boolean(record?.revision)}
-            localSeries={record?.owner === "local"}
-            onAttach={async () => {
-              if (!record || !user) return;
-              await serial(async () => {
-                requireAccount(identity.current, user);
-                await persist({ ...record, owner: user, pending: true });
-              });
-              await sync();
-            }}
+
           />
         )}
       </div>
