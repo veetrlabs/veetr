@@ -202,6 +202,7 @@ test("race phone capabilities enforce pairing, readiness, activation, privacy an
     0,
   );
   assert.equal((await rpc("public_heat_replay", [heatId])).start, null);
+  assert.deepEqual(await rpc("race_phone_fleet", [connected.linkId, another]), []);
   await rpc("stop_race_phone", [
     link.id,
     secret,
@@ -221,6 +222,9 @@ test("race phone capabilities enforce pairing, readiness, activation, privacy an
     next,
     [finalPoint],
   ]);
+  assert.equal((await rpc("race_phone_fleet", [connected.linkId, another]))[0].boatId,bid);
+  await assert.rejects(rpc("race_phone_fleet", [connected.linkId, secret]), /Invalid phone credential/);
+  await assert.rejects(rpc("race_phone_fleet", [link.id, secret]), /Invitation unavailable/);
   await login(owner);
   await rpc("finish_race_tracking", [eid]);
   await assert.rejects(
@@ -242,6 +246,22 @@ test("race phone capabilities enforce pairing, readiness, activation, privacy an
     rpc("arm_race_phone", [connected.linkId, another, id()]),
     /expired or revoked/,
   );
+  const phoneTracks = await rpc("race_phone_tracks", [connected.linkId, another]);
+  assert.ok(phoneTracks.chunks.length);
+  await assert.rejects(rpc("race_phone_tracks", [connected.linkId, secret]), /Invalid phone credential/);
+  // A stopped boat must remain visible and its trail must retain more than 60 old fixes.
+  await db.exec("begin; reset role");
+  await db.query("update public.race_phone_sessions set ready_at=now()-interval '2 hours' where id=$1",[next]);
+  await db.query("update public.race_tracking_windows set opened_at=now()-interval '2 hours' where event_id=$1",[eid]);
+  await db.query("update public.race_phone_points set recorded_at=now()-interval '20 minutes' where session_id=$1",[next]);
+  await db.query(`insert into public.race_phone_points(session_id,seq,recorded_at,latitude,longitude,accuracy_m,sog_mps,cog_deg,source)
+    select $1,100+i,now()-interval '100 minutes'+i*interval '1 minute',49,14,5,1,90,'phone' from generate_series(0,70) i`,[next]);
+  await db.exec("set role anon");
+  const historicalFleet=await rpc("race_phone_fleet",[connected.linkId,another]);
+  assert.equal(historicalFleet.length,1);
+  assert.equal(historicalFleet[0].trail.length,72);
+  assert.ok(Date.parse(historicalFleet[0].recordedAt)<Date.now()-15*60000);
+  await db.exec("rollback");
   const tracks = await rpc("public_replay_tracks", [sid, eventId]);
   assert.equal(tracks.points.length, 0); // Metadata alone never downloads tracks.
   assert.ok(tracks.chunks.length);
@@ -286,5 +306,6 @@ test("race phone capabilities enforce pairing, readiness, activation, privacy an
   await db.query("update public.races set status='draft' where id=$1", [heatId]);
   await login(null, "anon");
   assert.equal((await rpc("public_heat_replay", [heatId])).start, null);
+  assert.deepEqual(await rpc("race_phone_fleet", [connected.linkId, another]), []);
 
 });

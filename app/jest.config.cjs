@@ -7,6 +7,8 @@ const config = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
+  // Shared website modules must resolve helpers from the mobile installation.
+  modulePaths: ['<rootDir>/node_modules'],
   roots: ['<rootDir>/src'],
 }
 

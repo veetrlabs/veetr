@@ -9,6 +9,7 @@ export interface TrackingPosition {
   cogDeg: number | null;
   source: "phone" | "veetr";
   trail: [number, number][];
+  trailSegments?: [number, number][][];
 }
 export function positionAge(
   position: Pick<TrackingPosition, "recordedAt">,

@@ -8,6 +8,7 @@ import { trackingStore } from "../../tracking/database";
 import type { TrackingSession } from "../../tracking/model";
 import LocalRecording from "../../tracking/LocalRecording";
 import TripMap from "../../tracking/TripMap";
+import RaceTrackingCard from "../../tracking/RaceTrackingCard";
 import TrackingIcon from "../../tracking/TrackingIcon";
 import {
   distanceNm,
@@ -91,13 +92,15 @@ export default function TrackingScreen() {
                 busy={busy}
                 run={run}
               />
+            ) : session.mode === "race" ? (
+              <RaceTrackingCard />
             ) : (
               <Pressable
                 accessibilityRole="button"
                 onPress={() => router.push("/regattas")}
                 style={{
-                  backgroundColor: c.panelBg,
                   padding: 18,
+                  backgroundColor: c.panelBg,
                   borderRadius: 16,
                 }}
               >

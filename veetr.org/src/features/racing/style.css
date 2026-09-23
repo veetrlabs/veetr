@@ -321,6 +321,24 @@ summary {
   border: 0;
   background: none;
 }
+.boat-invitation.notice {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 1rem;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.boat-invitation.notice > :is(h2, p) {
+  margin: 0;
+  color: inherit;
+}
+.boat-invitation.notice > button {
+  align-self: flex-start;
+  max-width: 100%;
+  white-space: normal;
+}
 .table-scroll {
   overflow: auto;
   margin-top: 25px;
@@ -860,3 +878,33 @@ a.directory-create { display: inline-flex; align-items: center; min-height: 44px
 .series-team-editor form { display: grid; gap: 1rem; }
 .series-team-editor label { display: grid; gap: .5rem; }
 .series-team-editor input { width: 100%; box-sizing: border-box; }
+
+/* Keep the same map mounted when expanding, including on iPhone browsers. */
+.tracking-map-shell { position: relative; inset: auto; width: 100%; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; color: inherit; background: transparent; }
+.tracking-map-actions { position: absolute; top: .75rem; right: .75rem; z-index: 2; display: flex; gap: .5rem; }
+.tracking-map-actions button { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; background: var(--map-overlay); color: var(--map-overlay-text); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: 0 2px 8px #0003; }
+.tracking-map-shell.is-fullscreen { position: fixed; inset: 0; width: 100%; height: 100dvh; max-height: none; box-sizing: border-box; background: var(--sl-color-black, #091521); }
+.tracking-map-shell.is-fullscreen .tracking-map { height: 100%; min-height: 0; border-radius: 0; }
+.tracking-map-shell.is-fullscreen .tracking-map-actions { top: max(.75rem, env(safe-area-inset-top)); right: max(.75rem, env(safe-area-inset-right)); }
+.tracking-map-shell.is-fullscreen .replay-controls { position: absolute; z-index: 2; bottom: max(1.5rem, env(safe-area-inset-bottom)); left: max(.75rem, env(safe-area-inset-left)); right: max(.75rem, env(safe-area-inset-right)); margin: 0; padding: 0; border-radius: 12px; background: transparent; color: var(--map-overlay-text); pointer-events: none; }
+.tracking-map-shell.is-fullscreen .replay-toolbar { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: stretch; margin: 0; gap: .5rem; }
+.tracking-map-shell.is-fullscreen .replay-toolbar output { font-size: .85rem; line-height: 1.35; font-variant-numeric: tabular-nums; }
+.tracking-map-shell.is-fullscreen .replay-toolbar label { display: flex; align-items: center; font-size: 0; gap: 0; margin: 0; }
+.tracking-map-shell.is-fullscreen .replay-toolbar select { font-size: 1rem; margin: 0; height: 44px; box-sizing: border-box; }
+.tracking-map-shell.is-fullscreen .replay-timeline { font-size: .8rem; }
+.tracking-map-shell.is-fullscreen button { padding: .55rem .75rem; min-height: 44px; }
+
+.tracking-map-shell { --map-overlay: rgba(15, 28, 44, .45); --map-overlay-text: #f4f7fb; }
+:root[data-theme=light] .tracking-map-shell { --map-overlay: rgba(255, 255, 255, .55); --map-overlay-text: #172b33; }
+.tracking-map-shell.is-fullscreen .replay-toolbar :is(button, select) { background: var(--map-overlay); color: inherit; border-color: #8293a780; min-height: 44px; margin: 0; }
+.tracking-map-shell.is-fullscreen .replay-toolbar select option { background: var(--sl-color-gray-6, #102333); color: var(--map-overlay-text); }
+.tracking-map-shell.is-fullscreen .replay-timeline { margin: 0; }
+.tracking-map-shell.is-fullscreen .replay-timeline input { margin: 0; }
+@media (max-width: 420px) {
+  .tracking-map-shell.is-fullscreen .replay-toolbar { grid-template-columns: minmax(0, 1fr) auto; }
+  .tracking-map-shell.is-fullscreen .replay-toolbar output { grid-column: 1 / -1; }
+}
+
+.tracking-map-shell.is-fullscreen .replay-toolbar :is(button, select, output) { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: 0 2px 8px #0003; pointer-events: auto; }
+.tracking-map-shell.is-fullscreen .replay-toolbar output { display: flex; align-items: center; justify-self: start; min-height: 44px; box-sizing: border-box; padding: .4rem .6rem; border-radius: 8px; background: var(--map-overlay); }
+.tracking-map-shell.is-fullscreen .replay-timeline input { pointer-events: auto; }

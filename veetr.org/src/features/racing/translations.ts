@@ -1,4 +1,6 @@
 export const cs: Record<string, string> = {
+  "Full screen": "Celá obrazovka",
+  "Exit full screen": "Zavřít celou obrazovku",
   "Race map": "Mapa závodu",
   "Following latest positions": "Sledování nejnovějších poloh",
   "Drag back to replay earlier positions. Move to the end to follow the latest positions.": "Posunutím zpět přehrajete dřívější polohy. Posunutím na konec budete sledovat nejnovější polohy.",

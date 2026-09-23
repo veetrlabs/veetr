@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { LocateFixed, Minimize2 } from "lucide-react";
 import type * as Leaflet from "leaflet";
 import { replayCoordinate } from "./replay";
 import { useHeatReplay } from "./useHeatReplay";
@@ -9,6 +10,9 @@ import {
 } from "./tracking";
 
 export function LiveTrackingMap({ seriesId, eventId, heatId, boatIds }: { seriesId: string; eventId: string; heatId?: string; boatIds: string[] }) {
+  const [fullscreen, setFullscreen] = useState(false);
+  const shell = useRef<HTMLDialogElement>(null);
+  const expandButton = useRef<HTMLButtonElement>(null);
   const replay = useHeatReplay(seriesId, eventId, heatId);
   const positions = useMemo(() => positionsForHeat(replay.positions, boatIds), [replay.positions, boatIds]);
   const displayTime = replay.shownAt;
@@ -123,6 +127,27 @@ export function LiveTrackingMap({ seriesId, eventId, heatId, boatIds }: { series
       nautical.current = null;
     };
   }, [mapReady]);
+  useEffect(() => {
+    const dialog = shell.current;
+    if (!dialog) return;
+    dialog.close();
+    if (fullscreen) dialog.showModal();
+    else dialog.open = true;
+    const previous = document.body.style.overflow;
+    if (fullscreen) document.body.style.overflow = "hidden";
+    map.current?.invalidateSize();
+    return () => { document.body.style.overflow = previous; };
+  }, [fullscreen]);
+  useEffect(() => {
+    if (!element.current) return;
+    const observer = new ResizeObserver(() => map.current?.invalidateSize());
+    observer.observe(element.current);
+    return () => observer.disconnect();
+  }, []);
+  function exitFullscreen() {
+    setFullscreen(false);
+    requestAnimationFrame(() => expandButton.current?.focus());
+  }
   function fitFleet() {
     if (map.current && leaflet.current && positions.length)
       map.current.fitBounds(
@@ -138,9 +163,7 @@ export function LiveTrackingMap({ seriesId, eventId, heatId, boatIds }: { series
         <div>
           <h2 id="tracking-title">{t(heatId ? "Heat map" : "Race map")}</h2>
         </div>
-        <button onClick={fitFleet} disabled={!positions.length}>
-          {t("Fit fleet")}
-        </button>
+        <button ref={expandButton} onClick={() => setFullscreen(true)}>{t("Full screen")}</button>
       </div>
       {seamarkError && (
         <p role="status">
@@ -156,6 +179,13 @@ export function LiveTrackingMap({ seriesId, eventId, heatId, boatIds }: { series
           )}
         </p>
       )}
+      <dialog ref={shell} className={`tracking-map-shell${fullscreen ? " is-fullscreen" : ""}`}
+        aria-label={t(heatId ? "Heat map" : "Race map")}
+        onCancel={event => { event.preventDefault(); exitFullscreen(); }}>
+      <div className="tracking-map-actions">
+        <button onClick={fitFleet} disabled={!positions.length} aria-label={t("Fit fleet")} title={t("Fit fleet")}><LocateFixed size={22} aria-hidden="true" /></button>
+        {fullscreen && <button onClick={exitFullscreen} aria-label={t("Exit full screen")} title={t("Exit full screen")}><Minimize2 size={22} aria-hidden="true" /></button>}
+      </div>
       <div
         ref={element}
         className="tracking-map"
@@ -173,12 +203,13 @@ export function LiveTrackingMap({ seriesId, eventId, heatId, boatIds }: { series
             </select></label>
             <output>{formatTime(replay.at)}</output>
           </div>
-          <label className="replay-timeline">{t("Replay time")}
-            <input type="range" min={replay.bounds.start} max={replay.bounds.end} step="any" value={replay.at}
+          <label className="replay-timeline">
+            <input aria-label={t("Replay time")} type="range" min={replay.bounds.start} max={replay.bounds.end} step="any" value={replay.at}
               aria-valuetext={formatTime(replay.at)} onChange={e => replay.seek(Number(e.target.value))} />
           </label>
         </>}
       </div>
+      </dialog>
       <p>
         {t(
           "Grey markers have not reported for over 60 seconds. GPS tracks are not official finish results.",

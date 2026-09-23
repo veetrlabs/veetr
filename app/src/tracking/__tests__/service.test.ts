@@ -327,10 +327,12 @@ test("a ready race phone waits privately and begins sharing after referee activa
     raceActive: false,
   };
   points = [];
+  const scheduledStart = new Date(Date.now()+3600000).toISOString();
+  const expiresAt = new Date(Date.now()+19*3600000).toISOString();
   let active = false;
   (trackingRpc as jest.Mock).mockImplementation(async (name, args) =>
     name === "race_phone_status"
-      ? { valid: true, eligible: true, active, ready: true, scheduledStart: "2026-09-22T09:00:00Z", expiresAt: "2026-09-23T03:00:00Z", raceName: "Postponed race" }
+      ? { valid: true, eligible: true, active, ready: true, scheduledStart, expiresAt, raceName: "Postponed race" }
       : name === "ingest_race_phone_points"
         ? args.p_points.length
         : undefined,
@@ -350,8 +352,8 @@ test("a ready race phone waits privately and begins sharing after referee activa
   ]);
   expect(points).toHaveLength(0);
   expect(trackingClient!.auth.getSession).not.toHaveBeenCalled();
-  expect(session!.scheduledStart).toBe("2026-09-22T09:00:00Z");
-  expect(session!.expiresAt).toBe("2026-09-23T03:00:00Z");
+  expect(session!.scheduledStart).toBe(scheduledStart);
+  expect(session!.expiresAt).toBe(expiresAt);
   active = true;
   await syncTracking(true);
   await recordLocations([

@@ -68,3 +68,7 @@ body:has(#veetr-racing) .content-panel { border: 0; padding-top: 1rem; }
 
 #veetr-racing .entity-edit-button { background: transparent; color: var(--sl-color-gray-2); }
 #veetr-racing .entity-edit-button:hover { background: var(--sl-color-accent-low); color: var(--sl-color-text-accent); }
+
+/* Map controls float above the chart without opaque portal button surfaces. */
+#veetr-racing .tracking-map-actions button { background: var(--map-overlay); color: var(--map-overlay-text); }
+#veetr-racing .tracking-map-shell.is-fullscreen .replay-toolbar :is(button, select) { background: var(--map-overlay); color: var(--map-overlay-text); }
