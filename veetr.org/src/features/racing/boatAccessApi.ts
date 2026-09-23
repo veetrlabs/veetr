@@ -96,7 +96,7 @@ export async function previewInvitation(invite_token: string) {
     invite_token,
   });
   if (error) throw error;
-  return data as { boat: string; series: string; status: string } | null;
+  return data as { boat: string; series: string | null; handover?: boolean; role?: string; status: string } | null;
 }
 export async function acceptInvitation(invite_token: string) {
   const { error } = await client().rpc("accept_boat_invitation", {

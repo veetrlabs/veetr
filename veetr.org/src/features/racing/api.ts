@@ -108,6 +108,8 @@ export async function listPublicSeries(): Promise<PublicSeriesSummary[]> {
 }
 
 export interface RegisteredBoat {
+  weightKg?: number;
+  trackingColor?: string;
   id: string;
   name: string;
   className?: string;
@@ -130,13 +132,16 @@ export async function boatResults(boatId: string): Promise<Series[]> {
 }
 export async function createBoat(boat: RegisteredBoat): Promise<void> {
   if (!supabase) throw new Error("Connect to the server to create a boat.");
-  const { error } = await supabase.rpc("create_boat", {
+  const { data, error } = await supabase.rpc("save_boat_profile", {
     boat_id: boat.id,
     boat_name: boat.name,
     boat_class: boat.className ?? "",
-    ...(boat.length == null ? {} : { boat_length: boat.length }),
+    boat_length: boat.length ?? null,
+    boat_weight: boat.weightKg ?? null,
+    boat_color: boat.trackingColor ?? null,
   });
   if (error) throw error;
+  Object.assign(boat, data);
 }
 
 export async function canEditBoat(boatId: string): Promise<boolean> {
@@ -152,11 +157,13 @@ export async function updateBoat(
   expected: RegisteredBoat,
 ): Promise<void> {
   if (!supabase) throw new Error("Connect to save boat details.");
-  const { error } = await supabase.rpc("update_boat", {
+  const { error } = await supabase.rpc("save_boat_profile", {
     boat_id: boat.id,
     boat_name: boat.name,
     boat_class: boat.className ?? "",
     boat_length: (boat.length ?? null) as unknown as number,
+    boat_weight: boat.weightKg ?? null,
+    boat_color: boat.trackingColor ?? null,
     expected: expected as unknown as Json,
   });
   if (error) throw error;

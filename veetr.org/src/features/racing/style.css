@@ -908,3 +908,53 @@ a.directory-create { display: inline-flex; align-items: center; min-height: 44px
 .tracking-map-shell.is-fullscreen .replay-toolbar :is(button, select, output) { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: 0 2px 8px #0003; pointer-events: auto; }
 .tracking-map-shell.is-fullscreen .replay-toolbar output { display: flex; align-items: center; justify-self: start; min-height: 44px; box-sizing: border-box; padding: .4rem .6rem; border-radius: 8px; background: var(--map-overlay); }
 .tracking-map-shell.is-fullscreen .replay-timeline input { pointer-events: auto; }
+
+/* Tab views share the page surface rather than nesting another card. */
+section.race-tab-content { padding: 0; border: 0; border-radius: 0; background: transparent; }
+nav.race-tabs { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: .25rem; padding: 0; border-bottom: 1px solid var(--line, #cad2c4); }
+nav.race-tabs button { position: relative; appearance: none; flex: 0 0 auto; margin: 0; padding: .75rem .9rem; min-height: 44px; border: 0; border-radius: 8px 8px 0 0; background: transparent; color: var(--muted, #53685c); font-size: .9rem; font-weight: 600; white-space: nowrap; box-shadow: none; outline: none; transition: color .15s, background-color .15s; }
+nav.race-tabs button::after { content: ''; position: absolute; bottom: 0; left: .9rem; right: .9rem; height: 3px; border-radius: 3px; background: transparent; }
+nav.race-tabs button.selected { color: var(--sl-color-text-accent, #123f38); background: transparent; }
+nav.race-tabs button.selected::after { background: currentColor; }
+nav.race-tabs button:focus-visible { outline: 2px solid var(--sl-color-text-accent, #123f38); outline-offset: -3px; }
+
+section.entity-details { padding: 0; border: 0; border-radius: 0; background: transparent; }
+.fleet-menu-trigger { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; }
+.fleet-menu-trigger svg { flex-shrink: 0; }
+
+.user-management .admin-mfa-qr { display: block; max-width: 240px; width: 100%; background: white; padding: 12px; margin-block: 1rem; }
+.user-management fieldset { display: grid; gap: .75rem; margin-block: 1rem; }
+.user-management .team-list li { gap: .75rem; flex-wrap: wrap; }
+.user-management pre { overflow: auto; max-width: 100%; font-size: .8rem; }
+
+.user-management .directory-person { flex: 1 1 16rem; min-width: 0; overflow-wrap: anywhere; }
+.user-management .directory-invitation { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; margin-top: .65rem; font-size: .875rem; }
+.user-management .directory-status { display: grid; gap: .4rem; justify-items: start; }
+.user-management .invitation-badge { padding: .25rem .6rem; border-radius: 1rem; background: color-mix(in srgb, var(--accent, #38bdf8) 16%, transparent); font-size: .85rem; }
+
+.account-page .user-search { display: flex; align-items: flex-end; gap: .75rem; margin-block: 1rem; }
+.account-page .user-search label { flex: 1; min-width: 0; margin: 0; }
+.account-page .user-search :is(input, button) { height: 46px; min-height: 46px; box-sizing: border-box; margin: 0; padding-block: 0; }
+.account-page .user-search button { flex: 0 0 auto; }
+.account-tab-panel > section, .account-tab-panel > .creation-access > section { border: 0; border-radius: 0; padding: 1.25rem 0; margin: 0; box-shadow: none; background: transparent; }
+.account-tab-panel { min-width: 0; }
+
+.access-confirmation h2 { margin-top: 0; }
+.access-confirmation p { overflow-wrap: anywhere; }
+.access-confirmation .actions { display: flex; justify-content: flex-end; gap: .75rem; margin-top: 1.5rem; }
+
+.user-memberships { list-style: none; padding: 0; margin-block: 1rem 1.5rem; }
+.user-memberships > li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem 1rem; padding-block: 1rem; border-bottom: 1px solid var(--line, #cad2c4); }
+.user-memberships > li > div { display: grid; gap: .3rem; min-width: 0; }
+.user-memberships span { color: var(--muted); font-size: .875rem; }
+.user-memberships :is(strong, button) { overflow-wrap: anywhere; }
+.user-memberships button { max-width: 100%; white-space: normal; text-align: left; }
+
+.edit-row input[type="color"] { min-width: 5rem; width: 100%; height: 46px; padding: .3rem; cursor: pointer; }
+
+.boat-access-manager label, .boat-access-form { display: grid; gap: .5rem; }
+.boat-access-form { margin-top: 1.5rem; gap: 1rem; max-width: 34rem; }
+.boat-access-form button { justify-self: start; }
+
+.boat-access-form .boat-handover-choice { display:flex; flex-direction:row; align-items:center; gap:0.75rem; min-height:44px; cursor:pointer; }
+.boat-access-form .boat-handover-choice input[type="checkbox"] { flex:0 0 20px; width:20px; height:20px; min-height:20px; margin:0; }

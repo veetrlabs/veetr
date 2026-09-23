@@ -11,6 +11,8 @@ test('public, editable and legacy links use one canonical series route and prese
   assert.equal(appHref('?series=series-id&event=event-id&heat=heat-id'),route);
   assert.equal(appHref('?series=series-id&new-race='),'/races/?series=series-id&new-race=');
   assert.equal(appHref('?series=series-id&event=event-id&new-heat='),'/races/?series=series-id&event=event-id&new-heat=');
+  assert.equal(appHref('?account&edit-user=user-id'),'/account/?edit-user=user-id');
+  assert.equal(appHref('?account'),'/account/');
   assert.equal(appHref('?boats'),'/races/');
   assert.equal(appHref('?boat=boat-id'),'/boats/boat-id/');
   assert.equal(appHref('/'),'/races/');

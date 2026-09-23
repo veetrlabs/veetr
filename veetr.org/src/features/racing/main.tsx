@@ -557,7 +557,7 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
             </>}
 
             {series && location.seriesId && !location.heatId && (
-              <nav aria-label={t("Series tools")}>
+              <nav className="race-tabs" aria-label={t("Series tools")}>
                 <button
                   className={page === "manage" ? "selected" : ""}
                   aria-current={page === "manage" ? "page" : undefined}
@@ -579,14 +579,14 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
                 >
                   {t("Fleet")}
                 </button>
-                {location.eventId && <button className={page === "tracking" ? "selected" : ""} onClick={() => {window.history.replaceState(null, "", window.location.pathname + window.location.search + "#tracking"); setPage("tracking");}}>{t("Map & replay")}</button>}
+                {location.eventId && <button className={page === "tracking" ? "selected" : ""} aria-current={page === "tracking" ? "page" : undefined} onClick={() => {window.history.replaceState(null, "", window.location.pathname + window.location.search + "#tracking"); setPage("tracking");}}>{t("Map & replay")}</button>}
               </nav>
             )}
             {series && race && location.heatId && canEdit && <HeatTrackingTimes key={race.id} heatId={race.id}/>}
             {series && race && location.heatId && (
-              <nav aria-label={t("Heat tools")}>
+              <nav className="race-tabs" aria-label={t("Heat tools")}>
                 <button className={page === "finish" ? "selected" : ""} aria-current={page === "finish" ? "page" : undefined} onClick={() => { window.history.replaceState(null, "", window.location.pathname + window.location.search); setPage("finish"); }}>{t("Results")}</button>
-                <button className={page === "tracking" ? "selected" : ""} onClick={() => {window.history.replaceState(null, "", window.location.pathname + window.location.search + "#tracking"); setPage("tracking");}}>{t("Map & replay")}</button>
+                <button className={page === "tracking" ? "selected" : ""} aria-current={page === "tracking" ? "page" : undefined} onClick={() => {window.history.replaceState(null, "", window.location.pathname + window.location.search + "#tracking"); setPage("tracking");}}>{t("Map & replay")}</button>
               </nav>
             )}
             {location.seriesId && !series ? <p role="status">{t("Series unavailable or still loading.")}</p> : series && page === "manage" ? (
@@ -635,8 +635,6 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
                         <>
                           <span className="badge">
                             {race.date}
-                            {t("· ×")}
-                            {race.weight} {t("points")}
                           </span>
                           <button
                             disabled={!race.results.length}

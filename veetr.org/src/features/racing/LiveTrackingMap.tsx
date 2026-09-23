@@ -3,6 +3,7 @@ import { LocateFixed, Minimize2 } from "lucide-react";
 import type * as Leaflet from "leaflet";
 import { replayCoordinate } from "./replay";
 import { useHeatReplay } from "./useHeatReplay";
+import { listBoats } from "./api";
 import { t } from "./i18n";
 import {
   positionsForHeat,
@@ -10,6 +11,12 @@ import {
 } from "./tracking";
 
 export function LiveTrackingMap({ seriesId, eventId, heatId, boatIds }: { seriesId: string; eventId: string; heatId?: string; boatIds: string[] }) {
+  const [boatColors, setBoatColors] = useState<Record<string, string>>({});
+  useEffect(() => {
+    let active = true;
+    void listBoats().then(boats => {if (active) setBoatColors(Object.fromEntries(boats.filter(b => b.trackingColor).map(b => [b.id, b.trackingColor!])));}).catch(() => {});
+    return () => {active = false;};
+  }, [seriesId]);
   const [fullscreen, setFullscreen] = useState(false);
   const shell = useRef<HTMLDialogElement>(null);
   const expandButton = useRef<HTMLButtonElement>(null);
@@ -70,7 +77,7 @@ export function LiveTrackingMap({ seriesId, eventId, heatId, boatIds }: { series
     const moving: {marker: Leaflet.CircleMarker; position: typeof positions[number]}[] = [];
     for (const p of positions) {
       const stale = positionAge(p, displayTime) > 60,
-        color = stale ? "#64748b" : "#007f73";
+        color = boatColors[p.boatId] || `hsl(${Array.from(p.boatId).reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 0) % 360} 65% 40%)`;
       for (const trail of p.trailSegments ?? [p.trail])
         if (trail.length > 1)
           L.polyline(trail, { color, weight: 3, opacity: 0.5 }).addTo(group);
@@ -84,7 +91,7 @@ export function LiveTrackingMap({ seriesId, eventId, heatId, boatIds }: { series
         radius: 8,
         color: "#fff",
         weight: 2,
-        fillColor: color,
+        fillColor: stale ? "#64748b" : color,
         fillOpacity: 1,
       })
         .bindTooltip(label, { permanent: true, direction: "top" })
@@ -109,7 +116,7 @@ export function LiveTrackingMap({ seriesId, eventId, heatId, boatIds }: { series
       animation = requestAnimationFrame(animate);
     }
     return () => cancelAnimationFrame(animation);
-  }, [positions, staleIds, mapReady, displayTime, replay.playing, replay.following, replay.speed]);
+  }, [boatColors, positions, staleIds, mapReady, displayTime, replay.playing, replay.following, replay.speed]);
   useEffect(() => {
     if (!mapReady || !map.current || !leaflet.current) return;
     setSeamarkError(false);
@@ -158,7 +165,7 @@ export function LiveTrackingMap({ seriesId, eventId, heatId, boatIds }: { series
       );
   }
   return (
-    <section className="live-tracking" aria-labelledby="tracking-title">
+    <section className="live-tracking race-tab-content" aria-labelledby="tracking-title">
       <div className="tracking-heading">
         <div>
           <h2 id="tracking-title">{t(heatId ? "Heat map" : "Race map")}</h2>

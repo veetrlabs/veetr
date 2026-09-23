@@ -6,7 +6,7 @@ import {t} from './i18n';
 
 export function HeatResults({series, race}: {series: Series; race: ControlRace}) {
  const [category, setCategory] = useState('');
- const rows = calculateSeriesStandings(series.boats, [race], {...defaultPolicy, discardCount: 0})
+ const rows = calculateSeriesStandings(series.boats, [{...race, weight: 1}], {...defaultPolicy, discardCount: 0})
    .filter(row => race.entries.includes(row.id) && (!category || row.categoryId === category));
  return <section>
   <h2>{t('Heat results')}</h2>

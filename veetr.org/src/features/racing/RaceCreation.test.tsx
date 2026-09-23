@@ -26,15 +26,16 @@ test("opening a race form leaves the series untouched and starts with an empty n
   assert.doesNotMatch(html, /<table|Race 1/);
 });
 
-test("race details use the submitted name, start, weight and discard rules", () => {
+test("race details use the submitted name, start, starting points and discard rules", () => {
   const data = new FormData();
   data.set("name", "  Autumn regatta  ");
-  data.set("weight", "2");
+  data.set("startingPoints", "-1");
   data.set("scheduledStart", "2026-09-25T10:00");
   const rules = [{ from: 4, discard: 1 }];
   assert.deepEqual(raceEventDetails(data, rules), {
     name: "Autumn regatta",
-    weight: 2,
+    weight: 1,
+    startingPoints: -1,
     scheduledStart: new Date("2026-09-25T10:00").toISOString(),
     completed: false,
     discards: rules,
@@ -44,9 +45,9 @@ test("race details use the submitted name, start, weight and discard rules", () 
 test("invalid race details cannot be saved", () => {
   const invalid: Record<string, string>[] = [
     { name: "   " },
-    { weight: "0" },
-    { weight: "NaN" },
-    { weight: "101" },
+    { startingPoints: "0.5" },
+    { startingPoints: "NaN" },
+    { startingPoints: "101" },
     { scheduledStart: "not a date" },
   ];
   for (const overrides of invalid) {

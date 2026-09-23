@@ -1,3 +1,6 @@
+/* Scroll with the page while keeping the mobile dropdown anchored to the header. */
+body:has(#veetr-racing) .page > header.header { position: relative; }
+body:has(#veetr-racing) .main-frame { padding-top: 0; }
 /* Portal chrome uses the existing Veetr/Starlight theme, including dark mode. */
 body:has(#veetr-racing) .main-pane { width: 100%; }
 body:has(#veetr-racing) .sl-container { max-width: 86rem; }
@@ -72,3 +75,10 @@ body:has(#veetr-racing) .content-panel { border: 0; padding-top: 1rem; }
 /* Map controls float above the chart without opaque portal button surfaces. */
 #veetr-racing .tracking-map-actions button { background: var(--map-overlay); color: var(--map-overlay-text); }
 #veetr-racing .tracking-map-shell.is-fullscreen .replay-toolbar :is(button, select) { background: var(--map-overlay); color: var(--map-overlay-text); }
+
+#veetr-racing section.race-tab-content { background: transparent; }
+#veetr-racing .race-tabs button { background: transparent; border: 0; box-shadow: none; color: var(--sl-color-gray-2); }
+#veetr-racing .race-tabs button.selected { background: transparent; color: var(--sl-color-text-accent); }
+#veetr-racing .race-tabs button:hover { background: color-mix(in srgb, var(--sl-color-text-accent) 7%, transparent); color: var(--sl-color-white); }
+
+#veetr-racing section.entity-details { background: transparent; }

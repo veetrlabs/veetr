@@ -447,6 +447,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_user: { Args: { target_user: string }; Returns: Json };
+      save_boat_profile: { Args: { boat_id: string; boat_name: string; boat_class: string; boat_length: number | null; boat_weight: number | null; boat_color: string | null; expected?: Json }; Returns: Json };
+      boat_responsibility: { Args: {bid: string}; Returns: Json };
+      request_boat_handover: { Args: {bid: string; recipient: string}; Returns: Json };
+      grant_or_invite_boat_access: { Args: {bid: string; recipient: string; member_role: string; sid?: string}; Returns: Json };
+      boat_team_invitations: { Args: {bid: string}; Returns: Json };
+      revoke_boat_team_invitation: { Args: {invitation_id: string}; Returns: undefined };
+      admin_directory: { Args: { search_text?: string; page_offset?: number }; Returns: Json };
+      admin_users: {Args: {search_text?: string; page_offset?: number}; Returns: Json};
+      admin_pending_invitations: {Args: Record<PropertyKey, never>; Returns: Json};
+      admin_entities: {Args: Record<PropertyKey, never>; Returns: Json};
+      admin_audit: {Args: {before_id?: number}; Returns: Json};
+      admin_set_access: {Args: {target_user: string; access_role: string; enabled: boolean}; Returns: undefined};
+      admin_set_account_status: {Args: {target_user: string; suspend: boolean}; Returns: undefined};
+      admin_revoke_sessions: {Args: {target_user: string}; Returns: undefined};
+      admin_set_membership: {Args: {target_user: string; entity_type: string; entity_id: string; member_role: string}; Returns: undefined};
+
       invite_boat_skipper: { Args: { sid: string; bid: string; recipient: string }; Returns: Json }
       boat_invitation_roster: { Args: { sid: string }; Returns: Json }
       revoke_boat_access: { Args: { sid: string; invitation_id?: string; bid?: string; member_id?: string }; Returns: undefined }

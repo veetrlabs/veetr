@@ -4,6 +4,7 @@ import { t } from "./i18n";
 import { appHref } from "./routes";
 type Access = {
   admin: boolean;
+  mfaVerified?: boolean;
   allowed: boolean;
   status: string | null;
   requestId?: string;
@@ -37,7 +38,7 @@ export function CreationAccess({ children }: { children?: React.ReactNode }) {
     if (error) throw error;
     const next = data as unknown as Access;
     setAccess(next);
-    if (!children && next.admin) {
+    if (!children && next.admin && next.mfaVerified) {
       const result = await supabase.rpc("list_creation_requests");
       if (result.error) throw result.error;
       setRequests(result.data as unknown as typeof requests);
@@ -147,7 +148,10 @@ export function CreationAccess({ children }: { children?: React.ReactNode }) {
           {access.status && <a href={appHref("/")}>{t("Back to series")}</a>}
         </>
       )}
-      {!children && access?.admin && (
+      {!children && access?.admin && !access.mfaVerified && <p>
+        {t("Verify with your authenticator app to manage users.")} <a href={appHref("?account") + "#users"}>{t("Users")}</a>
+      </p>}
+      {!children && access?.admin && access.mfaVerified && (
         <section>
           <h2>{t("Series creation requests")}</h2>
           {!requests.length && <p>{t("No pending requests.")}</p>}

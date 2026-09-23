@@ -87,7 +87,7 @@ export function SeriesTeam({
         <>
           <p>
             {t(
-              "Admins manage access. Race officials manage entries and results. The owner always retains access.",
+              "Series managers manage access. Referees manage entries and results. The owner always retains access.",
             )}
           </p>
           <ul className="team-list">
@@ -99,8 +99,8 @@ export function SeriesTeam({
                     {member.role === "owner"
                       ? t("Series owner")
                       : member.role === "admin"
-                        ? t("Series admin")
-                        : t("Race official")}
+                        ? t("Series manager")
+                        : t("Referee")}
                     {member.id === userId ? t(" · You") : ""}
                   </small>
                 </div>
@@ -155,8 +155,8 @@ export function SeriesTeam({
             <label>
               {t("Role")}
               <select name="role">
-                <option value="official">{t("Race official")}</option>
-                <option value="admin">{t("Series admin")}</option>
+                <option value="official">{t("Referee")}</option>
+                <option value="admin">{t("Series manager")}</option>
               </select>
             </label>
             <p className="help">

@@ -30,6 +30,7 @@ export interface Boat {
 export interface Policy {
   discardCount?: number;
   allowTiedPositions?: boolean;
+  allowNegativePoints?: boolean;
   weightPoints: (points: number, weight: number) => number;
   penalties: Record<Exclude<ResultStatus, "FINISHED">, number | "entries+1">;
   eligibleStatuses: readonly ResultStatus[];
@@ -73,7 +74,7 @@ export function calculateRacePoints(
   )
     throw new Error("Invalid finishing position");
   if (result.points !== undefined) {
-    if (!Number.isFinite(result.points) || result.points < 0) throw new Error("Invalid imported score");
+    if (!Number.isFinite(result.points) || (result.points < 0 && !policy.allowNegativePoints)) throw new Error("Invalid imported score");
     return policy.weightPoints(result.points, weight);
   }
   if (result.status === "SCORED") throw new Error("Imported result requires points");

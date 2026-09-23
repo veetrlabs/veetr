@@ -11,7 +11,7 @@ test('real import preserves source points and excludes running and cancelled rou
  const family=s.boats.find(b=>b.name.toLowerCase()==='family lady')!;
  const row=eventStandings(s,iz,family.categoryId).find(r=>r.id===family.id)!;
  assert.equal(row.rawTotal,3);
- assert.equal(seriesRounds(s).filter(r=>r.name.startsWith('24hodinovka')).length,2);
+ assert.equal(seriesRounds(s).filter(r=>r.name.startsWith('24hodinovka')).length,1);
  assert.equal(seriesRounds(s).filter(r=>r.name==='Vánoční regata')[0].results.length,0);
  assert.ok(s.races.every(r=>r.date===''));
 });
@@ -20,4 +20,16 @@ test('source penalties and zero points are accepted without inventing finish pos
  assert.equal(calculateRacePoints({boatId:'a',status:'SCORED',points:0},13),0);
  assert.throws(()=>calculateRacePoints({boatId:'a',status:'SCORED',points:-1},13));
  assert.throws(()=>calculateRacePoints({boatId:'a',status:'SCORED'},13));
+});
+
+test('starting points shift imported race scores without modifying source data or repeating races',()=>{
+ const copy=structuredClone(s);
+ const event=copy.events!.find(e=>e.name==='24hodinovka')!;
+ const before=seriesRounds(copy).filter(r=>r.eventId===event.id);
+ const source=structuredClone(copy.races);
+ event.startingPoints=-1;
+ const after=seriesRounds(copy).filter(r=>r.eventId===event.id);
+ assert.equal(after.length,1);
+ assert.deepEqual(after.map(r=>r.results.map(v=>v.points)),before.map(r=>r.results.map(v=>v.points!-1)));
+ assert.deepEqual(copy.races,source);
 });

@@ -1,3 +1,4 @@
+import { ChevronDown } from "lucide-react";
 import RacePhones from "./RacePhones";
 import { useEffect, useLayoutEffect, useRef, useId, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
@@ -7,17 +8,10 @@ import type { Series } from "./domain";
 import { listRemote } from "./api";
 import {
   acceptInvitation,
-  emailInvitation,
-  getBoatRoster,
   getMyBoats,
   getTrackingWindow,
-  invitationHref,
-  inviteSkipper,
   previewInvitation,
-  removeBoatMember,
-  revokeInvitation,
   setTrackingWindow,
-  type BoatRoster,
   type MyBoat,
 } from "./boatAccessApi";
 
@@ -96,8 +90,8 @@ export function FleetBoatActions({name, children}: {name: string; children: Reac
     };
   }, [open]);
   return <>
-    <button ref={trigger} type="button" aria-label={t("Actions for {name}", {name})} aria-haspopup="menu" aria-expanded={open} aria-controls={open ? id : undefined}
-      onClick={() => setOpen(!open)} onKeyDown={e => {if (e.key === 'ArrowDown') {e.preventDefault(); setOpen(true);}}}><span aria-hidden="true">▾</span></button>
+    <button ref={trigger} className="fleet-menu-trigger" type="button" aria-label={t("Actions for {name}", {name})} aria-haspopup="menu" aria-expanded={open} aria-controls={open ? id : undefined}
+      onClick={() => setOpen(!open)} onKeyDown={e => {if (e.key === 'ArrowDown') {e.preventDefault(); setOpen(true);}}}><ChevronDown size={22} strokeWidth={2} aria-hidden="true" /></button>
     {open && createPortal(<div className="race-app"><div ref={menu} id={id} role="menu" aria-label={t("Actions for {name}", {name})} className="fleet-context-menu" style={position}
       onClick={e => {if ((e.target as HTMLElement).closest('a, button:not(:disabled)')) close();}}
       onKeyDown={e => {
@@ -121,49 +115,6 @@ export function BoatInvitations({ series, fleet }: {
     actions: (boat: Series["boats"][number]) => ReactNode;
   };
 }) {
-  const [roster, setRoster] = useState<BoatRoster | null>(null);
-  const [error, setError] = useState(""),
-    [busy, setBusy] = useState(false),
-    [copied, setCopied] = useState("");
-  const [emailError, setEmailError] = useState<{ boatId: string; message: string } | null>(null);
-  const [sendingBoat, setSendingBoat] = useState("");
-  const refresh = async () => setRoster(await getBoatRoster(series.id));
-  useEffect(() => {
-    let live = true;
-    const load = () =>
-      getBoatRoster(series.id)
-        .then((r) => {
-          if (live) setRoster(r);
-        })
-        .catch((e) => {
-          if (live) setError(e.message);
-        });
-    void load();
-    const timer = setInterval(load, 10000);
-    return () => {
-      live = false;
-      clearInterval(timer);
-    };
-  }, [series.id]);
-  async function run(fn: () => Promise<void>, emailBoatId?: string) {
-    setBusy(true);
-    setError("");
-    if (emailBoatId) { setEmailError(null); setSendingBoat(emailBoatId); }
-    try {
-      await fn();
-    } catch (e) {
-      if (emailBoatId) setEmailError({ boatId: emailBoatId, message: (e as Error).message });
-      else setError((e as Error).message);
-    } finally {
-      try {
-        await refresh();
-      } catch (e) {
-        setError((e as Error).message);
-      }
-      setBusy(false);
-      setSendingBoat("");
-    }
-  }
   if (fleet) return <div className="table-scroll">
     <table className="fleet-table">
       <thead><tr><th scope="col">{t("Boat")}</th><th scope="col">{t("Category")}</th><th scope="col">{t("Actions")}</th></tr></thead>
@@ -172,156 +123,13 @@ export function BoatInvitations({ series, fleet }: {
         <td>{fleet.category(boat)}</td>
         <td><FleetBoatActions name={boat.name}>
           <a href={appHref(`?boat=${boat.id}`)}>{t("Boat details")}</a>
-          <a href={`${appHref(`?boat=${boat.id}`)}?accessBoat=1&accessSeries=${encodeURIComponent(series.id)}`}>{t("Manage skipper access")}</a>
+          <a href={`${appHref(`?boat=${boat.id}`)}?accessBoat=1`}>{t("Manage boat access")}</a>
           {fleet.actions(boat)}
         </FleetBoatActions></td>
       </tr>)}</tbody>
     </table>
   </div>;
-  return (
-    <section className="boat-access">
-      <h2>{t("Skipper access")}</h2>
-      <p>
-        {t(
-          "Invite a skipper for this series. Boat profile management and race results remain separate.",
-        )}
-      </p>
-      {!roster && !error && <p role="status">{t("Loading team…")}</p>}
-      <div className="boat-access-list">
-            {series.boats.map((boat) => {
-              const members = (roster?.members ?? []).filter(
-                  (m) => m.boatId === boat.id,
-                ),
-                invitations = (roster?.invitations ?? []).filter(
-                  (i) => i.boatId === boat.id && i.status !== "accepted",
-                );
-              return (
-                <article key={boat.id}>
-                  {series.boats.length > 1 && <h3>{boat.name}</h3>}
-                  <div className="boat-access-content">
-                    {roster &&
-                      !members.length &&
-                      !invitations.length &&
-                      t("Not invited")}
-                    {members.map((m) => (
-                      <div key={m.userId}>
-                        {t("Connected")} · {m.email}{" "}
-                        <button
-                          disabled={busy}
-                          onClick={() =>
-                            void run(() =>
-                              removeBoatMember(series.id, boat.id, m.userId),
-                            )
-                          }
-                        >
-                          {t("Remove access")}
-                        </button>
-                      </div>
-                    ))}
-                    {invitations.map((i) => (
-                      <div className="invitation-row" key={i.id}>
-                        <span>
-                          {t(
-                            i.status === "expired"
-                              ? "Invitation expired"
-                              : "Invitation pending",
-                          )}{" "}
-                          · {i.email}
-                        </span>
-                        {i.status === "pending" && (
-                          <>
-                            <small>
-                              {t(i.sent ? "Invitation email sent" : "Invitation saved; email sending has not been confirmed. You can share the link.")}
-                            </small>
-                            <small>
-                              {t("Expires")}:{" "}
-                              {new Date(i.expiresAt).toLocaleDateString()}
-                            </small>
-                            <button
-                              disabled={busy}
-                              onClick={() =>
-                                void run(async () => {
-                                  await navigator.clipboard.writeText(
-                                    invitationHref(i.token!),
-                                  );
-                                  setCopied(i.id);
-                                })
-                              }
-                            >
-                              {t(
-                                copied === i.id
-                                  ? "Link copied"
-                                  : "Copy invitation link",
-                              )}
-                            </button>
-                          </>
-                        )}
-                        <button
-                          disabled={busy}
-                          onClick={() =>
-                            void run(async () => {
-                              if (i.status === "pending" && !i.sent) {
-                                await emailInvitation(i.id);
-                              } else {
-                                const next = await inviteSkipper(series.id, boat.id, i.email);
-                                await emailInvitation(next.id);
-                              }
-                            }, boat.id)
-                          }
-                        >
-                          {t(sendingBoat === boat.id ? "Sending invitation…" : i.status === "pending" && !i.sent ? "Retry sending invitation" : "Resend invitation")}
-                        </button>
-                        <details>
-                          <summary>{t("More")}</summary>
-                          <button
-                            disabled={busy}
-                            onClick={() => void run(() => revokeInvitation(series.id, i.id))}
-                          >
-                            {t("Revoke invitation")}
-                          </button>
-                        </details>
-                      </div>
-                    ))}
-                    {emailError?.boatId === boat.id && <p className="invitation-error" role="alert">{t(emailError.message)}</p>}
-                  </div>
-                  <div className="boat-access-content">
-                      <form
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          const email = String(
-                            new FormData(e.currentTarget).get("email"),
-                          );
-                          void run(async () => {
-                            const invite = await inviteSkipper(
-                              series.id,
-                              boat.id,
-                              email,
-                            );
-                            await refresh();
-                            await emailInvitation(invite.id);
-                          }, boat.id);
-                        }}
-                      >
-                        <label>
-                          {t("Email address")}
-                          <input
-                            type="email"
-                            name="email"
-                            required
-                            maxLength={254}
-                            disabled={busy}
-                          />
-                        </label>
-                        <button disabled={busy}>{t("Send invitation")}</button>
-                      </form>
-                  </div>
-                </article>
-              );
-            })}
-      </div>
-      {error && <p role="alert">{t(error)}</p>}
-    </section>
-  );
+  return <div className="boat-access-list">{series.boats.map(boat => <a key={boat.id} href={`${appHref(`?boat=${boat.id}`)}?accessBoat=1`}>{t("Manage boat access")} · {boat.name}</a>)}</div>;
 }
 export function InvitationAcceptance({
   userId,
@@ -366,10 +174,10 @@ export function InvitationAcceptance({
   if (!token) return null;
   return (
     <section className="boat-invitation notice">
-      <h2>{t("Skipper invitation")}</h2>
+      <h2>{t(preview?.handover ? "Boat handover" : "Boat access invitation")}</h2>
       {accepted ? (
         <p role="status">
-          {t("Invitation accepted. Your boat is now in My boats.")}
+          {t("Invitation accepted. Your access is ready.")}
         </p>
       ) : preview === undefined && !error ? (
         <p>{t("Loading invitation…")}</p>
@@ -378,16 +186,16 @@ export function InvitationAcceptance({
       ) : (
         <>
           <p>
-            {t("You have been invited to skipper {boat} in {series}.", {
+            {preview.handover ? t("You have been invited to take responsibility for {boat} in Veetr. Accepting gives you control of its profile and crew and removes the previous custodian’s boat access. This does not transfer legal ownership of the vessel.", {boat:preview.boat}) : preview.series ? t("You have been invited to skipper {boat} in {series}.", {
               boat: preview.boat,
               series: preview.series,
-            })}
+            }) : t("You have been invited as {role} for {boat}.", {boat: preview.boat, role: t(preview.role === "manager" ? "Skipper" : "Crew")})}
           </p>
           {preview.status === "pending" || preview.status === "accepted" ? (
             <>
               <p>
                 {t(
-                  "Sign in or create an account with the invited email address, then accept. This grants access for this series without transferring the boat profile.",
+                  "Sign in or create an account with the invited email address, verify your email, then accept the access shown above.",
                 )}
               </p>
               {userId && (
@@ -413,7 +221,7 @@ export function InvitationAcceptance({
                     }
                   }}
                 >
-                  {t("Accept invitation")}
+                  {t(preview.handover ? "Accept responsibility for this boat" : "Accept invitation")}
                 </button>
               )}
             </>
@@ -465,39 +273,33 @@ export function MyBoats({ refreshKey = 0 }: { refreshKey?: number }) {
       {!loading && !boats.length && !error && (
         <p>
           {t(
-            "No connected boats yet. Accept a skipper invitation from your referee.",
+            "No connected boats yet. Accept an invitation to join a boat.",
           )}
         </p>
       )}
-      <p>
-        {t(
-          "Open the Veetr app, sign in with this account, and refresh your races. Start sharing only when you are ready to make your boat’s location public.",
-        )}
-      </p>
-      {boats.map((b) => (
-        <article key={`${b.seriesId}/${b.boatId}`}>
-          <h3>
-            <a href={appHref(`?boat=${b.boatId}`)}>{b.boat}</a> · {b.series}
-          </h3>
-          <p>
-            {t(
-              b.open && b.eligible
-                ? "Tracking is available in the Veetr app."
-                : "Waiting for the referee to open tracking and register a published heat.",
-            )}
-          </p>
-          {!b.races.length && <p>{t("No races entered yet.")}</p>}
-          {b.races.map((r) => (
-            <div className="tracking-race" key={r.id}>
-              <strong>{r.name}</strong>
-              <span>{r.date}</span>
-            </div>
-          ))}
-        </article>
-      ))}
+      <ul className="team-list">
+        {Array.from(new Map(boats.map(boat => [boat.boatId, boat])).values()).map(boat => (
+          <li key={boat.boatId}><a href={appHref(`?boat=${boat.boatId}`)}>{boat.boat}</a></li>
+        ))}
+      </ul>
       {error && <p role="alert">{t(error)}</p>}
     </section>
   );
+}
+export function BoatParticipation({boatId}: {boatId:string}) {
+  const [entries,setEntries]=useState<MyBoat[]>([]);
+  const [error,setError]=useState("");
+  useEffect(()=>{
+    let active=true;
+    void getMyBoats().then(rows=>{if(active){setEntries(rows.filter(row=>row.boatId===boatId));setError("");}}).catch(e=>{if(active)setError(e.message);});
+    return ()=>{active=false;};
+  },[boatId]);
+  if(!entries.length&&!error)return null;
+  return <section className="boat-participation">
+    <h2>{t("Series participation")}</h2>
+    <ul className="team-list">{entries.map(entry=><li key={entry.seriesId}><div><strong>{entry.series}</strong><small>{t(entry.open&&entry.eligible?"Tracking is available in the Veetr app.":"Waiting for the referee to open tracking and register a published heat.")}</small></div></li>)}</ul>
+    {error&&<p role="alert">{t(error)}</p>}
+  </section>;
 }
 export function TrackingWindow({ seriesId }: { seriesId: string }) {
   const [state, setState] = useState<{ open: boolean; until: string | null }>(),

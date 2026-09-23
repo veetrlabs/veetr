@@ -24,6 +24,7 @@ export function RaceCreation({
     name: "",
     order: 1,
     weight: 1,
+    startingPoints: 0,
     completed: false,
     discards: [],
   }));

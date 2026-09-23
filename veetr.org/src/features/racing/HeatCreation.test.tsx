@@ -18,6 +18,7 @@ test('opening the heat form does not save or populate a placeholder heat', () =>
   assert.match(html, /name="name"[^>]*value=""/);
   assert.match(html, /name="date"[^>]*value=""/);
   assert.match(html, /Create heat/);
+  assert.doesNotMatch(html, /name="weight"|name="startingPoints"/);
   assert.doesNotMatch(html, /<table|Heat 1|checked=""/);
 });
 
@@ -29,8 +30,9 @@ function data(overrides: Record<string,string> = {}) {
 test('heat details preserve user input and require an explicit choice to share results', () => {
   assert.deepEqual(heatDetailsFromForm(data()), {name:'First start', eventId:'event-id',weight:1,date:'2026-09-22',status:'draft'});
   assert.equal(heatDetailsFromForm(data({shared:'on'})).status,'published');
+  assert.equal(heatDetailsFromForm(data({weight:'10'})).weight, 1);
 });
 test('invalid heat details cannot be saved', () => {
-  const invalid: Record<string,string>[] = [{name:' '},{event:''},{weight:'0'},{weight:'NaN'},{weight:'101'},{date:'2026-02-30'},{date:'not-a-date'}];
+  const invalid: Record<string,string>[] = [{name:' '},{event:''},{date:'2026-02-30'},{date:'not-a-date'}];
   for (const values of invalid) assert.throws(() => heatDetailsFromForm(data(values)));
 });

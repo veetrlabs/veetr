@@ -38,7 +38,7 @@ export function appHref(query:string):string {
  if(query==='/')return '/races/';
  const params=new URLSearchParams(query.replace(/^\?/,''));
  if(params.has('boats'))return '/races/';
- if(params.has('account'))return '/account/';
+ if(params.has('account'))return '/account/' + (params.has('edit-user') ? `?edit-user=${encodeURIComponent(params.get('edit-user')!)}` : '');
  if(params.has('boat'))return `/boats/${encodeURIComponent(routes.boats[params.get('boat')!] || params.get('boat')!)}/`;
  if(params.has('new-series'))return '/races/new/';
  if(params.has('browse'))return '/races/';

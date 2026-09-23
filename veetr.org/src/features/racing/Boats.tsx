@@ -1,6 +1,6 @@
 import { EditEntityButton } from "./EditEntityButton";
 import { BoatShareDialog, phoneTrackingStatus, type RaceTrackingEvent } from "./RacePhones";
-import { BoatInvitations, BoatProfileInvitations, FleetBoatActions } from "./BoatAccess";
+import { BoatParticipation, BoatInvitations, BoatProfileInvitations, FleetBoatActions } from "./BoatAccess";
 import {BoatTeam} from "./BoatTeam";
 import { appHref } from "./routes";
 import { DeleteSection } from "./DeleteAction";
@@ -39,6 +39,7 @@ export function NewBoat({
             id: id(),
             name: String(data.get("name")),
             className: String(data.get("class")),
+            ...(data.get("weight") ? {weightKg: Number(data.get("weight"))} : {}),
             ...(data.get("length")
               ? { length: Number(data.get("length")) }
               : {}),
@@ -73,6 +74,8 @@ export function NewBoat({
             {t("Length (m)")}
             <input name="length" type="number" min="0.1" step="0.01" />
           </label>
+          <label>{t("Weight (kg)")}<input name="weight" type="number" min="0.01" max="999999999" step="0.01" /></label>
+          <p>{t("A unique tracking color is assigned automatically.")}</p>
           <button>{t("Create boat")}</button>
         </fieldset>
         {error && <p role="alert">{t(error)}</p>}
@@ -100,6 +103,8 @@ function EditBoat({
         const data = new FormData(e.currentTarget);
         const next: RegisteredBoat = {
           id: boat.id,
+          trackingColor: String(data.get("color")),
+          ...(data.get("weight") ? {weightKg: Number(data.get("weight"))} : {}),
           name: String(data.get("name")).trim(),
           className: String(data.get("class")),
           ...(data.get("length") ? { length: Number(data.get("length")) } : {}),
@@ -135,6 +140,8 @@ function EditBoat({
             defaultValue={boat.length}
           />
         </label>
+        <label>{t("Weight (kg)")}<input name="weight" type="number" min="0.01" max="999999999" step="0.01" defaultValue={boat.weightKg} /></label>
+        <label>{t("Tracking color")}<input name="color" type="color" defaultValue={boat.trackingColor || "#007f73"} /></label>
         <button>{t("Save boat")}</button>
         <button type="button" onClick={onCancel}>
           {t("Cancel")}
@@ -208,9 +215,9 @@ export function Boats({
   const [inviting, setInviting] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).has("inviteBoat"));
   const boat = boats.find((b) => b.id === boatId);
   if (boatId && (inviting || accessOnly) && boat) return <section className="entity-editor">
-    <button onClick={() => {setInviting(false); setAccessOnly(false);}}>{t("Back to boat")}</button>
+    <a href={appHref(`?boat=${boatId}`)}>{t("Back to boat")}</a>
     <h1>{boat.name}</h1>
-    <BoatProfileInvitations key={`invitations/${boatId}/${userId}`} boatId={boatId} userId={userId} accessOnly={accessOnly} />
+    {accessOnly ? <BoatTeam key={`access/${boatId}/${userId}`} boatId={boatId} /> : <BoatProfileInvitations key={`invitations/${boatId}/${userId}`} boatId={boatId} userId={userId} />}
   </section>;
   if (boatId && userId && editing && editable) return <section className="entity-editor">
     <h1>{t("Edit boat")}: {editing.name}</h1>
@@ -247,13 +254,14 @@ export function Boats({
               />
             )}
             <p>
-              {[boat.className, boat.length ? `${boat.length} m` : null]
+              {[boat.className, boat.length ? `${boat.length} m` : null, boat.weightKg ? `${boat.weightKg} kg` : null]
                 .filter(Boolean)
                 .join(" · ")}
             </p>
-            {userId && manager === userId && <BoatTeam key={`${boatId}/${userId}`} boatId={boatId} />}
+
             <button onClick={() => setInviting(true)}>{t("Invite a boat to a race")}</button>
-          {userId && <button onClick={() => setAccessOnly(true)}>{t("Manage skipper access")}</button>}
+          {userId && <a className="directory-create" href={`${appHref(`?boat=${boatId}`)}?accessBoat=1`}>{t("Manage boat access")}</a>}
+            {userId && <BoatParticipation key={`${boatId}/${userId}`} boatId={boatId} />}
             <h2>{t("Race results")}</h2>
             {!series.length && <p>{t("No shared race results yet.")}</p>}
             {series.map((s) => (
@@ -320,7 +328,7 @@ export function SeriesFleet({
   const hasResults = (boatId: string) =>
     series.races.some((r) => r.results.some((v) => v.boatId === boatId));
   return (
-    <section className="series-fleet">
+    <section className="series-fleet race-tab-content">
       <div className="section-title">
         <h2>{t("Series fleet")}</h2>
         <span>
@@ -483,7 +491,7 @@ export function RaceFleet({series, eventId, onChange}: {
   const entries = eventEntries(series, eventId);
   const boats = series.boats.filter(b => onChange || entries.includes(b.id)).filter((b) => b.name.toLocaleLowerCase().includes(query.toLocaleLowerCase()));
   const sharing = series.boats.find(b => b.id === sharingBoat);
-  return <section>
+  return <section className="race-tab-content">
     {sharing && onChange && <BoatShareDialog series={series} boat={sharing} eventId={eventId} onClose={() => {setSharingBoat(""); setRefreshTracking(v => v + 1);}} />}
     <div className="section-title"><h2>{t("Race fleet")}</h2><span>{entries.length} {t("boats competing")}</span></div>
     {onChange && <p>{t("Select boats for this race. Registration applies to all its heats and saves automatically.")}</p>}

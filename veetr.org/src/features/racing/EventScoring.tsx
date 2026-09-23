@@ -6,7 +6,6 @@ import {
   type DiscardRule,
   eventsFor,
   standingsForView,
-  seriesRounds,
 } from "./domain";
 import { BoatName } from "./BoatName";
 export function Discards({
@@ -92,18 +91,16 @@ export function EventStandings({
   publicLinks?: boolean;
 }) {
   const rows = standingsForView(series, categoryId);
-  const rounds = seriesRounds(series, categoryId);
   const columns = eventsFor(series)
     .filter(event => event.scheduleStatus !== "Cancelled")
     .sort((a, b) => a.order - b.order)
     .map(event => ({
       id: event.id,
       name: event.name,
-      rounds: rounds.filter(round => round.eventId === event.id),
     }));
   const rules = series.discards ?? [];
   return (
-    <section id="standings">
+    <section id="standings" className="race-tab-content">
       <h2>{t("Series standings")}</h2>
       <p>
         {rules.length
@@ -125,7 +122,7 @@ export function EventStandings({
               <th>{t("Rank")}</th>
               <th>{t("Boat")}</th>
               {columns.map((c) => (
-                <th key={c.id}>{publicLinks ? <a href={appHref(`?public=${series.id}&event=${c.id}`)}>{c.name}</a> : c.name}{c.rounds.length > 1 ? ` ×${c.rounds.length}` : ""}</th>
+                <th key={c.id}>{publicLinks ? <a href={appHref(`?public=${series.id}&event=${c.id}`)}>{c.name}</a> : c.name}</th>
               ))}
               <th>{t("Raw total")}</th>
               <th>{t("Counted total")}</th>
@@ -144,14 +141,9 @@ export function EventStandings({
                   </th>
                   {columns.map((c) => (
                     <td key={c.id} style={{ whiteSpace: "nowrap" }}>
-                      {c.rounds.map((round, index) => (
-                        <React.Fragment key={round.id}>
-                          {index > 0 && " + "}
-                          <span className={row.discardedRaceIds.includes(round.id) ? "discarded" : undefined}>
-                            {row.scores.find(score => score.raceId === round.id)?.points ?? "—"}
-                          </span>
-                        </React.Fragment>
-                      ))}
+                      <span className={row.discardedRaceIds.includes(c.id) ? "discarded" : undefined}>
+                        {row.scores.find(score => score.raceId === c.id)?.points ?? "—"}
+                      </span>
                     </td>
                   ))}
                   <td>{row.rawTotal}</td>
@@ -162,10 +154,7 @@ export function EventStandings({
         </table>
       </div>
       <p>
-        {series.pointsStart === 0 ? t("Imported series: category rank minus one; 24h counts twice. Unknown dates and missing results are left blank.") : t(
-              "Series points are race rank × race weight. Races marked completed count toward the discard threshold.",
-            )}{" "}
-        {t("Red crossed-out scores do not count.")}
+        {t("Series points start at the race's starting points and increase by one per place. Completed races count toward the discard threshold.")}
       </p>
     </section>
   );

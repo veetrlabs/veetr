@@ -159,14 +159,14 @@ test("overall standings default to fleet finish order; category filtering preser
   assert.deepEqual(
     standingsForView(s).map((b) => [b.id, b.countedTotal]),
     [
-      [s.boats[2].id, 1],
-      [s.boats[0].id, 2],
-      [s.boats[1].id, 3],
+      [s.boats[2].id, 0],
+      [s.boats[0].id, 1],
+      [s.boats[1].id, 2],
     ],
   );
   assert.deepEqual(
     standingsForView(s, s.boats[0].categoryId).map((b) => b.countedTotal),
-    [1, 2],
+    [0, 1],
   );
   assert.deepEqual(
     r.results.map((v) => v.position),

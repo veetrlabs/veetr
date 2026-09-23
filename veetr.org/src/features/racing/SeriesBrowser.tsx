@@ -163,8 +163,9 @@ export function SeriesBrowser({
       );
     });
   const heading = event ? t("Heats") : series ? t("Races") : t("Series");
+  const Container = series ? "div" : "section";
   return (
-    <section>
+    <Container>
       <div className="section-title">
         {series ? <h2>{heading}</h2> : <h1>{heading}</h1>}
         {(series ? edit : create) && (
@@ -285,7 +286,7 @@ export function SeriesBrowser({
           )}
         </p>
       )}
-    </section>
+    </Container>
   );
 }
 export function EntityDetails({
@@ -468,20 +469,21 @@ export function Editor({
               </select>
             </label>
           </>
-        ) : (
+        ) : !heat && event ? (
           <label>
-            {t("Weight")}
+            {t("Starting points")}
             <input
-              name="weight"
+              name="startingPoints"
               type="number"
-              min="0.1"
+              min="-100"
               max="100"
               required
-              step="0.1"
-              defaultValue={heat?.weight ?? event?.weight}
+              step="1"
+              defaultValue={event.startingPoints ?? 0}
             />
+            <small>{t("Points for the race winner. Each following place adds one point.")}</small>
           </label>
-        )}
+        ) : null}
         {heat && (
           <>
             <label>
@@ -607,17 +609,18 @@ export function raceEventDetails(
   discards: RaceEvent["discards"],
 ) {
   const name = String(data.get("name") ?? "").trim();
-  const weight = Number(data.get("weight"));
+  const startingPoints = Number(data.get("startingPoints") ?? 0);
   const start = String(data.get("scheduledStart") ?? "");
   if (!name) throw new Error("Enter a race name.");
-  if (!Number.isFinite(weight) || weight <= 0 || weight > 100)
-    throw new Error("Enter a weight between 0.1 and 100.");
+  if (!Number.isInteger(startingPoints) || Math.abs(startingPoints) > 100)
+    throw new Error("Enter whole starting points between -100 and 100.");
   if (start && !Number.isFinite(Date.parse(start)))
     throw new Error("Enter a valid race start time.");
   validateDiscardRules(discards);
   return {
     name,
-    weight,
+    weight: 1,
+    startingPoints,
     scheduledStart: start ? new Date(start).toISOString() : undefined,
     completed: data.get("completed") === "on",
     discards,
@@ -627,12 +630,9 @@ export function raceEventDetails(
 export function heatDetailsFromForm(data: FormData) {
   const name = String(data.get("name") ?? "").trim();
   const date = String(data.get("date") ?? "");
-  const weight = Number(data.get("weight"));
   const eventId = String(data.get("event") ?? "");
   if (!name) throw new Error("Enter a heat name.");
   if (!eventId) throw new Error("Select a race for this heat.");
-  if (!Number.isFinite(weight) || weight < 0.1 || weight > 100)
-    throw new Error("Enter a weight between 0.1 and 100.");
   if (
     date &&
     (!/^\d{4}-\d{2}-\d{2}$/.test(date) ||
@@ -643,7 +643,7 @@ export function heatDetailsFromForm(data: FormData) {
   return {
     name,
     date,
-    weight,
+    weight: 1,
     eventId,
     status: (data.get("shared") === "on"
       ? "published"

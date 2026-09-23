@@ -29,6 +29,7 @@ export interface RaceEvent {
   name: string;
   order: number;
   weight: number;
+  startingPoints?: number;
   completed: boolean;
   discards: DiscardRule[];
   entries?: string[];
@@ -137,6 +138,7 @@ export function validateSeries(s: Series): void {
         !e.name.trim() ||
         !Number.isInteger(e.order) ||
         e.order < 1 ||
+        (e.startingPoints !== undefined && (!Number.isInteger(e.startingPoints) || Math.abs(e.startingPoints) > 100)) ||
         !Number.isFinite(e.weight) ||
         e.weight <= 0 ||
         typeof e.completed !== "boolean"
@@ -286,8 +288,8 @@ export function eventStandings(
   const races = series.races
     .filter((r) => (r.eventId ?? r.id) === event.id)
     .map(r => ({ ...r, entries: [...r.entries], results: r.results.map(result => ({ ...result })) }));
-  if (!series.events)
-    races.forEach((r) => {
+  // All heats count equally; legacy weight values are retained only for compatibility.
+  races.forEach((r) => {
       r.weight = 1;
     });
   if (!categoryId && series.pointsStart !== 0) races.forEach((r) => normalize(r, boats));
@@ -303,22 +305,22 @@ export function seriesRounds(series: Series, categoryId = "") {
   return eventsFor(series).sort((a, b) => a.order - b.order).flatMap((e) => {
     const aggregate = series.races.find(r => r.eventId === e.id && r.kind === "aggregate");
     const rows = eventStandings(series, e, categoryId);
-    const results = aggregate ? aggregate.results.filter(r => !categoryId || series.boats.find(b => b.id === r.boatId)?.categoryId === categoryId) : rows.filter(b => b.rank > 0).map(b => ({
-      boatId: b.id, status: "SCORED" as const, points: b.rank - (series.pointsStart === 0 ? 1 : 0),
+    const results = aggregate ? aggregate.results.filter(r => !categoryId || series.boats.find(b => b.id === r.boatId)?.categoryId === categoryId).map(r => ({ ...r, points: r.points === undefined ? undefined : r.points - (series.pointsStart ?? 1) + (e.startingPoints ?? 0) })) : rows.filter(b => b.rank > 0).map(b => ({
+      boatId: b.id, status: "SCORED" as const, points: b.rank - 1 + (e.startingPoints ?? 0),
     }));
     // Series entrants absent from a completed race receive the category fleet penalty.
     if (series.pointsStart === 0 && e.completed && !aggregate) {
       for (const boat of series.boats.filter(b => !categoryId || b.categoryId === categoryId)) {
-        if (!results.some(r => r.boatId === boat.id)) results.push({boatId: boat.id, status: "SCORED", points: rows.filter(r => r.categoryId === boat.categoryId && r.scores.length).length});
+        if (!results.some(r => r.boatId === boat.id)) results.push({boatId: boat.id, status: "SCORED", points: rows.filter(r => r.categoryId === boat.categoryId && r.scores.length).length + (e.startingPoints ?? 0)});
       }
     }
-    return Array.from({length: e.countAs ?? 1}, (_, i) => ({
-      id: i ? `${e.id}:${i + 1}` : e.id,
+    return [{
+      id: e.id,
       eventId: e.id,
-      name: (e.countAs ?? 1) > 1 ? `${e.name} (${i + 1}/${e.countAs})` : e.name,
-      order: e.order * 100 + i, weight: e.weight,
+      name: e.name,
+      order: e.order, weight: 1,
       entries: results.map(r => r.boatId), results,
-    }));
+    }];
   });
 }
 export function standingsForView(series: Series, categoryId = "") {
@@ -328,6 +330,7 @@ export function standingsForView(series: Series, categoryId = "") {
   return calculateSeriesStandings(boats, seriesRounds(series, categoryId), {
     ...defaultPolicy,
     allowTiedPositions: true,
+    allowNegativePoints: true,
     discardCount: discardCount(
       series.discards,
       eventsFor(series).filter(
@@ -340,7 +343,7 @@ export function standingsForView(series: Series, categoryId = "") {
               (r) =>
                 r.entries.length > 0 && r.results.length === r.entries.length,
             ),
-      ).reduce((n, e) => n + (e.countAs ?? 1), 0),
+      ).length,
     ),
   });
 }
