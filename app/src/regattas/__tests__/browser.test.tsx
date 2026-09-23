@@ -103,9 +103,11 @@ test("race links to series matrix, boats and races with working Back navigation"
   fireEvent.press(view.getByLabelText("View Race 2"));
   await waitFor(()=>expect(view.getByLabelText("View series Sunday sailing")).toBeTruthy());
   fireEvent.press(view.getByLabelText("View series Sunday sailing"));
-  expect(view.getByText("Race 1 ×2")).toBeTruthy();
-  expect(view.getByLabelText("Total 4")).toBeTruthy();
-  expect(view.getByLabelText("Race 3: 3, discarded")).toBeTruthy();
+  expect(view.getByLabelText("View race Race 1")).toBeTruthy();
+  expect(view.queryByText("Race 1 ×2")).toBeNull();
+  expect(view.getByLabelText("Total 6")).toBeTruthy();
+  expect(view.getByLabelText("Race 3: 3")).toBeTruthy();
+  expect(view.queryByLabelText("Race 3: 3, discarded")).toBeNull();
   fireEvent.press(view.getByLabelText("View boat Luna"));
   expect(view.getByText("Boat details")).toBeTruthy();
   expect(view.getByText("Full boat profile on website")).toBeTruthy();
@@ -114,7 +116,7 @@ test("race links to series matrix, boats and races with working Back navigation"
   await waitFor(()=>expect(view.getByText("Luna")).toBeTruthy());
   expect(view.getByText("3")).toBeTruthy();
   fireEvent.press(view.getByText("Back"));
-  expect(view.getByLabelText("Total 4")).toBeTruthy();
+  expect(view.getByLabelText("Total 6")).toBeTruthy();
   fireEvent.press(view.getByText("Back"));
   await waitFor(()=>expect(view.getByLabelText("View series Sunday sailing")).toBeTruthy());
   expect(view.getByText("2")).toBeTruthy();

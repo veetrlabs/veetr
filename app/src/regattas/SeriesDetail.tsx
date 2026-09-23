@@ -43,7 +43,7 @@ export default function SeriesDetail({ series, boatId, onBoat, onRace }: {
         <View>
           <View style={{flexDirection:"row",backgroundColor:c.panelBg}}>
             <View style={{width:72,height:headerHeight,justifyContent:"center",alignItems:"center"}}><Text style={{color:c.text,fontWeight:"700"}}>Total</Text></View>
-            {events.map(event => <Pressable key={event.id} accessibilityRole="link" accessibilityLabel={`View race ${event.name}`} onPress={()=>onRace(event.id)} style={{width:cellWidth,height:headerHeight,justifyContent:"center",padding:8}}><Text style={{color:c.text,fontWeight:"600",textDecorationLine:"underline"}}>{event.name}{(event.countAs??1)>1?` ×${event.countAs}`:""}</Text></Pressable>)}
+            {events.map(event => <Pressable key={event.id} accessibilityRole="link" accessibilityLabel={`View race ${event.name}`} onPress={()=>onRace(event.id)} style={{width:cellWidth,height:headerHeight,justifyContent:"center",padding:8}}><Text style={{color:c.text,fontWeight:"600",textDecorationLine:"underline"}}>{event.name}</Text></Pressable>)}
           </View>
           {rows.map(row=><View key={row.id} style={{flexDirection:"row",height:rowHeight,borderTopWidth:1,borderColor:c.border}}>
             <View style={{width:72,justifyContent:"center",alignItems:"center"}}><Text accessibilityLabel={`Total ${row.countedTotal}`} style={{color:c.text,fontWeight:"700",fontSize:18}}>{row.scores.length?row.countedTotal:"—"}</Text>{row.discardedRaceIds.length > 0 && <Text style={{color:c.textMuted,fontSize:11,marginTop:4}}>{row.discardedRaceIds.length} discarded</Text>}</View>
