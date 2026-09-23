@@ -1,6 +1,6 @@
 import {parseTrackingPositions, type TrackingPosition} from './tracking';
 export const CHUNK_MS = 300000;
-export type TrackPoint = Omit<TrackingPosition,'trail'> & {sessionId:string};
+export type TrackPoint = Omit<TrackingPosition,'trail'|'trailSegments'> & {sessionId:string};
 export type TrackMeta = {start:number|null;end:number|null;heats:{id:string;name:string;start:string|null;end:string|null}[];chunks:{start:number;count:number;version:string}[]};
 export function parseTracks(data: unknown): TrackMeta & {points:TrackPoint[];more:boolean;append:boolean} {
   const v = data as any;
@@ -21,15 +21,14 @@ export class TrackCache {
   has(start:number,version:string) {return this.chunks.get(start)?.version===version;}
   put(start:number,version:string,points:TrackPoint[]) {
     this.chunks.delete(start);this.chunks.set(start,{version,points});
-    while(this.chunks.size>8) this.chunks.delete(this.chunks.keys().next().value!);
   }
   needed(meta:TrackMeta,at:number) {
-    return meta.chunks.filter(c=>c.start+CHUNK_MS>at-CHUNK_MS && c.start<=at+60000);
+    return meta.chunks.filter(c=>c.start<=at+60000);
   }
   frame(at:number):TrackingPosition[] {
     const boats = new Map<string,TrackPoint[]>();
     for(const chunk of this.chunks.values()) for(const p of chunk.points) {
-      if(Date.parse(p.recordedAt)<at-CHUNK_MS||Date.parse(p.recordedAt)>at+60000) continue;
+      if(Date.parse(p.recordedAt)>at+60000) continue;
       const rows=boats.get(p.boatId)??[];rows.push(p);boats.set(p.boatId,rows);
     }
     const result:TrackingPosition[]=[];
@@ -38,7 +37,12 @@ export class TrackCache {
       const past=rows.filter(p=>Date.parse(p.recordedAt)<=at);
       const last=past.at(-1);if(!last) continue;
       const future=rows.filter(p=>p.sessionId===last.sessionId&&Date.parse(p.recordedAt)>at);
-      result.push({...last,trail:past.filter(p=>p.sessionId===last.sessionId).slice(-60).map(p=>[p.latitude,p.longitude]),
+      const sessions = new Map<string,[number,number][]>();
+      for (const p of past) {
+        const trail = sessions.get(p.sessionId) ?? [];
+        trail.push([p.latitude,p.longitude]);sessions.set(p.sessionId,trail);
+      }
+      result.push({...last,trail:sessions.get(last.sessionId)!,trailSegments:[...sessions.values()],
         nextFix:future[0]??null,futureFixes:future});
     }
     return result;

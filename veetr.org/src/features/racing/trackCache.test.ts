@@ -25,9 +25,24 @@ test('interpolation and trails do not join separate phone sessions',()=>{
  assert.equal(cache.frame(5000)[0].nextFix,null);
  assert.equal(cache.frame(11000)[0].trail.length,1);
 });
-test('cache evicts old chunks to bound memory and hides fixes older than five minutes',()=>{
+test('full history survives more than eight chunks and stale boats remain visible',()=>{
  const cache=new TrackCache();
- for(let i=0;i<10;i++)cache.put(i*CHUNK_MS,String(i),[point(i*CHUNK_MS)]);
- assert.equal(cache.has(0,'0'),false);assert.equal(cache.has(9*CHUNK_MS,'9'),true);
- assert.deepEqual(cache.frame(20*CHUNK_MS),[]);
+ for(let i=0;i<12;i++)cache.put(i*CHUNK_MS,String(i),[point(i*CHUNK_MS)]);
+ assert.equal(cache.has(0,'0'),true);
+ assert.equal(cache.frame(20*CHUNK_MS)[0].trail.length,12);
+ assert.equal(cache.frame(CHUNK_MS)[0].trail.length,2);
+});
+test('history loads from the beginning and is not capped at sixty fixes',()=>{
+ const cache=new TrackCache();
+ const points=Array.from({length:100},(_,i)=>point(i*1000));
+ cache.put(0,'a',points);
+ assert.equal(cache.frame(99000)[0].trail.length,100);
+ assert.deepEqual(cache.needed(meta,10*CHUNK_MS),meta.chunks);
+});
+test('previous phone sessions remain as separate full trails',()=>{
+ const cache=new TrackCache();
+ cache.put(0,'a',[point(1000,'a'),point(2000,'a'),point(3000,'b'),point(4000,'b')]);
+ const frame=cache.frame(4000)[0];
+ assert.deepEqual(frame.trailSegments,[[[.01,10],[.02,10]],[[.03,10],[.04,10]]]);
+ assert.equal(frame.trail.length,2);
 });

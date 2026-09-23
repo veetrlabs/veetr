@@ -67,8 +67,9 @@ export function LiveTrackingMap({ seriesId, eventId, heatId, boatIds }: { series
     for (const p of positions) {
       const stale = positionAge(p, displayTime) > 60,
         color = stale ? "#64748b" : "#007f73";
-      if (p.trail.length > 1)
-        L.polyline(p.trail, { color, weight: 3, opacity: 0.5 }).addTo(group);
+      for (const trail of p.trailSegments ?? [p.trail])
+        if (trail.length > 1)
+          L.polyline(trail, { color, weight: 3, opacity: 0.5 }).addTo(group);
       const label = document.createElement("span");
       label.textContent =
         p.boatName +

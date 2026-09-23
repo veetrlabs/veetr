@@ -9,6 +9,7 @@ export interface TrackingPosition {
   cogDeg: number | null;
   source: "phone" | "veetr";
   trail: [number, number][];
+  trailSegments?: [number, number][][];
   futureFixes?: {recordedAt: string; latitude: number; longitude: number}[];
   nextFix?: {recordedAt: string; latitude: number; longitude: number} | null;
 }
