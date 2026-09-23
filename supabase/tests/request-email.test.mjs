@@ -33,6 +33,7 @@ function setup({ missing = false, sent = false, fail = false } = {}) {
     },
     fetch: async (url, init = {}) => {
       calls.push({ url, ...init });
+      if (url.endsWith("/rpc/check_account_access")) return new Response(null, {status: 204});
       if (url.endsWith("/rpc/claim_request_email")) return Response.json(true);
       if (url.endsWith("/user"))
         return Response.json({ id: "user", email: "requester@example.test" });
@@ -73,7 +74,8 @@ test("email endpoint requires identity and only sends the caller’s stored requ
     }),
   );
   assert.equal(response.status, 200);
-  assert.ok(calls[1].url.includes("user_id=eq.user"));
+  assert.ok(calls.some(c => c.url.includes("user_id=eq.user")));
+  assert.equal(calls.find(c => c.url.endsWith("/rpc/check_account_access")).headers.Authorization, "Bearer user-token");
   const mail = calls.find((c) => c.url.includes("resend.com"));
   assert.equal(JSON.parse(mail.body).reply_to, "requester@example.test");
   assert.deepEqual(JSON.parse(mail.body).to, ["hello@veetr.org"]);

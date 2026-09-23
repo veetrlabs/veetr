@@ -27,7 +27,7 @@ test('organizer approval, series ownership and independent boat sharing enforce 
   await db.exec('reset role');await db.query('delete from public.series_creators where user_id=$1',[owner]);await login(owner);
   await save(1, {...doc,name:'Owner still edits'});
   await assert.rejects(save(0,{...doc,id:id()}),/Organizer approval/);
-  await login(editor);await save(2, {...doc,name:'Shared editor'});
+  await login(editor);await assert.rejects(save(2, {...doc,name:'Shared editor'}), /manager/);await save(2, {...doc,name:'Owner still edits'});
   await assert.rejects(db.query("select public.set_series_member($1,'editor@example.test','admin')",[sid]),/admin/);
   await assert.rejects(db.query('select public.series_team($1)',[sid]),/admin/);
   await assert.rejects(save(0,{...doc,id:id()}),/Organizer approval/);

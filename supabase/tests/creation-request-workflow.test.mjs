@@ -38,6 +38,7 @@ test("permission request, notification, and review workflow", async (t) => {
   async function rpc(id, sql, args = []) {
     await db.exec("reset role");
     await db.query("select set_config('request.jwt.claim.sub',$1,false)", [id]);
+    await db.query("select set_config('request.jwt.claims',$1,false)", [JSON.stringify({aal:'aal2'})]);
     await db.exec("set role authenticated");
     return db.query(sql, args);
   }
@@ -96,6 +97,10 @@ test("permission request, notification, and review workflow", async (t) => {
         return Response.json(rows[0] ?? {}, {
           status: rows.length ? 200 : 401,
         });
+      }
+      if (url.endsWith("/rpc/check_account_access")) {
+        try {await rpc(init.headers.Authorization.replace("Bearer ", ""), "select public.check_account_access()");return new Response(null,{status:204});}
+        catch {return new Response(null,{status:403});}
       }
       if (url === "https://api.resend.com/emails") {
         const payload = JSON.parse(init.body),

@@ -19,7 +19,7 @@ test('entity deletion checks permissions and revision, cascades results, preserv
  await db.exec('reset role');await db.query("insert into public.race_officials values($1,$2,'official')",[sid,official]);
  await login(stranger);await assert.rejects(db.query('select public.delete_race_entity($1,1)',[sid]),/admin/);
  await login(official);await assert.rejects(db.query('select public.delete_race_entity($1,1,null,$2)',[sid,hid]),/admin/);
- await assert.rejects(db.query('select public.save_series($1::jsonb,1,$2)',[JSON.stringify({...doc,races:[]}),id()]),/admin/);
+ await assert.rejects(db.query('select public.save_series($1::jsonb,1,$2)',[JSON.stringify({...doc,races:[]}),id()]),/manager/);
  await login(owner);await assert.rejects(db.query('select public.delete_race_entity($1,0)',[sid]),/changed/);
  await assert.rejects(db.query('select public.delete_boat($1)',[bid]),/all series/);
  await db.query('select public.delete_race_entity($1,1,null,$2)',[sid,hid]);

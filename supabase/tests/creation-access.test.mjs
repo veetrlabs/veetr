@@ -8,7 +8,7 @@ test('creation access is denied by default and only admins can approve requests'
  const dir=new URL('../migrations/',import.meta.url);for(const f of (await readdir(dir)).filter(f=>f.endsWith('.sql')).sort())await db.exec(await readFile(new URL(f,dir),'utf8'));
  const user='11111111-1111-4111-8111-111111111111',admin='22222222-2222-4222-8222-222222222222';
  await db.query('insert into auth.users values($1,$2,now()),($3,$4,now())',[user,'user@example.test',admin,'admin@example.test']);await db.query('insert into public.platform_admins values($1)',[admin]);
- const login=async uid=>{await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[uid]);await db.exec('set role authenticated');};
+ const login=async uid=>{await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[uid]);await db.exec(`select set_config('request.jwt.claims','{"aal":"aal2"}',false);set role authenticated`);};
  await login(user);assert.equal((await db.query('select public.creation_access() a')).rows[0].a.allowed,false);
  await assert.rejects(db.query('insert into public.series_creators values($1)',[user]),/permission denied/);
  const doc={id:'33333333-3333-4333-8333-333333333333',name:'Test',year:2026,status:'draft',categories:[{id:'44444444-4444-4444-8444-444444444444',name:'Fleet'}],boats:[],races:[]};

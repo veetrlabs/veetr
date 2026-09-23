@@ -4,7 +4,7 @@ import { readFile, readdir } from "node:fs/promises";
 import { PGlite } from "@electric-sql/pglite";
 import { randomUUID as id } from "node:crypto";
 
-test("skipper invitations preserve profile rights and enforce tracking windows, account binding, revocation and takeover", async (t) => {
+test("skipper invitations grant boat management and enforce tracking windows, account binding, revocation and takeover", async (t) => {
   const db = new PGlite();
   t.after(() => db.close());
   await db.exec(
@@ -68,7 +68,7 @@ test("skipper invitations preserve profile rights and enforce tracking windows, 
   );
   await assert.rejects(
     rpc("invite_boat_skipper", [sid, id(), "someone@example.test"]),
-    /Sync this boat/,
+    /Boat manager/,
   );
   const mail = await rpc("prepare_boat_invitation_email", [invite.id]);
   assert.equal(mail.token, invite.token);
@@ -91,12 +91,12 @@ test("skipper invitations preserve profile rights and enforce tracking windows, 
   await login(other);
   await assert.rejects(
     rpc("invite_boat_skipper", [sid, bid, "other@example.test"]),
-    /Race official/,
+    /Boat manager/,
   );
   await assert.rejects(rpc("boat_invitation_roster", [sid]), /Race official/);
   await assert.rejects(
     rpc("prepare_boat_invitation_email", [invite.id]),
-    /Race official/,
+    /Boat manager/,
   );
   await assert.rejects(
     rpc("accept_boat_invitation", [invite.token]),
@@ -109,7 +109,7 @@ test("skipper invitations preserve profile rights and enforce tracking windows, 
   assert.equal(mine.length, 1);
   assert.equal(mine[0].boatId, bid);
   assert.equal((await db.query("select * from public.series")).rows.length, 0);
-  assert.equal(await rpc("can_edit_boat", [bid]), false);
+  assert.equal(await rpc("can_edit_boat", [bid]), true);
   await assert.rejects(
     rpc("set_tracking_window", [sid, true]),
     /Race official/,
@@ -220,6 +220,9 @@ test("skipper invitations preserve profile rights and enforce tracking windows, 
     /verified email/,
   );
   await login(owner);
+  await db.exec("reset role");
+  await db.query("update auth.users set email_confirmed_at=null where id=$1",[other]);
+  await login(owner);
   const expired = await rpc("invite_boat_skipper", [
     sid,
     bid,
@@ -230,6 +233,7 @@ test("skipper invitations preserve profile rights and enforce tracking windows, 
     "update public.boat_invitations set expires_at=now()-interval '1 second' where id=$1",
     [expired.id],
   );
+  await db.query("update auth.users set email_confirmed_at=now() where id=$1",[other]);
   await login(other);
   await assert.rejects(
     rpc("accept_boat_invitation", [expired.token]),

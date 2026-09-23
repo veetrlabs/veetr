@@ -9,8 +9,14 @@ test('real season roundtrips source scores, dates, repeat counts and public stan
  const dir=new URL('../migrations/',import.meta.url);for(const f of (await readdir(dir)).filter(f=>f.endsWith('.sql')).sort())await db.exec(await readFile(new URL(f,dir),'utf8'));
  const uid=randomUUID();await db.query('insert into auth.users(id) values($1)',[uid]);await db.query('insert into public.series_creators values($1)',[uid]);await db.query("select set_config('request.jwt.claim.sub',$1,false)",[uid]);
  const doc=JSON.parse(await readFile(new URL('../../veetr.org/imports/orlik-2026/series.json',import.meta.url),'utf8'));
+ doc.events[0].startingPoints=-1;
  await db.query('select public.save_series($1,0,$2)',[doc,randomUUID()]);
  const pub=(await db.query('select public.public_standings($1) doc',[doc.id])).rows[0].doc;
+ assert.equal(pub.events.find(e=>e.id===doc.events[0].id).startingPoints,-1);
+ for(const value of [0.5,101,-101,null,"-1"]){
+  const invalid=structuredClone(doc);invalid.events[0].startingPoints=value;
+  await assert.rejects(db.query('select public.save_series($1,1,$2)',[invalid,randomUUID()]),/Invalid race starting points/);
+ }
  assert.equal(pub.boats.length,37);assert.equal(pub.pointsStart,0);assert.equal(pub.events.find(e=>e.name==='24hodinovka').countAs,2);
  assert.deepEqual(pub.races.map(r=>r.results),doc.races.map(r=>r.results));assert.ok(pub.races.every(r=>r.date===''));
  const slug=(await db.query('select slug from public.series where id=$1',[doc.id])).rows[0].slug;

@@ -163,3 +163,31 @@ test("race email rejects malformed tokens before touching the database", async (
   assert.equal(reply.status, 400);
   assert.equal(calls, 0);
 });
+
+test('existing accounts receive access notifications without an acceptance link', async () => {
+ const messages=[];
+ const handle=createInvitationHandler(env,async url=>url.endsWith('prepare_boat_invitation_email') ? Response.json({email:'crew@test.example',boat:'Luna',role:'crew',granted:true,series:null,token:id}) : Response.json({}),async message=>{messages.push(message);return new Response(null,{status:200});});
+ assert.equal((await handle(request())).status,200);
+ assert.match(messages[0].subject,/access granted/);
+ assert.match(messages[0].text,/crew access/);
+ assert.doesNotMatch(messages[0].text,/\?invite=|in null/);
+});
+test('new skippers receive a role-specific invitation', async () => {
+ const messages=[];
+ const handle=createInvitationHandler(env,async url=>url.endsWith('prepare_boat_invitation_email') ? Response.json({email:'new@test.example',boat:'Luna',role:'manager',granted:false,series:null,token:id}) : Response.json({}),async message=>{messages.push(message);return new Response(null,{status:200});});
+ assert.equal((await handle(request())).status,200);
+ assert.match(messages[0].text,/skipper/);
+ assert.match(messages[0].text,/verify your email/);
+ assert.match(messages[0].text,/\?invite=/);
+ assert.doesNotMatch(messages[0].text,/in null/);
+});
+
+test('handover email describes explicit acceptance and the change in responsibility',async()=>{
+ const messages=[];
+ const handle=createInvitationHandler(env,async url=>url.endsWith('prepare_boat_invitation_email') ? Response.json({email:'new@test.example',boat:'Luna',role:'manager',handover:true,granted:false,series:null,token:id}) : Response.json({}),async message=>{messages.push(message);return new Response(null,{status:200});});
+ assert.equal((await handle(request())).status,200);
+ assert.match(messages[0].text,/explicitly accept/);
+ assert.match(messages[0].text,/previous custodian loses boat access/);
+ assert.match(messages[0].text,/\?invite=/);
+ assert.doesNotMatch(messages[0].text,/You now have/);
+});

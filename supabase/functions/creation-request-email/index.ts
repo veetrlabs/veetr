@@ -19,6 +19,10 @@ Deno.serve(async (req: Request) => {
       headers: { apikey: key, Authorization: auth },
     });
     if (!identity.ok) return reply(401, "Sign in required");
+    const access = await fetch(`${base}/rest/v1/rpc/check_account_access`, {
+      method: "POST", headers: { apikey: key, Authorization: auth, "Content-Type": "application/json" }, body: "{}",
+    });
+    if (!access.ok) return reply(403, "Account access denied");
     const user = await identity.json();
     const { requestId } = await req.json();
     if (typeof requestId !== "string" || !/^[0-9a-f-]{36}$/i.test(requestId))

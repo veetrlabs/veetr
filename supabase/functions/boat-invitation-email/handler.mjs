@@ -14,6 +14,7 @@ export function createInvitationHandler(env, fetcher = fetch, localSend) {
       localSend &&
       [
         "http://localhost:4321",
+        "http://localhost:4333",
         "http://127.0.0.1:4321",
         "http://127.0.0.1:5192",
       ].includes(origin)
@@ -79,9 +80,16 @@ export function createInvitationHandler(env, fetcher = fetch, localSend) {
         );
       }
       const invitation = await prepared.json();
-      const link = race
+      const link = invitation.granted ? `${portal}/account/#boats` : race
         ? `${portal}/join/${encodeURIComponent(invitation.token)}/`
         : `${portal}/account/?invite=${encodeURIComponent(invitation.token)}`;
+      const role = invitation.role === "manager" ? "skipper" : invitation.role === "crew" ? "crew" : "skipper";
+      const scope = invitation.series ? ` in ${invitation.series}` : "";
+      const accessText = invitation.handover
+        ? `You have been invited to take responsibility for ${invitation.boat} in Veetr.\n\nAccepting makes you its responsible skipper, with control of the boat profile and crew. The previous custodian loses boat access; their series permissions are unchanged. This manages the Veetr record, not legal ownership of the vessel.\n\nSign in with this email address, verify it, and explicitly accept:\n${link}\n\nThis invitation expires in 7 days. Until you accept, access stays unchanged. If unexpected, ignore this invitation.`
+        : invitation.granted
+        ? `You now have ${role} access to ${invitation.boat}${scope}.\n\nSign in with this email address to view your access:\n${link}\n\nThis does not start location sharing or transfer boat ownership.`
+        : `You've been invited as ${role} for ${invitation.boat}${scope}.\n\nSign in or create an account with this email address, verify your email, then accept:\n${link}\n\nThis invitation expires in 7 days. It does not transfer boat ownership. Location sharing only starts when you choose to share.\n\nIf you weren't expecting this invitation, you can ignore it.`;
       const sendRequest = {
         method: "POST",
         headers: {
@@ -96,10 +104,10 @@ export function createInvitationHandler(env, fetcher = fetch, localSend) {
           to: [invitation.email],
           subject: race
             ? `Veetr: ${invitation.boat} · ${invitation.race}`
-            : `Veetr: skipper invitation for ${invitation.boat}`,
+            : `Veetr: ${invitation.granted ? "access granted" : "invitation"} for ${invitation.boat}`,
           text: race
             ? `Pozvánka / Invitation: ${invitation.boat} · ${invitation.race}\n\nOtevřete odkaz v aplikaci Veetr a potvrďte připravenost k závodu. Účet není potřeba. Sdílení polohy začne až po potvrzení v aplikaci a spuštění rozhodčím.\n\nOpen this link in Veetr and press Ready to race. No account needed. Location sharing starts only after you confirm and the referee enables tracking.\n${link}\n\nAktuální čas startu najdete v pozvánce. / Open the invitation for the current start time.`
-            : `You've been invited to skipper ${invitation.boat} in ${invitation.series}.\n\nSign in or create an account with this email address, then accept:\n${link}\n\nThis invitation expires in 7 days. It grants access for this series, without transferring the boat profile. Location sharing only begins when you choose Start tracking.\n\nIf you weren't expecting this invitation, you can ignore it.`,
+            : accessText,
         }),
       };
       const sent = localSend

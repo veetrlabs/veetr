@@ -14,7 +14,7 @@ test('audit evidence is transactional, attributable, protected and survives dele
  const owner=id(), admin=id(), sid=id(), bid=id(), cid=id(), eid=id(), hid=id();
  await db.query('insert into auth.users values($1,$2,now()),($3,$4,now())',[owner,'owner@example.test',admin,'admin@example.test']);
  await db.query('insert into public.platform_admins values($1)',[admin]);
- const login=async uid=>{await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[uid]);await db.exec('set role authenticated');};
+ const login=async uid=>{await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[uid]);await db.exec(`select set_config('request.jwt.claims','{"aal":"aal2"}',false);set role authenticated`);};
  const logs=async()=>{await db.exec('reset role');return (await db.query('select * from public.audit_log order by id')).rows;};
  const doc={id:sid,name:'Audit regatta',year:2026,status:'active',description:'',categories:[{id:cid,name:'Fleet'}],boats:[{id:bid,name:'Evidence boat',sailNumber:'',className:'',categoryId:cid}],events:[{id:eid,name:'Event',order:1,weight:1,completed:false,discards:[]}],races:[{id:hid,eventId:eid,name:'Heat',date:'2026-09-07',order:1,weight:1,status:'published',entries:[bid],results:[{boatId:bid,status:'FINISHED',position:1}]}]};
  const save=(rev,mutation=id())=>db.query('select public.save_series($1::jsonb,$2,$3)',[JSON.stringify(doc),rev,mutation]);
@@ -106,6 +106,10 @@ test('audit evidence is transactional, attributable, protected and survives dele
  await t.test('reviewer deletion clears the live reference but preserves approval evidence',async()=>{
   await db.exec('reset role');
   await db.exec("select set_config('request.jwt.claim.sub','',false)");
+  await assert.rejects(db.query('delete from auth.users where id=$1',[admin]), /last active administrator/);
+  const replacement=id();
+  await db.query('insert into auth.users(id,email) values($1,$2)',[replacement,'replacement@example.test']);
+  await db.query('insert into public.platform_admins values($1)',[replacement]);
   await db.query('delete from auth.users where id=$1',[admin]);
   const request=(await db.query('select * from public.series_access_requests where user_id=$1',[owner])).rows[0];
   assert.equal(request.reviewed_by,null);
