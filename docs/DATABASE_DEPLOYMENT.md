@@ -31,3 +31,17 @@ If a migration fails, inspect the Actions log and migration history before
 retrying. Do not rewrite an already applied migration or reset production.
 
 Reference: https://supabase.com/docs/guides/deployment/managing-environments
+
+## Explicit Data API permissions
+
+New tables must declare the minimum required role grants alongside their RLS
+setup in the creation migration. Do not depend on Supabase's default grants:
+these are being removed for existing projects on October 30, 2026, and may
+already be absent on newer projects. This includes `service_role` access from
+Edge Functions; bypassing RLS does not bypass table permissions.
+
+Keep tables used only through guarded `SECURITY DEFINER` functions private and
+grant execution on the intended RPCs. For an already deployed table, add a new
+forward migration rather than rewriting applied migration history. The
+`explicit_creation_request_grant` migration supplies server-side read access to
+`series_access_requests` for both production and fresh database rebuilds.
