@@ -91,7 +91,7 @@ export function nearestPoint(points: TrackingPoint[], time: number) {
     ? lo - 1
     : lo;
 }
-export type Metric = "sog" | "aws" | "tws";
+export type Metric = "sog" | "aws" | "tws" | "awa" | "twa";
 export function metricValue(p: TrackingPoint, metric: Metric): number | null {
   const v =
     metric === "sog"
@@ -99,7 +99,7 @@ export function metricValue(p: TrackingPoint, metric: Metric): number | null {
         ? null
         : p.sogMps * 1.94384449
       : p.instruments?.[metric];
-  return v != null && Number.isFinite(v) && v >= 0 ? v : null;
+  return v != null && Number.isFinite(v) && ((metric === "awa" || metric === "twa") ? Math.abs(v) <= 180 : v >= 0) ? v : null;
 }
 export function chartPath(
   points: TrackingPoint[],
@@ -107,6 +107,7 @@ export function chartPath(
   max: number,
   width = 320,
   height = 140,
+  min = 0,
 ) {
   const start = Date.parse(points[0]?.recordedAt),
     end = Date.parse(points.at(-1)?.recordedAt || "");
@@ -119,7 +120,7 @@ export function chartPath(
       previous = null;
       continue;
     }
-    path += `${previous === null || t - previous > TRACK_GAP_MS ? "M" : "L"}${((width * (t - start)) / Math.max(1, end - start)).toFixed(2)},${(height - (height * v) / max).toFixed(2)} `;
+    path += `${previous === null || t - previous > TRACK_GAP_MS ? "M" : "L"}${((width * (t - start)) / Math.max(1, end - start)).toFixed(2)},${(height - (height * (v - min)) / (max - min)).toFixed(2)} `;
     previous = t;
   }
   return path;

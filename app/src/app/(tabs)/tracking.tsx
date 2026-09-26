@@ -173,7 +173,7 @@ export default function TrackingScreen() {
               style={{ flex: 1, padding: 13, gap: 7, justifyContent: "center" }}
             >
               <Text style={{ color: c.text, fontWeight: "600", fontSize: 15 }}>
-                {new Date(trip.session.startedAt).toLocaleDateString(
+                {trip.session.mode === 'race' ? `${trip.session.raceName || trip.session.seriesName} · ${trip.session.boatName}` : new Date(trip.session.startedAt).toLocaleDateString(
                   undefined,
                   { month: "short", day: "numeric", year: "numeric" },
                 )}

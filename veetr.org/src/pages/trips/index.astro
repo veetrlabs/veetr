@@ -1,0 +1,8 @@
+---
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+---
+<StarlightPage frontmatter={{title:'Sailing adventures',description:'Follow shared sailing trips and live adventures on Veetr.',template:'splash',head:[{tag:'meta',attrs:{name:'referrer',content:'strict-origin-when-cross-origin'}},{tag:'meta',attrs:{name:'robots',content:'noindex'}}]}}>
+  <div id="shared-trips" class="not-content"><p>Loading trips…</p></div>
+  <noscript>Enable JavaScript to see shared routes and live instruments.</noscript>
+</StarlightPage>
+<script>import '../../features/racing/SharedTrip';</script>

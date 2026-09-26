@@ -1,4 +1,5 @@
 import { usePhoneMotion } from './usePhoneMotion';
+import { reportDiagnostic } from '../diagnostics/service';
 import { phoneMotion } from './phoneMotion';
 import { createSpeedFilter } from './speedFilter';
 import { usePhoneHeading } from './usePhoneHeading';
@@ -39,14 +40,18 @@ function useNavigationState() {
       watcher: Location.LocationSubscription | null = null,
       generation = 0;
     let trailKey = "";
+    let lastCallbackAt = Date.now();
+    let starting = false;
     let filterSpeed = createSpeedFilter();
     async function update() {
+      starting = true;
+      lastCallbackAt = Date.now();
       const version = ++generation;
       watcher?.remove();
       watcher = null;
       filterSpeed = createSpeedFilter();
       setPhone(null);
-      if (AppState.currentState !== "active") return;
+      if (AppState.currentState !== "active") { starting = false; return; }
       try {
         const granted =
           (await Location.getForegroundPermissionsAsync()).status === "granted";
@@ -64,17 +69,27 @@ function useNavigationState() {
           },
           (location) => {
             if (!alive || version !== generation) return;
+            lastCallbackAt = Date.now();
             const fix = normalizeFix(location);
             if (fix) {
               setPhone(filterSpeed(fix, phoneMotion.state(location.timestamp)));
               setError("");
             }
           },
+          (reason) => {
+            if (!alive || version !== generation) return;
+            reportDiagnostic('gps_error', reason);
+            setError(reason);
+            watcher?.remove();
+            watcher = null;
+          },
         );
         if (!alive || version !== generation) next.remove();
         else watcher = next;
       } catch (e) {
         if (alive) setError(e instanceof Error ? e.message : "GPS unavailable");
+      } finally {
+        if (version === generation) starting = false;
       }
     }
     void update();
@@ -109,7 +124,7 @@ function useNavigationState() {
     }, 1000);
     // A permission request can complete without an AppState change.
     const permissions = setInterval(() => {
-      if (AppState.currentState === "active" && !watcher) void update();
+      if (AppState.currentState === "active" && !starting && (!watcher || Date.now() - lastCallbackAt > 45000)) void update();
     }, 3000);
     return () => {
       alive = false;

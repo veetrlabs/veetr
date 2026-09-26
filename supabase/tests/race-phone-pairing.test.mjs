@@ -52,6 +52,9 @@ test("race phone capabilities enforce pairing, readiness, activation, privacy an
   const sid = doc.id,
     bid = doc.boats[0].id;
 
+  await db.exec("reset role");
+  await db.query("insert into public.tracking_sessions(id,boat_id,user_id) values($1,$2,$3)",[id(),bid,owner]);
+  await login(owner);
   const eventId = doc.events?.[0]?.id ?? doc.races[0].id;
   const heatId = doc.races.find(r => r.eventId === eventId && r.entries.includes(bid)).id;
   const eid = await rpc("configure_race_tracking", [

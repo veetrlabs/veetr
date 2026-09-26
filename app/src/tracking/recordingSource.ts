@@ -1,8 +1,10 @@
 import type { TrackingPoint } from "./model";
 import type { SailingData } from "../context/BLEContext";
 let latest: TrackingPoint | null = null;
+let instruments: {at:number;values:TrackingPoint["instruments"]} | null = null;
 export function clearDeviceRecordingSource() {
   latest = null;
+  instruments = null;
 }
 export function deviceRecordingPoint(
   data: Partial<SailingData>,
@@ -27,7 +29,10 @@ export function deviceRecordingPoint(
         : null,
     cogDeg: data.course ?? null,
     source: "veetr",
-    instruments: {
+    instruments: data.recordingInstruments ?? {
+      awa: Number.isFinite(data.windAngle) ? data.windAngle! : null,
+      twa: Number.isFinite(data.trueWindAngle) ? data.trueWindAngle! : null,
+      heading: Number.isFinite(data.heading) ? data.heading! : null,
       aws: Number.isFinite(data.windSpeed) ? data.windSpeed! : null,
       tws: Number.isFinite(data.trueWindSpeed) ? data.trueWindSpeed! : null,
     },
@@ -37,6 +42,7 @@ export function setDeviceRecordingSource(
   data: Partial<SailingData>,
   now = Date.now(),
 ) {
+  instruments = data.recordingInstruments ? {at:now,values:data.recordingInstruments} : null;
   latest = deviceRecordingPoint(data, now);
   return latest;
 }
@@ -51,5 +57,7 @@ export function preferredRecordingPoint(
     now >= stamp &&
     (!phone || Math.abs(Date.parse(phone.recordedAt) - stamp) <= 5000)
     ? latest
-    : phone;
+    : phone && instruments && now-instruments.at>=0 && now-instruments.at<=15000 && Math.abs(Date.parse(phone.recordedAt)-instruments.at)<=5000
+      ? {...phone,instruments:instruments.values}
+      : phone;
 }

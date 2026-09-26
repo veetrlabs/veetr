@@ -1,4 +1,6 @@
 import React from "react";
+import { router } from "expo-router";
+jest.mock("expo-router", () => ({ router: { push: jest.fn() } }));
 import { act, render, fireEvent, waitFor } from "@testing-library/react-native";
 import RegattaBrowser from "../RegattaBrowser";
 import { trackingClient, trackingRpc } from "../../tracking/client";
@@ -60,7 +62,7 @@ test("guests open a race's results, live map and replay without authentication",
   fireEvent.press(view.getAllByText("Live").at(-1)!);
   await waitFor(() => expect(trackingRpc).toHaveBeenCalledWith("public_tracking_positions", {p_series:"series"}));
   fireEvent.press(view.getByText("Replay"));
-  await waitFor(() => expect(trackingRpc).toHaveBeenCalledWith("public_regatta_replay", {p_series:"series",p_at:"2026-09-10T12:00:00.000Z"}));
+  await waitFor(() => expect(router.push).toHaveBeenCalledWith({pathname:"/race-replay", params:{seriesId:"series",eventId:"event"}}));
   expect(view.queryByText("Sign in")).toBeNull();
   view.unmount();
 });

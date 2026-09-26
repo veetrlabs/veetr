@@ -27,6 +27,7 @@ function getBleManager(): any | false {
 }
 
 export interface SailingData {
+  recordingInstruments?: {aws:number|null;tws:number|null;awa:number|null;twa:number|null;heading:number|null}
   speed: number
   speedMax: number
   speedAvg: number
@@ -279,6 +280,13 @@ export function BLEProvider({ children }: { children: ReactNode }) {
       }
 
       const mappedData: Partial<SailingData> = {
+        recordingInstruments: {
+          aws: Number.isFinite(parsed.AWS) && parsed.AWS >= 0 && parsed.AWS <= 200 ? parsed.AWS : null,
+          tws: Number.isFinite(parsed.TWS) && parsed.TWS >= 0 && parsed.TWS <= 200 ? parsed.TWS : null,
+          awa: Number.isFinite(parsed.AWA) ? convertToSailingAngle(parsed.AWA) : null,
+          twa: Number.isFinite(parsed.TWA) ? convertToSailingAngle(parsed.TWA) : null,
+          heading: Number.isFinite(parsed.HDM) && parsed.HDM >= 0 && parsed.HDM < 360 ? parsed.HDM : null,
+        },
         speed: parsed.SOG || 0,
         speedMax: parsed.SOGMax || 0,
         speedAvg: parsed.SOGAvg || 0,

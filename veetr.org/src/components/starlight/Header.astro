@@ -29,6 +29,7 @@ const isCurrent = (href: string) => pathname === href || (['/docs/', '/races/'].
       </details>
     ))}
     <a href="/races/" aria-current={isCurrent('/races/') ? 'page' : undefined}>Race management</a>
+    <a href="/trips/" aria-current={isCurrent('/trips/') ? 'page' : undefined}>Explore trips</a>
     <a href="/about/" aria-current={isCurrent('/about/') ? 'page' : undefined}>About</a>
     <div id="veetr-account-controls" class="account-menu-item"><a href="/account/" aria-current={isCurrent('/account/') ? 'page' : undefined}>Account</a></div>
   </nav>
@@ -51,7 +52,8 @@ const isCurrent = (href: string) => pathname === href || (['/docs/', '/races/'].
           </details>
         ))}
         <a href="/races/" aria-current={isCurrent('/races/') ? 'page' : undefined}>Race management</a>
-        <a href="/about/" aria-current={isCurrent('/about/') ? 'page' : undefined}>About</a>
+        <a href="/trips/" aria-current={isCurrent('/trips/') ? 'page' : undefined}>Explore trips</a>
+    <a href="/about/" aria-current={isCurrent('/about/') ? 'page' : undefined}>About</a>
         <div id="veetr-mobile-account-controls" class="account-menu-item"><a href="/account/" aria-current={isCurrent('/account/') ? 'page' : undefined}>Account</a></div>
       </nav>
     </details>

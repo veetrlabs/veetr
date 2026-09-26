@@ -1,3 +1,4 @@
+jest.mock('../../diagnostics/service', () => ({ reportDiagnostic: jest.fn() }));
 jest.mock("@react-native-async-storage/async-storage", () => ({
   getItem: jest.fn(async () => "device-secret"),
   setItem: jest.fn(),
@@ -48,6 +49,7 @@ import {
   pauseForegroundGPS,
   startLocalTracking,
   discardStoppedTracking,
+  recoverStalledTracking,
 } from "../service";
 let session: TrackingSession | null,
   points: (TrackingPoint & { seq: number })[];
@@ -387,7 +389,7 @@ test("a ready race phone waits privately and begins sharing after referee activa
   ]);
   expect(points).toHaveLength(0);
 });
-test("a stale race-control connection does not keep capturing positions indefinitely", async () => {
+test("a confirmed active race keeps recording offline beyond one minute", async () => {
   session = {
     ...base(),
     mode: "race",
@@ -410,7 +412,7 @@ test("a stale race-control connection does not keep capturing positions indefini
       },
     },
   ]);
-  expect(points).toHaveLength(0);
+  expect(points).toHaveLength(1);
 });
 test("revoking a ready phone stops native GPS and completes its session", async () => {
   session = { ...base(), mode: "race", raceLinkId: "link", raceActive: true };
@@ -452,4 +454,38 @@ test('keeps an already started Android service running during a background resum
   } finally {
     (AppState as { currentState: string }).currentState = 'active';
   }
+});
+
+test('saves a fix before an in-flight race status request finishes', async () => {
+  session = { ...base(), mode: 'race', raceLinkId: 'link', raceActive: true, raceCheckedAt: new Date().toISOString() };
+  points = [];
+  let finish!: (value: unknown) => void;
+  (trackingRpc as jest.Mock).mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+  const syncing = syncTracking(true);
+  await tick();
+  const recording = recordLocations([{ timestamp: Date.now(), coords: { latitude: 49, longitude: 14, accuracy: 5, speed: 2, heading: 90 } }]);
+  await tick();
+  expect(points).toHaveLength(1);
+  finish({ valid: true, ready: true, eligible: true, active: true, expiresAt: session.expiresAt });
+  await syncing.catch(() => {});
+  await recording.catch(() => {});
+});
+
+test('recovers a silent registered GPS listener, then backs off', async () => {
+  session = { ...base(), mode: 'local', startedAt: new Date(Date.now() - 120000).toISOString() };
+  await recoverStalledTracking();
+  expect(Location.stopLocationUpdatesAsync).toHaveBeenCalledTimes(1);
+  expect(Location.startLocationUpdatesAsync).toHaveBeenCalledTimes(1);
+  expect(session?.gpsRecoveryCount).toBe(1);
+  await recoverStalledTracking();
+  expect(Location.startLocationUpdatesAsync).toHaveBeenCalledTimes(1);
+});
+
+test('recovery does not restart stopped sessions or launch services in the background', async () => {
+  session = { ...base(), phase: 'stopping' };
+  await recoverStalledTracking();
+  session = { ...base(), startedAt: new Date(Date.now() - 120000).toISOString() };
+  (AppState as { currentState: string }).currentState = 'background';
+  try { await recoverStalledTracking(); } finally { (AppState as { currentState: string }).currentState = 'active'; }
+  expect(Location.startLocationUpdatesAsync).not.toHaveBeenCalled();
 });

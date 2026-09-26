@@ -4,6 +4,7 @@ import { useTheme } from "../context/ThemeContext";
 import { themeColors } from "../constants/colors";
 import { trackingStore } from "./database";
 import { enableBackgroundTracking, resumeTracking } from "./service";
+import DiagnosticSettings from "../diagnostics/DiagnosticSettings";
 export default function LocationSettings() {
   const { theme } = useTheme(),
     c = themeColors[theme];
@@ -71,6 +72,7 @@ export default function LocationSettings() {
           {message}
         </Text>
       )}
+      <DiagnosticSettings />
     </View>
   );
 }

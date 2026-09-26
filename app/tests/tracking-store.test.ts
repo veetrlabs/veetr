@@ -43,6 +43,23 @@ function store(db: DatabaseSync) {
   };
   return new TrackingStore(adapter);
 }
+test("a saved GPS fix clears location-unknown errors but preserves unrelated errors", async () => {
+  const db = new DatabaseSync(":memory:");
+  try {
+    const s = store(db);
+    await s.init();
+    const error = 'Error Domain=kCLErrorDomain Code=0 "(null)"';
+    await s.create({ ...session, error, lastTaskError: error });
+    await s.append(session.id, [point(0)]);
+    assert.equal((await s.get())?.error, undefined);
+    assert.equal((await s.get())?.lastTaskError, undefined);
+    await s.patch(session.id, { error: "Upload failed" });
+    await s.append(session.id, [point(10)]);
+    assert.equal((await s.get())?.error, "Upload failed");
+  } finally {
+    db.close();
+  }
+});
 test("SQLite outbox survives restart and only acknowledges the submitted batch", async () => {
   const dir = await mkdtemp(join(tmpdir(), "veetr-tracking-test-")),
     path = join(dir, "track.db");
@@ -182,4 +199,77 @@ test("old recordings without a trail cache remain readable and survive archiving
   } finally {
     db.close();
   }
+});
+
+test("race history survives upload, completion and restart without duplicating the trip", async () => {
+  const db = new DatabaseSync(":memory:");
+  try {
+    let s = store(db);
+    await s.init();
+    await s.create({
+      ...session,
+      mode: "race",
+      eventId: "race-event",
+      raceName: "Morning race",
+    });
+    await s.append(session.id, [point(0), point(5)]);
+    await assert.rejects(
+      s.deleteArchivedLocal(session.id),
+      /Finish the current/,
+    );
+    await s.acknowledge(
+      session.id,
+      (await s.batch(session.id)).map((p) => p.seq),
+    );
+    assert.equal(await s.count(), 0);
+    assert.equal((await s.points(session.id)).length, 2);
+    await s.patch(session.id, {
+      phase: "stopping",
+      stoppedAt: point(10).recordedAt,
+    });
+    await s.clear(session.id);
+    s = store(db);
+    await s.init();
+    const trips = await s.localRecordings();
+    assert.equal(trips.length, 1);
+    assert.equal(trips[0].archived, true);
+    assert.equal(trips[0].session.eventId, "race-event");
+    assert.equal(trips[0].session.raceName, "Morning race");
+    assert.deepEqual(trips[0].points, [point(0), point(5)]);
+    await s.create({ ...session, id: "next-race", mode: "race" });
+    await s.append("next-race", [point(15)]);
+    await s.deleteArchivedLocal(session.id);
+    assert.equal((await s.get())?.id, "next-race");
+    assert.equal(await s.count(), 1);
+    assert.equal((await s.localRecordings()).length, 1);
+  } finally {
+    db.close();
+  }
+});
+
+test("an in-progress recording from an older build is backfilled into history", async () => {
+  const db = new DatabaseSync(":memory:");
+  try {
+    const s = store(db);
+    await s.init();
+    await s.create({ ...session, mode: "race", eventId: "event" });
+    await s.append(session.id, [point(0)]);
+    db.exec("DELETE FROM recording_sessions");
+    assert.equal((await s.localRecordings()).length, 1);
+    await s.clear(session.id);
+    assert.equal((await s.localRecordings())[0].points.length, 1);
+  } finally {
+    db.close();
+  }
+});
+test('trip sharing metadata survives archival and does not overwrite newly recorded points',async()=>{
+ const db=new DatabaseSync(':memory:');const s=store(db);await s.init();
+ await s.create({...session,mode:'local'});await s.append(session.id,[point(1)]);
+ await s.updateTrip(session.id,{boatId:'luna',boatName:'Luna',sharing:{id:'share',userId:'alice',title:'Sail',visibility:'unlisted',uploaded:1}});
+ await s.append(session.id,[point(10)]);
+ await s.updateTrip(session.id,{sharing:{id:'share',userId:'alice',title:'Sail',visibility:'unlisted',pendingVisibility:'private',uploaded:1}});
+ assert.equal((await s.get())?.lastRecordedAt,point(10).recordedAt);
+ await s.patch(session.id,{phase:'stopping'});await s.archiveLocal();
+ await s.updateTrip(session.id,{sharing:{id:'share',userId:'alice',title:'Sail',visibility:'private',uploaded:1}});
+ const saved=(await s.localRecordings())[0];assert.equal(saved.session.boatName,'Luna');assert.equal(saved.points.length,2);assert.equal(saved.session.sharing?.visibility,'private');db.close();
 });

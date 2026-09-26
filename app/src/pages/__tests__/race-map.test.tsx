@@ -80,5 +80,10 @@ test("map combines the local own boat with race competitors without duplicate ow
   const markers = ui.UNSAFE_getAllByType("Marker" as any);
   expect(markers.map((m) => m.props.title)).toEqual(["JOY", "LUNA · You"]);
   expect(ui.getByText("Show fleet")).toBeTruthy();
+  expect(ui.queryByLabelText("Manage race tracking")).toBeNull();
+  fireEvent.press(ui.getByLabelText(/Show race details/));
   expect(ui.getByLabelText("Manage race tracking")).toBeTruthy();
+  expect(ui.getByText("LUNA · Morning")).toBeTruthy();
+  fireEvent.press(ui.getByLabelText(/Hide race details/));
+  expect(ui.queryByText("LUNA · Morning")).toBeNull();
 });

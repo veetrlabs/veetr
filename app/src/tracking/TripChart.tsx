@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { View, Text } from "react-native";
+import { View, Text, Pressable } from "react-native";
 import Svg, { Circle, Line, Path } from "react-native-svg";
 import type { TrackingPoint } from "./model";
 import { chartPath, metricValue, nearestPoint, type Metric } from "./trip";
@@ -21,6 +21,9 @@ export default function TripChart({
   onSelect: (index: number) => void;
   onScrubbing?: (active: boolean) => void;
 }) {
+  const [angles,setAngles] = useState(false);
+  const displayed = angles ? [{key:"awa" as const,label:"AWA",color:"#3182ce"},{key:"twa" as const,label:"TWA",color:"#d68b27"}] : series;
+  const min = angles ? -180 : 0;
   const { theme } = useTheme(),
     c = themeColors[theme],
     [width, setWidth] = useState(300);
@@ -28,23 +31,23 @@ export default function TripChart({
   const chartLeft = useRef(0);
   const active = useMemo(
     () =>
-      series.filter(
+      displayed.filter(
         (s) =>
           s.key === "sog" || points.some((p) => metricValue(p, s.key) !== null),
       ),
-    [points],
+    [points, angles],
   );
   const max = useMemo(
-    () =>
+    () => angles ? 180 :
       Math.max(
         1,
         ...points.flatMap((p) => active.map((s) => metricValue(p, s.key) ?? 0)),
       ),
-    [points, active],
+    [points, active, angles],
   );
   const paths = useMemo(
-    () => active.map((s) => ({ ...s, path: chartPath(points, s.key, max) })),
-    [points, active, max],
+    () => active.map((s) => ({ ...s, path: chartPath(points, s.key, max, 320, 140, min) })),
+    [points, active, max, min],
   );
   const start = Date.parse(points[0]?.recordedAt),
     end = Date.parse(points.at(-1)?.recordedAt || "");
@@ -71,6 +74,7 @@ export default function TripChart({
     });
   return (
     <View style={{ gap: 12 }}>
+      <View style={{flexDirection:"row",gap:12}}>{[false,true].map(value=><Pressable key={String(value)} accessibilityRole="tab" accessibilityState={{selected:angles===value}} onPress={()=>setAngles(value)} style={{minHeight:44,padding:10,borderBottomWidth:angles===value?2:0,borderColor:"#008c80"}}><Text style={{color:c.text}}>{value?"Wind angles":"Speed & wind"}</Text></Pressable>)}</View>
       <View
         style={{
           flexDirection: "row",
@@ -78,8 +82,8 @@ export default function TripChart({
           alignItems: "baseline",
         }}
       >
-        <Text style={{ color: c.text, fontWeight: "600" }}>Speed & wind</Text>
-        <Text style={{ color: c.textMuted, fontSize: 12 }}>knots</Text>
+        <Text style={{ color: c.text, fontWeight: "600" }}>{angles?"Wind angles":"Speed & wind"}</Text>
+        <Text style={{ color: c.textMuted, fontSize: 12 }}>{angles?"degrees":"knots"}</Text>
       </View>
       <View style={{ flexDirection: "row", gap: 22 }}>
         {active.map((s) => (
@@ -166,7 +170,7 @@ export default function TripChart({
               fontSize: 10,
             }}
           >
-            {(max * (1 - t)).toFixed(max < 2 ? 1 : 0)}
+            {(max - (max - min) * t).toFixed(max < 2 ? 1 : 0)}
           </Text>
         ))}
         <Svg
@@ -213,7 +217,7 @@ export default function TripChart({
                   <Circle
                     key={s.key}
                     cx={x}
-                    cy={140 - (140 * metricValue(point, s.key)!) / max}
+                    cy={140 - (140 * (metricValue(point, s.key)! - min)) / (max - min)}
                     r={3.5}
                     fill={s.color}
                   />

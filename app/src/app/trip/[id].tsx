@@ -90,9 +90,10 @@ export default function TripDetail() {
   }
   function deleteTrip() {
     if (!trip) return;
+    if (trip.session.sharing && (trip.session.sharing.visibility!=="private" || trip.session.sharing.pendingVisibility)) { setError("Stop sharing in the sharing page before deleting this trip."); return; }
     Alert.alert(
-      "Delete trip?",
-      "This permanently removes this trip from your phone. Export it first to keep a copy.",
+      "Delete from this phone?",
+      "This removes your personal copy from this phone. It does not delete the official race history. Export first to keep a copy.",
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -174,6 +175,10 @@ export default function TripDetail() {
             <TripMap points={trip.points} selected={trip.points[index]} />
           </View>
           <View style={{ padding: 20, gap: 24 }}>
+            {trip.session.mode === 'race' && trip.session.eventId && <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/race-replay', params: { seriesId: trip.session.seriesId, eventId: trip.session.eventId!, tripId: trip.session.id } })} style={{ padding: 14, backgroundColor: c.buttonBg, borderRadius: 12 }}>
+              <Text style={{ color: c.text }}>Replay race · show competitors</Text>
+            </Pressable>}
+            {(trip.session.mode === "local" || trip.session.phase === "stopping") && <Pressable accessibilityRole="button" onPress={() => router.push({pathname:"/trip-sharing",params:{id:trip.session.id}})} style={{padding:14,backgroundColor:c.buttonBg,borderRadius:12}}><Text style={{color:c.text}}>{trip.session.boatId ? `${trip.session.boatName} · ` : ""}{trip.session.phase === "recording" ? "Live sharing" : "Publish / manage sharing"} ›</Text></Pressable>}
             <TripChart
               points={trip.points}
               index={index}
@@ -196,7 +201,7 @@ export default function TripDetail() {
                   Export trip
                 </Text>
               </Pressable>
-              {trip.session.phase === "stopping" && (
+              {trip.session.phase === "stopping" && (trip.archived || trip.session.mode === "local") && (
                 <Pressable
                   disabled={busy}
                   accessibilityRole="button"

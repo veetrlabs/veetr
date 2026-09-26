@@ -60,6 +60,8 @@ test("tracking enforces consent, ownership, one reporter, idempotency, timestamp
       sid,
       bid,
     ]);
+    const personalTrip = id();
+    await db.query("insert into public.tracking_sessions(id,boat_id,user_id) values($1,$2,$3)",[personalTrip,bid,owner]);
     const login = async (uid, role = "authenticated") => {
       await db.exec("reset role");
       await db.query("select set_config('request.jwt.claim.sub',$1,false)", [

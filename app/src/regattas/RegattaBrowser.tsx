@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useEffect, useState } from "react";
 import {
   AppState,
@@ -19,7 +20,6 @@ import {
   publishedRaceRegattas,
   type RegattaFilter,
   regattaState,
-  replayStep,
 } from "./model";
 import { parseTrackingPositions, type TrackingPosition } from "./positions";
 import FleetMap from "./FleetMap";
@@ -171,16 +171,11 @@ function Spectator({
   const [pages, setPages] = useState<Page[]>([{kind:"race",regatta:initialRace}]);
   const page = pages[pages.length-1];
   const r = page.kind === "race" ? page.regatta : initialRace;
-  const navigate = (next:Page) => { setPages(history=>[...history,next]); setTab("Results"); setPlaying(false); };
-  const [tab, setTab] = useState<"Results" | "Live" | "Replay">("Results");
-  const replay = tab === "Replay";
+  const navigate = (next:Page) => { setPages(history=>[...history,next]); setTab("Results"); };
+  const [tab, setTab] = useState<"Results" | "Live">("Results");
   const hasReplay = Number.isFinite(Date.parse(r.replayStart || "")) && Number.isFinite(Date.parse(r.replayEnd || "")) && Date.parse(r.replayEnd!) >= Date.parse(r.replayStart!);
-  const [playing, setPlaying] = useState(false);
   const [retry, setRetry] = useState(0);
-  const start = Date.parse(r.replayStart || ""),
-    end = Date.parse(r.replayEnd || "");
-  const [at, setAt] = useState(start),
-    [positions, setPositions] = useState<TrackingPosition[]>([]),
+  const [positions, setPositions] = useState<TrackingPosition[]>([]),
     [error, setError] = useState(""),
     [loading, setLoading] = useState(true),
     [now, setNow] = useState(Date.now());
@@ -198,10 +193,9 @@ function Spectator({
       }
       try {
         const result = await trackingRpc(
-          replay ? "public_regatta_replay" : "public_tracking_positions",
+          "public_tracking_positions",
           {
             p_series: r.seriesId,
-            ...(replay ? { p_at: new Date(at).toISOString() } : {}),
           },
         );
         if (alive) {
@@ -213,12 +207,12 @@ function Spectator({
         if (alive) {
           setPositions([]);
           setError("Boat positions could not be loaded. Try again.");
-          setPlaying(false);
+
         }
       } finally {
         if (alive) {
           setLoading(false);
-          if (!replay) timer = setTimeout(refresh, 5000);
+          timer = setTimeout(refresh, 5000);
         }
       }
     };
@@ -227,15 +221,7 @@ function Spectator({
       alive = false;
       clearTimeout(timer);
     };
-  }, [r.id, page.kind, tab, replay, at, retry]);
-  useEffect(() => {
-    if (!replay || !playing || loading) return;
-    const timer = setTimeout(() => {
-      if (at >= end) setPlaying(false);
-      else setAt(replayStep(at, 20000, start, end));
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, [replay, playing, loading, at, start, end]);
+  }, [r.id, page.kind, tab, retry]);
   const action = (label: string, fn: () => void, disabled = false) => (
     <Pressable
       key={label}
@@ -262,7 +248,7 @@ function Spectator({
       <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
         <View style={{ padding: 16, gap: 10 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            {action(pages.length > 1 ? "Back" : "Close", pages.length > 1 ? () => { setPages(history=>history.slice(0,-1)); setTab("Results"); setPlaying(false); } : close)}
+            {action(pages.length > 1 ? "Back" : "Close", pages.length > 1 ? () => { setPages(history=>history.slice(0,-1)); setTab("Results"); } : close)}
             <Text
               style={{
                 flex: 1,
@@ -277,35 +263,12 @@ function Spectator({
           {page.kind === "race" && (hasReplay || (r.liveBoats ?? 0) > 0) && <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
             {(["Results", ...((r.liveBoats ?? 0) > 0 ? ["Live"] : []), ...(hasReplay ? ["Replay"] : [])] as const).map((label) => (
               <Pressable key={label} accessibilityRole="tab" accessibilityState={{ selected: tab === label }}
-                onPress={() => { setTab(label as typeof tab); setPlaying(false); if (label === "Replay") setAt(start); }}
+                onPress={() => { if (label === 'Replay') { close(); router.push({ pathname: '/race-replay', params: { seriesId: r.seriesId, eventId: r.eventId } }); return; } setTab(label as typeof tab); }}
                 style={{ minHeight: 44, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 22, backgroundColor: tab === label ? "#006b62" : c.buttonBg }}>
                 <Text style={{ color: tab === label ? "white" : c.text, fontWeight: "600" }}>{label}</Text>
               </Pressable>
             ))}
           </View>}
-          {replay && (
-            <>
-              <Text style={{ color: c.text }}>
-                {new Date(at).toLocaleString()}
-              </Text>
-              <View style={{ flexDirection: "row", gap: 8 }}>
-                {action(
-                  "−5 min",
-                  () => setAt(replayStep(at, -300000, start, end)),
-                  at <= start,
-                )}
-                {action(playing ? "Pause" : "Play", () => {
-                  if (at >= end) setAt(start);
-                  setPlaying(!playing);
-                })}
-                {action(
-                  "+5 min",
-                  () => setAt(replayStep(at, 300000, start, end)),
-                  at >= end,
-                )}
-              </View>
-            </>
-          )}
           {tab !== "Results" && error && action("Retry positions", () => setRetry((v) => v + 1))}
           {tab === "Results" ? null : error ? (
             <Text accessibilityRole="alert" style={{ color: c.text }}>
@@ -315,9 +278,7 @@ function Spectator({
             <Text style={{ color: c.textMuted }}>Loading positions…</Text>
           ) : !positions.length ? (
             <Text style={{ color: c.textMuted }}>
-              {replay
-                ? "No shared positions at this time."
-                : "No boats sharing right now."}
+              No boats sharing right now.
             </Text>
           ) : null}
         </View>
@@ -328,9 +289,8 @@ function Spectator({
             if (race) navigate({kind:"race",regatta:race});
           }} /> : tab === "Results" ? <RegattaResults key={r.id} seriesId={r.seriesId} eventId={r.eventId} onSeries={series=>navigate({kind:"series",series})} /> : <>
         {positions.length > 0 && <FleetMap
-          key={replay ? "replay" : "live"}
           positions={positions}
-          at={replay ? at : now}
+          at={now}
         />}
         <ScrollView
           style={{ maxHeight: 120 }}
@@ -340,7 +300,7 @@ function Spectator({
             <Text key={p.boatId} style={{ color: c.text }}>
               {p.boatName} ·{" "}
               {p.sogMps === null ? "—" : (p.sogMps * 1.94384449).toFixed(1)} kn
-              {(replay ? at : now) - Date.parse(p.recordedAt) > 60000
+              {now - Date.parse(p.recordedAt) > 60000
                 ? " · stale GPS"
                 : ""}
             </Text>

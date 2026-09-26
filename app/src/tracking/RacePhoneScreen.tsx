@@ -188,6 +188,7 @@ export default function RacePhoneScreen({ token }: { token?: string }) {
                   Keep Veetr running in the background. You can lock the screen.
                   Do not force-close the app. Readiness ends at{" "}
                   {new Date(own.expiresAt).toLocaleString()}.
+                  {" Once the race is active, GPS positions are saved during internet outages and uploaded after reconnection. Offline recording ends at the expiry above or when you stop on this phone."}
                 </Text>
                 {own.error && (
                   <Text accessibilityRole="alert" style={{ color: c.text }}>

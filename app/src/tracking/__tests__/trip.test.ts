@@ -79,3 +79,9 @@ test("stopped trip duration is frozen and point ordering never mutates the recor
   expect(tripDuration(trip, at + 999999)).toBe(90000);
   expect(durationLabel(3661000)).toBe("1h 01m");
 });
+test('wind angle charts preserve port/starboard and genuine zero',()=>{
+ const points=[point(0,{instruments:{aws:null,tws:null,awa:-90,twa:0}}),point(5,{instruments:{aws:null,tws:null,awa:90}})];
+ expect(metricValue(points[0],'awa')).toBe(-90);
+ expect(metricValue(points[0],'twa')).toBe(0);
+ expect(chartPath(points,'awa',180,320,140,-180)).toBe('M0.00,105.00 L320.00,35.00 ');
+});

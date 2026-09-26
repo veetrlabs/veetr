@@ -38,11 +38,16 @@ export class TrackCache {
       const last=past.at(-1);if(!last) continue;
       const future=rows.filter(p=>p.sessionId===last.sessionId&&Date.parse(p.recordedAt)>at);
       const sessions = new Map<string,[number,number][]>();
+      const segments: [number,number][][] = [];
+      let previous: TrackPoint | undefined;
       for (const p of past) {
+        if (!previous || previous.sessionId !== p.sessionId || Date.parse(p.recordedAt) - Date.parse(previous.recordedAt) > 60000) segments.push([]);
+        segments.at(-1)!.push([p.latitude,p.longitude]);
+        previous = p;
         const trail = sessions.get(p.sessionId) ?? [];
         trail.push([p.latitude,p.longitude]);sessions.set(p.sessionId,trail);
       }
-      result.push({...last,trail:sessions.get(last.sessionId)!,trailSegments:[...sessions.values()],
+      result.push({...last,trail:sessions.get(last.sessionId)!,trailSegments:segments,
         nextFix:future[0]??null,futureFixes:future});
     }
     return result;

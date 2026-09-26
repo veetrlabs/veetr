@@ -57,12 +57,18 @@ export function raceIsSharing(info: RacePhone) {
   return info.valid && info.active && info.eligible && info.ready !== false;
 }
 export function raceCaptureAllowed(session: TrackingSession, now = Date.now()) {
+  // An acknowledged active race can buffer locally through a network outage.
+  // A received pause/revocation disables capture; expiry bounds offline recording.
+  // The server separately rejects points outside official race tracking windows.
   return (
     session.mode !== "race" ||
     Boolean(
       session.raceActive &&
       session.raceCheckedAt &&
-      now - Date.parse(session.raceCheckedAt) < 60_000,
+      Number.isFinite(Date.parse(session.raceCheckedAt)) &&
+      Date.parse(session.raceCheckedAt) <= now &&
+      session.phase === "recording" &&
+      now < Date.parse(session.expiresAt),
     )
   );
 }

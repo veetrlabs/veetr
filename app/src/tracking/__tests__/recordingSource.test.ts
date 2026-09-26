@@ -51,3 +51,14 @@ test("invalid device GPS and delayed phone samples are never replaced with unrel
   setDeviceRecordingSource({ gpsValid: false }, now);
   expect(preferredRecordingPoint(phone, now)).toBe(phone);
 });
+test('captures zero and signed wind angles, and never invents missing instruments',()=>{
+ const point=setDeviceRecordingSource({gpsValid:true,lat:50,lon:15,gpsSpeed:0,windAngle:-45,trueWindAngle:0,heading:270},now);
+ expect(point?.instruments).toMatchObject({awa:-45,twa:0,heading:270,aws:null,tws:null});
+ const missing=setDeviceRecordingSource({gpsValid:true,lat:50,lon:15,windAngle:0,trueWindAngle:0,heading:0,recordingInstruments:{aws:null,tws:null,awa:null,twa:null,heading:null}},now);
+ expect(missing?.instruments).toEqual({aws:null,tws:null,awa:null,twa:null,heading:null});
+});
+test('fresh instrument readings can accompany phone GPS when device GPS has no fix',()=>{
+ setDeviceRecordingSource({gpsValid:false,recordingInstruments:{aws:8,tws:7,awa:-40,twa:-60,heading:120}},now);
+ expect(preferredRecordingPoint(phone,now)).toMatchObject({source:'phone',instruments:{awa:-40,twa:-60}});
+ expect(preferredRecordingPoint({...phone,recordedAt:new Date(now+16000).toISOString()},now+16000)?.instruments).toBeUndefined();
+});

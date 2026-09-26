@@ -9,12 +9,21 @@ export interface TrackingEntry {
   seriesName: string;
   boatId: string;
   boatName: string;
+  tripTitle?: string;
+}
+export interface TripSharing {
+  id: string; userId: string; token?: string; title: string;
+  visibility: "private" | "unlisted" | "public";
+  pendingVisibility?: "private" | "unlisted" | "public";
+  uploaded: number; finished?: boolean; error?: string;
 }
 export interface TrackingSession extends TrackingEntry {
+  sharing?: TripSharing;
   id: string;
   userId: string;
   mode?: "local" | "live" | "race";
   raceLinkId?: string;
+  eventId?: string;
   raceName?: string;
   scheduledStart?: string;
   raceActive?: boolean;
@@ -24,6 +33,10 @@ export interface TrackingSession extends TrackingEntry {
   backgroundEnabled?: boolean;
   backgroundStartedAt?: string;
   lastBackgroundFixAt?: string;
+  lastLocationCallbackAt?: string;
+  lastReportedAccuracyM?: number | null;
+  lastGPSRecoveryAt?: string;
+  gpsRecoveryCount?: number;
   lastTaskError?: string;
   stopReason?: "user" | "expired";
   recentPoints?: TrackingPoint[];
@@ -43,7 +56,7 @@ export interface TrackingPoint {
   sogMps: number | null;
   cogDeg: number | null;
   source: "phone" | "veetr";
-  instruments?: { aws: number | null; tws: number | null };
+  instruments?: { aws: number | null; tws: number | null; awa?: number | null; twa?: number | null; heading?: number | null };
 }
 export interface LocationFix {
   timestamp: number;

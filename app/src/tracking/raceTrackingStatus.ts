@@ -28,7 +28,9 @@ export function raceTrackingStatus(
   )
     return {
       label: "Race connection lost",
-      detail: "Sharing is paused until the race connection returns.",
+      detail: session.raceActive
+        ? "GPS positions are saved on this phone when available and sent when the connection returns."
+        : "Waiting for race control before recording starts.",
       live: false,
     };
   if (!session.raceActive)

@@ -46,3 +46,11 @@ test('previous phone sessions remain as separate full trails',()=>{
  assert.deepEqual(frame.trailSegments,[[[.01,10],[.02,10]],[[.03,10],[.04,10]]]);
  assert.equal(frame.trail.length,2);
 });
+
+test('GPS outages split trails even within one phone session',()=>{
+ const cache=new TrackCache();
+ cache.put(0,'a',[point(1000),point(6000),point(80000),point(85000)]);
+ assert.equal(cache.frame(85000)[0].trailSegments?.length,2);
+ assert.deepEqual(replayCoordinate(cache.frame(40000)[0],40000),[.06,10]);
+ assert.deepEqual(cache.frame(85000)[0].trailSegments,[[[.01,10],[.06,10]],[[.8,10],[.85,10]]]);
+});

@@ -1,7 +1,7 @@
 ---
 title: "Privacy Policy"
 description: "Privacy policy for veetr.org."
-effectiveDate: "February 3, 2026"
+effectiveDate: "September 24, 2026"
 ---
 
 ## 1. Controller identification
@@ -51,3 +51,21 @@ We take security seriously and use industry-standard safeguards to protect perso
 ## 9. Changes to this policy
 
 We may update this Privacy Policy from time to time. The latest version will always be available on this page.
+
+## 10. Optional Veetr app diagnostics
+
+The Veetr mobile app offers optional diagnostic reporting to help investigate errors and tracking reliability. Automatic reporting is off by default and is enabled only when you choose “Share diagnostic reports” in Settings → Location & tracking. You may instead choose “Send diagnostic report” to authorize a single report without enabling automatic reporting. Tracking works regardless of this choice.
+
+Reports contain app/build version, hardware model (not your device's personal name), operating-system version, app foreground/background state, location-permission status, reported GPS accuracy, time elapsed since the last recorded fix and upload, upload-queue size, GPS restart counts, and fixed error categories. They do not contain GPS coordinates, routes, names, email addresses, account or race identifiers, invitation links, authentication tokens, or unrestricted error/console messages.
+
+We process these reports based on your consent. Automatic reports use a random diagnostic identifier, separate from your account and race session, to relate technical events from the same installation. One-off reports use a separate random identifier. These reports are pseudonymous, not guaranteed anonymous. Supabase processes the reports on our behalf; authorized Veetr maintainers can inspect them. Normal hosting/network services also process connection information such as IP addresses to handle requests; our diagnostic report table does not store IP addresses.
+
+Reports are removed from the active diagnostic database after 30 days by an hourly cleanup. Unsent reports are limited to 100 on the phone and expire after seven days. Turning off automatic reporting stops future automatic reports, cancels pending uploads where possible, and clears unsent reports and the local automatic diagnostic identifier. Reports already received are subject to the retention period; turning off reporting does not recall them. Infrastructure logs and backups follow the hosting provider's separate retention and security controls.
+
+You can withdraw consent without affecting GPS tracking. For access or deletion requests, contact veetr@linhart.email and include the report ID shown after a one-off submission, if available. No reports are used for advertising or automated decisions about you.
+
+## Sharing sailing trips
+
+Trips are private until their recorder chooses to share them. Sharing uploads the selected boat, trip title, timestamps, route and available sailing instruments. “Anyone with the link” allows anyone holding that link to view the trip; “Public” also lists it in Explore trips. Viewers do not need an account. Boat crew membership alone does not allow someone to publish another recorder’s trip.
+
+Live sharing includes the route recorded so far and subsequent uploaded positions. Stopping sharing disables the link once the server confirms the request. When offline, the app shows that the change is pending. Ending a trip keeps your chosen sharing setting and the same link available for the finished route. You can stop sharing separately at any time. Disabling a link cannot remove copies that viewers already saved. Deleting the local recording does not delete an uploaded copy.

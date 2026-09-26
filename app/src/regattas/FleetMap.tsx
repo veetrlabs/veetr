@@ -4,9 +4,11 @@ import type { TrackingPosition } from "./positions";
 export default function FleetMap({
   positions,
   at,
+  ownBoatId,
 }: {
   positions: TrackingPosition[];
   at: number;
+  ownBoatId?: string;
 }) {
   const ref = useRef<any>(null);
   const fitted = useRef(false);
@@ -49,21 +51,29 @@ export default function FleetMap({
           title={p.boatName}
           description={`${p.sogMps === null ? "—" : (p.sogMps * 1.94384449).toFixed(1)} kn`}
           pinColor={
-            at - Date.parse(p.recordedAt) > 60000 ? "#64748b" : "#009688"
+            at - Date.parse(p.recordedAt) > 60000
+              ? "#64748b"
+              : p.boatId === ownBoatId
+                ? "#009688"
+                : "#3b82f6"
           }
         />
       ))}
-      {positions.map((p) => (
-        <Polyline
-          key={p.boatId}
-          coordinates={p.trail.map(([latitude, longitude]) => ({
-            latitude,
-            longitude,
-          }))}
-          strokeColor="#009688"
-          strokeWidth={3}
-        />
-      ))}
+      {positions.flatMap((p) =>
+        (p.trailSegments ?? [p.trail])
+          .filter((s) => s.length > 1)
+          .map((segment, i) => (
+            <Polyline
+              key={`${p.boatId}-${i}`}
+              coordinates={segment.map(([latitude, longitude]) => ({
+                latitude,
+                longitude,
+              }))}
+              strokeColor={p.boatId === ownBoatId ? "#009688" : "#3b82f6"}
+              strokeWidth={3}
+            />
+          )),
+      )}
     </MapView>
   );
 }

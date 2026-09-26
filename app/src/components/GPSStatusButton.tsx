@@ -7,6 +7,7 @@ import { useBLE } from '../context/BLEContext'
 import { useTheme } from '../context/ThemeContext'
 import { themeColors } from '../constants/colors'
 import NavigationStatus from '../navigation/NavigationStatus'
+import { trackingErrorMessage } from '../tracking/errorMessage'
 
 export default function GPSStatusButton() {
   const nav = useNavigation(), { state } = useBLE(), { theme } = useTheme(), insets = useSafeAreaInsets()
@@ -48,8 +49,15 @@ export default function GPSStatusButton() {
               {'\n'}Compass true: {nav.phoneHeading.sample?.trueHeading != null && nav.phoneHeading.sample.trueHeading >= 0 ? `${nav.phoneHeading.sample.trueHeading.toFixed(1)}°` : 'unavailable'} · sensor quality {nav.phoneHeading.rawSample.accuracy}/3
             </Text>}
             {nav.session?.phase === 'recording' && <Text selectable style={{ color: c.textSecondary }}>
+              Last GPS callback: {nav.session.lastLocationCallbackAt ? new Date(nav.session.lastLocationCallbackAt).toLocaleTimeString() : 'not received yet'}
+              {'\n'}Last recorded: {nav.session.lastRecordedAt ? new Date(nav.session.lastRecordedAt).toLocaleTimeString() : 'none'}
+              {'\n'}Last upload: {nav.session.lastUploadAt ? new Date(nav.session.lastUploadAt).toLocaleTimeString() : 'none'}
+              {'\n'}Last reported accuracy: {nav.session.lastReportedAccuracyM != null ? `±${Math.round(nav.session.lastReportedAccuracyM)} m` : 'unknown'}
+              {'\n'}GPS restarts: {nav.session.gpsRecoveryCount ?? 0}
+              {'\n'}
               Last background GPS: {nav.session.lastBackgroundFixAt ? new Date(nav.session.lastBackgroundFixAt).toLocaleTimeString() : 'not received yet'}
-              {nav.session.lastTaskError ? `\nBackground error: ${nav.session.lastTaskError}` : ''}
+              {nav.session.error ? `\n${trackingErrorMessage(nav.session.error)?.text}` : ''}
+              {nav.session.lastTaskError && nav.session.lastTaskError !== nav.session.error ? `\n${trackingErrorMessage(nav.session.lastTaskError)?.text}` : ''}
             </Text>}
           </ScrollView>
         </View>

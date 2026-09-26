@@ -29,6 +29,9 @@ export default function Map({ onBack }: { onBack?: () => void }) {
     [ready, setReady] = useState(false);
   const [seamarks, setSeamarks] = useState(true);
   const [mapType, setMapType] = useState<"standard" | "satellite">("standard");
+  const [raceExpanded, setRaceExpanded] = useState(false);
+  const [racePanelHeight, setRacePanelHeight] = useState(52);
+  const raceMapTop = insets.top + 58 + racePanelHeight + 12;
   const race = useRaceTracking();
   const linkId =
     race.session?.mode === "race"
@@ -39,6 +42,7 @@ export default function Map({ onBack }: { onBack?: () => void }) {
   useEffect(() => {
     fittedRace.current = undefined;
     setFollow(!linkId);
+    setRaceExpanded(false);
   }, [linkId]);
   useEffect(() => {
     if (
@@ -51,7 +55,7 @@ export default function Map({ onBack }: { onBack?: () => void }) {
     fittedRace.current = linkId;
     setFollow(false);
     ref.current?.fitToCoordinates(fleet.positions, {
-      edgePadding: { top: insets.top + 210, right: 50, bottom: 150, left: 50 },
+      edgePadding: { top: raceMapTop, right: 50, bottom: 150, left: 50 },
       animated: true,
     });
   }, [ready, linkId, fleet.positions]);
@@ -232,74 +236,111 @@ export default function Map({ onBack }: { onBack?: () => void }) {
       <GPSStatusButton />
       {linkId && (
         <View
+          onLayout={(event) =>
+            setRacePanelHeight(event.nativeEvent.layout.height)
+          }
           style={{
             position: "absolute",
             top: insets.top + 58,
-            left: 12,
-            right: 12,
-            padding: 12,
+            left: Math.max(12, insets.left),
+            right: Math.max(12, insets.right),
+            paddingHorizontal: 10,
+            paddingVertical: 4,
             borderRadius: 12,
             backgroundColor: colors.panelBg,
-            gap: 6,
           }}
         >
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Manage race tracking"
-            onPress={() => router.push("/race-phone" as Href)}
-          >
-            <Text
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${raceStatus.label}. ${raceExpanded ? "Hide" : "Show"} race details`}
+              accessibilityState={{ expanded: raceExpanded }}
+              onPress={() => setRaceExpanded((value) => !value)}
+              style={{ flex: 1, minHeight: 44, justifyContent: "center" }}
+            >
+              <Text
+                numberOfLines={1}
+                style={{
+                  color: raceStatus.live ? "#22b994" : colors.text,
+                  fontSize: 14,
+                  fontWeight: "700",
+                }}
+              >
+                {raceStatus.live ? "● " : ""}
+                {raceStatus.label} {raceExpanded ? "⌃" : "⌄"}
+              </Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Show fleet"
+              disabled={!fleet.positions.length && !position}
+              onPress={() => {
+                setFollow(false);
+                ref.current?.fitToCoordinates(
+                  [...fleet.positions, ...(position ? [position] : [])],
+                  {
+                    edgePadding: {
+                      top: raceMapTop,
+                      right: 50,
+                      bottom: 150,
+                      left: 50,
+                    },
+                    animated: true,
+                  },
+                );
+              }}
               style={{
-                color: raceStatus.live ? "#22b994" : colors.text,
-                fontSize: 17,
-                fontWeight: "800",
+                paddingHorizontal: 10,
+                minHeight: 44,
+                justifyContent: "center",
+                backgroundColor: colors.buttonBg,
+                borderRadius: 8,
               }}
             >
-              {raceStatus.live ? "● " : ""}
-              {raceStatus.label} ›
+              <Text
+                style={{ color: colors.text, fontSize: 13, fontWeight: "700" }}
+              >
+                Show fleet
+              </Text>
+            </Pressable>
+          </View>
+          {!!fleet.error && !raceExpanded && (
+            <Text
+              accessibilityRole="alert"
+              style={{
+                color: colors.textMuted,
+                fontSize: 12,
+                paddingBottom: 4,
+              }}
+            >
+              Fleet unavailable · tap status for details
             </Text>
-            <Text style={{ color: colors.text }}>
-              {ownBoatName} · {race.session?.raceName ?? race.phone?.raceName}
-            </Text>
-          </Pressable>
-          <Text style={{ color: colors.textMuted, fontSize: 12 }}>
-            {fleet.error ||
-              (fleet.loading
-                ? "Loading race boats…"
-                : fleet.positions.length
-                  ? "Green: your boat · Blue: competitors · Grey: stale"
-                  : "No shared race positions yet.")}
-          </Text>
-          <Pressable
-            accessibilityRole="button"
-            disabled={!fleet.positions.length && !position}
-            onPress={() => {
-              setFollow(false);
-              ref.current?.fitToCoordinates(
-                [...fleet.positions, ...(position ? [position] : [])],
-                {
-                  edgePadding: {
-                    top: insets.top + 210,
-                    right: 50,
-                    bottom: 150,
-                    left: 50,
-                  },
-                  animated: true,
-                },
-              );
-            }}
-            style={{
-              alignSelf: "flex-start",
-              padding: 10,
-              minHeight: 44,
-              backgroundColor: colors.buttonBg,
-              borderRadius: 10,
-            }}
-          >
-            <Text style={{ color: colors.text, fontWeight: "700" }}>
-              Show fleet
-            </Text>
-          </Pressable>
+          )}
+          {raceExpanded && (
+            <View style={{ paddingTop: 6, paddingBottom: 4, gap: 6 }}>
+              <Text style={{ color: colors.text }}>
+                {ownBoatName} · {race.session?.raceName ?? race.phone?.raceName}
+              </Text>
+              <Text style={{ color: colors.textMuted, fontSize: 12 }}>
+                {fleet.error ||
+                  (fleet.loading
+                    ? "Loading race boats…"
+                    : fleet.positions.length
+                      ? "Green: your boat · Blue: competitors · Grey: stale"
+                      : "No shared race positions yet.")}
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Manage race tracking"
+                onPress={() => router.push("/race-phone" as Href)}
+                style={{ minHeight: 44, justifyContent: "center" }}
+              >
+                <Text style={{ color: colors.text, fontWeight: "600" }}>
+                  Manage race tracking ›
+                </Text>
+              </Pressable>
+            </View>
+          )}
         </View>
       )}
       <Pressable

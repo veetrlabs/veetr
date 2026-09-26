@@ -5,14 +5,16 @@ import "leaflet/dist/leaflet.css";
 export default function FleetMap({
   positions,
   at,
+  ownBoatId,
 }: {
   positions: TrackingPosition[];
   at: number;
+  ownBoatId?: string;
 }) {
   const element = useRef<HTMLDivElement>(null);
   const map = useRef<Leaflet.Map | null>(null);
-  const latest = useRef({ positions, at });
-  latest.current = { positions, at };
+  const latest = useRef({ positions, at, ownBoatId });
+  latest.current = { positions, at, ownBoatId };
   const render = useRef<(() => void) | null>(null);
   useEffect(() => {
     let alive = true;
@@ -33,11 +35,17 @@ export default function FleetMap({
       let fitted = false;
       render.current = () => {
         group.clearLayers();
-        const { positions, at } = latest.current;
+        const { positions, at, ownBoatId } = latest.current;
         for (const p of positions) {
           const color =
-            at - Date.parse(p.recordedAt) > 60000 ? "#64748b" : "#009688";
-          if (p.trail.length > 1) L.polyline(p.trail, { color }).addTo(group);
+            at - Date.parse(p.recordedAt) > 60000
+              ? "#64748b"
+              : p.boatId === ownBoatId
+                ? "#008c80"
+                : "#2563eb";
+          for (const segment of p.trailSegments ?? [p.trail]) {
+            if (segment.length > 1) L.polyline(segment, { color }).addTo(group);
+          }
           const label = document.createElement("span");
           label.textContent = p.boatName;
           L.circleMarker([p.latitude, p.longitude], { color, radius: 7 })
@@ -67,7 +75,7 @@ export default function FleetMap({
   }, []);
   useEffect(() => {
     render.current?.();
-  }, [positions, at]);
+  }, [positions, at, ownBoatId]);
   return createElement("div", {
     ref: element,
     style: { flex: 1, minHeight: 250 },

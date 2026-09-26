@@ -4,9 +4,10 @@ import { router } from "expo-router";
 import { useTheme } from "../context/ThemeContext";
 import { themeColors } from "../constants/colors";
 import type { TrackingSession } from "./model";
-import { startLocalTracking, stopTracking } from "./service";
+import { stopTracking } from "./service";
 import TrackingIcon from "./TrackingIcon";
 import { durationLabel } from "./trip";
+import { trackingErrorMessage } from "./errorMessage";
 export default function LocalRecording({
   session,
   count,
@@ -24,6 +25,7 @@ export default function LocalRecording({
     c = themeColors[theme];
   const [help, setHelp] = useState<number | null>(null);
   const active = session?.phase === "recording";
+  const recordingError = trackingErrorMessage(session?.error || session?.lastTaskError);
   const age = session?.lastRecordedAt
     ? Math.max(0, now - Date.parse(session.lastRecordedAt))
     : null;
@@ -94,7 +96,7 @@ export default function LocalRecording({
           }}
         >
           <TrackingIcon name="lock" color={c.textMuted} size={15} />
-          <Text style={{ color: c.textMuted, fontSize: 12 }}>Private</Text>
+          <Text style={{ color: c.textMuted, fontSize: 12 }}>{session?.sharing?.pendingVisibility === "private" ? "Stopping sharing…" : session?.sharing?.visibility && session.sharing.visibility !== "private" ? "Sharing live" : "Private"}</Text>
         </Pressable>
       </View>
       {active && (
@@ -155,7 +157,7 @@ export default function LocalRecording({
             style={{ color: c.textSecondary, fontSize: 13, lineHeight: 19 }}
           >
             {help === 4
-              ? `Trips stay on this phone. ${active ? (session?.backgroundEnabled ? "Recording can continue with the screen locked." : "Keep Veetr open. Enable background recording in Settings → Location & tracking to record with the screen locked.") : "Allow background location when starting to record with the screen locked."}`
+              ? `Trips stay on this phone unless you choose to share them. ${active ? (session?.backgroundEnabled ? "Recording can continue with the screen locked." : "Keep Veetr open. Enable background recording in Settings → Location & tracking to record with the screen locked.") : "Allow background location when starting to record with the screen locked."}`
               : metrics[help]?.help}
           </Text>
         </View>
@@ -170,7 +172,10 @@ export default function LocalRecording({
           </Text>
         </Pressable>
       )}
-      {active && (session?.error || session?.lastTaskError) && (
+      {session?.boatId && <Text style={{color:c.text}}>{session.boatName}</Text>}
+      {active && session && <Pressable accessibilityRole="button" onPress={() => router.push({pathname:"/trip-sharing",params:{id:session.id}})} style={{paddingVertical:12}}><Text style={{color:c.text}}>{session.sharing?.visibility && session.sharing.visibility!=="private" ? "● Sharing live · Manage / stop sharing" : "Share this trip live"} ›</Text></Pressable>}
+      {session?.sharing?.error && <Text accessibilityRole="alert" style={{color:c.text}}>{session.sharing.error}</Text>}
+      {active && recordingError && (recordingError.settings ? (
         <Pressable
           onPress={() => router.push("/settings")}
           accessibilityRole="button"
@@ -179,14 +184,14 @@ export default function LocalRecording({
             accessibilityRole="alert"
             style={{ color: c.textSecondary, fontSize: 13 }}
           >
-            {session.error || session.lastTaskError} · Help in Settings ›
+            {recordingError.text} · Help in Settings ›
           </Text>
         </Pressable>
-      )}
+      ) : <Text accessibilityRole="alert" style={{ color: c.textSecondary, fontSize: 13 }}>{recordingError.text}</Text>)}
       <Pressable
         accessibilityRole="button"
         disabled={busy}
-        onPress={() => void run(active ? stopTracking : startLocalTracking)}
+        onPress={() => active ? void run(stopTracking) : router.push("/start-trip")}
         style={{
           backgroundColor: "#006b62",
           borderRadius: 12,

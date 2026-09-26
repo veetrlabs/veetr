@@ -54,9 +54,9 @@ jobs:
       - name: Link Veetr Regatta
         run: supabase link --project-ref "$SUPABASE_PROJECT_ID"
       - name: Preview pending migrations
-        run: supabase db push --linked --dry-run
+        run: supabase db push --linked --include-all --dry-run
       - name: Apply pending migrations
-        run: supabase db push --linked --yes
+        run: supabase db push --linked --include-all --yes
       - name: Show migration history
         run: supabase migration list --linked
 
