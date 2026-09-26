@@ -89,7 +89,8 @@
           "motionPermission": "Use motion sensors to reduce GPS speed drift when your phone is stationary."
         }
       ],
-      "./plugins/with-ios-pod-targets"
+      "./plugins/with-ios-pod-targets",
+      "./plugins/with-ios-scene-lifecycle"
     ],
     "experiments": {
       "typedRoutes": true
