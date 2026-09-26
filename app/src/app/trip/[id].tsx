@@ -24,12 +24,15 @@ import {
 } from "../../tracking/trip";
 import TripMap from "../../tracking/TripMap";
 import TripChart from "../../tracking/TripChart";
+import { recordingStatus } from "../../tracking/recordingStatus";
+import { trackingErrorMessage } from "../../tracking/errorMessage";
 export default function TripDetail() {
   const { id } = useLocalSearchParams<{ id: string }>(),
     { theme } = useTheme(),
     c = themeColors[theme],
     { height } = useWindowDimensions();
   const [trip, setTrip] = useState<Trip | null>(null),
+    [now, setNow] = useState(Date.now()),
     [index, setIndex] = useState(0),
     [loading, setLoading] = useState(true),
     [error, setError] = useState(""),
@@ -42,6 +45,7 @@ export default function TripDetail() {
         try {
           const records = await (await trackingStore()).localRecordings();
           if (alive) {
+            setNow(Date.now());
             const record = records.find((r) => r.session.id === id);
             setTrip((previous) => {
               const next = record
@@ -154,7 +158,7 @@ export default function TripDetail() {
             <Text style={{ color: c.textMuted, fontSize: 12, marginTop: 3 }}>
               {distanceNm(trip.points).toFixed(2)} nm ·{" "}
               {durationLabel(tripDuration(trip))}
-              {trip.session.phase === "recording" ? " · Recording" : ""}
+              {trip.session.phase === "recording" ? ` · ${recordingStatus(trip.session, now)}` : ""}
             </Text>
           )}
         </View>
@@ -175,6 +179,19 @@ export default function TripDetail() {
             <TripMap points={trip.points} selected={trip.points[index]} />
           </View>
           <View style={{ padding: 20, gap: 24 }}>
+            {trip.session.phase === "recording" && (
+              (trip.session.error || trip.session.lastTaskError || recordingStatus(trip.session, now) !== "Recording") && (
+                <Pressable accessibilityRole="button" onPress={() => router.push("/settings")}>
+                  <Text accessibilityRole="alert" style={{ color: c.textSecondary }}>
+                    {trackingErrorMessage(trip.session.error || trip.session.lastTaskError)?.text ||
+                      (trip.session.lastRecordedAt
+                        ? "No recent GPS positions. Your saved route is kept; recording will continue when GPS updates return."
+                        : "No GPS positions have been saved yet. Recording will continue when a location fix arrives.")}
+                    {" · Location & tracking settings ›"}
+                  </Text>
+                </Pressable>
+              )
+            )}
             {trip.session.mode === 'race' && trip.session.eventId && <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/race-replay', params: { seriesId: trip.session.seriesId, eventId: trip.session.eventId!, tripId: trip.session.id } })} style={{ padding: 14, backgroundColor: c.buttonBg, borderRadius: 12 }}>
               <Text style={{ color: c.text }}>Replay race · show competitors</Text>
             </Pressable>}

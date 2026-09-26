@@ -76,6 +76,7 @@ const point = (seq: number): TrackingPoint & { seq: number } => ({
 });
 const tick = () => new Promise<void>((resolve) => setImmediate(resolve));
 beforeEach(() => {
+  pauseForegroundGPS();
   jest.clearAllMocks();
   session = base();
   points = [point(1)];
@@ -488,4 +489,55 @@ test('recovery does not restart stopped sessions or launch services in the backg
   (AppState as { currentState: string }).currentState = 'background';
   try { await recoverStalledTracking(); } finally { (AppState as { currentState: string }).currentState = 'active'; }
   expect(Location.startLocationUpdatesAsync).not.toHaveBeenCalled();
+});
+
+test('Android saves direct fixes with full permission even if the registered background task stays silent', async () => {
+  session = { ...base(), mode: 'local' };
+  points = [];
+  await resumeTracking();
+  expect(Location.startLocationUpdatesAsync).toHaveBeenCalled();
+  const callback = (Location.watchPositionAsync as jest.Mock).mock.calls[0][1];
+  callback({ timestamp: Date.now(), coords: { latitude: 49, longitude: 14, accuracy: 5, speed: 2, heading: 90 } });
+  await tick();
+  expect(points).toHaveLength(1);
+  expect(session?.lastLocationCallbackAt).toBeTruthy();
+  await resumeTracking();
+  expect(Location.watchPositionAsync).toHaveBeenCalledTimes(1);
+});
+
+test('a delayed foreground subscription is removed if recording stops during startup', async () => {
+  session = { ...base(), mode: 'local' };
+  const remove = jest.fn();
+  let finish!: (value: {remove: typeof remove}) => void;
+  (Location.watchPositionAsync as jest.Mock).mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+  const resume = resumeTracking();
+  await tick();
+  const stop = stopTracking();
+  await tick();
+  finish({ remove });
+  await resume;
+  await stop;
+  expect(remove).toHaveBeenCalledTimes(1);
+  expect(session?.phase).toBe('stopping');
+});
+
+test('background capture still starts if the direct listener fails', async () => {
+  session = { ...base(), mode: 'local' };
+  (Location.watchPositionAsync as jest.Mock).mockRejectedValueOnce(new Error('Direct listener unavailable'));
+  await resumeTracking();
+  expect(Location.startLocationUpdatesAsync).toHaveBeenCalled();
+  expect(session?.lastTaskError).toBe('Direct listener unavailable');
+});
+
+test('foreground listener errors are recorded instead of swallowed', async () => {
+  session = { ...base(), mode: 'local' };
+  await resumeTracking();
+  const failed = (Location.watchPositionAsync as jest.Mock).mock.calls[0][2];
+  failed('Location provider unavailable');
+  await tick();
+  expect(session?.lastTaskError).toBe('Location provider unavailable');
+  pauseForegroundGPS();
+  failed('Late error');
+  await tick();
+  expect(session?.lastTaskError).toBe('Location provider unavailable');
 });

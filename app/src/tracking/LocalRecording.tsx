@@ -8,6 +8,7 @@ import { stopTracking } from "./service";
 import TrackingIcon from "./TrackingIcon";
 import { durationLabel } from "./trip";
 import { trackingErrorMessage } from "./errorMessage";
+import { recordingStatus } from "./recordingStatus";
 export default function LocalRecording({
   session,
   count,
@@ -82,7 +83,7 @@ export default function LocalRecording({
         }}
       >
         <Text style={{ color: active ? "#008c80" : c.text, fontWeight: "600" }}>
-          {active ? "● Recording" : "Ready to sail"}
+          {active && session ? `● ${recordingStatus(session, now)}` : "Ready to sail"}
         </Text>
         <Pressable
           accessibilityRole="button"

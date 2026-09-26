@@ -104,6 +104,28 @@ async function stopGPS() {
   if (await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK))
     await Location.stopLocationUpdatesAsync(LOCATION_TASK);
 }
+async function startForegroundGPS() {
+  if (foreground || AppState.currentState !== "active") return;
+  const store = await trackingStore();
+  const session = await store.get();
+  if (!session) return;
+  const generation = foregroundGeneration;
+  const isCurrent = () => generation === foregroundGeneration && AppState.currentState === "active";
+  const failed = async (error: unknown) => {
+    if (!isCurrent()) return;
+    await store.patch(session.id, { lastTaskError: message(error), error: message(error) });
+    reportDiagnostic('gps_error', error);
+  };
+  const subscription = await Location.watchPositionAsync(
+    { accuracy: Location.Accuracy.High, timeInterval: 1000, distanceInterval: 0 },
+    (location) => {
+      if (isCurrent()) void recordLocations([location]).catch(failed).catch(() => {});
+    },
+    (reason) => { void failed(new Error(reason)).catch(() => {}); },
+  );
+  if (!isCurrent()) subscription.remove();
+  else foreground = subscription;
+}
 async function startGPS(local = false) {
   const background =
     (await Location.getBackgroundPermissionsAsync()).status === "granted";
@@ -117,39 +139,27 @@ async function startGPS(local = false) {
     throw new Error("Keep Veetr open while starting background recording. Return to Veetr and retry.");
   }
   if (session) await store.patch(session.id, { backgroundEnabled: false });
+  if (!background && !local)
+    throw new Error("Enable background location permission to resume live tracking.");
+  // Android's task consumer delivers fixes through JobScheduler even while the
+  // activity is visible. Keep a direct listener independent of that delivery path.
+  // The store serializes and samples both streams, so overlapping fixes are safe.
+  if (Platform.OS === "android" || !background) {
+    try {
+      await startForegroundGPS();
+    } catch (error) {
+      reportDiagnostic('gps_error', error);
+      if (!background) throw error;
+      // A failed direct subscription must not prevent background capture.
+      if (session) await store.patch(session.id, { lastTaskError: message(error) });
+    }
+  }
   if (!background) {
-    if (!local)
-      throw new Error(
-        "Enable background location permission to resume live tracking.",
-      );
     if (await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK))
       await Location.stopLocationUpdatesAsync(LOCATION_TASK);
-    if (!foreground && AppState.currentState === "active") {
-      const generation = foregroundGeneration;
-      const subscription = await Location.watchPositionAsync(
-        {
-          accuracy: Location.Accuracy.High,
-          timeInterval: 1000,
-          distanceInterval: 0,
-        },
-        (location) => {
-          if (
-            generation === foregroundGeneration &&
-            AppState.currentState === "active"
-          )
-            void recordLocations([location]).catch(() => {});
-        },
-      );
-      if (
-        generation !== foregroundGeneration ||
-        AppState.currentState !== "active"
-      )
-        subscription.remove();
-      else foreground = subscription;
-    }
     return;
   }
-  pauseForegroundGPS();
+  if (Platform.OS !== "android") pauseForegroundGPS();
   // Reapply native options on resume: task registration alone does not prove the manager is running.
   await Location.startLocationUpdatesAsync(LOCATION_TASK, {
     accuracy: Location.Accuracy.High,
