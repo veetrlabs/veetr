@@ -6,6 +6,7 @@ import * as Device from 'expo-device';
 import * as Crypto from 'expo-crypto';
 import * as Location from 'expo-location';
 import { trackingStore } from '../tracking/database';
+import { nativeDiagnostics, setNativeDiagnosticsEnabled } from './native';
 import { ageSeconds, diagnosticErrorCode, emptyState, enqueue, type DiagnosticEvent, type QueueState } from './queue';
 
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
@@ -28,8 +29,10 @@ let controller: AbortController | null = null;
 let uploading: Promise<void> | null = null;
 let lastUploadAttempt = 0;
 let lastHealth = 0;
+let lastHealthState = '';
 export const diagnosticsEnabled = () => exclusive(async () => (await read()).enabled);
 export const diagnosticIdentity = () => exclusive(async () => (await read()).installationId);
+export const initializeDiagnostics = () => exclusive(async () => setNativeDiagnosticsEnabled((await read()).enabled));
 export async function setDiagnosticsEnabled(enabled: boolean) {
   // Invalidate in-progress collection immediately, even before disk I/O completes.
   revision++;
@@ -37,16 +40,20 @@ export async function setDiagnosticsEnabled(enabled: boolean) {
   await exclusive(async () => {
     const state = await read();
     await save(enabled ? { ...state, enabled: true, installationId: state.installationId ?? Crypto.randomUUID() } : emptyState());
+    await setNativeDiagnosticsEnabled(enabled);
   });
   if (enabled) reportDiagnostic('health');
 }
 
-async function snapshot(event: DiagnosticEvent['event'], consent: DiagnosticEvent['consent'], installationId: string, error?: unknown): Promise<DiagnosticEvent> {
+async function snapshot(event: DiagnosticEvent['event'], consent: DiagnosticEvent['consent'], installationId: string, state: string, error?: unknown): Promise<DiagnosticEvent> {
   const now = Date.now();
-  const store = await trackingStore();
-  const [session, pendingCount, foreground, background] = await Promise.all([
-    store.get(), store.count(), Location.getForegroundPermissionsAsync(), Location.getBackgroundPermissionsAsync(),
+  const [storage, foreground, background, native] = await Promise.all([
+    trackingStore().then(async store => ({ session: await store.get(), count: await store.count(), available: true }))
+      .catch(() => ({ session: null, count: 0, available: false })),
+    Location.getForegroundPermissionsAsync(), Location.getBackgroundPermissionsAsync(),
+    nativeDiagnostics(),
   ]);
+  const { session, count: pendingCount } = storage;
   const short = (value: unknown) => String(value ?? 'unknown').slice(0, 80);
   return {
     id: Crypto.randomUUID(), installationId, occurredAt: new Date(now).toISOString(), consent, event,
@@ -55,22 +62,36 @@ async function snapshot(event: DiagnosticEvent['event'], consent: DiagnosticEven
     platform: Platform.OS, osVersion: short(Device.osVersion ?? Platform.Version),
     // Hardware model only, never deviceName (which can contain the owner's name).
     model: short(Device.modelName),
-    state: ['active', 'background', 'inactive'].includes(AppState.currentState) ? AppState.currentState : 'unknown',
+    state: ['active', 'background', 'inactive'].includes(state) ? state : 'unknown',
     foregroundPermission: foreground.status, backgroundPermission: background.status,
     tracking: session?.phase ?? 'none', fixAgeSeconds: ageSeconds(session?.lastRecordedAt, now),
     uploadAgeSeconds: ageSeconds(session?.lastUploadAt, now),
     accuracyM: session?.lastReportedAccuracyM != null && Number.isFinite(session.lastReportedAccuracyM) ? Math.max(0, Math.min(session.lastReportedAccuracyM, 100000)) : null,
     pendingCount, recoveryCount: session?.gpsRecoveryCount ?? 0,
     errorCode: diagnosticErrorCode(error ?? session?.lastTaskError ?? session?.error),
+    pipeline: {
+      foregroundCallbackAgeSeconds: ageSeconds(session?.lastForegroundFixAt, now),
+      backgroundCallbackAgeSeconds: ageSeconds(session?.lastBackgroundFixAt, now),
+      taskCallbackAgeSeconds: ageSeconds(session?.lastTaskCallbackAt, now),
+      batchSize: session?.lastLocationBatchSize ?? null,
+      deliveryDelayMs: session?.lastLocationDeliveryDelayMs ?? null,
+      rejectedFixes: session?.lastRejectedFixCount ?? null,
+      backgroundRequested: session?.backgroundEnabled === true,
+      precisePermission: Platform.OS === 'android' && foreground.android?.accuracy ? foreground.android.accuracy === 'fine' : null,
+      storageAvailable: storage.available,
+    },
+    native,
   };
 }
 async function collect(event: DiagnosticEvent['event'], manual: boolean, error?: unknown): Promise<string | null> {
+  // Preserve the state at the trigger, before disk/native async calls can observe a later resume.
+  const appState = AppState.currentState;
   const generation = revision;
   const state = await exclusive(read);
   if (!manual && !state.enabled) return null;
-  if (!manual && event === 'health' && Date.now() - lastHealth < 60000) return null;
-  if (!manual && event === 'health') lastHealth = Date.now();
-  const item = await snapshot(event, manual ? 'manual' : 'automatic', manual ? Crypto.randomUUID() : state.installationId!, error);
+  if (!manual && event === 'health' && lastHealthState === appState && Date.now() - lastHealth < 60000) return null;
+  if (!manual && event === 'health') { lastHealth = Date.now(); lastHealthState = appState; }
+  const item = await snapshot(event, manual ? 'manual' : 'automatic', manual ? Crypto.randomUUID() : state.installationId!, appState, error);
   return exclusive(async () => {
     if (generation !== revision) return null;
     const current = await read();
@@ -102,7 +123,14 @@ export function flushDiagnostics(force = false): Promise<void> {
     const events = await exclusive(async () => {
       const state = await read();
       state.events = state.events.filter(e => Date.now() - Date.parse(e.occurredAt) < 7 * 86400000 && (e.consent === 'manual' || state.enabled));
-      await save(state); return state.events.slice(0, 20);
+      await save(state);
+      // Native counters increase report size; stay below the server's 40 KB batch cap.
+      const batch: DiagnosticEvent[] = [];
+      for (const event of state.events.slice(0, 20)) {
+        if (JSON.stringify({ reports: [...batch, event] }).length > 9000) break;
+        batch.push(event);
+      }
+      return batch;
     });
     if (!events.length || generation !== revision) return;
     controller = new AbortController();

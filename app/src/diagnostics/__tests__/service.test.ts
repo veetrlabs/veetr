@@ -2,6 +2,7 @@ process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://diagnostics.example.test';
 process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY = 'public-key';
 let mockStored: string | null = null;
 let mockSerial = 0;
+jest.mock('../native', () => ({ nativeDiagnostics: jest.fn(async () => null), setNativeDiagnosticsEnabled: jest.fn(async () => {}) }));
 jest.mock('@react-native-async-storage/async-storage', () => ({ getItem: jest.fn(async () => mockStored), setItem: jest.fn(async (_key, value) => { mockStored = value; }) }));
 jest.mock('react-native', () => ({ AppState: { currentState: 'active' }, Platform: { OS: 'android', Version: 34, constants: { Model: 'OnePlus' } } }));
 jest.mock('expo-constants', () => ({ __esModule: true, default: { expoConfig: { version: '0.0.28' }, platform: { android: { versionCode: 12 } } } }));
@@ -14,6 +15,8 @@ jest.mock('../../tracking/database', () => ({ trackingStore: jest.fn(async () =>
 })) }));
 const { diagnosticsEnabled, setDiagnosticsEnabled, reportDiagnostic, sendDiagnosticReport, flushDiagnostics }: typeof import('../service') = require('../service');
 import { trackingStore } from '../../tracking/database';
+import { AppState } from 'react-native';
+import { setNativeDiagnosticsEnabled } from '../native';
 import { diagnosticErrorCode, emptyState, enqueue, type DiagnosticEvent } from '../queue';
 const settle = async () => { for (let i = 0; i < 10; i++) await new Promise<void>(resolve => setImmediate(resolve)); };
 beforeEach(async () => {
@@ -47,15 +50,35 @@ test('offline reports retry with identical IDs without silently enabling consent
   expect(JSON.parse(mockStored!).events).toEqual([]);
   expect(await diagnosticsEnabled()).toBe(false);
 });
+test('broken tracking storage still allows a diagnostic report without raw database errors', async () => {
+  (trackingStore as jest.Mock).mockRejectedValueOnce(new Error('SECRET database failure'));
+  expect(await sendDiagnosticReport()).toContain('Report sent.');
+  const report = JSON.parse((fetch as jest.Mock).mock.calls[0][1].body).reports[0];
+  expect(report.pipeline.storageAvailable).toBe(false);
+  expect(JSON.stringify(report)).not.toContain('SECRET');
+});
 test('withdrawal clears queued events and the automatic identifier', async () => {
   await setDiagnosticsEnabled(true); await settle();
   (fetch as jest.Mock).mockRejectedValue(new Error('Offline'));
   await sendDiagnosticReport();
   await setDiagnosticsEnabled(false);
+  expect(setNativeDiagnosticsEnabled).toHaveBeenLastCalledWith(false);
   expect(JSON.parse(mockStored!)).toEqual(emptyState());
   (fetch as jest.Mock).mockClear();
   await flushDiagnostics(true);
   expect(fetch).not.toHaveBeenCalled();
+});
+
+test('lifecycle reports preserve the triggering background state across async collection', async () => {
+  await setDiagnosticsEnabled(true); await settle();
+  expect(setNativeDiagnosticsEnabled).toHaveBeenCalledWith(true);
+  (AppState as { currentState: string }).currentState = 'background';
+  reportDiagnostic('app_state');
+  (AppState as { currentState: string }).currentState = 'active';
+  await settle();
+  await flushDiagnostics(true);
+  const reports = (fetch as jest.Mock).mock.calls.flatMap((call) => JSON.parse(call[1].body).reports);
+  expect(reports).toContainEqual(expect.objectContaining({ event: 'app_state', state: 'background' }));
 });
 test('queue is bounded and expires old reports', () => {
   let state = { ...emptyState(), enabled: true };

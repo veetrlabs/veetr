@@ -1,0 +1,195 @@
+diff --git a/node_modules/expo-location/android/src/main/java/expo/modules/location/LocationModule.kt b/node_modules/expo-location/android/src/main/java/expo/modules/location/LocationModule.kt
+index 46e2ec5..8f7058a 100644
+--- a/node_modules/expo-location/android/src/main/java/expo/modules/location/LocationModule.kt
++++ b/node_modules/expo-location/android/src/main/java/expo/modules/location/LocationModule.kt
+@@ -87,6 +87,13 @@ class LocationModule : Module(), LifecycleEventListener, SensorEventListener, Ac
+   override fun definition() = ModuleDefinition {
+     Name("ExpoLocation")
+ 
++    AsyncFunction("setVeetrDiagnosticsEnabled") { enabled: Boolean ->
++      VeetrLocationDiagnostics.setEnabled(mContext, enabled)
++    }
++    AsyncFunction("getVeetrDiagnostics") {
++      VeetrLocationDiagnostics.snapshot(mContext)
++    }
++
+     OnCreate {
+       mContext = appContext.reactContext ?: throw Exceptions.ReactContextLost()
+       mUIManager = appContext.legacyModule<UIManager>() ?: throw MissingUIManagerException()
+diff --git a/node_modules/expo-location/android/src/main/java/expo/modules/location/VeetrLocationDiagnostics.kt b/node_modules/expo-location/android/src/main/java/expo/modules/location/VeetrLocationDiagnostics.kt
+new file mode 100644
+index 0000000..0567842
+--- /dev/null
++++ b/node_modules/expo-location/android/src/main/java/expo/modules/location/VeetrLocationDiagnostics.kt
+@@ -0,0 +1,70 @@
++package expo.modules.location
++
++import android.content.Context
++import android.app.job.JobScheduler
++import android.os.Build
++import android.location.LocationManager
++import android.os.PowerManager
++
++/** Bounded, opt-in technical counters. Never accepts coordinates, task IDs or error text. */
++internal object VeetrLocationDiagnostics {
++  private const val PREFS = "veetr_location_diagnostics_v1"
++  private const val DAY_MS = 86400000L
++  private val events = listOf("registered", "requestAccepted", "requestFailed", "broadcast", "fix", "jobScheduled", "jobStarted", "taskDispatched", "taskFinished", "serviceStarted", "serviceStopped")
++  @Volatile var serviceRunning = false
++    private set
++
++  @Synchronized fun setEnabled(context: Context, enabled: Boolean) {
++    val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
++    if (!enabled) prefs.edit().clear().apply()
++    else if (!prefs.getBoolean("enabled", false)) prefs.edit().clear().putBoolean("enabled", true).putLong("since", System.currentTimeMillis()).apply()
++  }
++
++  @Synchronized fun record(context: Context?, event: String, count: Int = 1, fixTime: Long = 0) {
++    if (event == "serviceStarted") serviceRunning = true
++    if (event == "serviceStopped") serviceRunning = false
++    try {
++      if (context == null || event !in events) return
++      val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
++      if (!prefs.getBoolean("enabled", false)) return
++      val now = System.currentTimeMillis()
++      if (now - prefs.getLong("since", now) > DAY_MS) prefs.edit().clear().putBoolean("enabled", true).putLong("since", now).apply()
++      val screenOff = !(context.getSystemService(Context.POWER_SERVICE) as PowerManager).isInteractive
++      val edit = prefs.edit().putLong(event, (prefs.getLong(event, 0) + count).coerceIn(0L, 10000000L)).putLong(event + "At", now)
++      if (screenOff) edit.putLong(event + "ScreenOff", (prefs.getLong(event + "ScreenOff", 0) + count).coerceIn(0L, 10000000L))
++      if (fixTime > 0) edit.putLong("lastFixDelayMs", (now - fixTime).coerceIn(0L, DAY_MS))
++      edit.apply()
++    } catch (_: Exception) { /* Diagnostics must not interrupt location delivery. */ }
++  }
++
++  @Synchronized fun snapshot(context: Context): Map<String, Any?> {
++    val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
++    val now = System.currentTimeMillis()
++    val enabled = prefs.getBoolean("enabled", false)
++    val valid = enabled && now - prefs.getLong("since", 0) <= DAY_MS
++    val result = mutableMapOf<String, Any?>("enabled" to enabled, "serviceRunning" to serviceRunning)
++    result["windowAgeSeconds"] = if (valid) ((now - prefs.getLong("since", now)) / 1000).coerceIn(0L, 86400L) else null
++    for (event in events) {
++      result[event + "Count"] = if (valid) prefs.getLong(event, 0) else 0L
++      result[event + "ScreenOffCount"] = if (valid) prefs.getLong(event + "ScreenOff", 0) else 0L
++      val at = prefs.getLong(event + "At", 0)
++      result[event + "AgeSeconds"] = if (valid && at > 0) ((now - at) / 1000).coerceIn(0L, 86400L) else null
++    }
++    result["lastFixDelayMs"] = if (valid && prefs.contains("lastFixDelayMs")) prefs.getLong("lastFixDelayMs", 0) else null
++    val power = context.getSystemService(Context.POWER_SERVICE) as PowerManager
++    result["screenInteractive"] = power.isInteractive
++    result["powerSave"] = power.isPowerSaveMode
++    result["deviceIdle"] = power.isDeviceIdleMode
++    result["batteryExempt"] = power.isIgnoringBatteryOptimizations(context.packageName)
++    val manager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
++    result["gpsProviderEnabled"] = manager.isProviderEnabled(LocationManager.GPS_PROVIDER)
++    result["networkProviderEnabled"] = manager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
++    val scheduler = context.getSystemService(Context.JOB_SCHEDULER_SERVICE) as JobScheduler
++    val jobs = scheduler.allPendingJobs.filter { it.service.className == "expo.modules.taskManager.TaskJobService" }
++    result["pendingJobs"] = jobs.size
++    result["quotaBlockedJobs"] = if (Build.VERSION.SDK_INT >= 36) jobs.count {
++      scheduler.getPendingJobReasons(it.id).contains(JobScheduler.PENDING_JOB_REASON_QUOTA)
++    } else null
++    return result
++  }
++}
+diff --git a/node_modules/expo-location/android/src/main/java/expo/modules/location/services/LocationTaskService.kt b/node_modules/expo-location/android/src/main/java/expo/modules/location/services/LocationTaskService.kt
+index 80647ab..318ba45 100644
+--- a/node_modules/expo-location/android/src/main/java/expo/modules/location/services/LocationTaskService.kt
++++ b/node_modules/expo-location/android/src/main/java/expo/modules/location/services/LocationTaskService.kt
+@@ -13,6 +13,7 @@ import android.os.Binder
+ import android.os.Build
+ import android.os.Bundle
+ import android.os.IBinder
++import expo.modules.location.VeetrLocationDiagnostics
+ 
+ class LocationTaskService : Service() {
+   private var mChannelId: String? = null
+@@ -61,6 +62,12 @@ class LocationTaskService : Service() {
+   fun startForeground(serviceOptions: Bundle) {
+     val notification = buildServiceNotification(serviceOptions)
+     startForeground(mServiceId, notification)
++    VeetrLocationDiagnostics.record(this, "serviceStarted")
++  }
++
++  override fun onDestroy() {
++    VeetrLocationDiagnostics.record(this, "serviceStopped")
++    super.onDestroy()
+   }
+ 
+   //region private
+diff --git a/node_modules/expo-location/android/src/main/java/expo/modules/location/taskConsumers/LocationTaskConsumer.kt b/node_modules/expo-location/android/src/main/java/expo/modules/location/taskConsumers/LocationTaskConsumer.kt
+index e659285..8335cff 100644
+--- a/node_modules/expo-location/android/src/main/java/expo/modules/location/taskConsumers/LocationTaskConsumer.kt
++++ b/node_modules/expo-location/android/src/main/java/expo/modules/location/taskConsumers/LocationTaskConsumer.kt
+@@ -28,6 +28,7 @@ import expo.modules.interfaces.taskManager.TaskExecutionCallback
+ import expo.modules.interfaces.taskManager.TaskInterface
+ import expo.modules.interfaces.taskManager.TaskManagerUtilsInterface
+ import expo.modules.location.AppForegroundedSingleton
++import expo.modules.location.VeetrLocationDiagnostics
+ import expo.modules.location.LocationHelpers
+ import expo.modules.location.records.LocationOptions
+ import expo.modules.location.records.LocationResponse
+@@ -54,6 +55,7 @@ class LocationTaskConsumer(context: Context, taskManagerUtils: TaskManagerUtilsI
+   }
+ 
+   override fun didRegister(task: TaskInterface) {
++    VeetrLocationDiagnostics.record(context, "registered")
+     mTask = task
+     startLocationUpdates()
+     maybeStartForegroundService()
+@@ -79,6 +81,7 @@ class LocationTaskConsumer(context: Context, taskManagerUtils: TaskManagerUtilsI
+   }
+ 
+   override fun didReceiveBroadcast(intent: Intent) {
++    VeetrLocationDiagnostics.record(context, "broadcast")
+     mTask ?: return
+     val result = LocationResult.extractResult(intent)
+     if (result != null) {
+@@ -100,6 +103,7 @@ class LocationTaskConsumer(context: Context, taskManagerUtils: TaskManagerUtilsI
+   }
+ 
+   override fun didExecuteJob(jobService: JobService, params: JobParameters): Boolean {
++    VeetrLocationDiagnostics.record(context, "jobStarted")
+     val data = taskManagerUtils.extractDataFromJobParams(params)
+     val locationBundles = ArrayList<Bundle>()
+     for (persistableLocationBundle in data) {
+@@ -148,7 +152,10 @@ class LocationTaskConsumer(context: Context, taskManagerUtils: TaskManagerUtilsI
+ 
+     try {
+       mLocationClient.requestLocationUpdates(locationRequest, intent)
++        .addOnSuccessListener { VeetrLocationDiagnostics.record(context, "requestAccepted") }
++        .addOnFailureListener { VeetrLocationDiagnostics.record(context, "requestFailed") }
+     } catch (e: SecurityException) {
++      VeetrLocationDiagnostics.record(context, "requestFailed")
+       Log.w(TAG, "Location request has been rejected.", e)
+     }
+   }
+@@ -228,6 +235,7 @@ class LocationTaskConsumer(context: Context, taskManagerUtils: TaskManagerUtilsI
+   }
+ 
+   private fun deferLocations(locations: List<Location>) {
++    if (locations.isNotEmpty()) VeetrLocationDiagnostics.record(context, "fix", locations.size, locations.maxOf { it.time })
+     val size = mDeferredLocations.size
+     var lastLocation = if (size > 0) mDeferredLocations[size - 1] else mLastReportedLocation
+     for (location in locations) {
+@@ -263,6 +271,7 @@ class LocationTaskConsumer(context: Context, taskManagerUtils: TaskManagerUtilsI
+       mDeferredLocations.clear()
+ 
+       // Schedule new job.
++      VeetrLocationDiagnostics.record(context, "jobScheduled")
+       taskManagerUtils.scheduleJob(context, mTask, data)
+     }
+   }
+@@ -292,7 +301,11 @@ class LocationTaskConsumer(context: Context, taskManagerUtils: TaskManagerUtilsI
+     if (locationBundles.size > 0 && mTask != null) {
+       val data = Bundle()
+       data.putParcelableArrayList("locations", locationBundles)
+-      mTask?.execute(data, null, callback)
++      VeetrLocationDiagnostics.record(context, "taskDispatched")
++      mTask?.execute(data, null) { result ->
++        VeetrLocationDiagnostics.record(context, "taskFinished")
++        callback.onFinished(result)
++      }
+     } else {
+       callback.onFinished(null)
+     }

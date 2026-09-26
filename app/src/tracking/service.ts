@@ -119,7 +119,7 @@ async function startForegroundGPS() {
   const subscription = await Location.watchPositionAsync(
     { accuracy: Location.Accuracy.High, timeInterval: 1000, distanceInterval: 0 },
     (location) => {
-      if (isCurrent()) void recordLocations([location]).catch(failed).catch(() => {});
+      if (isCurrent()) void recordLocations([location], 'foreground').catch(failed).catch(() => {});
     },
     (reason) => { void failed(new Error(reason)).catch(() => {}); },
   );
@@ -471,15 +471,18 @@ async function discardInternal() {
 }
 let speedFilterSession: string | null = null;
 let filterPhoneSpeed = createSpeedFilter();
-export async function recordLocations(locations: LocationFix[]) {
+export async function recordLocations(locations: LocationFix[], via: 'foreground' | 'task' = 'task') {
   const store = await trackingStore(),
     session = await store.get();
   if (!session || session.phase !== "recording") return;
   if (locations.length) await store.patch(session.id, {
     lastLocationCallbackAt: new Date().toISOString(),
     lastReportedAccuracyM: locations[locations.length - 1].coords.accuracy,
+    ...(via === 'foreground' ? { lastForegroundFixAt: new Date().toISOString() } : { lastTaskCallbackAt: new Date().toISOString() }),
+    lastLocationBatchSize: Math.min(10000000, locations.length),
+    lastLocationDeliveryDelayMs: Math.max(0, Math.min(10000000, Date.now() - locations[locations.length - 1].timestamp)),
+    lastRejectedFixCount: locations.filter(f => !normalizeFix(f)).length,
   });
-  reportDiagnostic('health');
   if (Date.now() >= Date.parse(session.expiresAt))
     return stopTracking("expired");
   try {
@@ -512,6 +515,7 @@ export async function recordLocations(locations: LocationFix[]) {
       await store.patch(session.id, {
         error: "Waiting for an accurate GPS fix (100 m or better).",
       });
+    reportDiagnostic('health');
     await syncTracking();
   } catch (error) {
     await store.patch(session.id, { error: message(error) });

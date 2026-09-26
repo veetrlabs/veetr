@@ -33,6 +33,11 @@ export interface TrackingSession extends TrackingEntry {
   backgroundEnabled?: boolean;
   backgroundStartedAt?: string;
   lastBackgroundFixAt?: string;
+  lastForegroundFixAt?: string;
+  lastTaskCallbackAt?: string;
+  lastLocationBatchSize?: number;
+  lastLocationDeliveryDelayMs?: number;
+  lastRejectedFixCount?: number;
   lastLocationCallbackAt?: string;
   lastReportedAccuracyM?: number | null;
   lastGPSRecoveryAt?: string;

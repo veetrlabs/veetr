@@ -25,7 +25,7 @@ export default function DiagnosticSettings() {
   return <View style={{ gap: 12 }}>
     <Text style={{ color: c.text, fontSize: 20, fontWeight: '700' }}>Diagnostic reports</Text>
     <Text style={{ color: c.textSecondary, lineHeight: 22 }}>
-      Help improve Veetr by sending technical information about errors and tracking reliability to Veetr through Supabase. Reports include app and phone versions, permission status, GPS accuracy, time since the last fix or upload, and error categories. They exclude GPS coordinates, routes, names and emails. Reports are deleted from our diagnostic database after 30 days.
+      Help improve Veetr by sending technical information about errors and tracking reliability to Veetr through Supabase. Reports include app and phone versions, permission status, GPS accuracy, time since the last fix or upload, and error categories. On Android, they also include screen and power-saving state, and counters showing whether GPS updates reached the recorder. They exclude GPS coordinates, routes, names and emails. Reports are deleted from our diagnostic database after 30 days.
     </Text>
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
       <Text style={{ color: c.text, flex: 1 }}>Share diagnostic reports</Text>

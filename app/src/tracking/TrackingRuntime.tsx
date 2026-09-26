@@ -4,7 +4,7 @@ import { AppState } from "react-native";
 import NetInfo from "@react-native-community/netinfo";
 import { trackingClient } from "./client";
 import { trackingStore } from "./database";
-import { flushDiagnostics, reportDiagnostic } from "../diagnostics/service";
+import { flushDiagnostics, reportDiagnostic, initializeDiagnostics } from "../diagnostics/service";
 import {
   resumeTracking,
   stopTracking,
@@ -16,10 +16,12 @@ import { UPLOAD_INTERVAL_MS } from "./model";
 export default function TrackingRuntime() {
   useEffect(() => {
     const client = trackingClient;
+    void initializeDiagnostics().catch(() => {});
     const resume = () => {
       void resumeTracking().catch(() => {});
     };
     const active = () => {
+      reportDiagnostic('app_state');
       void flushDiagnostics().catch(() => {});
       void syncPendingTrips().catch(() => {});
       if (AppState.currentState === "active") {

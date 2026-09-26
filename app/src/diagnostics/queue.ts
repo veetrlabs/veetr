@@ -1,12 +1,19 @@
 // Queue ownership and consent are independent of the tracking/database queues.
 export type DiagnosticEvent = {
   id: string; installationId: string; occurredAt: string; consent: 'automatic' | 'manual';
-  event: 'health' | 'gps_restart' | 'gps_error' | 'upload_error' | 'manual';
+  event: 'health' | 'gps_restart' | 'gps_error' | 'upload_error' | 'manual' | 'app_state';
   appVersion: string; build: string; platform: string; osVersion: string; model: string;
   state: string; foregroundPermission: string; backgroundPermission: string;
   tracking: string; fixAgeSeconds: number | null; uploadAgeSeconds: number | null;
   accuracyM: number | null; pendingCount: number; recoveryCount: number;
   errorCode: 'none' | 'permission' | 'network' | 'gps' | 'tracking';
+  pipeline?: {
+    foregroundCallbackAgeSeconds: number | null; backgroundCallbackAgeSeconds: number | null;
+    taskCallbackAgeSeconds: number | null; batchSize: number | null;
+    deliveryDelayMs: number | null; rejectedFixes: number | null;
+    backgroundRequested: boolean; precisePermission: boolean | null; storageAvailable: boolean;
+  };
+  native?: import('./native').NativeDiagnostics | null;
 };
 export type QueueState = { enabled: boolean; installationId: string | null; events: DiagnosticEvent[] };
 export const emptyState = (): QueueState => ({ enabled: false, installationId: null, events: [] });
