@@ -1,0 +1,25 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+const subject = encodeURIComponent('Veetr account deletion request');
+const body = encodeURIComponent('Please delete my Veetr account and its associated personal data.\n\nMy Veetr account email: \n');
+---
+
+<BaseLayout title="Delete your Veetr account" description="Request deletion of your Veetr account and associated personal data.">
+  <section class="content-section">
+    <div class="shell prose legal-prose">
+      <p><a href="/account/">← Account</a></p>
+      <p>You can request deletion without reinstalling the app or signing in.</p>
+      <h2>Send a deletion request</h2>
+      <p>Email <a href={`mailto:veetr@linhart.email?subject=${subject}&body=${body}`}>veetr@linhart.email</a> with the subject “Veetr account deletion request”. Include the email address used for your Veetr account, preferably sending from that address. Do not send your password.</p>
+      <p>We verify that the account belongs to you before deleting it. If you no longer have access to your account email, tell us so we can discuss another way to verify your request. We will confirm when the request has been completed.</p>
+      <h2>What deletion covers</h2>
+      <p>The request covers your Veetr sign-in account, profile, boat and race access memberships, and personal data associated with the account, including your uploaded trips and account-linked location records. Shared links to deleted trips will stop working.</p>
+      <p>Race records involving other participants may need to be anonymized instead of removed. Information required for legal obligations or handling the deletion request may be retained for those purposes; we will explain any applicable exception when responding. Copies previously downloaded by other people are outside our control.</p>
+      <h2>Recordings on your phone and diagnostic reports</h2>
+      <p>Deleting your online account does not remotely erase local recordings on your phone. Delete those in the app or clear the app’s stored data. Export any recordings you want to keep first.</p>
+      <p>Optional diagnostic reports use identifiers separate from your account and expire from the active diagnostic database after 30 days. Include a diagnostic or report ID if you want us to locate a specific report for deletion.</p>
+      <p>You may also email us to request deletion of a particular uploaded trip or other data without deleting your account.</p>
+      <p>Veetr is operated by Jan Linhart. Read our <a href="/legal/privacy/">Privacy Policy</a> for more information.</p>
+    </div>
+  </section>
+</BaseLayout>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Pressable, ScrollView, Text } from "react-native";
+import { Linking, Pressable, ScrollView, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { Session } from "@supabase/supabase-js";
 import AccountSignIn from "./AccountSignIn";
@@ -41,6 +41,10 @@ export default function AccountSettings({ onBack }: { onBack: () => void }) {
         finally { setBusy(false); }
       }}><Text style={text}>{busy ? "Signing out…" : "Sign out"}</Text></Pressable>
     </>}
+    <Pressable accessibilityRole="link" onPress={() => {
+      const site = (process.env.EXPO_PUBLIC_SITE_URL || "https://veetr.org").replace(/\/$/, "");
+      void Linking.openURL(`${site}/legal/delete-account/`).catch(() => setError("Could not open the deletion page. Contact veetr@linhart.email to request account deletion."));
+    }}><Text style={text}>Request account deletion</Text></Pressable>
     {!!error && <Text accessibilityRole="alert" style={text}>{error}</Text>}
   </ScrollView>;
 }

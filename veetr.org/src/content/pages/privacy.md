@@ -1,7 +1,7 @@
 ---
 title: "Privacy Policy"
-description: "Privacy policy for veetr.org."
-effectiveDate: "September 24, 2026"
+description: "Privacy policy for the Veetr mobile app and veetr.org."
+effectiveDate: "September 26, 2026"
 ---
 
 ## 1. Controller identification
@@ -13,6 +13,8 @@ Identification number (ICO): 75412551
 City: Praha 6 - Ruzyne
 
 Contact email: veetr@linhart.email
+
+This policy covers the Veetr mobile app and veetr.org.
 
 ## 2. What data we process
 
@@ -69,3 +71,17 @@ You can withdraw consent without affecting GPS tracking. For access or deletion 
 Trips are private until their recorder chooses to share them. Sharing uploads the selected boat, trip title, timestamps, route and available sailing instruments. “Anyone with the link” allows anyone holding that link to view the trip; “Public” also lists it in Explore trips. Viewers do not need an account. Boat crew membership alone does not allow someone to publish another recorder’s trip.
 
 Live sharing includes the route recorded so far and subsequent uploaded positions. Stopping sharing disables the link once the server confirms the request. When offline, the app shows that the change is pending. Ending a trip keeps your chosen sharing setting and the same link available for the finished route. You can stop sharing separately at any time. Disabling a link cannot remove copies that viewers already saved. Deleting the local recording does not delete an uploaded copy.
+
+## Mobile accounts, location and race sharing
+
+Phone GPS instruments and local trip recording do not require an account. With your permission, the app processes precise location, timestamps, speed, course and reported accuracy to display sailing data and record your route. Recording may continue while the screen is off or the app is in the background when you have enabled tracking and granted the necessary permissions. Optional connected instruments provide sailing measurements such as wind data. Local recordings remain on your device unless you choose an upload or sharing feature; map services still receive requests needed to display maps.
+
+Account features process your email address, authentication information, account identifier and applicable boat or race memberships. Supabase provides account authentication and stores online account, trip and race data on our behalf. We use these data to provide the account and sharing services you request. Authorized maintainers can access data when necessary to operate the service or investigate a support request.
+
+When you enable race location sharing, the app uploads your boat's location, timestamps and available sailing measurements. Race participants, organizers and viewers with access to the race can see the information; public race views may be accessible without signing in. Recorded race positions may remain available for race history and replay after live sharing stops. Stopping tracking prevents future collection by that tracking session; it does not erase previously uploaded records. Account and uploaded sailing data are retained while needed for your account, saved trips and race history, unless you request deletion or a specific retention rule applies.
+
+Map displays use third-party map services, including Google Maps on Android and Apple Maps on iOS, and map or overlay providers shown in the map attribution. Those providers receive technical requests, including connection information and the requested map area, under their own privacy policies. Veetr does not sell your location or use it for advertising.
+
+## Account and data deletion
+
+You can request deletion of your account and associated personal data through our [account deletion page](/legal/delete-account/) or by emailing veetr@linhart.email. We verify ownership before acting. You can also request deletion of particular uploaded data without deleting your account. The deletion page explains the scope, local recordings, separately identified diagnostics, and possible retention exceptions. Signing out or uninstalling the app does not delete your online account.
