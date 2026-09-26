@@ -79,7 +79,7 @@ test("SQLite outbox survives restart and only acknowledges the submitted batch",
     assert.equal(
       await s.count(),
       3,
-      "duplicates and fixes less than five seconds apart are thinned",
+      "duplicates and fast fixes are thinned",
     );
     const batch = await s.batch(session.id);
     db.close();
@@ -272,4 +272,36 @@ test('trip sharing metadata survives archival and does not overwrite newly recor
  await s.patch(session.id,{phase:'stopping'});await s.archiveLocal();
  await s.updateTrip(session.id,{sharing:{id:'share',userId:'alice',title:'Sail',visibility:'private',uploaded:1}});
  const saved=(await s.localRecordings())[0];assert.equal(saved.session.boatName,'Luna');assert.equal(saved.points.length,2);assert.equal(saved.session.sharing?.visibility,'private');db.close();
+});
+
+test("slightly early background fixes retain their cadence across callbacks and restart", async () => {
+  const db = new DatabaseSync(":memory:");
+  try {
+    let s = store(db);
+    await s.init();
+    await s.create(session);
+    const fixes = [0, 4.7, 9.4, 14.3, 19.4].map(point);
+    await s.append(session.id, fixes.slice(0, 2));
+    s = store(db);
+    await s.init();
+    // A delayed batch overlaps a previous callback and arrives unsorted.
+    await s.append(session.id, [fixes[4], fixes[1], fixes[3], fixes[2]]);
+    assert.deepEqual((await s.batch(session.id)).map(p => p.recordedAt), fixes.map(p => p.recordedAt));
+    assert.equal((await s.get())?.lastRecordedAt, fixes[4].recordedAt);
+  } finally { db.close(); }
+});
+
+test("sampling tolerance still thins fast fixes and rejects duplicate or older callbacks", async () => {
+  const db = new DatabaseSync(":memory:");
+  try {
+    const s = store(db);
+    await s.init();
+    await s.create(session);
+    await s.append(session.id, [0, 1, 2, 3, 4, 4.499, 4.5].map(point));
+    await Promise.all([
+      s.append(session.id, [4.5, 5, 6, 7, 8, 8.999, 9].map(point)),
+      s.append(session.id, [0, 4.5, 9].map(point)),
+    ]);
+    assert.deepEqual((await s.batch(session.id)).map(p => p.recordedAt), [0, 4.5, 9].map(s => point(s).recordedAt));
+  } finally { db.close(); }
 });

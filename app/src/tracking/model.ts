@@ -1,5 +1,8 @@
 export const UPLOAD_INTERVAL_MS = 20_000;
 export const SAMPLE_INTERVAL_MS = 5_000;
+// Provider timestamps can arrive slightly ahead of the requested five-second cadence.
+// Keep these fixes instead of dropping every other background update.
+export const SAMPLE_TOLERANCE_MS = 500;
 export const MAX_PENDING_POINTS = 10_000;
 export interface TrackingEntry {
   tracking?: boolean;

@@ -1,6 +1,7 @@
 import {
   MAX_PENDING_POINTS,
   SAMPLE_INTERVAL_MS,
+  SAMPLE_TOLERANCE_MS,
   type TrackingPoint,
   type TrackingSession,
 } from "./model";
@@ -127,7 +128,7 @@ export class TrackingStore {
             stamp < Date.parse(session.startedAt) - 60_000 ||
             stamp > Date.parse(session.expiresAt) ||
             (session.lastRecordedAt &&
-              stamp - Date.parse(session.lastRecordedAt) < SAMPLE_INTERVAL_MS)
+              stamp - Date.parse(session.lastRecordedAt) < SAMPLE_INTERVAL_MS - SAMPLE_TOLERANCE_MS)
           )
             continue;
           if (queued >= MAX_PENDING_POINTS)

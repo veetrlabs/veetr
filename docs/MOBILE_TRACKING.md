@@ -151,3 +151,7 @@ Saved mobile auth sessions are scoped to the Supabase host. Switching between lo
 ### Trip navigation
 
 Track contains the private recording controls and saved trips with map previews. Tap a trip for its route, speed and wind charts, export, and deletion. Regattas is a separate tab for published races, results, spectator maps, and live boat sharing. The former History route redirects to Track. Starting live sharing starts GPS tracking automatically; no private recording needs to be started first.
+
+### GPS sampling tolerance
+
+Saved fixes target five-second spacing with 500 ms of early-arrival tolerance. A fix 4.7 seconds after the previous saved fix is retained rather than waiting for the next update around 9.4 seconds. The same timestamp rule applies to foreground callbacks, background batches, and restored sessions; duplicate and older fixes remain rejected. This changes local thinning, not Android provider scheduling, and needs physical screen-off verification.
