@@ -1,3 +1,4 @@
+import { recordBleDiagnostic, setBleAdapterState, type BleStage } from '../diagnostics/ble';
 import { setDeviceRecordingSource, clearDeviceRecordingSource } from "../tracking/recordingSource";
 import { recordDevicePoint } from "../tracking/service";
 import { createContext, useContext, useReducer, useRef, useEffect, ReactNode, useCallback } from 'react'
@@ -327,29 +328,43 @@ export function BLEProvider({ children }: { children: ReactNode }) {
 
   const connectToDevice = useCallback(async (device: any) => {
     let phase = 'Connecting to device'
+    let diagnosticStage: BleStage = 'connect'
+    recordBleDiagnostic('connect', 'start')
     try {
       console.info('[BLE]', phase)
       const connectedDevice = await device.connect()
+      recordBleDiagnostic('connect', 'success')
       connectedDeviceRef.current = connectedDevice
       lastDeviceRef.current = device
 
+      diagnosticStage = 'discover'
+      recordBleDiagnostic('discover', 'start')
       phase = 'Discovering services and characteristics'
       console.info('[BLE]', phase)
       await connectedDevice.discoverAllServicesAndCharacteristics()
 
+      recordBleDiagnostic('discover', 'success')
       try {
+        recordBleDiagnostic('mtu', 'start')
         await connectedDevice.negotiateMtu(512)
+        recordBleDiagnostic('mtu', 'success')
       } catch (e) {
+        recordBleDiagnostic('mtu', 'error', e)
         console.warn('[BLE] MTU negotiation failed:', e)
       }
 
+      diagnosticStage = 'services'
+      recordBleDiagnostic('services', 'start')
       const services: any[] = await connectedDevice.services()
       console.info('[BLE] Service UUIDs:', services.map(s => s.uuid))
       const service = services.find((s: any) => s.uuid.toLowerCase() === SERVICE_UUID.toLowerCase())
 
       if (!service) throw new Error('Veetr service not found on device')
 
+      recordBleDiagnostic('services', 'success')
       serviceUuidRef.current = service.uuid
+      diagnosticStage = 'characteristics'
+      recordBleDiagnostic('characteristics', 'start')
 
       const characteristics: any[] = await service.characteristics()
       console.info('[BLE] Characteristic UUIDs:', characteristics.map(c => c.uuid))
@@ -361,12 +376,16 @@ export function BLEProvider({ children }: { children: ReactNode }) {
       sensorDataCharRef.current = sensorChar.uuid
       commandCharRef.current = cmdChar.uuid
 
+      recordBleDiagnostic('characteristics', 'success')
+      diagnosticStage = 'subscribe'
+      recordBleDiagnostic('subscribe', 'start')
       // Monitor sensor data
       connectedDevice.monitorCharacteristicForService(
         service.uuid,
         sensorChar.uuid,
         (error: any, char: any) => {
           if (error) {
+            recordBleDiagnostic('subscribe', 'error', error)
             console.error('[BLE] Monitor error:', error.message)
             return
           }
@@ -379,7 +398,8 @@ export function BLEProvider({ children }: { children: ReactNode }) {
       }
 
       // Store subscription for cleanup
-      const sub = connectedDevice.onDisconnected(() => {
+      const sub = connectedDevice.onDisconnected((error: unknown) => {
+        recordBleDiagnostic('disconnect', error ? 'error' : 'success', error)
         clearDeviceRecordingSource(); dispatch({ type: 'DISCONNECT' })
         connectedDeviceRef.current = null
         sensorDataCharRef.current = null
@@ -388,6 +408,7 @@ export function BLEProvider({ children }: { children: ReactNode }) {
         // Auto-reconnect if not intentional
         if (!intentionalDisconnectRef.current && lastDeviceRef.current) {
           reconnectTimerRef.current = setTimeout(() => {
+            recordBleDiagnostic('reconnect', 'start')
             connectToDevice(lastDeviceRef.current)
           }, 3000)
         }
@@ -395,6 +416,7 @@ export function BLEProvider({ children }: { children: ReactNode }) {
       disconnectedSubRef.current = () => sub.remove()
 
       console.info('[BLE] Connected; sensor notifications registered')
+      recordBleDiagnostic('connected', 'success')
       dispatch({ type: 'CONNECT_SUCCESS' })
 
       // Request firmware version after connection
@@ -415,24 +437,29 @@ export function BLEProvider({ children }: { children: ReactNode }) {
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      recordBleDiagnostic(diagnosticStage, 'error', error)
       console.error('[BLE]', phase, error)
       dispatch({ type: 'CONNECT_ERROR', payload: `${phase}: ${errorMessage}` })
     }
   }, [handleSensorData])
 
   const connect = useCallback(async () => {
+    let diagnosticStage: BleStage = 'permission'
     try {
+      recordBleDiagnostic('permission', 'start')
       console.info('[BLE] Connect requested')
       const bleManager = getBleManager()
 
       dispatch({ type: 'CONNECT_START' })
 
       if (!bleManager) {
+        recordBleDiagnostic('adapter', 'error')
         dispatch({ type: 'CONNECT_ERROR', payload: 'BLE requires a development build. Use `npx expo run:ios` or EAS Build.' })
         return
       }
 
       const permissionsGranted = await requestBLEPermissions()
+      recordBleDiagnostic('permission', permissionsGranted ? 'success' : 'error')
       if (!permissionsGranted) {
         dispatch({ type: 'CONNECT_ERROR', payload: 'Bluetooth permissions denied' })
         return
@@ -445,18 +472,24 @@ export function BLEProvider({ children }: { children: ReactNode }) {
       }
 
       let found = false
-      console.info('[BLE] Adapter state:', await bleManager.state())
+      diagnosticStage = 'adapter'
+      setBleAdapterState(await bleManager.state())
+      recordBleDiagnostic('adapter', 'success')
+      diagnosticStage = 'scan'
+      recordBleDiagnostic('scan', 'start')
       console.info('[BLE] Scanning for a device named Veetr')
       scanTimeoutRef.current = setTimeout(() => {
         if (!found) {
+          recordBleDiagnostic('scan', 'error')
           void bleManager.stopDeviceScan().catch((error: unknown) => console.warn('[BLE] Stop scan failed:', error))
-          dispatch({ type: 'CONNECT_ERROR', payload: 'No Veetr device found. Ensure the device is powered on and nearby.' })
+          dispatch({ type: 'CONNECT_ERROR', payload: 'No Veetr Vane found. Ensure it is powered on and nearby.' })
         }
         scanTimeoutRef.current = null
       }, 30000)
 
       await bleManager.startDeviceScan(null, null, (error: any, scannedDevice: any) => {
         if (error) {
+          recordBleDiagnostic('scan', 'error', error)
           console.error('[BLE] Scan failed:', error)
           if (scanTimeoutRef.current) {
             clearTimeout(scanTimeoutRef.current)
@@ -468,6 +501,7 @@ export function BLEProvider({ children }: { children: ReactNode }) {
         if (!found && scannedDevice && scannedDevice.name?.includes(DEVICE_NAME_PREFIX)) {
           console.info('[BLE] Found Veetr device; connecting')
           found = true
+          recordBleDiagnostic('scan', 'success')
           void bleManager.stopDeviceScan().catch((error: unknown) => console.warn('[BLE] Stop scan failed:', error))
           if (scanTimeoutRef.current) {
             clearTimeout(scanTimeoutRef.current)
@@ -482,6 +516,7 @@ export function BLEProvider({ children }: { children: ReactNode }) {
         clearTimeout(scanTimeoutRef.current)
         scanTimeoutRef.current = null
       }
+      recordBleDiagnostic(diagnosticStage, 'error', error)
       console.error('[BLE] Connection attempt failed:', error)
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
       dispatch({ type: 'CONNECT_ERROR', payload: errorMessage })
@@ -489,6 +524,7 @@ export function BLEProvider({ children }: { children: ReactNode }) {
   }, [connectToDevice])
 
   const disconnect = useCallback(() => {
+    recordBleDiagnostic('disconnect', 'requested')
     intentionalDisconnectRef.current = true
     if (reconnectTimerRef.current) {
       clearTimeout(reconnectTimerRef.current)
@@ -583,6 +619,7 @@ export function BLEProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     return () => {
+      recordBleDiagnostic('cleanup', 'requested')
       if (reconnectTimerRef.current) {
         clearTimeout(reconnectTimerRef.current)
         reconnectTimerRef.current = null

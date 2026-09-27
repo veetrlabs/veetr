@@ -1,3 +1,4 @@
+import { bleDiagnostics, clearBleDiagnostics } from '../../diagnostics/ble'
 import React from 'react'
 import { act, renderHook } from '@testing-library/react-native'
 import { BLEProvider, useBLE } from '../BLEContext'
@@ -18,6 +19,7 @@ jest.mock('../../utils/firmwareUpdater', () => ({}))
 
 describe('BLE connection failures', () => {
   beforeEach(() => {
+    clearBleDiagnostics()
     jest.useFakeTimers()
     jest.spyOn(console, 'info').mockImplementation(() => {})
     jest.spyOn(console, 'error').mockImplementation(() => {})
@@ -27,6 +29,20 @@ describe('BLE connection failures', () => {
     jest.useRealTimers()
     jest.restoreAllMocks()
   })
+
+  it('captures a cancelled native connection without leaking its device or message', async () => {
+    const failure = Object.assign(new Error('Operation was cancelled SECRET'), {errorCode: 2, iosErrorCode: 6, deviceID: 'SECRET'});
+    mockManager.startDeviceScan.mockImplementationOnce((_uuids, _options, callback) => {
+      callback(null, {name: 'Veetr SECRET', id: 'SECRET', connect: jest.fn().mockRejectedValue(failure)});
+      return Promise.resolve();
+    });
+    const {result, unmount} = renderHook(() => useBLE(), {wrapper: ({children}) => <BLEProvider>{children}</BLEProvider>});
+    await act(async () => { await result.current.connect() });
+    expect(bleDiagnostics()).toContainEqual(expect.objectContaining({stage:'scan',outcome:'success'}));
+    expect(bleDiagnostics()).toContainEqual(expect.objectContaining({stage:'connect',outcome:'error',errorCode:2,iosErrorCode:6,adapterState:'PoweredOn'}));
+    expect(JSON.stringify(bleDiagnostics())).not.toContain('SECRET');
+    unmount();
+  });
 
   it.each(['callback', 'promise'])('preserves a %s scan error after the scan timeout', async kind => {
     const message = 'Bluetooth is unauthorized'

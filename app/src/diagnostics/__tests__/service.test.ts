@@ -1,3 +1,4 @@
+import { recordBleDiagnostic } from '../ble';
 process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://diagnostics.example.test';
 process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY = 'public-key';
 let mockStored: string | null = null;
@@ -32,6 +33,7 @@ test('default off does not even gather a diagnostic snapshot', async () => {
   expect(fetch).not.toHaveBeenCalled();
 });
 test('manual report is one-off and excludes account, position and raw error text', async () => {
+  recordBleDiagnostic('connect', 'error', { errorCode: 2, message: 'SECRET', deviceID: 'SECRET' });
   const result = await sendDiagnosticReport();
   expect(result).toContain('Report sent.');
   expect(await diagnosticsEnabled()).toBe(false);
@@ -39,6 +41,7 @@ test('manual report is one-off and excludes account, position and raw error text
   expect(options.headers.Authorization).toBe('Bearer public-key');
   expect(options.body).not.toMatch(/SECRET|latitude|longitude|userId|recentPoints|token/);
   const report = JSON.parse(options.body).reports[0];
+  expect(report.ble).toContainEqual(expect.objectContaining({ stage: 'connect', outcome: 'error', errorCode: 2 }));
   expect(report).toMatchObject({ consent: 'manual', errorCode: 'network', model: 'OnePlus', pendingCount: 3, accuracyM: 8 });
 });
 test('offline reports retry with identical IDs without silently enabling consent', async () => {

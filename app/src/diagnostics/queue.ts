@@ -13,6 +13,7 @@ export type DiagnosticEvent = {
     deliveryDelayMs: number | null; rejectedFixes: number | null;
     backgroundRequested: boolean; precisePermission: boolean | null; storageAvailable: boolean;
   };
+  ble?: ReturnType<typeof import('./ble').bleDiagnostics>;
   native?: import('./native').NativeDiagnostics | null;
 };
 export type QueueState = { enabled: boolean; installationId: string | null; events: DiagnosticEvent[] };

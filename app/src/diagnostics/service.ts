@@ -1,3 +1,4 @@
+import { bleDiagnostics, clearBleDiagnostics } from './ble';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState, Platform } from 'react-native';
 import Constants from 'expo-constants';
@@ -36,7 +37,7 @@ export const initializeDiagnostics = () => exclusive(async () => setNativeDiagno
 export async function setDiagnosticsEnabled(enabled: boolean) {
   // Invalidate in-progress collection immediately, even before disk I/O completes.
   revision++;
-  if (!enabled) controller?.abort();
+  if (!enabled) { controller?.abort(); clearBleDiagnostics(); }
   await exclusive(async () => {
     const state = await read();
     await save(enabled ? { ...state, enabled: true, installationId: state.installationId ?? Crypto.randomUUID() } : emptyState());
@@ -80,7 +81,7 @@ async function snapshot(event: DiagnosticEvent['event'], consent: DiagnosticEven
       precisePermission: Platform.OS === 'android' && foreground.android?.accuracy ? foreground.android.accuracy === 'fine' : null,
       storageAvailable: storage.available,
     },
-    native,
+    native, ble: bleDiagnostics(),
   };
 }
 async function collect(event: DiagnosticEvent['event'], manual: boolean, error?: unknown): Promise<string | null> {
