@@ -90,7 +90,7 @@ Apply `20260927111211_bluetooth_diagnostics.sql` before releasing the diagnostic
 
 ### Reconnection context
 
-`20260927153419_bluetooth_reconnect_context.sql` accepts both older eight-field BLE entries and the new context fields. Deploy it before the updated app. Up to eight errors/disconnects are reserved in the twenty-entry memory history, with the remaining slots filled by recent activity. Consent withdrawal clears both buffers. No history survives an app restart.
+`20260927155209_bluetooth_reconnect_context.sql` accepts both older eight-field BLE entries and the new context fields. Deploy it before the updated app. Up to eight errors/disconnects are reserved in the twenty-entry memory history, with the remaining slots filled by recent activity. Consent withdrawal clears both buffers. No history survives an app restart.
 
 Each event captures foreground/background/inactive state (not physical screen-lock state), connected duration, last valid sensor-message age, last RSSI and its age, a format-restricted firmware version, attempt number, direct-versus-scan method and elapsed attempt time. Null means unavailable. Signal strength is sampled every 30 seconds while connected; failed reads do not interrupt BLE. These fields help distinguish reception failures from stopped notifications, but a timeout alone still does not prove the cause.
 
