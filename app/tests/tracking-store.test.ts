@@ -291,7 +291,7 @@ test("slightly early background fixes retain their cadence across callbacks and 
   } finally { db.close(); }
 });
 
-test("sampling tolerance still thins fast fixes and rejects duplicate or older callbacks", async () => {
+test("sampling tolerance still thins fast fixes and rejects overlapping callbacks", async () => {
   const db = new DatabaseSync(":memory:");
   try {
     const s = store(db);
@@ -303,5 +303,52 @@ test("sampling tolerance still thins fast fixes and rejects duplicate or older c
       s.append(session.id, [0, 4.5, 9].map(point)),
     ]);
     assert.deepEqual((await s.batch(session.id)).map(p => p.recordedAt), [0, 4.5, 9].map(s => point(s).recordedAt));
+  } finally { db.close(); }
+});
+
+test("screen-off backlog fills a two-hour gap after a fresh foreground fix", async () => {
+  const db = new DatabaseSync(":memory:");
+  try {
+    let s = store(db);
+    await s.init();
+    await s.create({ ...session, mode: 'local' });
+    await s.append(session.id, [point(0), point(7200)]);
+    // Foreground points may already be acknowledged remotely before the task runs.
+    const uploaded = await s.batch(session.id);
+    await s.acknowledge(session.id, uploaded.map(p => p.seq));
+    const delayed = Array.from({ length: 1441 }, (_, i) => point(i * 5));
+    await s.append(session.id, delayed.reverse());
+    await s.append(session.id, delayed); // Android can redeliver a task.
+    s = store(db);
+    await s.init();
+    const chronological = await s.points(session.id);
+    assert.equal(chronological.length, 1441);
+    assert.deepEqual(chronological.map(p => p.recordedAt), delayed.reverse().map(p => p.recordedAt));
+    const current = (await s.get())!;
+    assert.equal(current.lastRecordedAt, point(7200).recordedAt);
+    assert.equal(current.recentPoints?.at(-1)?.recordedAt, point(7200).recordedAt);
+    assert.equal(current.recentPoints?.length, 120);
+    assert.equal(await s.count(), 1439, 'only newly recovered positions enter the outbox');
+    const uploadOrder = (await s.trip(session.id, 'captured'))!.points;
+    assert.deepEqual(uploadOrder.slice(0, 2), [point(0), point(7200)]);
+    assert.equal(uploadOrder[2].recordedAt, point(5).recordedAt);
+    await s.patch(session.id, { phase: 'stopping' });
+    const exported = await s.exportLocal(session.id);
+    assert.equal(exported.points[0].recordedAt, point(5).recordedAt);
+    assert.equal(exported.points.at(-1)?.recordedAt, point(7195).recordedAt);
+  } finally { db.close(); }
+});
+
+test("backfill respects neighbouring samples, session boundaries and stop", async () => {
+  const db = new DatabaseSync(":memory:");
+  try {
+    const s = store(db);
+    await s.init(); await s.create(session);
+    await s.append(session.id, [point(0), point(20)]);
+    await s.append(session.id, [-61, 3, 5, 10, 17, 43201].map(point));
+    assert.deepEqual((await s.points(session.id)).map(p => p.recordedAt), [0, 5, 10, 20].map(t => point(t).recordedAt));
+    await s.patch(session.id, { phase: 'stopping' });
+    await s.append(session.id, [point(15)]);
+    assert.equal((await s.points(session.id)).length, 4);
   } finally { db.close(); }
 });

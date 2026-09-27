@@ -57,6 +57,40 @@ test('broken tracking storage still allows a diagnostic report without raw datab
   expect(report.pipeline.storageAvailable).toBe(false);
   expect(JSON.stringify(report)).not.toContain('SECRET');
 });
+test('manual report bypasses a backlog without deleting older reports', async () => {
+  const backlog = Array.from({ length: 30 }, (_, i) => ({
+    id: `old-${i}`, consent: 'manual', occurredAt: new Date().toISOString(),
+  }));
+  mockStored = JSON.stringify({ ...emptyState(), events: backlog });
+  const result = await sendDiagnosticReport();
+  expect(result).toContain('Report sent.');
+  const reports = JSON.parse((fetch as jest.Mock).mock.calls[0][1].body).reports;
+  expect(reports).toHaveLength(1);
+  expect(result).toContain(reports[0].id);
+  expect(reports[0].event).toBe('manual');
+  expect(JSON.parse(mockStored!).events).toEqual(backlog);
+});
+test('manual report waits for an existing upload then sends its own snapshot', async () => {
+  mockStored = JSON.stringify({ ...emptyState(), events: [{
+    id: 'old', consent: 'manual', occurredAt: new Date().toISOString(),
+  }] });
+  let finish!: (response: Response) => void;
+  (fetch as jest.Mock).mockImplementationOnce(() => new Promise<Response>(resolve => { finish = resolve; }));
+  const backgroundUpload = flushDiagnostics(true);
+  await settle();
+  const manualUpload = sendDiagnosticReport();
+  await settle();
+  expect(fetch).toHaveBeenCalledTimes(1);
+  finish({ ok: true } as Response);
+  await backgroundUpload;
+  const result = await manualUpload;
+  expect(result).toContain('Report sent.');
+  const reports = JSON.parse((fetch as jest.Mock).mock.calls[1][1].body).reports;
+  expect(reports).toHaveLength(1);
+  expect(reports[0].event).toBe('manual');
+  expect(result).toContain(reports[0].id);
+  expect(JSON.parse(mockStored!).events).toEqual([]);
+});
 test('withdrawal clears queued events and the automatic identifier', async () => {
   await setDiagnosticsEnabled(true); await settle();
   (fetch as jest.Mock).mockRejectedValue(new Error('Offline'));

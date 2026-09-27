@@ -71,3 +71,11 @@ Interpretation:
 - JS callbacks arrive but saved fix age stays old: inspect rejected fixes, accuracy, timestamp filtering, and storage errors.
 
 Native diagnostics do not fix tracking or guarantee a five-second interval. If counters do not locate the failure, capture device-local adb logcat plus `dumpsys activity services com.veetr.app`, `dumpsys jobscheduler`, and `dumpsys deviceidle` during reproduction. Inspect/filter those logs locally before sharing because Android dumps can include unrelated apps and sensitive data.
+
+### September 2026 delayed-batch regression
+
+A CPH2653 / Android 16 / build 19 sea-trip report showed native fixes continuing with the screen off, while task completions stalled. A batch of 1,782 locations reached JavaScript after foreground recording resumed. The store previously rejected every point older than the latest saved fix, discarding the delayed route.
+
+The store now fills gaps using neighbouring saved timestamps for sampling and deduplication. Latest-position state stays at the newest fix. Trip uploads use insertion order for stable sequence numbers; route displays and exports use recording time. The location task is imported from the app entry point so registration does not depend on mounting router layouts.
+
+Regression checks cover two hours of backfill after a fresh foreground fix, duplicate delivery, persistence, sampling boundaries, stop/session isolation, and sharing after backfill. These checks do not establish that Android screen-off task delivery is fixed. Validate a new installed binary on the affected phone with the physical-device procedure above, including locking, unlocking, and reopening before stopping. Previously discarded points cannot be recovered from diagnostic counters, which contain no coordinates.

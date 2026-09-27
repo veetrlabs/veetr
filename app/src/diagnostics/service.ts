@@ -108,12 +108,16 @@ export async function sendDiagnosticReport(): Promise<string> {
   const generation = revision;
   const id = await collect('manual', true);
   if (!id) throw new Error('Report cancelled. Please try again.');
-  await flushDiagnostics(true).catch(() => {});
+  // An automatic batch may already be uploading. Wait for it, then send the
+  // requested report itself rather than another batch from the old backlog.
+  if (uploading) await uploading.catch(() => {});
+  if (generation !== revision) return 'Reporting preference changed. Unsent reports were cancelled.';
+  await flushDiagnostics(true, id).catch(() => {});
   if (generation !== revision) return 'Reporting preference changed. Unsent reports were cancelled.';
   const queued = await exclusive(async () => (await read()).events.some(e => e.id === id));
-  return `${queued ? 'Report saved; it will send when connected.' : 'Report sent.'} Report ID: ${id}`;
+  return `${queued ? 'Report saved on this phone, but not sent yet. Keep Veetr open and check your connection to retry.' : 'Report sent.'} Report ID: ${id}`;
 }
-export function flushDiagnostics(force = false): Promise<void> {
+export function flushDiagnostics(force = false, priorityReportId?: string): Promise<void> {
   if (uploading) return uploading;
   if (!force && Date.now() - lastUploadAttempt < 60000) return Promise.resolve();
   lastUploadAttempt = Date.now();
@@ -126,7 +130,8 @@ export function flushDiagnostics(force = false): Promise<void> {
       await save(state);
       // Native counters increase report size; stay below the server's 40 KB batch cap.
       const batch: DiagnosticEvent[] = [];
-      for (const event of state.events.slice(0, 20)) {
+      const candidates = priorityReportId ? state.events.filter(e => e.id === priorityReportId) : state.events;
+      for (const event of candidates.slice(0, 20)) {
         if (JSON.stringify({ reports: [...batch, event] }).length > 9000) break;
         batch.push(event);
       }

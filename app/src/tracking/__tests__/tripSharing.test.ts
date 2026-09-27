@@ -150,3 +150,20 @@ test("sharing selected at trip start waits for GPS before publishing", async () 
   expect(actions).toEqual(["create", "ingest", "publish"]);
   expect(trip.session.sharing?.pendingVisibility).toBeUndefined();
 });
+
+test('late GPS backfill gets new upload sequences without changing earlier uploads', async () => {
+  (trackingRpc as jest.Mock).mockClear();
+  const first = trip.points[0];
+  const latest = { ...first, recordedAt: '2026-09-24T12:00:00Z' };
+  const late = { ...first, recordedAt: '2026-09-24T11:00:00Z' };
+  let captured = [first, latest];
+  const db = await trackingStore();
+  db.trip = jest.fn(async (_id, order) => ({ ...trip, archived: false, points: order === 'captured' ? captured : [...captured].sort((a, b) => a.recordedAt.localeCompare(b.recordedAt)) }));
+  await setTripSharing('local', 'public', 'Sea trip');
+  captured = [...captured, late];
+  await syncSharedTrip('local');
+  const batches = (trackingRpc as jest.Mock).mock.calls.filter(([, args]) => args.action === 'ingest').map(([, args]) => args.payload.points);
+  expect(batches[0]).toEqual([{ ...first, seq: 1 }, { ...latest, seq: 2 }]);
+  expect(batches[1]).toEqual([{ ...late, seq: 3 }]);
+  expect(trip.session.sharing?.uploaded).toBe(3);
+});

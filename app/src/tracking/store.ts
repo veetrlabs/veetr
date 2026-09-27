@@ -37,9 +37,9 @@ export class TrackingStore {
       JSON.stringify(session),
     );
   }
-  private async savedPoints(id: string): Promise<TrackingPoint[]> {
+  private async savedPoints(id: string, order: 'recorded' | 'captured' = 'recorded'): Promise<TrackingPoint[]> {
     const rows = await this.db.getAllAsync<{ body: string }>(
-      "SELECT body FROM recording_history WHERE session_id=? ORDER BY recorded_at",
+      `SELECT body FROM recording_history WHERE session_id=? ORDER BY ${order === 'captured' ? 'rowid' : 'recorded_at'}`,
       id,
     );
     return rows.map((row) => JSON.parse(row.body));
@@ -126,11 +126,19 @@ export class TrackingStore {
           const stamp = Date.parse(point.recordedAt);
           if (
             stamp < Date.parse(session.startedAt) - 60_000 ||
-            stamp > Date.parse(session.expiresAt) ||
-            (session.lastRecordedAt &&
-              stamp - Date.parse(session.lastRecordedAt) < SAMPLE_INTERVAL_MS - SAMPLE_TOLERANCE_MS)
+            stamp > Date.parse(session.expiresAt)
           )
             continue;
+          // A foreground fix can arrive before Android delivers its screen-off
+          // backlog. Thin against saved neighbours, not a global high-water mark.
+          const interval = SAMPLE_INTERVAL_MS - SAMPLE_TOLERANCE_MS;
+          const neighbour = await this.db.getFirstAsync<{ recorded_at: string }>(
+            "SELECT recorded_at FROM recording_history WHERE session_id=? AND recorded_at>? AND recorded_at<? LIMIT 1",
+            session.id,
+            new Date(stamp - interval).toISOString(),
+            new Date(stamp + interval).toISOString(),
+          );
+          if (neighbour) continue;
           if (queued >= MAX_PENDING_POINTS)
             throw new Error(
               "Tracking storage is full. Reconnect to upload saved positions.",
@@ -146,7 +154,8 @@ export class TrackingStore {
             point.recordedAt,
             JSON.stringify(point),
           );
-          session.lastRecordedAt = point.recordedAt;
+          if (!session.lastRecordedAt || point.recordedAt > session.lastRecordedAt)
+            session.lastRecordedAt = point.recordedAt;
           // Core Location's temporary location-unknown error is resolved by a saved fix.
           const locationUnknown = (error?: string) =>
             /kCLErrorDomain Code=0\b/.test(error ?? "");
@@ -154,7 +163,7 @@ export class TrackingStore {
             session.error = undefined;
           if (locationUnknown(session.lastTaskError))
             session.lastTaskError = undefined;
-          session.recentPoints = [...(session.recentPoints ?? []), point].slice(
+          session.recentPoints = [...(session.recentPoints ?? []), point].sort((a, b) => a.recordedAt.localeCompare(b.recordedAt)).slice(
             -120,
           );
           queued++;
@@ -189,7 +198,7 @@ export class TrackingStore {
       )
         throw new Error("Stop the local recording before exporting.");
       const rows = await this.db.getAllAsync<{ body: string }>(
-        "SELECT body FROM tracking_outbox WHERE session_id=? ORDER BY seq",
+        "SELECT body FROM tracking_outbox WHERE session_id=? ORDER BY json_extract(body, '$.recordedAt'), seq",
         id,
       );
       return {
@@ -212,12 +221,12 @@ export class TrackingStore {
       ).map((row) => JSON.parse(row.body) as TrackingPoint),
     );
   }
-  trip(id: string) {
+  trip(id: string, order: 'recorded' | 'captured' = 'recorded') {
     return this.exclusive(async () => {
       const current = await this.read();
       const row = await this.db.getFirstAsync<{body:string}>("SELECT body FROM recording_sessions WHERE id=?", id);
       const session: TrackingSession | undefined = current?.id === id ? current : row ? JSON.parse(row.body) : undefined;
-      if (session) return {session, points: await this.savedPoints(id), archived:current?.id !== id};
+      if (session) return {session, points: await this.savedPoints(id, order), archived:current?.id !== id};
       const legacy = await this.db.getFirstAsync<{body:string}>("SELECT body FROM local_recordings WHERE id=?", id);
       return legacy ? {...JSON.parse(legacy.body), archived:true} as {session:TrackingSession;points:TrackingPoint[];archived:boolean} : undefined;
     });
