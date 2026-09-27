@@ -1,3 +1,4 @@
+import { findVane } from '../utils/bleConnection';
 import { recordBleDiagnostic, setBleAdapterState, type BleStage } from '../diagnostics/ble';
 import { setDeviceRecordingSource, clearDeviceRecordingSource } from "../tracking/recordingSource";
 import { recordDevicePoint } from "../tracking/service";
@@ -240,7 +241,10 @@ export function BLEProvider({ children }: { children: ReactNode }) {
   const serviceUuidRef = useRef<string | null>(null)
   const sensorDataCharRef = useRef<string | null>(null)
   const commandCharRef = useRef<string | null>(null)
-  const scanTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const connectionBusyRef = useRef(false)
+  const connectionAbortRef = useRef<AbortController | null>(null)
+  const pendingDeviceRef = useRef<any>(null)
+  const reconnectRef = useRef<() => Promise<void>>(async () => {})
   const disconnectedSubRef = useRef<(() => void) | null>(null)
   const latestReleaseRef = useRef<GitHubRelease | null>(null)
   const lastDeviceRef = useRef<any>(null)
@@ -326,13 +330,17 @@ export function BLEProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const connectToDevice = useCallback(async (device: any) => {
+  const connectToDevice = useCallback(async (device: any, signal: AbortSignal) => {
     let phase = 'Connecting to device'
     let diagnosticStage: BleStage = 'connect'
+    const checkCancelled = () => { if (signal.aborted) throw new Error('Connection cancelled') }
     recordBleDiagnostic('connect', 'start')
     try {
       console.info('[BLE]', phase)
+      pendingDeviceRef.current = device
+      checkCancelled()
       const connectedDevice = await device.connect()
+      checkCancelled()
       recordBleDiagnostic('connect', 'success')
       connectedDeviceRef.current = connectedDevice
       lastDeviceRef.current = device
@@ -342,11 +350,13 @@ export function BLEProvider({ children }: { children: ReactNode }) {
       phase = 'Discovering services and characteristics'
       console.info('[BLE]', phase)
       await connectedDevice.discoverAllServicesAndCharacteristics()
+      checkCancelled()
 
       recordBleDiagnostic('discover', 'success')
       try {
         recordBleDiagnostic('mtu', 'start')
         await connectedDevice.negotiateMtu(512)
+      checkCancelled()
         recordBleDiagnostic('mtu', 'success')
       } catch (e) {
         recordBleDiagnostic('mtu', 'error', e)
@@ -356,6 +366,7 @@ export function BLEProvider({ children }: { children: ReactNode }) {
       diagnosticStage = 'services'
       recordBleDiagnostic('services', 'start')
       const services: any[] = await connectedDevice.services()
+      checkCancelled()
       console.info('[BLE] Service UUIDs:', services.map(s => s.uuid))
       const service = services.find((s: any) => s.uuid.toLowerCase() === SERVICE_UUID.toLowerCase())
 
@@ -367,6 +378,7 @@ export function BLEProvider({ children }: { children: ReactNode }) {
       recordBleDiagnostic('characteristics', 'start')
 
       const characteristics: any[] = await service.characteristics()
+      checkCancelled()
       console.info('[BLE] Characteristic UUIDs:', characteristics.map(c => c.uuid))
       const sensorChar = characteristics.find((c: any) => c.uuid.toLowerCase() === SENSOR_DATA_CHAR_UUID.toLowerCase())
       const cmdChar = characteristics.find((c: any) => c.uuid.toLowerCase() === COMMAND_CHAR_UUID.toLowerCase())
@@ -398,7 +410,9 @@ export function BLEProvider({ children }: { children: ReactNode }) {
       }
 
       // Store subscription for cleanup
+      disconnectedSubRef.current?.()
       const sub = connectedDevice.onDisconnected((error: unknown) => {
+        if (signal.aborted || connectedDeviceRef.current !== connectedDevice) return
         recordBleDiagnostic('disconnect', error ? 'error' : 'success', error)
         clearDeviceRecordingSource(); dispatch({ type: 'DISCONNECT' })
         connectedDeviceRef.current = null
@@ -409,7 +423,7 @@ export function BLEProvider({ children }: { children: ReactNode }) {
         if (!intentionalDisconnectRef.current && lastDeviceRef.current) {
           reconnectTimerRef.current = setTimeout(() => {
             recordBleDiagnostic('reconnect', 'start')
-            connectToDevice(lastDeviceRef.current)
+            void reconnectRef.current()
           }, 3000)
         }
       })
@@ -422,6 +436,7 @@ export function BLEProvider({ children }: { children: ReactNode }) {
       // Request firmware version after connection
       setTimeout(async () => {
         try {
+          if (signal.aborted || connectedDeviceRef.current !== connectedDevice) return
           const cmd = JSON.stringify({ cmd: 'GET_FW_VERSION' })
           await connectedDevice.writeCharacteristicWithResponseForService(
             service.uuid, cmdChar.uuid, btoa(cmd)
@@ -439,100 +454,65 @@ export function BLEProvider({ children }: { children: ReactNode }) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
       recordBleDiagnostic(diagnosticStage, 'error', error)
       console.error('[BLE]', phase, error)
-      dispatch({ type: 'CONNECT_ERROR', payload: `${phase}: ${errorMessage}` })
+      connectedDeviceRef.current = null
+      serviceUuidRef.current = null
+      sensorDataCharRef.current = null
+      commandCharRef.current = null
+      await device.cancelConnection().catch(() => {})
+      if (!signal.aborted) dispatch({ type: 'CONNECT_ERROR', payload: `${phase}: ${errorMessage}` })
     }
   }, [handleSensorData])
 
   const connect = useCallback(async () => {
+    if (connectionBusyRef.current || connectedDeviceRef.current) return
+    connectionBusyRef.current = true
+    const controller = new AbortController()
+    connectionAbortRef.current = controller
     let diagnosticStage: BleStage = 'permission'
+    dispatch({ type: 'CONNECT_START' })
     try {
-      recordBleDiagnostic('permission', 'start')
-      console.info('[BLE] Connect requested')
-      const bleManager = getBleManager()
-
-      dispatch({ type: 'CONNECT_START' })
-
-      if (!bleManager) {
-        recordBleDiagnostic('adapter', 'error')
-        dispatch({ type: 'CONNECT_ERROR', payload: 'BLE requires a development build. Use `npx expo run:ios` or EAS Build.' })
-        return
-      }
-
-      const permissionsGranted = await requestBLEPermissions()
-      recordBleDiagnostic('permission', permissionsGranted ? 'success' : 'error')
-      if (!permissionsGranted) {
-        dispatch({ type: 'CONNECT_ERROR', payload: 'Bluetooth permissions denied' })
-        return
-      }
-
       intentionalDisconnectRef.current = false
-      if (reconnectTimerRef.current) {
-        clearTimeout(reconnectTimerRef.current)
-        reconnectTimerRef.current = null
-      }
-
-      let found = false
+      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current)
+      reconnectTimerRef.current = null
+      recordBleDiagnostic('permission', 'start')
+      const bleManager = getBleManager()
+      if (!bleManager) throw new Error('Bluetooth is unavailable in this build.')
+      const granted = await requestBLEPermissions()
+      if (controller.signal.aborted) return
+      recordBleDiagnostic('permission', granted ? 'success' : 'error')
+      if (!granted) throw new Error('Bluetooth permissions denied')
       diagnosticStage = 'adapter'
-      setBleAdapterState(await bleManager.state())
-      recordBleDiagnostic('adapter', 'success')
-      diagnosticStage = 'scan'
-      recordBleDiagnostic('scan', 'start')
-      console.info('[BLE] Scanning for a device named Veetr')
-      scanTimeoutRef.current = setTimeout(() => {
-        if (!found) {
-          recordBleDiagnostic('scan', 'error')
-          void bleManager.stopDeviceScan().catch((error: unknown) => console.warn('[BLE] Stop scan failed:', error))
-          dispatch({ type: 'CONNECT_ERROR', payload: 'No Veetr Vane found. Ensure it is powered on and nearby.' })
-        }
-        scanTimeoutRef.current = null
-      }, 30000)
-
-      await bleManager.startDeviceScan(null, null, (error: any, scannedDevice: any) => {
-        if (error) {
-          recordBleDiagnostic('scan', 'error', error)
-          console.error('[BLE] Scan failed:', error)
-          if (scanTimeoutRef.current) {
-            clearTimeout(scanTimeoutRef.current)
-            scanTimeoutRef.current = null
-          }
-          dispatch({ type: 'CONNECT_ERROR', payload: error.message })
-          return
-        }
-        if (!found && scannedDevice && scannedDevice.name?.includes(DEVICE_NAME_PREFIX)) {
-          console.info('[BLE] Found Veetr device; connecting')
-          found = true
-          recordBleDiagnostic('scan', 'success')
-          void bleManager.stopDeviceScan().catch((error: unknown) => console.warn('[BLE] Stop scan failed:', error))
-          if (scanTimeoutRef.current) {
-            clearTimeout(scanTimeoutRef.current)
-            scanTimeoutRef.current = null
-          }
-          connectToDevice(scannedDevice)
+      const device = await findVane(bleManager, controller.signal, adapterState => {
+        setBleAdapterState(adapterState)
+        recordBleDiagnostic('adapter', adapterState === 'PoweredOn' ? 'success' : 'start')
+        if (adapterState === 'PoweredOn') {
+          diagnosticStage = 'scan'
+          recordBleDiagnostic('scan', 'start')
         }
       })
-
+      if (controller.signal.aborted) return
+      recordBleDiagnostic('scan', 'success')
+      await connectToDevice(device, controller.signal)
     } catch (error) {
-      if (scanTimeoutRef.current) {
-        clearTimeout(scanTimeoutRef.current)
-        scanTimeoutRef.current = null
+      if (!controller.signal.aborted) {
+        recordBleDiagnostic(diagnosticStage, 'error', error)
+        dispatch({ type: 'CONNECT_ERROR', payload: error instanceof Error ? error.message : 'Bluetooth connection failed. Please try again.' })
       }
-      recordBleDiagnostic(diagnosticStage, 'error', error)
-      console.error('[BLE] Connection attempt failed:', error)
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      dispatch({ type: 'CONNECT_ERROR', payload: errorMessage })
+    } finally {
+      pendingDeviceRef.current = null
+      connectionBusyRef.current = false
     }
   }, [connectToDevice])
+  reconnectRef.current = connect
 
   const disconnect = useCallback(() => {
     recordBleDiagnostic('disconnect', 'requested')
     intentionalDisconnectRef.current = true
+    connectionAbortRef.current?.abort()
+    if (pendingDeviceRef.current) void pendingDeviceRef.current.cancelConnection().catch(() => {})
     if (reconnectTimerRef.current) {
       clearTimeout(reconnectTimerRef.current)
       reconnectTimerRef.current = null
-    }
-    if (scanTimeoutRef.current) {
-      clearTimeout(scanTimeoutRef.current)
-      scanTimeoutRef.current = null
     }
     if (disconnectedSubRef.current) {
       disconnectedSubRef.current()
@@ -624,10 +604,9 @@ export function BLEProvider({ children }: { children: ReactNode }) {
         clearTimeout(reconnectTimerRef.current)
         reconnectTimerRef.current = null
       }
-      if (scanTimeoutRef.current) {
-        clearTimeout(scanTimeoutRef.current)
-        scanTimeoutRef.current = null
-      }
+      intentionalDisconnectRef.current = true
+      connectionAbortRef.current?.abort()
+      if (pendingDeviceRef.current) void pendingDeviceRef.current.cancelConnection().catch(() => {})
       if (disconnectedSubRef.current) {
         disconnectedSubRef.current()
         disconnectedSubRef.current = null
