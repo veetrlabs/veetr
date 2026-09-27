@@ -1,4 +1,5 @@
 import { syncSharedTrip } from "./tripSharing";
+import { confirmTrackingLocationUse } from "./locationDisclosure";
 import { createSpeedFilter } from '../navigation/speedFilter';
 import { reportDiagnostic } from '../diagnostics/service';
 import { phoneMotion } from '../navigation/phoneMotion';
@@ -315,6 +316,7 @@ export const startLocalTracking = (boat?: {id:string;name:string}) =>
     return id;
   });
 async function requestPermissions(allowForeground = false) {
+  await confirmTrackingLocationUse();
   if ((await Location.requestForegroundPermissionsAsync()).status !== "granted")
     throw new Error("Precise location permission is required.");
   if (

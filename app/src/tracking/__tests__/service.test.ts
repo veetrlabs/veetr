@@ -1,9 +1,11 @@
 jest.mock('../../diagnostics/service', () => ({ reportDiagnostic: jest.fn() }));
+jest.mock('../locationDisclosure', () => ({ confirmTrackingLocationUse: jest.fn(async () => {}) }));
 jest.mock("@react-native-async-storage/async-storage", () => ({
   getItem: jest.fn(async () => "device-secret"),
   setItem: jest.fn(),
 }));
 import { AppState } from "react-native";
+import { confirmTrackingLocationUse } from "../locationDisclosure";
 jest.mock("react-native", () => ({ AppState: { currentState: "active" }, Platform: { OS: "android" } }));
 import type { TrackingPoint, TrackingSession } from "../model";
 jest.mock("expo-location", () => ({
@@ -235,6 +237,16 @@ test("an expired local recording stops and keeps its saved points", async () => 
   expect(points).toHaveLength(1);
   expect(Location.startLocationUpdatesAsync).not.toHaveBeenCalled();
   expect(trackingRpc).not.toHaveBeenCalled();
+});
+
+test("declining the disclosure does not request permissions or start recording", async () => {
+  session = null;
+  (confirmTrackingLocationUse as jest.Mock).mockRejectedValueOnce(new Error("Location recording was not started."));
+  await expect(startLocalTracking()).rejects.toThrow("not started");
+  expect(Location.requestForegroundPermissionsAsync).not.toHaveBeenCalled();
+  expect(Location.requestBackgroundPermissionsAsync).not.toHaveBeenCalled();
+  expect(Location.startLocationUpdatesAsync).not.toHaveBeenCalled();
+  expect(session).toBeNull();
 });
 
 test("local recording accepts foreground permission when background permission is declined", async () => {
