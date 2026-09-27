@@ -26,23 +26,41 @@ test('personal trips: crew selection, private upload, live publication, revocati
  await assert.rejects(db.query('select * from public.trip_shares'),/permission denied/);
  await write('ingest',{points:[{seq:1,recordedAt:start,latitude:49,longitude:14,source:'veetr',sogMps:2,cogDeg:100,instruments:{twa:-45,awa:0,aws:12,tws:10,heading:90}}]});
  await assert.rejects(write('ingest',{points:[{seq:2,recordedAt:start,latitude:49,longitude:14,source:'veetr',instruments:{twa:181}}]}),/out of range/);
+ await write('ingest',{points:[{seq:2,recordedAt:new Date(Date.parse(start)+5000).toISOString(),latitude:49.001,longitude:14,source:'phone',accuracyM:5,sogMps:2}]});
  await login(null);assert.equal(await read(initial.token),null);
  await assert.rejects(write('get'),/permission denied/);
  await login(other);await assert.rejects(write('get'),/owner required/);await assert.rejects(write('create',{id:id(),boatId:boat,startedAt:start}),/crew access required/);
  await login(owner);await assert.rejects(write('publish',{visibility:'public'}),/owner required/);
  await login(crew);const live=await write('publish',{visibility:'unlisted'});
- await login(null);const visible=await read(live.token);assert.equal(visible.live,true);assert.equal(visible.points[0].instruments.twa,-45);assert.equal(visible.points[0].instruments.awa,0);assert.equal((await read(live.token,1)).points.length,0);
+ await login(null);const visible=await read(live.token);assert.equal(visible.live,true);assert.equal(visible.points[0].instruments.twa,-45);assert.equal(visible.points[0].instruments.awa,0);assert.equal((await read(live.token,1)).points.length,1);
  assert.equal((await db.query('select public.public_trips() data')).rows[0].data.length,0);
  await db.exec('reset role');await db.query('delete from public.boat_members where boat_id=$1 and user_id=$2',[boat,crew]);
   await login(crew);await write('create',{boatId:boat,startedAt:start}); // Revoked crew can still revoke their own trip.
   await write('publish',{visibility:'private'});await login(null);assert.equal(await read(live.token),null);
  await login(crew);const again=await write('publish',{visibility:'public'});assert.notEqual(again.token,live.token);
  await login(null);assert.equal((await db.query('select public.public_trips() data')).rows[0].data.length,1);
+ assert.equal((await db.query("select public.public_trips(0,'active','newest') data")).rows[0].data.length,1);
+ assert.equal((await db.query("select public.public_trips(0,'past','oldest') data")).rows[0].data.length,0);
  await login(crew);await write('finish',{stoppedAt:new Date().toISOString()});await login(null);assert.equal((await read(again.token)).live,false);
  assert.equal((await db.query('select public.public_trips() data')).rows[0].data.length,1);
+ assert.equal((await db.query("select public.public_trips(0,'active','newest') data")).rows[0].data.length,0);
+ const past=(await db.query("select public.public_trips(0,'past','oldest') data")).rows[0].data;
+ assert.equal(past.length,1);assert.ok(Math.abs(past[0].distanceNm-0.06004)<0.001);assert.equal(past[0].startLatitude,49);assert.equal(Date.parse(past[0].startedAt),Date.parse(start));
  await login(crew);const done=await write('publish',{visibility:'unlisted'});assert.equal(done.token,again.token);await write('finish',{stoppedAt:new Date().toISOString()});
  await assert.rejects(write('ingest',{points:[]}),/Unpublish/);
  await login(null);assert.equal((await read(done.token)).live,false);
+ await db.exec('reset role');
+ for(let i=0;i<21;i++){
+  const sid=id(),date=new Date(Date.parse(start)-(i+1)*3600000).toISOString();
+  await db.query('insert into public.tracking_sessions(id,boat_id,user_id,started_at,expires_at,stopped_at) values($1,$2,$3,$4,now(),now())',[sid,boat,crew,date]);
+  await db.query("insert into public.trip_shares(session_id,title,visibility) values($1,$2,'public')",[sid,'Page trip '+i]);
+ }
+ await login(null);
+ const page=(await db.query("select public.public_trips(0,'past','newest') data")).rows[0].data;
+ const next=(await db.query("select public.public_trips(20,'past','newest') data")).rows[0].data;
+ assert.equal(page.length,21);assert.equal(next.length,1);assert.equal(page[20].token,next[0].token);
+ assert.equal(page[0].title,'Page trip 0');
+ assert.equal((await db.query("select public.public_trips(0,'past','oldest') data")).rows[0].data[0].title,'Page trip 20');
  await db.exec('reset role');await db.query('insert into public.account_security(user_id,suspended) values($1,true)',[crew]);await login(null);assert.equal(await read(done.token),null);
  await login(crew);await assert.rejects(write('get'),/Account access denied/);
  }finally{await db.close();}

@@ -9,7 +9,7 @@ test('diagnostics accepts only bounded technical reports, hides them and expires
  await db.exec('create role anon; create role authenticated; create role service_role;');
  await db.exec(await readFile(new URL('../migrations/202609240001_optional_diagnostics.sql', import.meta.url), 'utf8'));
  await db.exec(await readFile(new URL('../migrations/20260925122516_tracking_diagnostic_pipeline.sql', import.meta.url), 'utf8'));
- await db.exec(await readFile(new URL('../migrations/20260927104016_bluetooth_diagnostics.sql', import.meta.url), 'utf8'));
+ await db.exec(await readFile(new URL('../migrations/20260927111211_bluetooth_diagnostics.sql', import.meta.url), 'utf8'));
  const report = { id: randomUUID(), installationId: randomUUID(), occurredAt: new Date().toISOString(), consent: 'manual', event: 'manual', appVersion: '0.0.28', build: '12', platform: 'android', osVersion: '34', model: 'OnePlus', state: 'active', foregroundPermission: 'granted', backgroundPermission: 'granted', tracking: 'recording', fixAgeSeconds: 90, uploadAgeSeconds: 120, accuracyM: null, pendingCount: 12, recoveryCount: 1, errorCode: 'gps' };
  const submit = reports => db.query('select public.submit_diagnostics($1::jsonb) n', [JSON.stringify(reports)]);
  await db.exec('set role anon');
