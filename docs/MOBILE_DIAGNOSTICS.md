@@ -82,8 +82,16 @@ Regression checks cover two hours of backfill after a fresh foreground fix, dupl
 
 ## Bluetooth connection diagnostics (iOS and Android)
 
-The app retains the latest 20 technical Bluetooth breadcrumbs in memory for up to 30 minutes. Send a diagnostic report after reproducing a connection failure, before closing the app. Automatic reports include these breadcrumbs only when reporting is enabled; a manual report includes them without enabling automatic reporting. Turning reporting off clears the current breadcrumbs as well as unsent reports. Subsequent connection activity can create new local breadcrumbs for a future manual report.
+The app retains the latest 20 technical Bluetooth breadcrumbs in memory for up to six hours. Send a diagnostic report after reproducing a connection failure, before closing the app. Automatic reports include these breadcrumbs only when reporting is enabled; a manual report includes them without enabling automatic reporting. Turning reporting off clears the current breadcrumbs as well as unsent reports. Subsequent connection activity can create new local breadcrumbs for a future manual report.
 
 Each breadcrumb contains a connection stage, outcome, last observed adapter state, age, and numeric BLE/iOS/Android/ATT error codes. Stages cover permission, scan, connection, discovery, MTU, service/characteristic lookup, subscription, disconnection, automatic reconnection and provider cleanup. Device names, peripheral identifiers, UUIDs, raw error messages, commands, sensor values and locations are never copied into this history. A connected stage means notification monitoring was registered, not that sensor data has arrived. Null error codes mean the library supplied no valid numeric code.
 
 Apply `20260927111211_bluetooth_diagnostics.sql` before releasing the diagnostic app. The optional `ble` array is validated by the server; old reports without it remain accepted. Existing consent, queue, access restrictions and 30-day server retention remain unchanged. This is instrumentation, not a Bluetooth reconnection fix.
+
+### Reconnection context
+
+`20260927153419_bluetooth_reconnect_context.sql` accepts both older eight-field BLE entries and the new context fields. Deploy it before the updated app. Up to eight errors/disconnects are reserved in the twenty-entry memory history, with the remaining slots filled by recent activity. Consent withdrawal clears both buffers. No history survives an app restart.
+
+Each event captures foreground/background/inactive state (not physical screen-lock state), connected duration, last valid sensor-message age, last RSSI and its age, a format-restricted firmware version, attempt number, direct-versus-scan method and elapsed attempt time. Null means unavailable. Signal strength is sampled every 30 seconds while connected; failed reads do not interrupt BLE. These fields help distinguish reception failures from stopped notifications, but a timeout alone still does not prove the cause.
+
+Recovery tries the last known peripheral directly, with a 15-second native connection timeout. Every third retry scans for Vane's service and matches the same peripheral locally, without putting its identifier in telemetry. Failed retries continue with a delay capped at 30 seconds; successful connections reset the retry counter. iOS may delay execution while the app is suspended. Explicit disconnect and provider cleanup cancel recovery. MTU requests use Android's requestMTU API only; CoreBluetooth manages iOS MTU.

@@ -66,6 +66,48 @@ describe('BLE connection failures', () => {
     unmount();
   });
 
+  it('retries the known device, falls back to a filtered scan and stops on explicit disconnect', async () => {
+    const scans: any[] = [];
+    mockManager.startDeviceScan.mockImplementation((_u, _o, callback) => { scans.push(callback); return Promise.resolve(); });
+    let lost!: (error: unknown) => void;
+    const device: any = {
+      id:'known-vane',name:'Veetr',cancelConnection:jest.fn().mockResolvedValue(undefined),
+      discoverAllServicesAndCharacteristics:jest.fn().mockResolvedValue(undefined),
+      requestMTU:jest.fn().mockResolvedValue(undefined),readRSSI:jest.fn().mockResolvedValue({rssi:-80}),
+      services:jest.fn().mockResolvedValue([{uuid:'12345678-1234-1234-1234-123456789abc',characteristics:async()=>[{uuid:'87654321-4321-4321-4321-cba987654321'},{uuid:'11111111-2222-3333-4444-555555555555'}]}]),
+      monitorCharacteristicForService:jest.fn(()=>({remove:jest.fn()})),
+      onDisconnected:jest.fn(callback=>{lost=callback;return {remove:jest.fn()};}),
+      writeCharacteristicWithResponseForService:jest.fn().mockResolvedValue(undefined),
+    };
+    device.connect=jest.fn().mockResolvedValue(device);
+    const {result,unmount}=renderHook(()=>useBLE(),{wrapper:({children})=><BLEProvider>{children}</BLEProvider>});
+    let initial!: Promise<void>;
+    await act(async()=>{initial=result.current.connect();});
+    await act(async()=>{scans[0](null,device);await initial;});
+    expect(result.current.state.isConnected).toBe(true);
+    device.connect.mockRejectedValue(new Error('out of range'));
+    await act(async()=>{lost({errorCode:201,iosErrorCode:6});jest.advanceTimersByTime(3000);});
+    expect(device.connect).toHaveBeenCalledTimes(2);
+    expect(scans).toHaveLength(1);
+    await act(async()=>{jest.advanceTimersByTime(3000);});
+    expect(device.connect).toHaveBeenCalledTimes(3);
+    await act(async()=>{jest.advanceTimersByTime(6000);});
+    expect(scans).toHaveLength(2);
+    expect(mockManager.startDeviceScan.mock.calls.at(-1)[0]).toEqual(['12345678-1234-1234-1234-123456789abc']);
+    const other={id:'another-vane',name:'Veetr',connect:jest.fn()};
+    await act(async()=>{scans[1](null,other);});
+    expect(other.connect).not.toHaveBeenCalled();
+    device.connect.mockResolvedValue(device);
+    await act(async()=>{scans[1](null,device);});
+    expect(result.current.state.isConnected).toBe(true);
+    expect(device.connect).toHaveBeenCalledTimes(4);
+    await act(async()=>{lost({errorCode:201,iosErrorCode:6});result.current.disconnect();});
+    await act(async()=>{jest.advanceTimersByTime(120000);});
+    expect(device.connect).toHaveBeenCalledTimes(4);
+    expect(scans).toHaveLength(2);
+    unmount();
+  });
+
   it.each(['callback', 'promise'])('preserves a %s scan error after the scan timeout', async kind => {
     const message = 'Bluetooth is unauthorized'
     if (kind === 'callback') {

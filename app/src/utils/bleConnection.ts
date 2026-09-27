@@ -1,6 +1,9 @@
 // A scan is a single-use operation. Late callbacks from a stopped scan must
 // never be allowed to initiate a connection for a later attempt.
-export async function findVane(manager: any, signal: AbortSignal, onState: (state: string) => void): Promise<any> {
+export const VANE_SERVICE_UUID = '12345678-1234-1234-1234-123456789abc';
+export const reconnectDelay = (attempt: number) => Math.min(30000, 3000 * 2 ** Math.min(Math.max(0, attempt - 1), 4));
+
+export async function waitForBluetooth(manager: any, signal: AbortSignal, onState: (state: string) => void): Promise<void> {
   await new Promise<void>((resolve, reject) => {
     let settled = false;
     let subscription: { remove(): void } | undefined;
@@ -31,6 +34,10 @@ export async function findVane(manager: any, signal: AbortSignal, onState: (stat
     } catch (error) { finish(error as Error); }
   });
   if (signal.aborted) throw new Error('Connection cancelled');
+}
+
+export async function findVane(manager: any, signal: AbortSignal, onState: (state: string) => void, preferredId?: string): Promise<any> {
+  await waitForBluetooth(manager, signal, onState);
   // Finish stopping any earlier scan before installing a new callback.
   await manager.stopDeviceScan();
   if (signal.aborted) throw new Error('Connection cancelled');
@@ -52,10 +59,10 @@ export async function findVane(manager: any, signal: AbortSignal, onState: (stat
     signal.addEventListener('abort', abort);
     if (signal.aborted) { abort(); return; }
     try {
-      Promise.resolve(manager.startDeviceScan(null, null, (error: unknown, device: any) => {
+      Promise.resolve(manager.startDeviceScan([VANE_SERVICE_UUID], null, (error: unknown, device: any) => {
         if (settled) return;
         if (error) finish(error);
-        else if (device?.name?.includes('Veetr')) finish(undefined, device);
+        else if (device && (!preferredId || device.id === preferredId)) finish(undefined, device);
       })).catch(error => finish(error));
     } catch (error) { finish(error); }
   });

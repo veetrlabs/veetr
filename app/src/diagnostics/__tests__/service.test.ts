@@ -139,3 +139,11 @@ test('withdrawal aborts in-flight sends and does not claim success after cancell
   expect(aborted).toBe(true);
   expect(JSON.parse(mockStored!).events).toEqual([]);
 });
+
+test('a full Bluetooth failure history fits a manual upload', async () => {
+  for (let i=0;i<25;i++) recordBleDiagnostic('connect','error',{errorCode:201,iosErrorCode:6});
+  expect(await sendDiagnosticReport()).toContain('Report sent.');
+  const body=(fetch as jest.Mock).mock.calls[0][1].body;
+  expect(JSON.parse(body).reports[0].ble).toHaveLength(20);
+  expect(Buffer.byteLength(body,'utf8')).toBeLessThan(40000);
+});

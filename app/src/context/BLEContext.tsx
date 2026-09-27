@@ -1,5 +1,5 @@
-import { findVane } from '../utils/bleConnection';
-import { recordBleDiagnostic, setBleAdapterState, type BleStage } from '../diagnostics/ble';
+import { findVane, waitForBluetooth, reconnectDelay } from '../utils/bleConnection';
+import { recordBleDiagnostic, setBleAdapterState, beginBleAttempt, noteBleConnected, noteBleDisconnected, noteBleSensor, noteBleRssi, noteBleFirmware, type BleStage } from '../diagnostics/ble';
 import { setDeviceRecordingSource, clearDeviceRecordingSource } from "../tracking/recordingSource";
 import { recordDevicePoint } from "../tracking/service";
 import { createContext, useContext, useReducer, useRef, useEffect, ReactNode, useCallback } from 'react'
@@ -241,6 +241,15 @@ export function BLEProvider({ children }: { children: ReactNode }) {
   const serviceUuidRef = useRef<string | null>(null)
   const sensorDataCharRef = useRef<string | null>(null)
   const commandCharRef = useRef<string | null>(null)
+  const retryAttemptRef = useRef(0)
+  const monitorSubRef = useRef<{remove(): void} | null>(null)
+  const rssiTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const stopMonitoring = useCallback(() => {
+    if (rssiTimerRef.current) clearInterval(rssiTimerRef.current)
+    rssiTimerRef.current = null
+    monitorSubRef.current?.remove()
+    monitorSubRef.current = null
+  }, [])
   const connectionBusyRef = useRef(false)
   const connectionAbortRef = useRef<AbortController | null>(null)
   const pendingDeviceRef = useRef<any>(null)
@@ -264,6 +273,7 @@ export function BLEProvider({ children }: { children: ReactNode }) {
       }
 
       if (parsed.type === 'firmware_version') {
+        noteBleFirmware(parsed.version)
         dispatch({ type: 'UPDATE_FIRMWARE_VERSION', payload: parsed.version })
         return
       }
@@ -284,6 +294,7 @@ export function BLEProvider({ children }: { children: ReactNode }) {
         return
       }
 
+      noteBleSensor()
       const mappedData: Partial<SailingData> = {
         recordingInstruments: {
           aws: Number.isFinite(parsed.AWS) && parsed.AWS >= 0 && parsed.AWS <= 200 ? parsed.AWS : null,
@@ -339,8 +350,9 @@ export function BLEProvider({ children }: { children: ReactNode }) {
       console.info('[BLE]', phase)
       pendingDeviceRef.current = device
       checkCancelled()
-      const connectedDevice = await device.connect()
+      const connectedDevice = await device.connect({ timeout: 15000 })
       checkCancelled()
+      noteBleConnected()
       recordBleDiagnostic('connect', 'success')
       connectedDeviceRef.current = connectedDevice
       lastDeviceRef.current = device
@@ -353,14 +365,14 @@ export function BLEProvider({ children }: { children: ReactNode }) {
       checkCancelled()
 
       recordBleDiagnostic('discover', 'success')
-      try {
-        recordBleDiagnostic('mtu', 'start')
-        await connectedDevice.negotiateMtu(512)
-      checkCancelled()
-        recordBleDiagnostic('mtu', 'success')
-      } catch (e) {
-        recordBleDiagnostic('mtu', 'error', e)
-        console.warn('[BLE] MTU negotiation failed:', e)
+      // CoreBluetooth negotiates MTU itself. Android exposes requestMTU.
+      if (Platform.OS === 'android') {
+        try {
+          recordBleDiagnostic('mtu', 'start')
+          await connectedDevice.requestMTU(512)
+          recordBleDiagnostic('mtu', 'success')
+        } catch (error) { recordBleDiagnostic('mtu', 'error', error) }
+        checkCancelled()
       }
 
       diagnosticStage = 'services'
@@ -392,10 +404,11 @@ export function BLEProvider({ children }: { children: ReactNode }) {
       diagnosticStage = 'subscribe'
       recordBleDiagnostic('subscribe', 'start')
       // Monitor sensor data
-      connectedDevice.monitorCharacteristicForService(
+      monitorSubRef.current = connectedDevice.monitorCharacteristicForService(
         service.uuid,
         sensorChar.uuid,
         (error: any, char: any) => {
+          if (signal.aborted || connectedDeviceRef.current !== connectedDevice) return
           if (error) {
             recordBleDiagnostic('subscribe', 'error', error)
             console.error('[BLE] Monitor error:', error.message)
@@ -413,9 +426,11 @@ export function BLEProvider({ children }: { children: ReactNode }) {
       disconnectedSubRef.current?.()
       const sub = connectedDevice.onDisconnected((error: unknown) => {
         if (signal.aborted || connectedDeviceRef.current !== connectedDevice) return
-        recordBleDiagnostic('disconnect', error ? 'error' : 'success', error)
+        recordBleDiagnostic('disconnect', 'error', error)
         clearDeviceRecordingSource(); dispatch({ type: 'DISCONNECT' })
         connectedDeviceRef.current = null
+        stopMonitoring()
+        noteBleDisconnected()
         sensorDataCharRef.current = null
         commandCharRef.current = null
 
@@ -431,7 +446,20 @@ export function BLEProvider({ children }: { children: ReactNode }) {
 
       console.info('[BLE] Connected; sensor notifications registered')
       recordBleDiagnostic('connected', 'success')
+      retryAttemptRef.current = 0
       dispatch({ type: 'CONNECT_SUCCESS' })
+      let readingRssi = false
+      const pollRssi = async () => {
+        if (readingRssi || signal.aborted || connectedDeviceRef.current !== connectedDevice) return
+        readingRssi = true
+        try {
+          const reading = await connectedDevice.readRSSI()
+          if (!signal.aborted && connectedDeviceRef.current === connectedDevice) noteBleRssi(reading.rssi)
+        } catch { /* RSSI failure must not interrupt the connection. */ }
+        finally { readingRssi = false }
+      }
+      void pollRssi()
+      rssiTimerRef.current = setInterval(() => { void pollRssi() }, 30000)
 
       // Request firmware version after connection
       setTimeout(async () => {
@@ -455,15 +483,17 @@ export function BLEProvider({ children }: { children: ReactNode }) {
       recordBleDiagnostic(diagnosticStage, 'error', error)
       console.error('[BLE]', phase, error)
       connectedDeviceRef.current = null
+      stopMonitoring()
+      noteBleDisconnected()
       serviceUuidRef.current = null
       sensorDataCharRef.current = null
       commandCharRef.current = null
       await device.cancelConnection().catch(() => {})
       if (!signal.aborted) dispatch({ type: 'CONNECT_ERROR', payload: `${phase}: ${errorMessage}` })
     }
-  }, [handleSensorData])
+  }, [handleSensorData, stopMonitoring])
 
-  const connect = useCallback(async () => {
+  const connect = useCallback(async (automatic = false) => {
     if (connectionBusyRef.current || connectedDeviceRef.current) return
     connectionBusyRef.current = true
     const controller = new AbortController()
@@ -481,17 +511,25 @@ export function BLEProvider({ children }: { children: ReactNode }) {
       if (controller.signal.aborted) return
       recordBleDiagnostic('permission', granted ? 'success' : 'error')
       if (!granted) throw new Error('Bluetooth permissions denied')
+      const knownDevice = lastDeviceRef.current
+      const attempt = automatic ? ++retryAttemptRef.current : 0
+      const direct = !!knownDevice && (!automatic || attempt % 3 !== 0)
+      beginBleAttempt(attempt, direct ? 'direct' : 'scan')
       diagnosticStage = 'adapter'
-      const device = await findVane(bleManager, controller.signal, adapterState => {
+      const onAdapterState = (adapterState: string) => {
         setBleAdapterState(adapterState)
         recordBleDiagnostic('adapter', adapterState === 'PoweredOn' ? 'success' : 'start')
-        if (adapterState === 'PoweredOn') {
-          diagnosticStage = 'scan'
-          recordBleDiagnostic('scan', 'start')
-        }
-      })
+      }
+      let device = knownDevice
+      if (direct) {
+        await waitForBluetooth(bleManager, controller.signal, onAdapterState)
+      } else {
+        diagnosticStage = 'scan'
+        recordBleDiagnostic('scan', 'start')
+        device = await findVane(bleManager, controller.signal, onAdapterState, knownDevice?.id)
+        recordBleDiagnostic('scan', 'success')
+      }
       if (controller.signal.aborted) return
-      recordBleDiagnostic('scan', 'success')
       await connectToDevice(device, controller.signal)
     } catch (error) {
       if (!controller.signal.aborted) {
@@ -501,9 +539,16 @@ export function BLEProvider({ children }: { children: ReactNode }) {
     } finally {
       pendingDeviceRef.current = null
       connectionBusyRef.current = false
+      if (!controller.signal.aborted && !intentionalDisconnectRef.current && lastDeviceRef.current && !connectedDeviceRef.current) {
+        if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current)
+        reconnectTimerRef.current = setTimeout(() => {
+          recordBleDiagnostic('reconnect', 'start')
+          void reconnectRef.current()
+        }, reconnectDelay(retryAttemptRef.current))
+      }
     }
   }, [connectToDevice])
-  reconnectRef.current = connect
+  reconnectRef.current = () => connect(true)
 
   const disconnect = useCallback(() => {
     recordBleDiagnostic('disconnect', 'requested')
@@ -526,6 +571,9 @@ export function BLEProvider({ children }: { children: ReactNode }) {
     commandCharRef.current = null
     serviceUuidRef.current = null
     lastDeviceRef.current = null
+    retryAttemptRef.current = 0
+    stopMonitoring()
+    noteBleDisconnected()
     clearDeviceRecordingSource(); dispatch({ type: 'DISCONNECT' })
   }, [])
 
@@ -600,6 +648,7 @@ export function BLEProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     return () => {
       recordBleDiagnostic('cleanup', 'requested')
+      stopMonitoring()
       if (reconnectTimerRef.current) {
         clearTimeout(reconnectTimerRef.current)
         reconnectTimerRef.current = null

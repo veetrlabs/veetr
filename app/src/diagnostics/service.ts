@@ -133,7 +133,7 @@ export function flushDiagnostics(force = false, priorityReportId?: string): Prom
       const batch: DiagnosticEvent[] = [];
       const candidates = priorityReportId ? state.events.filter(e => e.id === priorityReportId) : state.events;
       for (const event of candidates.slice(0, 20)) {
-        if (JSON.stringify({ reports: [...batch, event] }).length > 9000) break;
+        if (JSON.stringify({ reports: [...batch, event] }).length > 18000) break;
         batch.push(event);
       }
       return batch;
