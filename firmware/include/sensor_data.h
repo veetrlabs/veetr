@@ -1,4 +1,5 @@
 #pragma once
+#include <math.h>
 
 struct SensorData {
   float speed;          // Vessel speed in knots
@@ -12,4 +13,8 @@ struct SensorData {
   float accelX;         // Acceleration X-axis in m/s²
   float accelY;         // Acceleration Y-axis in m/s²
   float accelZ;         // Acceleration Z-axis in m/s²
+  float headingRaw; // Aligned heading before quality gating
+  float headingAccuracyRad;
+  unsigned char headingQuality;
+  unsigned long headingRejected;
 };

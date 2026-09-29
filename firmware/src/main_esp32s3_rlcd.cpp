@@ -431,7 +431,7 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
           else if (command.action == "resetCompassNorth") {
             // Calibrate compass north (bow points north, any heel angle)
             if (imuAvailable) {
-              if (imuService.quaternionReports > 0 && millis() - imuService.lastQuaternionMs < 1000) {
+              if (imuService.canAlignNorth(millis())) {
                 // Use rotation vector (includes magnetometer fusion)
                 float quatI = imu.getQuatI();
                 float quatJ = imu.getQuatJ();
