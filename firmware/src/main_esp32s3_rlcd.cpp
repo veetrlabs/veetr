@@ -26,6 +26,7 @@
 #include "gps_validation.h"
 #include "imu_math.h"
 #include "imu_service.h"
+#include "north_alignment.h"
 #include "regatta_math.h"
 #include "base64.h"
 #include "accel_movement.h"
@@ -429,42 +430,22 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
             }
           }
           else if (command.action == "resetCompassNorth") {
-            // Calibrate compass north (bow points north, any heel angle)
-            if (imuAvailable) {
-              if (imuService.canAlignNorth(millis())) {
-                // Use rotation vector (includes magnetometer fusion)
-                float quatI = imu.getQuatI();
-                float quatJ = imu.getQuatJ();
-                float quatK = imu.getQuatK();
-                float quatReal = imu.getQuatReal();
-
-                float quatMag = sqrt(quatI*quatI + quatJ*quatJ + quatK*quatK + quatReal*quatReal);
-
-                if (quatMag > 0.1) {
-                  // Calculate current tilt-compensated heading from rotation vector quaternion
-                  float currentHeading = 0.0f;
-                  bool hasHeading = computeHeadingDegreesFromQuaternion(quatI, quatJ, quatK, quatReal, currentHeading);
-                  if (!hasHeading) {
-                    Serial.println("Compass calibration failed - rotation vector not ready");
-                    return;
-                  }
-
-                  // Store this as the heading offset (when bow points north, this should become 0°)
-                  headingOffset = currentHeading;
-                  preferences.putFloat("headingOffset", headingOffset);
-
-                  northCalibrated = true;
-                  preferences.putBool("northCal", true);
-
-                  Serial.printf("North calibrated - heading offset: %.1f°\n", headingOffset);
-                } else {
-                  Serial.println("Compass calibration failed - rotation vector not ready");
-                }
-              } else {
-                Serial.println("Compass calibration failed - sensor data not available");
-              }
-            } else {
-              Serial.println("Compass calibration failed - IMU sensor not available");
+            const char* result = alignCompassNorth(imuAvailable, millis(), imu,
+                imuService, preferences, headingOffset, northCalibrated);
+            Serial.printf("North alignment: %s\n", result);
+            // Only clients requesting an acknowledgement receive this new packet.
+            // Older clients treat unknown packet types as sensor readings.
+            const char* requestId = doc["requestId"] | "";
+            if (strlen(requestId) > 0 && strlen(requestId) <= 64) {
+              DynamicJsonDocument response(256);
+              response["type"] = "calibration_result";
+              response["action"] = "resetCompassNorth";
+              response["requestId"] = requestId;
+              response["accepted"] = strcmp(result, "accepted") == 0;
+              response["reason"] = result;
+              String responseStr;
+              serializeJson(response, responseStr);
+              safeBLESend(responseStr, true);
             }
           }
           else if (command.action == "regattaSetPort") {
@@ -1270,9 +1251,11 @@ void setup() {
     Serial.println("[Boot] No level calibration found");
   }
 
-  northCalibrated = preferences.getBool("northCal", false);
+  northCalibrated = preferences.isKey("northOffsetV2") || preferences.getBool("northCal", false);
   if (northCalibrated) {
-    headingOffset = preferences.getFloat("headingOffset", 0.0f);
+    headingOffset = preferences.isKey("northOffsetV2")
+        ? preferences.getFloat("northOffsetV2", 0.0f)
+        : preferences.getFloat("headingOffset", 0.0f);
     Serial.printf("[Boot] Loaded north calibration - Heading offset: %.1f°\n", headingOffset);
   } else {
     Serial.println("[Boot] No north calibration found");
