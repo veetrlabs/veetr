@@ -535,6 +535,10 @@ export function BLEProvider({ children }: { children: ReactNode }) {
         return
       }
       
+      // OTA firmware uses generic "error" replies too. Let the active transfer
+      // handle them before legacy UI branches can replace the actual device error.
+      if (currentFirmwareUpdaterRef.current?.handleResponse(data)) return
+
       // Handle firmware version message
       if (data.type === 'firmware_version') {
         dispatch({ type: 'UPDATE_FIRMWARE_VERSION', payload: data.version })
@@ -796,8 +800,9 @@ Please try the update again or contact support.`, '❌ Firmware Apply Failed')
     }
 
     // Add timeout protection for firmware updates (60 minutes max to match ESP32)
+    let updateTimeout: ReturnType<typeof setTimeout> | undefined
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => {
+      updateTimeout = setTimeout(() => {
         // Abort the updater if it exists
         if (currentFirmwareUpdaterRef.current) {
           currentFirmwareUpdaterRef.current.abort()
@@ -881,6 +886,8 @@ Please try the update again or contact support.`, '❌ Firmware Apply Failed')
       console.error('[Firmware Update] Update failed and aborted:', errorMessage)
       
       throw error
+    } finally {
+      clearTimeout(updateTimeout)
     }
   }
 

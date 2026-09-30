@@ -1,7 +1,7 @@
 // Service Worker for offline capability
-const CACHE_NAME = 'veetr-v1.10';
-const STATIC_CACHE_NAME = 'veetr-static-v1.10';
-const DYNAMIC_CACHE_NAME = 'veetr-dynamic-v1.10';
+const CACHE_NAME = 'veetr-v1.11';
+const STATIC_CACHE_NAME = 'veetr-static-v1.11';
+const DYNAMIC_CACHE_NAME = 'veetr-dynamic-v1.11';
 
 // Core app shell - always cache these
 const CORE_CACHE = [
