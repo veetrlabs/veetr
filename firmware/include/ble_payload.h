@@ -32,9 +32,20 @@ inline bool reduceBlePayload(const String& input, size_t maxLen, String& output)
   output = buffer;
 
   if (output.length() > maxLen) {
+    // Diagnostic precision must never prevent the live navigation packet.
+    tmpDoc.remove("hdgRaw");
+    tmpDoc.remove("hdgAccuracyRad");
+    tmpDoc.remove("hdgRejected");
     tmpDoc.remove("deviceName");
     tmpDoc.remove("rssi");
     tmpDoc.remove("hdop");
+    memset(buffer, 0, sizeof(buffer));
+    serializeJson(tmpDoc, buffer, sizeof(buffer));
+    output = buffer;
+  }
+
+  if (output.length() > maxLen) {
+    tmpDoc.remove("hdgQuality");
     memset(buffer, 0, sizeof(buffer));
     serializeJson(tmpDoc, buffer, sizeof(buffer));
     output = buffer;
