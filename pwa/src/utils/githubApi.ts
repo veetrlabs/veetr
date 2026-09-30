@@ -1,15 +1,22 @@
 import { FirmwareAsset } from '@veetr/shared/types'
 
-export { getLatestRelease, getFirmwareAsset, compareVersions } from '@veetr/shared/utils/githubApi'
+export { getFirmwareAsset, compareVersions } from '@veetr/shared/utils/githubApi'
+
+export async function getLatestRelease(): Promise<import('@veetr/shared/types').GitHubRelease | null> {
+  const response = await fetch('/firmware/latest.json', { cache: 'no-store' })
+  if (!response.ok) throw new Error(`Firmware information unavailable: ${response.status}`)
+  return response.json()
+}
 
 export async function downloadFirmware(asset: FirmwareAsset): Promise<ArrayBuffer> {
-  const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(asset.downloadUrl)}`
+  if (!/^\d+\.\d+\.\d+$/.test(asset.version)) throw new Error('Unsupported firmware version')
+  const proxyUrl = `/firmware/veetr-${encodeURIComponent(asset.version)}.bin`
 
   const response = await fetch(proxyUrl)
   if (response.ok) {
     const data = await response.arrayBuffer()
     return data
   } else {
-    throw new Error(`Proxy failed with status: ${response.status}`)
+    throw new Error(`Firmware download failed with status: ${response.status}`)
   }
 }
