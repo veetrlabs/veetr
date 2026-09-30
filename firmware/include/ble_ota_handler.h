@@ -110,10 +110,11 @@ class BleOtaHandler {
       return false;
     }
 
-    size_t written = backend.write(chunk.data, chunk.length);
+    const size_t chunkLength = static_cast<size_t>(chunk.length);
+    size_t written = backend.write(chunk.data, chunkLength);
     freeOtaChunk(chunk);
 
-    if (written != static_cast<size_t>(chunk.length)) {
+    if (written != chunkLength) {
       response = errorResponse("Write failed");
       return false;
     }

@@ -109,6 +109,38 @@ void test_chunk_base64_failure() {
   TEST_ASSERT_EQUAL_STRING("Base64 decode failed", response.message);
 }
 
+void test_successful_chunk_is_acknowledged() {
+  StaticJsonDocument<128> doc;
+  deserializeJson(doc, "{\"index\":0,\"data\":\"QUJDRA==\"}");
+  OtaState state;
+  state.active = true;
+  state.size = 4;
+  OtaResponse response;
+  BleOtaHandler handler;
+  OtaBackend backend = makeBackend();
+  TEST_ASSERT_TRUE(handler.handleChunk(doc.as<JsonObjectConst>(), backend, state, response));
+  TEST_ASSERT_EQUAL_STRING("chunk_ack", response.type);
+  TEST_ASSERT_TRUE(response.hasIndex);
+  TEST_ASSERT_EQUAL_INT(0, response.index);
+  TEST_ASSERT_EQUAL_UINT32(4, state.written);
+  TEST_ASSERT_EQUAL_UINT32(4, response.written);
+}
+
+void test_partial_write_is_rejected() {
+  StaticJsonDocument<128> doc;
+  deserializeJson(doc, "{\"index\":0,\"data\":\"QUJDRA==\"}");
+  OtaState state;
+  state.active = true;
+  state.size = 4;
+  OtaResponse response;
+  BleOtaHandler handler;
+  OtaBackend backend = makeBackend();
+  backendState.writeReturn = 2;
+  TEST_ASSERT_FALSE(handler.handleChunk(doc.as<JsonObjectConst>(), backend, state, response));
+  TEST_ASSERT_EQUAL_STRING("Write failed", response.message);
+  TEST_ASSERT_EQUAL_UINT32(0, state.written);
+}
+
 void test_verify_failure() {
   StaticJsonDocument<32> doc;
   (void)doc;
@@ -135,5 +167,7 @@ int main(int, char**) {
   RUN_TEST(test_chunk_rejects_when_inactive);
   RUN_TEST(test_chunk_base64_failure);
   RUN_TEST(test_verify_failure);
+  RUN_TEST(test_successful_chunk_is_acknowledged);
+  RUN_TEST(test_partial_write_is_rejected);
   return UNITY_END();
 }
