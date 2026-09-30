@@ -27,7 +27,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build --workspace veetr
-      - run: node pwa/scripts/prepare-firmware.mjs
         env:
           GITHUB_TOKEN: ${{ github.token }}
       - uses: actions/configure-pages@v5

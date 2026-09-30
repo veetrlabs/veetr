@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
-const root = new URL('../dist/firmware/', import.meta.url);
+const root = new URL('../dist/assets/firmware/', import.meta.url);
 const headers = { 'User-Agent': 'Veetr-release-mirror', ...(process.env.GITHUB_TOKEN ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` } : {}) };
 const response = await fetch('https://api.github.com/repos/veetrlabs/veetr/releases/latest', { headers });
 if (!response.ok) throw new Error(`Release metadata: HTTP ${response.status}`);
