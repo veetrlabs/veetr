@@ -3,6 +3,32 @@
 #include <stdio.h>
 
 #include "ble_payload.h"
+#include "ble_json.h"
+
+void test_live_heading_diagnostics_do_not_block_sensor_packet() {
+  SensorData data = {};
+  data.speed = 0.1f;
+  data.windSpeed = 12.3f;
+  data.windAngle = 245;
+  data.trueWindSpeed = 12.2f;
+  data.trueWindAngle = 246;
+  data.HDM = 192;
+  data.headingRaw = 192.12345f;
+  data.headingAccuracyRad = 0.12345f;
+  data.headingQuality = 3;
+  data.headingRejected = 1234;
+  BleGpsSnapshot gps = {true, 43.75094, 15.63054, true, 284, 1000, true, 12, true, 0.9f};
+  BleRegattaSnapshot line = {true, 10252};
+  String output;
+  TEST_ASSERT_TRUE(reduceBlePayload(buildSensorDataJson(data, gps, true, -76, line), 180, output));
+  TEST_ASSERT_TRUE(output.length() <= 180);
+  StaticJsonDocument<1024> doc;
+  TEST_ASSERT_FALSE(deserializeJson(doc, output.c_str()));
+  TEST_ASSERT_EQUAL(192, doc["HDM"].as<int>());
+  TEST_ASSERT_TRUE(doc.containsKey("AWS"));
+  TEST_ASSERT_TRUE(doc.containsKey("SOG"));
+  TEST_ASSERT_TRUE(doc.containsKey("lat"));
+}
 
 static void makePayload(const char* deviceName, char* output, size_t outputCap) {
   const char* prefix = "{\"SOG\":1.2,\"lat\":1.0,\"lon\":2.0,\"COG\":45,\"sat\":6,\"hdop\":0.9,"
@@ -95,6 +121,7 @@ void test_payload_unreducible_returns_false() {
 
 int main(int, char**) {
   UNITY_BEGIN();
+  RUN_TEST(test_live_heading_diagnostics_do_not_block_sensor_packet);
   RUN_TEST(test_payload_under_limit_unchanged);
   RUN_TEST(test_payload_exact_limit_unchanged);
   RUN_TEST(test_payload_just_over_limit_reduces);

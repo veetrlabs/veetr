@@ -1,3 +1,4 @@
+import type { CompassTelemetry } from '../utils/compassTelemetry';
 export const UPLOAD_INTERVAL_MS = 20_000;
 export const SAMPLE_INTERVAL_MS = 5_000;
 // Provider timestamps can arrive slightly ahead of the requested five-second cadence.
@@ -33,6 +34,13 @@ export interface TrackingSession extends TrackingEntry {
   raceCheckedAt?: string;
   replayEnabled?: boolean;
   takeOver?: boolean;
+  nativeFixCount?: number;
+  nativeFixScreenOffCount?: number;
+  nativeSavedCount?: number;
+  nativeRecorderStartedAt?: string;
+  nativeRecorderHeartbeatAt?: string;
+  nativeRecorderError?: string;
+  nativeRecorderErrorAt?: string;
   backgroundEnabled?: boolean;
   backgroundStartedAt?: string;
   lastBackgroundFixAt?: string;
@@ -46,6 +54,7 @@ export interface TrackingSession extends TrackingEntry {
   lastGPSRecoveryAt?: string;
   gpsRecoveryCount?: number;
   lastTaskError?: string;
+  errorHistory?: { occurredAt: string; operation: "background_start" | "tracking"; message: string; recoveredAt?: string }[];
   stopReason?: "user" | "expired";
   recentPoints?: TrackingPoint[];
   phase: "starting" | "recording" | "stopping";
@@ -57,6 +66,7 @@ export interface TrackingSession extends TrackingEntry {
   error?: string;
 }
 export interface TrackingPoint {
+  compass?: CompassTelemetry;
   recordedAt: string;
   latitude: number;
   longitude: number;

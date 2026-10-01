@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { AppState } from "react-native";
 import { useFocusEffect } from "expo-router";
-import { racePhoneRpc } from "../tracking/racePhone";
+import { racePhoneRpc, type RacePhone } from "../tracking/racePhone";
 import type { TrackingPosition } from "./positions";
 import {
   TrackCache,
@@ -13,17 +13,25 @@ export function useJoinedFleet(linkId?: string) {
     positions: TrackingPosition[];
     error: string;
     loading: boolean;
-  }>({ positions: [], error: "", loading: false });
+    finished: boolean;
+  }>({ positions: [], error: "", loading: false, finished: false });
   useFocusEffect(
     useCallback(() => {
       let alive = true,
         busy = false;
       let cache = new TrackCache();
-      setState({ positions: [], error: "", loading: !!linkId });
+      setState({ positions: [], error: "", loading: !!linkId, finished: false });
       async function refresh() {
         if (!linkId || busy || AppState.currentState === "background") return;
         busy = true;
         try {
+          const status = await racePhoneRpc<RacePhone>(linkId, "race_phone_status");
+          if (!alive) return;
+          if (status.completed === true || status.endedAt) {
+            cache = new TrackCache();
+            setState({ positions: [], error: "", loading: false, finished: true });
+            return;
+          }
           const meta = parseTracks(
             await racePhoneRpc(linkId, "race_phone_tracks"),
           );
@@ -62,15 +70,16 @@ export function useJoinedFleet(linkId?: string) {
             cache.put(chunk.start, chunk.version, points);
           }
           const positions = meta.end === null ? [] : cache.frame(meta.end);
-          if (alive) setState({ positions, error: "", loading: false });
+          if (alive) setState({ positions, error: "", loading: false, finished: false });
         } catch {
           cache = new TrackCache();
           if (alive)
-            setState({
+            setState(previous => ({
+              ...previous,
               positions: [],
               error: "Race positions are unavailable. Reconnecting…",
               loading: false,
-            });
+            }));
         } finally {
           busy = false;
         }

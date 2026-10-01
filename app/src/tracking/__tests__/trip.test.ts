@@ -85,3 +85,15 @@ test('wind angle charts preserve port/starboard and genuine zero',()=>{
  expect(metricValue(points[0],'twa')).toBe(0);
  expect(chartPath(points,'awa',180,320,140,-180)).toBe('M0.00,105.00 L320.00,35.00 ');
 });
+
+test('invalid saved Vane speed does not stretch the chart or become a false zero', () => {
+  expect(metricValue(point(0, { sogMps: 745.6872231584739 }), 'sog')).toBeNull();
+  expect(metricValue(point(0, { sogMps: 4 }), 'sog')).toBeCloseTo(7.7754);
+});
+test('long charts bound SVG complexity while retaining narrow peaks', () => {
+  const data = Array.from({ length: 10000 }, (_, i) => point(i * 5, { sogMps: i === 5001 ? 10 : 2 }));
+  const path = chartPath(data, 'sog', 10 * 1.94384449);
+  expect(path.match(/[ML]/g)!.length).toBeLessThanOrEqual(4 * 321);
+  expect(path).toContain(',0.00');
+  expect(path.match(/M/g)).toHaveLength(1);
+});

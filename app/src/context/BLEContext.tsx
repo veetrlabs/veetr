@@ -1,10 +1,13 @@
+import { receiveVaneDiagnostic } from '../diagnostics/vane';
+import { receiveNorthAlignment } from '../utils/northAlignment';
+import { compassTelemetry, type CompassTelemetry } from '../utils/compassTelemetry';
 import { findVane, waitForBluetooth, reconnectDelay } from '../utils/bleConnection';
 import { recordBleDiagnostic, setBleAdapterState, beginBleAttempt, noteBleConnected, noteBleDisconnected, noteBleSensor, noteBleRssi, noteBleFirmware, type BleStage } from '../diagnostics/ble';
 import { setDeviceRecordingSource, clearDeviceRecordingSource } from "../tracking/recordingSource";
 import { recordDevicePoint } from "../tracking/service";
 import { createContext, useContext, useReducer, useRef, useEffect, ReactNode, useCallback } from 'react'
 import { Platform, PermissionsAndroid } from 'react-native'
-import { getLatestRelease, getFirmwareAsset, downloadFirmware, compareVersions, GitHubRelease } from '../utils/githubApi'
+import { getLatestRelease, getFirmwareAsset, downloadFirmware, compareVersions, GitHubRelease, FirmwareBoard } from '../utils/githubApi'
 import { BLEFirmwareUpdater, FirmwareUpdateProgress } from '../utils/firmwareUpdater'
 import { showSingleAlert } from '../utils/alertUtils'
 
@@ -29,6 +32,7 @@ function getBleManager(): any | false {
 }
 
 export interface SailingData {
+  compass?: CompassTelemetry;
   recordingInstruments?: {aws:number|null;tws:number|null;awa:number|null;twa:number|null;heading:number|null}
   speed: number
   speedMax: number
@@ -87,6 +91,8 @@ interface SensorReading {
 }
 
 export interface BLEState {
+  rssi: number | null
+  rssiUpdatedAt: number | null
   isConnected: boolean
   isConnecting: boolean
   error: string | null
@@ -97,6 +103,7 @@ export interface BLEState {
 }
 
 type BLEAction =
+  | { type: 'UPDATE_RSSI'; payload: number | null }
   | { type: 'CONNECT_START' }
   | { type: 'CONNECT_SUCCESS' }
   | { type: 'CONNECT_ERROR'; payload: string }
@@ -133,6 +140,7 @@ function convertToSailingAngle(windAngle360: number): number {
 }
 
 const initialState: BLEState = {
+  rssi: null, rssiUpdatedAt: null,
   isConnected: false,
   isConnecting: false,
   error: null,
@@ -157,6 +165,8 @@ const initialState: BLEState = {
 
 function bleReducer(state: BLEState, action: BLEAction): BLEState {
   switch (action.type) {
+    case 'UPDATE_RSSI':
+      return { ...state, rssi: action.payload, rssiUpdatedAt: action.payload === null ? null : Date.now() }
     case 'CONNECT_START':
       return { ...state, isConnecting: true, error: null }
     case 'CONNECT_SUCCESS':
@@ -166,7 +176,7 @@ function bleReducer(state: BLEState, action: BLEAction): BLEState {
     case 'DISCONNECT':
       return {
         ...state, isConnected: false, isConnecting: false,
-        error: null, lastMessageTime: null, deviceName: null,
+        error: null, lastMessageTime: null, deviceName: null, rssi: null, rssiUpdatedAt: null,
         sailingData: { ...initialState.sailingData }
       }
     case 'UPDATE_DATA':
@@ -174,14 +184,15 @@ function bleReducer(state: BLEState, action: BLEAction): BLEState {
     case 'UPDATE_DEVICE_NAME':
       return { ...state, deviceName: action.payload }
     case 'UPDATE_FIRMWARE_VERSION':
-      return { ...state, firmwareInfo: { ...state.firmwareInfo, currentVersion: action.payload } }
+      return { ...state, firmwareInfo: { ...state.firmwareInfo, currentVersion: action.payload,
+        updateAvailable: !!state.firmwareInfo.latestVersion && compareVersions(action.payload, state.firmwareInfo.latestVersion) } }
     case 'SET_LATEST_VERSION':
       return {
         ...state,
         firmwareInfo: {
           ...state.firmwareInfo,
           latestVersion: action.payload,
-          updateAvailable: action.payload !== state.firmwareInfo.currentVersion
+          updateAvailable: state.firmwareInfo.currentVersion !== 'Unknown' && compareVersions(state.firmwareInfo.currentVersion, action.payload)
         }
       }
     case 'START_FIRMWARE_UPDATE':
@@ -230,7 +241,7 @@ const BLEContext = createContext<{
   disconnect: () => void
   sendCommand: (command: any) => Promise<boolean>
   checkForUpdates: () => Promise<void>
-  startFirmwareUpdate: () => Promise<void>
+  startFirmwareUpdate: (board: FirmwareBoard) => Promise<void>
   updateRegattaLine: (line: { portLat: number; portLon: number; starboardLat: number; starboardLon: number }) => void
 } | null>(null)
 
@@ -272,6 +283,9 @@ export function BLEProvider({ children }: { children: ReactNode }) {
         return
       }
 
+      if (receiveVaneDiagnostic(parsed)) return;
+      if (receiveNorthAlignment(parsed)) return;
+
       if (parsed.type === 'firmware_version') {
         noteBleFirmware(parsed.version)
         dispatch({ type: 'UPDATE_FIRMWARE_VERSION', payload: parsed.version })
@@ -285,17 +299,14 @@ export function BLEProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'UPDATE_DATA', payload: { portLat: parsed.portLat || null, portLon: parsed.portLon || null, starboardLat: parsed.starboardLat || null, starboardLon: parsed.starboardLon || null } })
         return
       }
-      if (parsed.type === 'chunk_ack') {
-        if (currentFirmwareUpdaterRef.current) currentFirmwareUpdaterRef.current.handleChunkAck(parsed)
-        return
-      }
-      if (parsed.type === 'update_error' || parsed.type === 'chunk_error') {
-        if (currentFirmwareUpdaterRef.current) { currentFirmwareUpdaterRef.current.abort(); currentFirmwareUpdaterRef.current = null }
+      if (['chunk_ack', 'update_ready', 'update_complete', 'restarting', 'update_stopped', 'ota_status', 'error', 'update_error', 'chunk_error'].includes(parsed.type)) {
+        currentFirmwareUpdaterRef.current?.handleResponse(parsed)
         return
       }
 
       noteBleSensor()
       const mappedData: Partial<SailingData> = {
+        compass: compassTelemetry(parsed),
         recordingInstruments: {
           aws: Number.isFinite(parsed.AWS) && parsed.AWS >= 0 && parsed.AWS <= 200 ? parsed.AWS : null,
           tws: Number.isFinite(parsed.TWS) && parsed.TWS >= 0 && parsed.TWS <= 200 ? parsed.TWS : null,
@@ -454,7 +465,11 @@ export function BLEProvider({ children }: { children: ReactNode }) {
         readingRssi = true
         try {
           const reading = await connectedDevice.readRSSI()
-          if (!signal.aborted && connectedDeviceRef.current === connectedDevice) noteBleRssi(reading.rssi)
+          if (!signal.aborted && connectedDeviceRef.current === connectedDevice) {
+            noteBleRssi(reading.rssi)
+            const value = reading.rssi
+            dispatch({ type: 'UPDATE_RSSI', payload: typeof value === 'number' && Number.isInteger(value) && value >= -127 && value < 0 ? value : null })
+          }
         } catch { /* RSSI failure must not interrupt the connection. */ }
         finally { readingRssi = false }
       }
@@ -611,21 +626,33 @@ export function BLEProvider({ children }: { children: ReactNode }) {
     }
   }, [state.firmwareInfo.currentVersion])
 
-  const startFirmwareUpdate = useCallback(async () => {
+  const startFirmwareUpdate = useCallback(async (board: FirmwareBoard) => {
     if (!state.firmwareInfo.latestVersion) throw new Error('No update available')
     try {
       dispatch({ type: 'START_FIRMWARE_UPDATE' })
       const release = latestReleaseRef.current || await getLatestRelease()
       if (!release) throw new Error('Could not fetch latest release')
-      const firmwareAsset = await getFirmwareAsset(release)
+      const firmwareAsset = await getFirmwareAsset(release, board)
       if (!firmwareAsset) throw new Error('No firmware found')
       const firmwareData = await downloadFirmware(firmwareAsset)
 
+      const device = connectedDeviceRef.current
+      const service = serviceUuidRef.current
+      const characteristic = commandCharRef.current
+      if (!device || !service || !characteristic) throw new Error("Bluetooth disconnected")
+      // Returns current negotiated MTU on iOS; requests a larger MTU on Android.
+      const negotiated = await device.requestMTU(512)
+      const maxWriteBytes = Math.min(512, negotiated.mtu - 3)
+      if (!Number.isFinite(maxWriteBytes) || maxWriteBytes < 1) throw new Error("Could not determine Bluetooth packet size")
       const updater = new BLEFirmwareUpdater(
         async (_index: number, data: string) => {
-          await sendCommand(data)
+          if (connectedDeviceRef.current?.id !== device.id) throw new Error("Bluetooth disconnected")
+          // Match the PWA: write commands without ATT responses, then wait for
+          // the firmware notification before sending the next command.
+          await device.writeCharacteristicWithoutResponseForService(service, characteristic, btoa(data))
         },
-        (progress) => dispatch({ type: 'UPDATE_FIRMWARE_PROGRESS', payload: progress })
+        (progress) => dispatch({ type: 'UPDATE_FIRMWARE_PROGRESS', payload: progress }),
+        maxWriteBytes
       )
       currentFirmwareUpdaterRef.current = updater
       await updater.updateFirmware(firmwareData)

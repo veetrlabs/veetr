@@ -1,3 +1,4 @@
+import { translateMessage, t, useLanguageRefresh } from '../i18n';
 import { Pressable, Text, View } from "react-native";
 import { router, type Href } from "expo-router";
 import { useRaceTracking } from "./useRaceTracking";
@@ -7,8 +8,9 @@ export default function RaceTrackingCard({
 }: {
   showMap?: boolean;
 }) {
-  const { session, phone, now } = useRaceTracking();
-  if (session?.mode !== "race" && !phone) return null;
+  useLanguageRefresh();
+  const { session, phone, now, finished } = useRaceTracking();
+  if (finished || (session?.mode !== "race" && !phone)) return null;
   const status = raceTrackingStatus(session, now);
   return (
     <View
@@ -27,7 +29,7 @@ export default function RaceTrackingCard({
         style={{ color: "white", fontWeight: "800", fontSize: 20 }}
       >
         {status.live ? "● " : ""}
-        {status.label}
+        {translateMessage(status.label)}
       </Text>
       <Text style={{ color: "white", fontSize: 16, fontWeight: "600" }}>
         {session?.mode === "race"
@@ -36,7 +38,7 @@ export default function RaceTrackingCard({
             ? `${phone.boatName} · ${phone.raceName}`
             : ""}
       </Text>
-      <Text style={{ color: "#e0edf5" }}>{status.detail}</Text>
+      <Text style={{ color: "#e0edf5" }}>{translateMessage(status.detail)}</Text>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
         {showMap && (
           <Pressable
@@ -50,8 +52,7 @@ export default function RaceTrackingCard({
             }}
           >
             <Text style={{ color: "#15364a", fontWeight: "700" }}>
-              View race map
-            </Text>
+              {t("View race map")}</Text>
           </Pressable>
         )}
         <Pressable
@@ -66,8 +67,7 @@ export default function RaceTrackingCard({
           }}
         >
           <Text style={{ color: "white", fontWeight: "700" }}>
-            Manage tracking
-          </Text>
+            {t("Manage tracking")}</Text>
         </Pressable>
       </View>
     </View>

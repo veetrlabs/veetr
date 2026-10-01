@@ -1,0 +1,10 @@
+gradle.beforeProject { p ->
+  if (p.name == 'react-native-maps') {
+    p.plugins.withId('com.android.library') {
+      p.android.testOptions.unitTests.includeAndroidResources = true
+      p.android.sourceSets.test.java.srcDir(new File(p.rootProject.projectDir, '../native-map-tests'))
+      p.dependencies.add('testImplementation', 'junit:junit:4.13.2')
+      p.dependencies.add('testImplementation', 'org.robolectric:robolectric:4.14.1')
+    }
+  }
+}

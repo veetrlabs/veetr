@@ -1,3 +1,4 @@
+import { formatNumber, useLanguageRefresh } from '../../i18n';
 import { memo } from 'react'
 import { View, Text } from 'react-native'
 import { useCardTextSize } from '../../hooks/useCardTextSize'
@@ -11,6 +12,7 @@ interface WindCardProps {
 }
 
 const WindCard = memo(function WindCard({ windSpeed, title }: WindCardProps) {
+  useLanguageRefresh();
   const { fontSize, unitFontSize, titleFontSize, onCardLayout } = useCardTextSize()
   const { theme } = useTheme()
   const colors = themeColors[theme]
@@ -28,7 +30,7 @@ const WindCard = memo(function WindCard({ windSpeed, title }: WindCardProps) {
       </View>
       <View style={cardStyles.valueArea}>
         <View style={cardStyles.valueRow}>
-          <Text style={[cardStyles.number, { color: colors.text, fontSize }]}>{windSpeed > 0 ? windSpeed.toFixed(1) : '0.0'}</Text>
+          <Text style={[cardStyles.number, { color: colors.text, fontSize }]}>{formatNumber(Math.max(0, windSpeed), 1)}</Text>
           <Text style={[cardStyles.unit, { color: colors.textMuted, fontSize: unitFontSize }]}>kt</Text>
         </View>
       </View>

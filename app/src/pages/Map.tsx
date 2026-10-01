@@ -1,3 +1,9 @@
+import { shouldUseDeviceStartLine } from '../navigation/phoneStartLine';
+import { useFollowCamera } from '../maps/useFollowCamera';
+import { courseUpBearing, KNOTS_PER_MPS } from '../maps/courseVector';
+import type { MapRegion } from "../maps/headingRay";
+import BoatMarker from "../maps/BoatMarker";
+import { formatNumber, translateMessage, t, useLanguageRefresh } from '../i18n';
 import { router, type Href } from "expo-router";
 import { useRaceTracking } from "../tracking/useRaceTracking";
 import { raceTrackingStatus } from "../tracking/raceTrackingStatus";
@@ -19,6 +25,8 @@ import {
   UrlTile,
 } from "../components/NativeMap";
 export default function Map({ onBack }: { onBack?: () => void }) {
+  useLanguageRefresh();
+  const [mapRegion, setMapRegion] = useState<MapRegion | undefined>();
   const nav = useNavigation(),
     { state } = useBLE(),
     { theme } = useTheme(),
@@ -27,17 +35,31 @@ export default function Map({ onBack }: { onBack?: () => void }) {
     ref = useRef<any>(null);
   const [follow, setFollow] = useState(true),
     [ready, setReady] = useState(false);
+  const [courseUp, setCourseUp] = useState(false);
+  const [mapBearing, setMapBearing] = useState(0);
+  const lastCourse = useRef<number | null>(null);
+  const cameraReadPending = useRef(false);
+  function updateMapRegion(region: MapRegion) {
+    setMapRegion(region);
+    if (!cameraReadPending.current && ref.current?.getCamera) {
+      cameraReadPending.current = true;
+      void ref.current.getCamera().then((camera: { heading?: number }) => {
+        if (typeof camera.heading === 'number') setMapBearing(camera.heading);
+      }).catch(() => {}).finally(() => { cameraReadPending.current = false; });
+    }
+  }
   const [seamarks, setSeamarks] = useState(true);
   const [mapType, setMapType] = useState<"standard" | "satellite">("standard");
   const [raceExpanded, setRaceExpanded] = useState(false);
   const [racePanelHeight, setRacePanelHeight] = useState(52);
   const raceMapTop = insets.top + 58 + racePanelHeight + 12;
   const race = useRaceTracking();
-  const linkId =
+  const savedLinkId =
     race.session?.mode === "race"
       ? race.session.raceLinkId
       : race.phone?.linkId;
-  const fleet = useJoinedFleet(linkId);
+  const fleet = useJoinedFleet(savedLinkId);
+  const linkId = fleet.finished ? undefined : savedLinkId;
   const fittedRace = useRef<string | undefined>(undefined);
   useEffect(() => {
     fittedRace.current = undefined;
@@ -67,7 +89,7 @@ export default function Map({ onBack }: { onBack?: () => void }) {
       : race.phone?.boatName;
   const raceStatus = raceTrackingStatus(race.session, race.now);
   const localRaceFix =
-    race.session?.mode === "race" ? race.session.recentPoints?.at(-1) : null;
+    linkId && race.session?.mode === "race" ? race.session.recentPoints?.at(-1) : null;
   const publicOwn = fleet.positions.find((p) => p.boatId === ownBoatId);
   const fix = nav.fix;
   const trail = nav.trail;
@@ -77,15 +99,13 @@ export default function Map({ onBack }: { onBack?: () => void }) {
     localRaceFix ??
     publicOwn ??
     (last ? { latitude: last.latitude, longitude: last.longitude } : null);
-  useEffect(() => {
-    if (ready && follow && position)
-      ref.current?.animateToRegion(
-        { ...position, latitudeDelta: 0.01, longitudeDelta: 0.01 },
-        500,
-      );
-  }, [ready, follow, position?.latitude, position?.longitude]);
+  const ownReading = fix ? { cogDeg: fix.course, sogMps: fix.sogKnots == null ? null : fix.sogKnots / KNOTS_PER_MPS,
+    instruments: nav.deviceFresh ? state.sailingData.recordingInstruments : undefined } : localRaceFix ?? publicOwn ?? last ?? {};
+  const cameraCourse = courseUpBearing(lastCourse.current, ownReading);
+  useEffect(() => { lastCourse.current = cameraCourse; }, [cameraCourse]);
+  useFollowCamera(ref, ready, follow, courseUp ? cameraCourse : 0, position);
   const local = nav.phoneStartLine.line;
-  const d = state.isConnected
+  const d = shouldUseDeviceStartLine(state.isConnected, nav.phoneStartLine)
     ? state.sailingData
     : {
         portLat: local.port?.latitude ?? null,
@@ -120,21 +140,27 @@ export default function Map({ onBack }: { onBack?: () => void }) {
       },
     );
   }, [ready, lineKey]);
+  const initialRegion = {
+    latitude: position?.latitude ?? 50, longitude: position?.longitude ?? 14,
+    latitudeDelta: 0.02, longitudeDelta: 0.02,
+  };
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       {MapView ? (
         <MapView
+          onRegionChange={updateMapRegion}
+          onRegionChangeComplete={updateMapRegion}
+          rotateEnabled={false}
+          pitchEnabled={false}
           ref={ref}
           mapType={mapType}
           style={StyleSheet.absoluteFill}
           onMapReady={() => setReady(true)}
+          onTouchStart={() => setFollow(false)}
           onPanDrag={() => setFollow(false)}
-          initialRegion={{
-            latitude: position?.latitude ?? 50,
-            longitude: position?.longitude ?? 14,
-            latitudeDelta: 0.02,
-            longitudeDelta: 0.02,
-          }}
+          scrollEnabled
+          zoomEnabled
+          initialRegion={initialRegion}
         >
           {seamarks && (
             <UrlTile
@@ -149,12 +175,14 @@ export default function Map({ onBack }: { onBack?: () => void }) {
           {fleet.positions
             .filter((p) => p.boatId !== ownBoatId)
             .map((p) => (
-              <Marker
+              <BoatMarker mapBearing={mapBearing} region={mapRegion ?? initialRegion}
                 key={`fleet-${p.boatId}`}
+                showDirectionLines={false}
                 coordinate={p}
+                reading={p}
                 title={p.boatName}
-                description={`${p.sogMps === null ? "—" : (p.sogMps * 1.94384449).toFixed(1)} kn · ${race.now - Date.parse(p.recordedAt) > 60000 ? "Last reported position" : "Live position"}`}
-                pinColor={
+                description={`${p.sogMps === null ? "—" : formatNumber((p.sogMps * 1.94384449), 1)} kn · ${race.now - Date.parse(p.recordedAt) > 60000 ? t("Last reported position") : t("Live position")}`}
+                color={
                   race.now - Date.parse(p.recordedAt) > 60000
                     ? "#64748b"
                     : "#2563eb"
@@ -185,16 +213,17 @@ export default function Map({ onBack }: { onBack?: () => void }) {
             />
           )}
           {position && (
-            <Marker
+            <BoatMarker mapBearing={mapBearing} region={mapRegion ?? initialRegion}
               coordinate={position}
+              reading={ownReading}
               title={
                 linkId
-                  ? `${ownBoatName ?? "My boat"} · You`
+                  ? t("{{v0}} · You", { v0: ownBoatName ?? "My boat" })
                   : fix
                     ? fix.source
-                    : "Last recorded position"
+                    : t("Last recorded position")
               }
-              pinColor={fix ? "#008c80" : "#64748b"}
+              color={fix ? "#008c80" : "#64748b"}
             />
           )}
           {fix?.accuracy != null && (
@@ -209,7 +238,7 @@ export default function Map({ onBack }: { onBack?: () => void }) {
             <>
               <Marker
                 coordinate={{ latitude: d.portLat!, longitude: d.portLon! }}
-                title="Port · start line"
+                title={t("Port · start line")}
                 pinColor="red"
               />
               <Marker
@@ -217,7 +246,7 @@ export default function Map({ onBack }: { onBack?: () => void }) {
                   latitude: d.starboardLat!,
                   longitude: d.starboardLon!,
                 }}
-                title="Starboard · start line"
+                title={t("Starboard · start line")}
                 pinColor="green"
               />
               <Polyline
@@ -253,7 +282,7 @@ export default function Map({ onBack }: { onBack?: () => void }) {
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={`${raceStatus.label}. ${raceExpanded ? "Hide" : "Show"} race details`}
+              accessibilityLabel={t("{{v0}}. {{v1}} race details", { v0: raceStatus.label, v1: raceExpanded ? "Hide" : "Show" })}
               accessibilityState={{ expanded: raceExpanded }}
               onPress={() => setRaceExpanded((value) => !value)}
               style={{ flex: 1, minHeight: 44, justifyContent: "center" }}
@@ -267,12 +296,12 @@ export default function Map({ onBack }: { onBack?: () => void }) {
                 }}
               >
                 {raceStatus.live ? "● " : ""}
-                {raceStatus.label} {raceExpanded ? "⌃" : "⌄"}
+                {translateMessage(raceStatus.label)} {raceExpanded ? "⌃" : "⌄"}
               </Text>
             </Pressable>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Show fleet"
+              accessibilityLabel={t("Show fleet")}
               disabled={!fleet.positions.length && !position}
               onPress={() => {
                 setFollow(false);
@@ -300,8 +329,7 @@ export default function Map({ onBack }: { onBack?: () => void }) {
               <Text
                 style={{ color: colors.text, fontSize: 13, fontWeight: "700" }}
               >
-                Show fleet
-              </Text>
+                {t("Show fleet")}</Text>
             </Pressable>
           </View>
           {!!fleet.error && !raceExpanded && (
@@ -313,8 +341,7 @@ export default function Map({ onBack }: { onBack?: () => void }) {
                 paddingBottom: 4,
               }}
             >
-              Fleet unavailable · tap status for details
-            </Text>
+              {t("Fleet unavailable · tap status for details")}</Text>
           )}
           {raceExpanded && (
             <View style={{ paddingTop: 6, paddingBottom: 4, gap: 6 }}>
@@ -324,20 +351,19 @@ export default function Map({ onBack }: { onBack?: () => void }) {
               <Text style={{ color: colors.textMuted, fontSize: 12 }}>
                 {fleet.error ||
                   (fleet.loading
-                    ? "Loading race boats…"
+                    ? t("Loading race boats…")
                     : fleet.positions.length
-                      ? "Green: your boat · Blue: competitors · Grey: stale"
-                      : "No shared race positions yet.")}
+                      ? t("Green: your boat · Blue: competitors · Grey: stale")
+                      : t("No shared race positions yet."))}
               </Text>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Manage race tracking"
+                accessibilityLabel={t("Manage race tracking")}
                 onPress={() => router.push("/race-phone" as Href)}
                 style={{ minHeight: 44, justifyContent: "center" }}
               >
                 <Text style={{ color: colors.text, fontWeight: "600" }}>
-                  Manage race tracking ›
-                </Text>
+                  {t("Manage race tracking ›")}</Text>
               </Pressable>
             </View>
           )}
@@ -345,17 +371,13 @@ export default function Map({ onBack }: { onBack?: () => void }) {
       )}
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Recenter and follow GPS"
+        accessibilityLabel={t("Recenter and follow GPS")}
         accessibilityState={{ selected: follow, disabled: !position }}
         disabled={!position}
         onPress={() => {
           setFollow(true);
           if (position)
-            ref.current?.animateToRegion({
-              ...position,
-              latitudeDelta: 0.01,
-              longitudeDelta: 0.01,
-            });
+            ref.current?.animateCamera({ center: position, heading: courseUp ? cameraCourse : 0, pitch: 0 }, { duration: 500 });
         }}
         style={{
           position: "absolute",
@@ -384,6 +406,15 @@ export default function Map({ onBack }: { onBack?: () => void }) {
           <Path d="M12 2v4m0 12v4M2 12h4m12 0h4" />
         </Svg>
       </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={t("Course-up map")} accessibilityState={{ selected: courseUp }}
+          onPress={() => {
+            setCourseUp(value => !value);
+            if (!courseUp) setFollow(true);
+            else if (!follow) ref.current?.animateCamera({ heading: 0, pitch: 0 }, { duration: 500 });
+          }}
+          style={{ position: "absolute", bottom: 32, left: Math.max(12, insets.left), paddingHorizontal: 14, minHeight: 44, justifyContent: "center", borderRadius: 12, backgroundColor: colors.panelBg }}>
+          <Text style={{ color: colors.text }}>{courseUp ? t("Course up") : t("North up")}</Text>
+        </Pressable>
       <View
         style={{
           position: "absolute",
@@ -393,10 +424,11 @@ export default function Map({ onBack }: { onBack?: () => void }) {
           alignItems: "flex-end",
         }}
       >
+
         {line && (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Show start line"
+            accessibilityLabel={t("Show start line")}
             onPress={() => {
               setFollow(false);
               ref.current?.fitToCoordinates(
@@ -452,7 +484,7 @@ export default function Map({ onBack }: { onBack?: () => void }) {
               key={type}
               accessibilityRole="button"
               accessibilityLabel={
-                type === "standard" ? "Standard map" : "Satellite map"
+                type === "standard" ? t("Standard map") : t("Satellite map")
               }
               accessibilityState={{ selected: mapType === type }}
               onPress={() => setMapType(type)}
@@ -495,7 +527,7 @@ export default function Map({ onBack }: { onBack?: () => void }) {
           />
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Nautical seamarks"
+            accessibilityLabel={t("Nautical seamarks")}
             accessibilityState={{ selected: seamarks }}
             onPress={() => setSeamarks((value) => !value)}
             style={{
@@ -528,14 +560,14 @@ export default function Map({ onBack }: { onBack?: () => void }) {
             onPress={onBack}
             style={{ padding: 12, backgroundColor: colors.panelBg }}
           >
-            <Text style={{ color: colors.text }}>Back</Text>
+            <Text style={{ color: colors.text }}>{t("Back")}</Text>
           </Pressable>
         )}
       </View>
       {seamarks && (
         <Pressable
           accessibilityRole="link"
-          accessibilityLabel="OpenSeaMap attribution"
+          accessibilityLabel={t("OpenSeaMap attribution")}
           onPress={() => void Linking.openURL("https://www.openseamap.org/")}
           style={{
             position: "absolute",
@@ -547,8 +579,7 @@ export default function Map({ onBack }: { onBack?: () => void }) {
           }}
         >
           <Text style={{ fontSize: 10, color: colors.textSecondary }}>
-            © OpenSeaMap contributors
-          </Text>
+            {t("© OpenSeaMap contributors")}</Text>
         </Pressable>
       )}
     </View>

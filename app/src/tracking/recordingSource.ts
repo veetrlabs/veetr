@@ -1,7 +1,8 @@
+import { validSpeedMps } from './speed';
 import type { TrackingPoint } from "./model";
 import type { SailingData } from "../context/BLEContext";
 let latest: TrackingPoint | null = null;
-let instruments: {at:number;values:TrackingPoint["instruments"]} | null = null;
+let instruments: {at:number;values:TrackingPoint["instruments"];compass?:TrackingPoint["compass"]} | null = null;
 export function clearDeviceRecordingSource() {
   latest = null;
   instruments = null;
@@ -23,12 +24,10 @@ export function deviceRecordingPoint(
     latitude: data.lat!,
     longitude: data.lon!,
     accuracyM: null,
-    sogMps:
-      Number.isFinite(data.gpsSpeed) && data.gpsSpeed! >= 0
-        ? data.gpsSpeed! / 1.94384449
-        : null,
+    sogMps: validSpeedMps(data.gpsSpeed == null ? null : data.gpsSpeed / 1.94384449),
     cogDeg: data.course ?? null,
     source: "veetr",
+    compass: data.compass,
     instruments: data.recordingInstruments ?? {
       awa: Number.isFinite(data.windAngle) ? data.windAngle! : null,
       twa: Number.isFinite(data.trueWindAngle) ? data.trueWindAngle! : null,
@@ -42,7 +41,7 @@ export function setDeviceRecordingSource(
   data: Partial<SailingData>,
   now = Date.now(),
 ) {
-  instruments = data.recordingInstruments ? {at:now,values:data.recordingInstruments} : null;
+  instruments = data.recordingInstruments ? {at:now,values:data.recordingInstruments,compass:data.compass} : null;
   latest = deviceRecordingPoint(data, now);
   return latest;
 }
@@ -58,6 +57,6 @@ export function preferredRecordingPoint(
     (!phone || Math.abs(Date.parse(phone.recordedAt) - stamp) <= 5000)
     ? latest
     : phone && instruments && now-instruments.at>=0 && now-instruments.at<=15000 && Math.abs(Date.parse(phone.recordedAt)-instruments.at)<=5000
-      ? {...phone,instruments:instruments.values}
+      ? {...phone,instruments:instruments.values,compass:instruments.compass}
       : phone;
 }

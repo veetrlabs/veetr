@@ -1,3 +1,5 @@
+jest.mock('../nativeRaceRecorder', () => ({ usesNativeRaceRecorder: jest.fn(() => false), startNativeRaceRecorder: jest.fn(async () => {}), wakeNativeRaceRecorder: jest.fn(async () => {}), stopNativeRaceRecorder: jest.fn(async () => {}) }));
+jest.mock('../../diagnostics/native', () => ({ markTrackingDiagnostic: jest.fn(async () => {}) }));
 jest.mock('../../diagnostics/service', () => ({ reportDiagnostic: jest.fn() }));
 jest.mock('../locationDisclosure', () => ({ confirmTrackingLocationUse: jest.fn(async () => {}) }));
 jest.mock("@react-native-async-storage/async-storage", () => ({
@@ -76,6 +78,7 @@ const point = (seq: number): TrackingPoint & { seq: number } => ({
   cogDeg: 90,
   source: "phone",
 });
+import { markTrackingDiagnostic } from '../../diagnostics/native';
 const tick = () => new Promise<void>((resolve) => setImmediate(resolve));
 beforeEach(() => {
   pauseForegroundGPS();
@@ -113,6 +116,20 @@ beforeEach(() => {
       points = [];
     },
   });
+});
+test("a new private trip drains a stopped remote session before replacing it", async () => {
+  session = { ...base(), mode: 'live', phase: 'stopping' };
+  await startLocalTracking();
+  expect(trackingRpc).toHaveBeenCalledWith('ingest_tracking_points', expect.objectContaining({ p_session: 'session' }));
+  expect(session?.id).toBe('new-session');
+  expect(session?.mode).toBe('local');
+});
+test("a new trip preserves the stopped session when its final upload fails", async () => {
+  session = { ...base(), mode: 'live', phase: 'stopping' };
+  (trackingRpc as jest.Mock).mockRejectedValueOnce(new Error('Offline'));
+  await expect(startLocalTracking()).rejects.toThrow('Offline');
+  expect(session?.id).toBe('session');
+  expect(points).toHaveLength(1);
 });
 test("a failed upload retains points for a duplicate-safe retry", async () => {
   (trackingRpc as jest.Mock).mockRejectedValueOnce(new Error("Offline"));
@@ -552,4 +569,60 @@ test('foreground listener errors are recorded instead of swallowed', async () =>
   failed('Late error');
   await tick();
   expect(session?.lastTaskError).toBe('Location provider unavailable');
+});
+
+test('recovery records evidence before stopping the native listener', async () => {
+  session = {...base(),mode:'local',startedAt:new Date(Date.now()-120000).toISOString(),lastLocationCallbackAt:new Date(Date.now()-120000).toISOString()};
+  await recoverStalledTracking();
+  const marker = markTrackingDiagnostic as jest.Mock;
+  const recoveryIndex = marker.mock.calls.findIndex(([event]) => event === 'recovery');
+  expect(recoveryIndex).toBeGreaterThanOrEqual(0);
+  expect(marker.mock.invocationCallOrder[recoveryIndex]).toBeLessThan((Location.stopLocationUpdatesAsync as jest.Mock).mock.invocationCallOrder[0]);
+});
+test('successful save count comes from the database, not the incoming fix count', async () => {
+  const store = await trackingStore();
+  store.append = jest.fn(async () => 2);
+  const fix = {timestamp:Date.now(),coords:{latitude:49,longitude:14,accuracy:5,speed:2,heading:90}};
+  await recordLocations([fix,fix,fix], 'foreground');
+  expect(markTrackingDiagnostic).toHaveBeenCalledWith('jsForeground');
+  expect(markTrackingDiagnostic).toHaveBeenCalledWith('saved',2);
+  (markTrackingDiagnostic as jest.Mock).mockClear();
+  store.append = jest.fn(async () => 0);
+  await recordLocations([fix]);
+  expect(markTrackingDiagnostic).not.toHaveBeenCalledWith('saved',expect.anything());
+});
+test('storage failure is observable without claiming a successful save', async () => {
+  const store = await trackingStore();
+  store.append = jest.fn(async () => { throw new Error('disk full'); });
+  await expect(recordLocations([{timestamp:Date.now(),coords:{latitude:49,longitude:14,accuracy:5,speed:2,heading:90}}])).rejects.toThrow('disk full');
+  expect(markTrackingDiagnostic).toHaveBeenCalledWith('storageFailed');
+  expect(markTrackingDiagnostic).not.toHaveBeenCalledWith('saved',expect.anything());
+});
+
+import { usesNativeRaceRecorder, startNativeRaceRecorder, wakeNativeRaceRecorder } from '../nativeRaceRecorder';
+test('Android native race capture does not depend on JavaScript GPS delivery or network calls', async () => {
+  (usesNativeRaceRecorder as jest.Mock).mockImplementation(s => s.mode === 'race');
+  session = { ...base(), mode: 'race', raceLinkId: 'link', raceActive: false };
+  try {
+    await resumeTracking();
+    expect(startNativeRaceRecorder).toHaveBeenCalled();
+    expect(Location.startLocationUpdatesAsync).not.toHaveBeenCalled();
+    await recordLocations([{ timestamp: Date.now(), coords: { latitude: 43, longitude: 15, accuracy: 3, speed: 2, heading: 90 } }]);
+    expect(trackingRpc).not.toHaveBeenCalled();
+    expect(wakeNativeRaceRecorder).toHaveBeenCalled();
+  } finally { (usesNativeRaceRecorder as jest.Mock).mockReturnValue(false); }
+});
+
+test('an invalid speed in an existing race outbox cannot block valid positions', async () => {
+  session = { ...base(), mode: 'race', userId: '', raceLinkId: 'link', raceActive: true };
+  const corrupt = { ...point(1), sogMps: 745.6872231584739 };
+  points = [corrupt, point(2)];
+  (trackingRpc as jest.Mock).mockImplementation(async (name, args) =>
+    name === 'race_phone_status' ? { valid: true, eligible: true, active: true, ready: true }
+    : name === 'ingest_race_phone_points' ? args.p_points.length : undefined);
+  await syncTracking(true);
+  const call = (trackingRpc as jest.Mock).mock.calls.find(([name]) => name === 'ingest_race_phone_points');
+  expect(call[1].p_points[0]).toMatchObject({ seq: 1, latitude: corrupt.latitude, longitude: corrupt.longitude, sogMps: null });
+  expect(corrupt.sogMps).toBe(745.6872231584739);
+  expect(points).toHaveLength(0);
 });

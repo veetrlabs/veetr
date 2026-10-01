@@ -14,6 +14,10 @@ class ImuService {
   uint32_t quaternionReports = 0;
   uint32_t accelReports = 0;
 
+  bool canAlignNorth(unsigned long now) const {
+    return qualityReady_ && now - lastQuaternionMs < 1000;
+  }
+
   template <typename Imu, typename Clock>
   void poll(Imu& imu, SensorData& data, Clock now, float rollOffset,
             float pitchOffset, float headingOffset, bool northCalibrated,
@@ -33,7 +37,21 @@ class ImuService {
           ++quaternionReports;
           if (northCalibrated) heading -= headingOffset;
           heading = fmodf(heading + 360.0f, 360.0f);
-          data.HDM = static_cast<int>(roundf(heading)) % 360;
+          data.headingRaw = heading;
+          data.headingQuality = imu.getQuatAccuracy();
+          data.headingAccuracyRad = imu.getQuatRadianAccuracy();
+          const bool reliable = data.headingQuality >= 2 &&
+              isfinite(data.headingAccuracyRad) && data.headingAccuracyRad >= 0;
+          if (!reliable) {
+            qualitySince_ = 0;
+            qualityReady_ = false;
+            ++data.headingRejected;
+          } else {
+            if (qualitySince_ == 0) qualitySince_ = now();
+            qualityReady_ = now() - qualitySince_ >= 2000;
+          }
+          // Do not smooth an unreliable direction into an apparently valid heading.
+          data.HDM = qualityReady_ ? static_cast<int>(roundf(heading)) % 360 : -1;
           if (!accelEnabled_) {
             imu.enableAccelerometer(50);
             accelEnabled_ = true;
@@ -60,7 +78,11 @@ class ImuService {
       imu.enableRotationVector(100);
       lastRecoveryMs_ = end;
     }
-    if (quaternionReports == 0 || end - lastQuaternionMs > 3000) data.HDM = -1;
+    if (quaternionReports == 0 || end - lastQuaternionMs > 3000) {
+      data.HDM = -1;
+      qualitySince_ = 0;
+      qualityReady_ = false;
+    }
     if (accelReports == 0 || end - lastAccelMs > 3000) {
       data.tilt = NAN;
       data.pitch = NAN;
@@ -72,6 +94,8 @@ class ImuService {
     }
   }
  private:
+  unsigned long qualitySince_ = 0;
+  bool qualityReady_ = false;
   bool started_ = false;
   bool accelEnabled_ = false;
   unsigned long lastPollMs_ = 0;

@@ -1,3 +1,4 @@
+import { formatNumber, locale, translateMessage, t, useLanguageRefresh } from '../i18n';
 import { useEffect, useState } from "react";
 import { Alert, Pressable, Text, View } from "react-native";
 import Svg, { Path, Line } from "react-native-svg";
@@ -19,6 +20,7 @@ export default function RecordingHistory({
 }: {
   rangeMinutes?: number;
 }) {
+  useLanguageRefresh();
   const [timeline, setTimeline] = useState<TrackingPoint[]>([]);
   const [records, setRecords] = useState<Recording[]>([]),
     [selected, setSelected] = useState(""),
@@ -164,7 +166,7 @@ export default function RecordingHistory({
           onPress={() => setSelected("")}
           style={{ padding: 12 }}
         >
-          <Text style={{ color: c.text }}>Latest</Text>
+          <Text style={{ color: c.text }}>{t("Latest")}</Text>
         </Pressable>
       )}
       {records.map((r) => (
@@ -176,8 +178,8 @@ export default function RecordingHistory({
         >
           <Text style={{ color: c.text }}>
             {selected === r.session.id ? "● " : ""}
-            {new Date(r.session.startedAt).toLocaleString()} · {r.points.length}{" "}
-            fixes{r.session.phase === "recording" ? " · Recording" : ""}
+            {new Date(r.session.startedAt).toLocaleString(locale())} · {r.points.length}{" "}
+            {t("fixes")}{r.session.phase === "recording" ? t(" · Recording") : ""}
           </Text>
         </Pressable>
       ))}
@@ -200,18 +202,17 @@ export default function RecordingHistory({
                 <Path d={path} stroke="#008c80" strokeWidth="2" fill="none" />
               </Svg>
               <Text style={{ color: c.textSecondary }}>
-                {new Date(start).toLocaleTimeString()} →{" "}
-                {new Date(end).toLocaleTimeString()} · max{" "}
-                {Math.max(
+                {new Date(start).toLocaleTimeString(locale())} →{" "}
+                {new Date(end).toLocaleTimeString(locale())} · max{" "}
+                {formatNumber(Math.max(
                   ...speeds.map((p) => p.sogMps! * KNOTS_PER_MPS),
-                ).toFixed(1)}{" "}
+                ), 1)}{" "}
                 kn
               </Text>
             </>
           ) : (
             <Text style={{ color: c.textSecondary }}>
-              No speed measurements saved in this recording.
-            </Text>
+              {t("No speed measurements saved in this recording.")}</Text>
           )}
           <Pressable
             accessibilityRole="button"
@@ -222,19 +223,19 @@ export default function RecordingHistory({
               borderRadius: 8,
             }}
           >
-            <Text style={{ color: c.text }}>{record ? "Export recording" : "Export range"}</Text>
+            <Text style={{ color: c.text }}>{record ? t("Export recording") : t("Export range")}</Text>
           </Pressable>
           {record?.archived && (
             <Pressable
               accessibilityRole="button"
               onPress={() =>
                 Alert.alert(
-                  "Delete archived recording?",
-                  "This permanently removes its saved GPS positions.",
+                  t("Delete archived recording?"),
+                  t("This permanently removes its saved GPS positions."),
                   [
-                    { text: "Cancel", style: "cancel" },
+                    { text: t("Cancel"), style: "cancel" },
                     {
-                      text: "Delete",
+                      text: t("Delete"),
                       style: "destructive",
                       onPress: () =>
                         void trackingStore()
@@ -252,18 +253,17 @@ export default function RecordingHistory({
                 )
               }
             >
-              <Text style={{ color: c.text }}>Delete archived recording</Text>
+              <Text style={{ color: c.text }}>{t("Delete archived recording")}</Text>
             </Pressable>
           )}
         </>
       ) : (
         <Text style={{ color: c.textMuted, padding: 24, textAlign: "center" }}>
-          No recorded data in this range
-        </Text>
+          {t("No recorded data in this range")}</Text>
       )}
       {error ? (
         <Text accessibilityRole="alert" style={{ color: c.text }}>
-          {error}
+          {translateMessage(error)}
         </Text>
       ) : null}
     </View>

@@ -1,8 +1,10 @@
+import { t, useLanguageRefresh } from '../i18n';
 import { View, Text, StyleSheet } from 'react-native'
 import Svg, { Line, Circle, Path } from 'react-native-svg'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
 
 export default function OfflineIndicator() {
+  useLanguageRefresh();
   const isOnline = useOnlineStatus()
 
   if (isOnline) return null
@@ -18,7 +20,7 @@ export default function OfflineIndicator() {
         <Path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
         <Line x1="12" y1="20" x2="12.01" y2="20" />
       </Svg>
-      <Text style={styles.text}>Offline Mode</Text>
+      <Text style={styles.text}>{t("Offline Mode")}</Text>
     </View>
   )
 }

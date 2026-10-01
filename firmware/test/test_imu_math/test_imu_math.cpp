@@ -51,8 +51,16 @@ void test_heading_rejects_zero_quaternion() {
   TEST_ASSERT_FALSE(ok);
 }
 
+void test_heading_rejects_nonfinite_and_corrupt_quaternion() {
+  float heading = 123;
+  TEST_ASSERT_FALSE(computeHeadingDegreesFromQuaternion(NAN, 0, 0, 1, heading));
+  TEST_ASSERT_FALSE(computeHeadingDegreesFromQuaternion(0, 0, 0, INFINITY, heading));
+  TEST_ASSERT_FALSE(computeHeadingDegreesFromQuaternion(0, 0, 0, .5, heading));
+  TEST_ASSERT_FLOAT_WITHIN(.01, 123, heading);
+}
 int main(int, char**) {
   UNITY_BEGIN();
+  RUN_TEST(test_heading_rejects_nonfinite_and_corrupt_quaternion);
   RUN_TEST(test_roll_pitch_level);
   RUN_TEST(test_roll_pitch_right_heel);
   RUN_TEST(test_heading_identity_quaternion);

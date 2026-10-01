@@ -1,9 +1,11 @@
+import { t, useLanguageRefresh } from '../i18n';
 import { TouchableOpacity, Text, StyleSheet } from 'react-native'
 import Svg, { Circle, Path } from 'react-native-svg'
 import { useTheme } from '../context/ThemeContext'
 import { themeColors } from '../constants/colors'
 
 export default function ThemeToggle() {
+  useLanguageRefresh();
   const { theme, toggleTheme } = useTheme()
   const colors = themeColors[theme]
   const isLight = theme === 'light'
@@ -20,7 +22,7 @@ export default function ThemeToggle() {
           <Path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
         </Svg>
       )}
-      <Text style={[styles.text, { color: colors.text }]}>{isLight ? 'Dark' : 'Light'}</Text>
+      <Text style={[styles.text, { color: colors.text }]}>{isLight ? t("Dark") : t("Light")}</Text>
     </TouchableOpacity>
   )
 }

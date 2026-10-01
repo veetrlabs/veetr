@@ -125,6 +125,45 @@ The app expects the Veetr GATT service (`12345678-1234-1234-1234-123456789abc`) 
 
 Production builds use **EAS Build**. EAS produces installable `.ipa` (iOS) and `.aab`/`.apk` (Android) files.
 
+### Local signed builds and beta submission
+
+Use `--local` to compile on a Mac instead of consuming EAS cloud build capacity.
+Xcode, CocoaPods, fastlane, Java 17, and the Android SDK/NDK must be installed.
+EAS still provides the existing signing credentials, remote build-number increments,
+only. Upload directly from this Mac to Apple and Google; do not use EAS Submit
+or cloud build queues for these releases. Run from `app/`:
+
+```bash
+# Build sequentially to limit peak disk and memory use.
+eas build --platform ios --profile testflight --local --non-interactive \
+  --freeze-credentials --output /tmp/veetr-ios.ipa
+
+API_PRIVATE_KEYS_DIR=/path/to/private-keys xcrun altool --upload-app \
+  -f /tmp/veetr-ios.ipa --api-key APPLE_KEY_ID --api-issuer APPLE_ISSUER_ID
+
+# Homebrew paths on the release Mac; adjust for another installation.
+JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home \
+ANDROID_HOME=/opt/homebrew/share/android-commandlinetools \
+ANDROID_SDK_ROOT=/opt/homebrew/share/android-commandlinetools \
+  eas build --platform android --profile android-testing --local \
+  --non-interactive --freeze-credentials --output /tmp/veetr-android.aab
+
+fastlane supply --package_name com.veetr.app --track internal \
+  --release_status completed --aab /tmp/veetr-android.aab \
+  --json_key /path/to/google-play-service-account.json \
+  --skip_upload_metadata true --skip_upload_changelogs true \
+  --skip_upload_images true --skip_upload_screenshots true
+```
+
+These profiles target TestFlight and Google Play **internal testing**, respectively.
+Use explicit artifact paths for uploads and keep store credentials outside Git.
+Verify Apple processing is valid and the new version is on Google Play internal
+testing before reporting availability. Local builds include the current working
+tree; run the tests and review pending changes first. EAS variables with Secret
+visibility must be supplied locally; the configured Sensitive Android Maps key is
+loaded from the production environment. Keep credentials and build logs out of Git.
+The existing `main` push workflow continues to trigger cloud builds independently.
+
 ### Android internal testing
 
 The Google Play app uses package name `com.veetr.app`; the Android app config

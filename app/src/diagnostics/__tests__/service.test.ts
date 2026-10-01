@@ -3,7 +3,7 @@ process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://diagnostics.example.test';
 process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY = 'public-key';
 let mockStored: string | null = null;
 let mockSerial = 0;
-jest.mock('../native', () => ({ nativeDiagnostics: jest.fn(async () => null), setNativeDiagnosticsEnabled: jest.fn(async () => {}) }));
+jest.mock('../native', () => ({ nativeDiagnostics: jest.fn(async () => null), trackingHistory: jest.fn(async () => []), setNativeDiagnosticsEnabled: jest.fn(async () => {}) }));
 jest.mock('@react-native-async-storage/async-storage', () => ({ getItem: jest.fn(async () => mockStored), setItem: jest.fn(async (_key, value) => { mockStored = value; }) }));
 jest.mock('react-native', () => ({ AppState: { currentState: 'active' }, Platform: { OS: 'android', Version: 34, constants: { Model: 'OnePlus' } } }));
 jest.mock('expo-constants', () => ({ __esModule: true, default: { expoConfig: { version: '0.0.28' }, platform: { android: { versionCode: 12 } } } }));
@@ -17,7 +17,7 @@ jest.mock('../../tracking/database', () => ({ trackingStore: jest.fn(async () =>
 const { diagnosticsEnabled, setDiagnosticsEnabled, reportDiagnostic, sendDiagnosticReport, flushDiagnostics }: typeof import('../service') = require('../service');
 import { trackingStore } from '../../tracking/database';
 import { AppState } from 'react-native';
-import { setNativeDiagnosticsEnabled } from '../native';
+import { setNativeDiagnosticsEnabled, trackingHistory } from '../native';
 import { diagnosticErrorCode, emptyState, enqueue, type DiagnosticEvent } from '../queue';
 const settle = async () => { for (let i = 0; i < 10; i++) await new Promise<void>(resolve => setImmediate(resolve)); };
 beforeEach(async () => {
@@ -146,4 +146,20 @@ test('a full Bluetooth failure history fits a manual upload', async () => {
   const body=(fetch as jest.Mock).mock.calls[0][1].body;
   expect(JSON.parse(body).reports[0].ble).toHaveLength(20);
   expect(Buffer.byteLength(body,'utf8')).toBeLessThan(40000);
+});
+
+test('full persistent history uploads with Bluetooth evidence and unicode metadata', async () => {
+  const history = Array(64).fill({event:'serviceStopRequested',ageSeconds:604800,fixes:10000000,callbacks:10000000,saved:10000000,taskStarts:10000000,savedAgeSeconds:10000000,reason:1000,screenOff:true,quotaBlocked:true});
+  (trackingHistory as jest.Mock).mockResolvedValueOnce(history);
+  for (let i=0;i<25;i++) recordBleDiagnostic('connect','error',{errorCode:201,iosErrorCode:6});
+  expect(await sendDiagnosticReport()).toContain('Report sent.');
+  const reports=JSON.parse((fetch as jest.Mock).mock.calls[0][1].body).reports;
+  expect(reports[0].trackingHistory).toHaveLength(64);
+  expect(Buffer.byteLength(JSON.stringify(reports,null,1),'utf8')).toBeLessThan(39000);
+});
+
+test('upload size estimates account for UTF-8 characters', () => {
+  const {utf8Bytes} = require('../service');
+  const value = JSON.stringify({model:'测试📱',reports:[{event:'gap'}]},null,1);
+  expect(utf8Bytes(value)).toBe(Buffer.byteLength(value,'utf8'));
 });

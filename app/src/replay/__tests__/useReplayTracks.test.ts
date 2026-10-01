@@ -124,3 +124,14 @@ test('a late chunk cannot restore boats after a newer access failure', async () 
   expect(result.current.error).toContain('unavailable');
   unmount();
 });
+
+test("chart mode loads later chunks without moving the replay cursor", async () => {
+  const later = start + 300000;
+  const fullMeta = { ...meta, end: new Date(later + 10000).toISOString(), chunks: [...meta.chunks, { start: later, count: 1, version: 'later' }] };
+  rpc.mockImplementation(async (_name, args) => ({ ...fullMeta, points: !args.p_from ? [] : Date.parse(args.p_from) === start ? [point(0), point(10)] : [point(310)] }));
+  const ui = renderHook(() => useReplayTracks('series', 'event', undefined, start, true, true));
+  await settle();
+  expect(ui.result.current.tracks).toHaveLength(3);
+  expect(ui.result.current.positions[0].recordedAt).toBe(new Date(start).toISOString());
+  ui.unmount();
+});

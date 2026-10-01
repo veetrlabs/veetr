@@ -1,3 +1,5 @@
+import { locale, translateMessage, t, useLanguageRefresh } from '../i18n';
+import { errorOccurredAt } from "./errorHistory";
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
@@ -22,11 +24,12 @@ export default function LocalRecording({
   busy: boolean;
   run: (action: () => Promise<unknown>) => Promise<void>;
 }) {
+  useLanguageRefresh();
   const { theme } = useTheme(),
     c = themeColors[theme];
   const [help, setHelp] = useState<number | null>(null);
   const active = session?.phase === "recording";
-  const recordingError = trackingErrorMessage(session?.error || session?.lastTaskError);
+  const recordingError = trackingErrorMessage(session?.error || session?.lastTaskError, errorOccurredAt(session));
   const age = session?.lastRecordedAt
     ? Math.max(0, now - Date.parse(session.lastRecordedAt))
     : null;
@@ -35,14 +38,14 @@ export default function LocalRecording({
         {
           icon: "points" as const,
           value: String(count),
-          label: "Saved positions",
-          help: "GPS positions saved privately on this phone. Tap a trip below to explore its route.",
+          label: t("Saved positions"),
+          help: t("GPS positions saved privately on this phone. Tap a trip below to explore its route."),
         },
         {
           icon: "gps" as const,
-          value: age === null ? "Waiting" : `${durationLabel(age)} ago`,
-          label: "Last GPS fix",
-          help: "Time since the latest saved GPS position. A long delay can mean poor reception or interrupted recording.",
+          value: age === null ? t("Waiting") : t("{{v0}} ago", { v0: durationLabel(age) }),
+          label: t("Last GPS fix"),
+          help: t("Time since the latest saved GPS position. A long delay can mean poor reception or interrupted recording."),
         },
         {
           icon: "clock" as const,
@@ -52,17 +55,17 @@ export default function LocalRecording({
               : Date.parse(session.stoppedAt || session.startedAt)) -
               Date.parse(session.startedAt),
           ),
-          label: "Elapsed time",
-          help: "How long this trip has been recording.",
+          label: t("Elapsed time"),
+          help: t("How long this trip has been recording."),
         },
         {
           icon: "stop" as const,
-          value: new Date(session.expiresAt).toLocaleTimeString([], {
+          value: new Date(session.expiresAt).toLocaleTimeString(locale(), {
             hour: "2-digit",
             minute: "2-digit",
           }),
-          label: "Automatic stop",
-          help: "Recording stops automatically at this time, 12 hours after it started.",
+          label: t("Automatic stop"),
+          help: t("Recording stops automatically at this time, 12 hours after it started."),
         },
       ]
     : [];
@@ -83,11 +86,11 @@ export default function LocalRecording({
         }}
       >
         <Text style={{ color: active ? "#008c80" : c.text, fontWeight: "600" }}>
-          {active && session ? `● ${recordingStatus(session, now)}` : "Ready to sail"}
+          {active && session ? `● ${recordingStatus(session, now)}` : t("Ready to sail")}
         </Text>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Recording privacy and screen lock help"
+          accessibilityLabel={t("Recording privacy and screen lock help")}
           onPress={() => setHelp(help === 4 ? null : 4)}
           style={{
             flexDirection: "row",
@@ -97,7 +100,7 @@ export default function LocalRecording({
           }}
         >
           <TrackingIcon name="lock" color={c.textMuted} size={15} />
-          <Text style={{ color: c.textMuted, fontSize: 12 }}>{session?.sharing?.pendingVisibility === "private" ? "Stopping sharing…" : session?.sharing?.visibility && session.sharing.visibility !== "private" ? "Sharing live" : "Private"}</Text>
+          <Text style={{ color: c.textMuted, fontSize: 12 }}>{session?.sharing?.pendingVisibility === "private" ? t("Stopping sharing…") : session?.sharing?.visibility && session.sharing.visibility !== "private" ? t("Sharing live") : t("Private")}</Text>
         </Pressable>
       </View>
       {active && (
@@ -107,7 +110,7 @@ export default function LocalRecording({
               key={m.label}
               accessibilityRole="button"
               accessibilityLabel={`${m.label}: ${m.value}`}
-              accessibilityHint="Tap for an explanation"
+              accessibilityHint={t("Tap for an explanation")}
               accessibilityState={{ expanded: help === i }}
               onPress={() => setHelp(help === i ? null : i)}
               style={{
@@ -152,13 +155,13 @@ export default function LocalRecording({
           }}
         >
           <Text style={{ color: c.text, fontWeight: "600" }}>
-            {help === 4 ? "Private recording" : metrics[help]?.label}
+            {help === 4 ? t("Private recording") : metrics[help]?.label}
           </Text>
           <Text
             style={{ color: c.textSecondary, fontSize: 13, lineHeight: 19 }}
           >
             {help === 4
-              ? `Trips stay on this phone unless you choose to share them. ${active ? (session?.backgroundEnabled ? "Recording can continue with the screen locked." : "Keep Veetr open. Enable background recording in Settings → Location & tracking to record with the screen locked.") : "Allow background location when starting to record with the screen locked."}`
+              ? t("Trips stay on this phone unless you choose to share them. {{v0}}", { v0: active ? (session?.backgroundEnabled ? t("Recording can continue with the screen locked.") : t("Keep Veetr open. Enable background recording in Settings → Location & tracking to record with the screen locked.")) : t("Allow background location when starting to record with the screen locked.") })
               : metrics[help]?.help}
           </Text>
         </View>
@@ -169,13 +172,12 @@ export default function LocalRecording({
           accessibilityRole="button"
         >
           <Text style={{ color: "#b7791f", fontSize: 13 }}>
-            Keep app open · background GPS is off ›
-          </Text>
+            {t("Keep app open · background GPS is off ›")}</Text>
         </Pressable>
       )}
       {session?.boatId && <Text style={{color:c.text}}>{session.boatName}</Text>}
-      {active && session && <Pressable accessibilityRole="button" onPress={() => router.push({pathname:"/trip-sharing",params:{id:session.id}})} style={{paddingVertical:12}}><Text style={{color:c.text}}>{session.sharing?.visibility && session.sharing.visibility!=="private" ? "● Sharing live · Manage / stop sharing" : "Share this trip live"} ›</Text></Pressable>}
-      {session?.sharing?.error && <Text accessibilityRole="alert" style={{color:c.text}}>{session.sharing.error}</Text>}
+      {active && session && <Pressable accessibilityRole="button" onPress={() => router.push({pathname:"/trip-sharing",params:{id:session.id}})} style={{paddingVertical:12}}><Text style={{color:c.text}}>{session.sharing?.visibility && session.sharing.visibility!=="private" ? t("● Sharing live · Manage / stop sharing") : t("Share this trip live")} ›</Text></Pressable>}
+      {session?.sharing?.error && <Text accessibilityRole="alert" style={{color:c.text}}>{translateMessage(session.sharing.error)}</Text>}
       {active && recordingError && (recordingError.settings ? (
         <Pressable
           onPress={() => router.push("/settings")}
@@ -185,10 +187,9 @@ export default function LocalRecording({
             accessibilityRole="alert"
             style={{ color: c.textSecondary, fontSize: 13 }}
           >
-            {recordingError.text} · Help in Settings ›
-          </Text>
+            {translateMessage(recordingError.text)}  {t("· Help in Settings ›")}</Text>
         </Pressable>
-      ) : <Text accessibilityRole="alert" style={{ color: c.textSecondary, fontSize: 13 }}>{recordingError.text}</Text>)}
+      ) : <Text accessibilityRole="alert" style={{ color: c.textSecondary, fontSize: 13 }}>{translateMessage(recordingError.text)}</Text>)}
       <Pressable
         accessibilityRole="button"
         disabled={busy}
@@ -204,10 +205,10 @@ export default function LocalRecording({
           style={{ color: "white", fontWeight: "600", textAlign: "center" }}
         >
           {busy
-            ? "Working…"
+            ? t("Working…")
             : active
-              ? "Stop recording"
-              : "Start private recording"}
+              ? t("Stop recording")
+              : t("Start private recording")}
         </Text>
       </Pressable>
     </View>

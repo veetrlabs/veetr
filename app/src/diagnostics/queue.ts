@@ -14,6 +14,7 @@ export type DiagnosticEvent = {
     backgroundRequested: boolean; precisePermission: boolean | null; storageAvailable: boolean;
   };
   ble?: ReturnType<typeof import('./ble').bleDiagnostics>;
+  trackingHistory?: import('./native').TrackingHistoryEntry[];
   native?: import('./native').NativeDiagnostics | null;
 };
 export type QueueState = { enabled: boolean; installationId: string | null; events: DiagnosticEvent[] };

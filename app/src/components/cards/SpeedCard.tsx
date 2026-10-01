@@ -1,3 +1,4 @@
+import { formatNumber, useLanguageRefresh } from '../../i18n';
 import { memo } from 'react'
 import { View, Text } from 'react-native'
 import { useCardTextSize } from '../../hooks/useCardTextSize'
@@ -10,6 +11,7 @@ interface SpeedCardProps {
 }
 
 const SpeedCard = memo(function SpeedCard({ speed }: SpeedCardProps) {
+  useLanguageRefresh();
   const { fontSize, unitFontSize, titleFontSize, onCardLayout } = useCardTextSize()
   const { theme } = useTheme()
   const colors = themeColors[theme]
@@ -25,7 +27,7 @@ const SpeedCard = memo(function SpeedCard({ speed }: SpeedCardProps) {
       </View>
       <View style={cardStyles.valueArea}>
         <View style={cardStyles.valueRow}>
-          <Text style={[cardStyles.number, { color: colors.text, fontSize }]}>{speed === null || !Number.isFinite(speed) ? '—' : speed.toFixed(1)}</Text>
+          <Text style={[cardStyles.number, { color: colors.text, fontSize }]}>{speed === null || !Number.isFinite(speed) ? '—' : formatNumber(speed, 1)}</Text>
           <Text style={[cardStyles.unit, { color: colors.textMuted, fontSize: unitFontSize }]}>kt</Text>
         </View>
       </View>

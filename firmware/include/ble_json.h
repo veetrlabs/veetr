@@ -101,6 +101,12 @@ inline String buildSensorDataJson(const SensorData& data,
     doc["accelZ"] = round(data.accelZ * 100) / 100.0f;
   }
 
+  if (imuAvailable) {
+    doc["hdgQuality"] = data.headingQuality;
+    doc["hdgRaw"] = data.headingRaw;
+    doc["hdgAccuracyRad"] = data.headingAccuracyRad;
+    doc["hdgRejected"] = data.headingRejected;
+  }
   doc["rssi"] = bleRSSIFiltered;
 
   if (regatta.hasStartLine && !bleIsNan(regatta.distanceToLine)) {

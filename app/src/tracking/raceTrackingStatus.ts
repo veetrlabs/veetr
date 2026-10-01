@@ -1,3 +1,6 @@
+import { t } from '../i18n';
+import { trackingErrorMessage, isTrackingUploadError } from "./errorMessage";
+import { errorOccurredAt } from "./errorHistory";
 import type { TrackingSession } from "./model";
 export function raceTrackingStatus(
   session: TrackingSession | null,
@@ -5,20 +8,20 @@ export function raceTrackingStatus(
 ) {
   if (!session || session.mode !== "race")
     return {
-      label: "Join your boat",
-      detail: "Open your invitation to get ready for the race.",
+      label: t("Join your boat"),
+      detail: t("Open your invitation to get ready for the race."),
       live: false,
     };
   if (session.phase === "stopping" || Date.parse(session.expiresAt) <= now)
     return {
-      label: "Race tracking stopped",
-      detail: session.error || "Your phone is no longer sharing its position.",
+      label: t("Race tracking stopped"),
+      detail: t("Your phone is no longer sharing its position."),
       live: false,
     };
   if (session.error || session.lastTaskError)
     return {
-      label: "Tracking needs attention",
-      detail: session.error || session.lastTaskError!,
+      label: isTrackingUploadError(session.error || session.lastTaskError) ? t("Race uploads interrupted") : t("Tracking needs attention"),
+      detail: trackingErrorMessage(session.error || session.lastTaskError, errorOccurredAt(session))!.text,
       live: false,
     };
   if (
@@ -27,17 +30,16 @@ export function raceTrackingStatus(
     now - Date.parse(session.raceCheckedAt) >= 60000
   )
     return {
-      label: "Race connection lost",
+      label: t("Race connection lost"),
       detail: session.raceActive
-        ? "GPS positions are saved on this phone when available and sent when the connection returns."
-        : "Waiting for race control before recording starts.",
+        ? t("GPS positions are saved on this phone when available and sent when the connection returns.")
+        : t("Waiting for race control before recording starts."),
       live: false,
     };
   if (!session.raceActive)
     return {
-      label: "Ready · waiting for the start",
-      detail:
-        "Keep the app available. The referee starts sharing for ready boats.",
+      label: t("Ready \u00b7 waiting for the start"),
+      detail: t("Keep the app available. The referee starts sharing for ready boats."),
       live: false,
     };
   if (
@@ -45,13 +47,13 @@ export function raceTrackingStatus(
     now - Date.parse(session.lastRecordedAt) > 60000
   )
     return {
-      label: "Waiting for GPS",
-      detail: "The race is active. Keep your phone where it can receive GPS.",
+      label: t("Waiting for GPS"),
+      detail: t("The race is active. Keep your phone where it can receive GPS."),
       live: false,
     };
   return {
-    label: "Sharing race location",
-    detail: "Your boat’s position is public on the race map.",
+    label: t("Sharing race location"),
+    detail: t("Your boat\u2019s position is public on the race map."),
     live: true,
   };
 }

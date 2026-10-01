@@ -1,3 +1,4 @@
+import LanguageProvider from "../i18n/LanguageProvider";
 import { NavigationProvider } from "../navigation/NavigationContext";
 import TrackingRuntime from "../tracking/TrackingRuntime";
 import { useEffect } from "react";
@@ -22,6 +23,7 @@ export default function RootLayout() {
   }, []);
 
   return (
+    <LanguageProvider>
     <ThemeProvider>
       <BLEProvider>
         <NavigationProvider>
@@ -36,6 +38,7 @@ export default function RootLayout() {
         </NavigationProvider>
       </BLEProvider>
     </ThemeProvider>
+    </LanguageProvider>
   );
 }
 

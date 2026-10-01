@@ -12,6 +12,8 @@ export interface RacePhone {
   raceName: string;
   scheduledStart: string;
   expiresAt: string;
+  endedAt?: string | null;
+  completed?: boolean;
   valid: boolean;
   active: boolean;
   eligible: boolean;
@@ -42,6 +44,11 @@ export async function claimRacePhone(token: string): Promise<RacePhone> {
 export async function savedRacePhone(): Promise<RacePhone | null> {
   const value = await AsyncStorage.getItem(prefix + "last");
   return value ? JSON.parse(value) : null;
+}
+export async function racePhoneSecret(linkId: string): Promise<string> {
+  const secret = await AsyncStorage.getItem(prefix + linkId);
+  if (!secret) throw new Error("Open your race invitation on this phone again.");
+  return secret;
 }
 export async function racePhoneRpc<T>(
   linkId: string,

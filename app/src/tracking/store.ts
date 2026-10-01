@@ -1,3 +1,4 @@
+import { withErrorHistory } from "./errorHistory";
 import {
   MAX_PENDING_POINTS,
   SAMPLE_INTERVAL_MS,
@@ -87,11 +88,12 @@ export class TrackingStore {
       this.transaction(async () => {
         const session = await this.read();
         if (session?.id !== id) return;
+        const next = withErrorHistory(session, patch);
         await this.db.runAsync(
           "UPDATE tracking_state SET body=? WHERE id=1",
-          JSON.stringify({ ...session, ...patch }),
+          JSON.stringify(next),
         );
-        await this.saveSession({ ...session, ...patch });
+        await this.saveSession(next);
       }),
     );
   }
@@ -115,7 +117,7 @@ export class TrackingStore {
       this.transaction(async () => {
         const session = await this.read();
         if (!session || session.id !== id || session.phase !== "recording")
-          return;
+          return 0;
         const count = (await this.db.getFirstAsync<{ n: number }>(
           "SELECT count(*) n FROM tracking_outbox",
         ))!.n;
@@ -172,6 +174,7 @@ export class TrackingStore {
           "UPDATE tracking_state SET body=? WHERE id=1",
           JSON.stringify(session),
         );
+        return queued - count;
       }),
     );
   }
@@ -238,6 +241,28 @@ export class TrackingStore {
       for (const row of rows) { const s:TrackingSession=JSON.parse(row.body); sessions.set(s.id,s); }
       const current=await this.read();if(current)sessions.set(current.id,current);
       return [...sessions.values()].filter(s=>s.sharing && (s.sharing.pendingVisibility || (s.phase === "stopping" && !s.sharing.finished))).map(s=>s.id);
+    });
+  }
+  localRecording(id: string) {
+    return this.exclusive(async (): Promise<{ session: TrackingSession; points: TrackingPoint[]; archived: boolean } | null> => {
+      const current = await this.read();
+      const row = await this.db.getFirstAsync<{ body: string }>(
+        "SELECT body FROM recording_sessions WHERE id=?", id,
+      );
+      const session: TrackingSession | null = current?.id === id ? current : row ? JSON.parse(row.body) : null;
+      if (session) {
+        const points = await this.savedPoints(id);
+        if (session.phase !== "starting" || points.length) return {
+          session: { ...session, lastRecordedAt: points.at(-1)?.recordedAt ?? session.lastRecordedAt },
+          points,
+          archived: id !== current?.id,
+        };
+      }
+      // Older builds stored complete trips as a single JSON row.
+      const legacy = await this.db.getFirstAsync<{ body: string }>(
+        "SELECT body FROM local_recordings WHERE id=?", id,
+      );
+      return legacy ? { ...JSON.parse(legacy.body), archived: true } : null;
     });
   }
   localRecordings() {

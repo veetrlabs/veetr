@@ -20,11 +20,13 @@ jest.mock("../../regattas/FleetMap", () => ({
   default: ({ positions }: any) =>
     require("react").createElement("View", { testID: "fleet", positions }),
 }));
+jest.mock("../../tracking/TripChart", () => ({ __esModule: true, default: (props: any) => require("react").createElement("View", { ...props, testID: "trip-chart" }) }));
 jest.mock("react-native", () => ({
   Text: "Text",
   View: "View",
   Pressable: "View",
   ScrollView: "View",
+  Switch: "View",
   StyleSheet: { flatten: (s: unknown) => s },
 }));
 const start = Date.parse("2026-09-24T10:00:00Z");
@@ -61,6 +63,7 @@ test("own track is visible offline and seeking preserves gaps; competitors are r
     undefined,
     start,
     false,
+    true,
   );
   expect(ui.getByTestId("fleet").props.positions[0].boatId).toBe("own");
   fireEvent.press(ui.getByText("+1 min"));
@@ -76,8 +79,21 @@ test("own track is visible offline and seeking preserves gaps; competitors are r
     undefined,
     start + 125000,
     true,
+    true,
   );
   fireEvent.press(ui.getByText("Hide competitors"));
   expect(ui.getByTestId("fleet").props.positions).toHaveLength(1);
+  ui.unmount();
+});
+
+test("spectator selects a boat's shared chart and scrubs the fleet together", () => {
+  const tracks = ['a', 'b'].flatMap(boatId => trip.points.map(p => ({ ...p, boatId, boatName: boatId, sessionId: boatId })));
+  (useReplayTracks as jest.Mock).mockReturnValue({ meta: { start, end: start + 125000, heats: [] }, positions: [], tracks, loading: false, error: '', retry: jest.fn() });
+  const ui = render(<RaceReplay seriesId="series" eventId="event" />);
+  fireEvent.press(ui.getByText('b'));
+  const chart = ui.getByTestId('trip-chart');
+  expect(chart.props.points.every((p: any) => p.boatId === 'b')).toBe(true);
+  require('@testing-library/react-native').act(() => chart.props.onSelect(2));
+  expect(useReplayTracks).toHaveBeenLastCalledWith('series', 'event', undefined, start + 120000, true, true);
   ui.unmount();
 });

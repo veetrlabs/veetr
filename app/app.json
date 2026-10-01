@@ -3,7 +3,7 @@
     "name": "Veetr",
     "slug": "veetr",
     "owner": "veetrlabs",
-    "version": "0.0.28",
+    "version": "0.0.34",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -22,7 +22,8 @@
           "location",
           "bluetooth-central"
         ],
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleDevelopmentRegion": "en"
       },
       "bundleIdentifier": "com.veetr.mobile",
       "associatedDomains": [
@@ -76,7 +77,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Use your phone GPS to track your boat during a regatta.",
+          "locationWhenInUsePermission": "Use your location to show your position, speed and course while Veetr is open. Recording and sharing start only when you choose them.",
           "locationAlwaysAndWhenInUsePermission": "Share your boat position during an active tracking session, including while the screen is locked.",
           "isIosBackgroundLocationEnabled": true,
           "isAndroidBackgroundLocationEnabled": true,
@@ -90,7 +91,22 @@
         }
       ],
       "./plugins/with-ios-pod-targets",
-      "./plugins/with-ios-scene-lifecycle"
+      "./plugins/with-ios-scene-lifecycle",
+      [
+        "expo-localization",
+        {
+          "supportedLocales": {
+            "ios": [
+              "en",
+              "cs"
+            ],
+            "android": [
+              "en",
+              "cs"
+            ]
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
@@ -100,6 +116,10 @@
       "eas": {
         "projectId": "f16c672e-a176-4a02-b145-5ba72c00535f"
       }
+    },
+    "locales": {
+      "en": "./locales/en.json",
+      "cs": "./locales/cs.json"
     }
   }
 }

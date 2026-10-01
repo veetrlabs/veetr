@@ -7,6 +7,7 @@ export interface TrackingPosition {
   accuracyM: number | null;
   sogMps: number | null;
   cogDeg: number | null;
+  instruments?: { heading?: number | null; awa?: number | null; twa?: number | null };
   source: "phone" | "veetr";
   trail: [number, number][];
   trailSegments?: [number, number][][];

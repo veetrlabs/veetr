@@ -15,7 +15,7 @@ inline void computeRollPitchDegrees(float accelX, float accelY, float accelZ,
 inline bool computeHeadingDegreesFromQuaternion(float quatI, float quatJ, float quatK,
                                                 float quatReal, float& headingDeg) {
   float quatMag = sqrtf(quatI * quatI + quatJ * quatJ + quatK * quatK + quatReal * quatReal);
-  if (quatMag <= 0.1f) {
+  if (!isfinite(quatMag) || quatMag < 0.9f || quatMag > 1.1f) {
     return false;
   }
 

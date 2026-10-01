@@ -1,0 +1,11 @@
+gradle.beforeProject { p ->
+  if (p.name == 'expo-location') {
+    p.plugins.withId('com.android.library') {
+      p.android.testOptions.unitTests.includeAndroidResources = true
+      p.android.sourceSets.test.java.srcDir(new File(p.rootProject.projectDir, '../native-recorder/tests'))
+      p.dependencies.add('testImplementation', 'junit:junit:4.13.2')
+      p.dependencies.add('testImplementation', 'com.squareup.okhttp3:mockwebserver:4.12.0')
+      p.dependencies.add('testImplementation', 'org.robolectric:robolectric:4.14.1')
+    }
+  }
+}

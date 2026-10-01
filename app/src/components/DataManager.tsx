@@ -1,3 +1,4 @@
+import { formatNumber, locale, t, useLanguageRefresh } from '../i18n';
 import { useState, useEffect } from 'react'
 import { View, Text, TouchableOpacity, Alert, StyleSheet } from 'react-native'
 import { File, Paths } from 'expo-file-system'
@@ -7,6 +8,7 @@ import { themeColors, Colors } from '../constants/colors'
 import { dataStorage } from '../utils/dataStorage'
 
 export default function DataManager() {
+  useLanguageRefresh();
   const { theme } = useTheme()
   const colors = themeColors[theme]
   const [recordCount, setRecordCount] = useState(0)
@@ -40,28 +42,28 @@ export default function DataManager() {
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(file.uri)
       } else {
-        Alert.alert('Export Complete', `Data saved to ${filename}`)
+        Alert.alert(t("Export Complete"), t("Data saved to {{v0}}", { v0: filename }))
       }
     } catch (error) {
-      Alert.alert('Export Failed', 'Could not export data. Please try again.')
+      Alert.alert(t("Export Failed"), t("Could not export data. Please try again."))
     }
   }
 
   const handleClear = () => {
     Alert.alert(
-      'Clear All Data',
-      `Are you sure you want to delete all ${recordCount} stored records? This cannot be undone.`,
+      t("Clear All Data"),
+      t("Are you sure you want to delete all {{v0}} stored records? This cannot be undone.", { v0: recordCount }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t("Cancel"), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t("Delete"),
           style: 'destructive',
           onPress: async () => {
             try {
               await dataStorage.clearAllData()
               await updateStats()
             } catch {
-              Alert.alert('Error', 'Failed to clear data.')
+              Alert.alert(t("Error"), t("Failed to clear data."))
             }
           }
         }
@@ -74,20 +76,19 @@ export default function DataManager() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.cardBg }]}>
-      <Text style={[styles.title, { color: colors.text }]}>Data Storage</Text>
+      <Text style={[styles.title, { color: colors.text }]}>{t("Data Storage")}</Text>
 
       <View style={styles.stats}>
-        <Stat label="Records" value={`${recordCount.toLocaleString()} / ${maxRecords.toLocaleString()}`} colors={colors} />
-        <Stat label="Capacity" value={`${capacityPercentage.toFixed(0)}%`} colors={colors} />
+        <Stat label={t("Records")} value={`${recordCount.toLocaleString(locale())} / ${maxRecords.toLocaleString(locale())}`} colors={colors} />
+        <Stat label={t("Capacity")} value={`${formatNumber(capacityPercentage, 0)}%`} colors={colors} />
       </View>
 
       {capacityPercentage > 80 && (
         <Text style={styles.warning}>
-          Storage is {capacityPercentage.toFixed(0)}% full. Old data will be deleted automatically.
-        </Text>
+          {t("Storage is")} {formatNumber(capacityPercentage, 0)}{t("% full. Old data will be deleted automatically.")}</Text>
       )}
 
-      <Text style={[styles.info, { color: colors.textSubtle }]}>Sensor data is automatically saved every 10 seconds (averaged).</Text>
+      <Text style={[styles.info, { color: colors.textSubtle }]}>{t("Sensor data is automatically saved every 10 seconds (averaged).")}</Text>
 
       <View style={styles.actions}>
         <TouchableOpacity
@@ -95,7 +96,7 @@ export default function DataManager() {
           onPress={handleExport}
           disabled={recordCount === 0}
         >
-          <Text style={styles.buttonText}>Export CSV</Text>
+          <Text style={styles.buttonText}>{t("Export CSV")}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -103,7 +104,7 @@ export default function DataManager() {
           onPress={handleClear}
           disabled={recordCount === 0}
         >
-          <Text style={styles.buttonText}>Clear All Data</Text>
+          <Text style={styles.buttonText}>{t("Clear All Data")}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -111,6 +112,7 @@ export default function DataManager() {
 }
 
 function Stat({ label, value, colors }: { label: string; value: string; colors: Colors }) {
+  useLanguageRefresh();
   return (
     <View style={styles.statRow}>
       <Text style={[styles.statLabel, { color: colors.textMuted }]}>{label}:</Text>

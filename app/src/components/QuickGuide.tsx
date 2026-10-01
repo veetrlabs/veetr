@@ -1,47 +1,50 @@
+import { t, useLanguageRefresh } from '../i18n';
 import { useState } from "react";
 import { View, Text, Pressable, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
 import { themeColors } from "../constants/colors";
-const topics = [
+export default function QuickGuide({ onBack }: { onBack: () => void }) {
+  useLanguageRefresh();
+  const topics = [
   [
-    "Recording and History",
-    "Start private recording begins one recording. Fresh Veetr GPS and instruments are used when available; phone GPS takes over when the device disconnects or its GPS is unavailable. Wind values are absent during phone-only tracking. History shows speed and wind in knots over the selected time range, including 3h and 6h. Gaps mean no samples were saved. Veetr GPS accuracy is unknown when the device does not report it. Background operation still depends on iOS permissions and device connectivity.",
+    t("Recording and History"),
+    t("Start private recording begins one recording. Fresh Veetr GPS and instruments are used when available; phone GPS takes over when the device disconnects or its GPS is unavailable. Wind values are absent during phone-only tracking. History shows speed and wind in knots over the selected time range, including 3h and 6h. Gaps mean no samples were saved. Veetr GPS accuracy is unknown when the device does not report it. Background operation still depends on iOS permissions and device connectivity."),
   ],
   [
-    "Private sailing and races",
-    "In Track, tap Start private recording to record on this phone without an account or internet. Saved trips and map previews appear below. To share a race, open your referee’s private boat invitation from WhatsApp or email, or paste it under Races → My boat · join with invitation. No account is needed. The invitation identifies your boat and race. Press Ready to race in advance; sharing begins when the referee enables tracking. Allow background location, keep internet available and do not force-close the app. Your shared position and route are public live and in replay. Return to Races to check readiness or stop sharing. Private recordings stay under Track and are never shared automatically.",
+    t("Private sailing and races"),
+    t("In Track, tap Start private recording to record on this phone without an account or internet. Saved trips and map previews appear below. To share a race, open your referee’s private boat invitation from WhatsApp or email, or paste it under Races → My boat · join with invitation. No account is needed. The invitation identifies your boat and race. Press Ready to race in advance; sharing begins when the referee enables tracking. Allow background location, keep internet available and do not force-close the app. Your shared position and route are public live and in replay. Return to Races to check readiness or stop sharing. Private recordings stay under Track and are never shared automatically."),
   ],
   [
-    "Nautical map layer",
-    "The Seamarks button shows OpenSeaMap navigation marks over the base map. Coverage varies by location. This layer does not include depth contours or soundings. New map tiles need internet access; offline chart downloads are not yet supported.",
+    t("Nautical map layer"),
+    t("The Seamarks button shows OpenSeaMap navigation marks over the base map. Coverage varies by location. This layer does not include depth contours or soundings. New map tiles need internet access; offline chart downloads are not yet supported."),
   ],
   [
-    "Speed and course",
-    "SOG is speed over ground, shown in knots. COG is the direction you travel across the map. Both come from GPS. Course can be unreliable when stationary, and a dash means no usable reading is available.",
+    t("Speed and course"),
+    t("SOG is speed over ground, shown in knots. COG is the direction you travel across the map. Both come from GPS. Course can be unreliable when stationary, and a dash means no usable reading is available."),
   ],
   [
-    "Phone compass heading",
-    "HDG in phone mode is magnetic heading from the phone compass. For boat heading, keep the phone’s physical top edge pointing toward the bow, even when using landscape view. Turning the phone changes the reading. The shared compass circle keeps the boat pointing up. N moves around the circle to show north relative to the bow; the blue dashed arrow shows GPS course relative to the bow. Both markers need a usable heading. When true heading is available, north and course use true north. Otherwise N indicates magnetic north and the course arrow is hidden to avoid mixing references; the COG number remains available. Wind indicators appear when Veetr is connected. COG and HDG can differ because wind and current affect your path.",
+    t("Phone compass heading"),
+    t("HDG in phone mode is magnetic heading from the phone compass. For boat heading, keep the phone’s physical top edge pointing toward the bow, even when using landscape view. Turning the phone changes the reading. The shared compass circle keeps the boat pointing up. N moves around the circle to show north relative to the bow; the blue dashed arrow shows GPS course relative to the bow. Both markers need a usable heading. When true heading is available, north and course use true north. Otherwise N indicates magnetic north and the course arrow is hidden to avoid mixing references; the COG number remains available. Wind indicators appear when Veetr is connected. COG and HDG can differ because wind and current affect your path."),
   ],
   [
-    "Compass availability and accuracy",
-    "Some phones have no compass. Unavailable, stale or low-accuracy readings appear as a dash. If accuracy is low, move the phone away from magnets and metal and follow any system calibration prompt. The phone compass does not replace GPS position or speed.",
+    t("Compass availability and accuracy"),
+    t("Some phones have no compass. Unavailable, stale or low-accuracy readings appear as a dash. If accuracy is low, move the phone away from magnets and metal and follow any system calibration prompt. The phone compass does not replace GPS position or speed."),
   ],
   [
-    "Phone mode and Veetr instruments",
-    "The phone provides GPS speed, course, tracking and start-line capture, plus compass heading where supported. Connect Veetr in Bluetooth settings for wind speed, wind angles, heel and dedicated boat instruments.",
+    t("Phone mode and Veetr instruments"),
+    t("The phone provides GPS speed, course, tracking and start-line capture, plus compass heading where supported. Connect Veetr in Bluetooth settings for wind speed, wind angles, heel and dedicated boat instruments."),
   ],
   [
-    "Setting a start line",
-    "Sail to each end and capture its position. Either end can be set first. Without a connected device, positions are saved on this phone and require a fresh GPS fix with reported accuracy of 30 metres or better. With Veetr connected, capture uses Veetr GPS. Phone and device lines are stored separately. Capture again if a mark moves. With both phone endpoints saved, the dashboard shows the shortest distance in metres to the segment between them (or the nearest end when beyond the line). This is an unsigned distance, not an over-the-line warning. A dash means the current fix is missing, stale or less accurate than 30 metres, or the endpoints are less than a metre apart.",
+    t("Setting a start line"),
+    t("Sail to each end and capture its position. Either end can be set first. Without a connected device, positions are saved on this phone and require a fresh GPS fix with reported accuracy of 30 metres or better. With Veetr connected, capture uses Veetr GPS. Phone and device lines are stored separately. Capture again if a mark moves. With both phone endpoints saved, the dashboard shows the shortest distance in metres to the segment between them (or the nearest end when beyond the line). This is an unsigned distance, not an over-the-line warning. A dash means the current fix is missing, stale or less accurate than 30 metres, or the endpoints are less than a metre apart."),
   ],
   [
-    "Recording and screen lock",
-    "Live instruments alone do not save a trail. Start recording in Track to save positions for Map and History. Local recording works without an account or internet. On iPhone, choose Allow While Using App first and Always when asked; keep Precise Location enabled. Recordings stop automatically after 12 hours. Allow background location for screen-lock recording; force-closing the app can stop GPS. Check the recording status before sailing.",
+    t("Recording and screen lock"),
+    t("Live instruments alone do not save a trail. Start recording in Track to save positions for Map and History. Local recording works without an account or internet. On iPhone, choose Allow While Using App first and Always when asked; keep Precise Location enabled. Recordings stop automatically after 12 hours. Allow background location for screen-lock recording; force-closing the app can stop GPS. Check the recording status before sailing."),
   ],
 ] as const;
-export default function QuickGuide({ onBack }: { onBack: () => void }) {
+
   const { theme } = useTheme(),
     c = themeColors[theme],
     insets = useSafeAreaInsets();
@@ -61,18 +64,17 @@ export default function QuickGuide({ onBack }: { onBack: () => void }) {
     >
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Back to Settings"
+        accessibilityLabel={t("Back to Settings")}
         onPress={onBack}
         style={{ minHeight: 44, justifyContent: "center" }}
       >
-        <Text style={{ color: c.textSecondary }}>‹ Settings</Text>
+        <Text style={{ color: c.textSecondary }}>{t("‹ Settings")}</Text>
       </Pressable>
       <Text
         accessibilityRole="header"
         style={{ color: c.text, fontSize: 28, fontWeight: "700" }}
       >
-        Quick guide
-      </Text>
+        {t("Quick guide")}</Text>
       {topics.map(([title, body], i) => (
         <View
           key={title}

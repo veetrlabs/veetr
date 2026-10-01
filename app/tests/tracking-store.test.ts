@@ -94,7 +94,7 @@ test("SQLite outbox survives restart and only acknowledges the submitted batch",
       3,
       "late callback cannot cross session boundaries",
     );
-    await s.append(session.id, [point(15)]);
+    assert.equal(await s.append(session.id, [point(15)]), 1);
     await s.acknowledge(
       "wrong-session",
       batch.map((p) => p.seq),
@@ -344,11 +344,44 @@ test("backfill respects neighbouring samples, session boundaries and stop", asyn
   try {
     const s = store(db);
     await s.init(); await s.create(session);
-    await s.append(session.id, [point(0), point(20)]);
-    await s.append(session.id, [-61, 3, 5, 10, 17, 43201].map(point));
+    assert.equal(await s.append(session.id, [point(0), point(20)]), 2);
+    assert.equal(await s.append(session.id, [-61, 3, 5, 10, 17, 43201].map(point)), 2);
     assert.deepEqual((await s.points(session.id)).map(p => p.recordedAt), [0, 5, 10, 20].map(t => point(t).recordedAt));
     await s.patch(session.id, { phase: 'stopping' });
-    await s.append(session.id, [point(15)]);
+    assert.equal(await s.append(session.id, [point(15)]), 0);
     assert.equal((await s.points(session.id)).length, 4);
+  } finally { db.close(); }
+});
+
+test('opening one trip reads only its history and supports legacy archives', async () => {
+  const db = new DatabaseSync(':memory:');
+  try {
+    const s = store(db); await s.init();
+    await s.create(session); await s.append(session.id, [point(0), point(5)]);
+    // Unrelated records must not even be parsed when opening this trip.
+    db.prepare('INSERT INTO recording_sessions(id,body) VALUES(?,?)').run('unrelated', 'invalid JSON');
+    db.prepare('INSERT INTO local_recordings(id,body) VALUES(?,?)').run('unrelated', 'invalid JSON');
+    const trip = await s.localRecording(session.id);
+    assert.equal(trip?.archived, false);
+    assert.equal(trip?.points.length, 2);
+    assert.equal(trip?.session.lastRecordedAt, point(5).recordedAt);
+    const legacy = { session: { ...session, id: 'legacy' }, points: [point(10)] };
+    db.prepare('INSERT INTO local_recordings(id,body) VALUES(?,?)').run('legacy', JSON.stringify(legacy));
+    assert.deepEqual(await s.localRecording('legacy'), { ...legacy, archived: true });
+    assert.equal(await s.localRecording('missing'), null);
+  } finally { db.close(); }
+});
+
+test('single trip lookup matches normalized archived history and latest active metadata', async () => {
+  const db = new DatabaseSync(':memory:');
+  try {
+    const s = store(db); await s.init();
+    await s.create({ ...session, mode: 'local' }); await s.append(session.id, [point(0), point(5)]);
+    await s.patch(session.id, { phase: 'stopping', stoppedAt: point(10).recordedAt });
+    await s.archiveLocal();
+    assert.deepEqual(await s.localRecording(session.id), (await s.localRecordings())[0]);
+    db.prepare('INSERT INTO tracking_state(id,body) VALUES(1,?)').run(JSON.stringify({ ...session, boatName: 'Updated' }));
+    assert.equal((await s.localRecording(session.id))?.session.boatName, 'Updated');
+    assert.equal((await s.localRecording(session.id))?.archived, false);
   } finally { db.close(); }
 });

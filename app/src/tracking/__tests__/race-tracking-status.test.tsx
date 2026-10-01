@@ -51,3 +51,9 @@ test("active card names the boat and race and opens map and tracking controls di
   fireEvent.press(ui.getByText("Manage tracking"));
   expect(router.push).toHaveBeenCalledWith("/race-phone");
 });
+
+test("completed race removes the join card even with a saved invitation or session", () => {
+  (useRaceTracking as jest.Mock).mockReturnValue({ session, phone: { boatName: "Sky", raceName: "Monday" }, now, finished: true });
+  const ui = render(<RaceTrackingCard />);
+  expect(ui.toJSON()).toBeNull();
+});

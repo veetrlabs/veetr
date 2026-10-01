@@ -49,7 +49,7 @@ const makeSeries = (events = [{id:"event",name:"Sunday race",order:1,weight:1,co
 beforeEach(() => {
   jest.clearAllMocks();
   (trackingClient!.rpc as jest.Mock).mockResolvedValue({data:[row],error:null});
-  (trackingRpc as jest.Mock).mockImplementation((name: string) => Promise.resolve(name === "public_standings" ? makeSeries() : []));
+  (trackingRpc as jest.Mock).mockImplementation((name: string) => Promise.resolve(name === "public_standings" ? makeSeries() : name === "public_replay_tracks" ? { start: row.replayStart, end: row.replayEnd, chunks: [], heats: [], points: [] } : []));
 });
 test("guests open a race's results, live map and replay without authentication", async () => {
   const view = render(<RegattaBrowser />);
@@ -93,7 +93,7 @@ test("completed undated events appear under Past and open only their own results
   expect(view.queryByText("Series standings")).toBeNull();
   expect(view.queryByText("Replay")).toBeNull();
   expect(view.queryByText("Fleet map")).toBeNull();
-  expect((trackingRpc as jest.Mock).mock.calls.every(call => call[0] === "public_standings")).toBe(true);
+  expect((trackingRpc as jest.Mock).mock.calls.every(call => ["public_standings", "public_replay_tracks"].includes(call[0]))).toBe(true);
   view.unmount();
 });
 
@@ -150,4 +150,75 @@ test("multi-heat race shows combined points, heat results and explicit DNS penal
   fireEvent.press(view.getByText("Combined"));
   expect(view.getByText("13")).toBeTruthy();
   view.unmount();
+});
+
+test('replay belongs to its race in a multi-race series, including standings navigation', async () => {
+  const series = makeSeries(['Monday', 'Tuesday'].map((name, order) => ({
+    id: name.toLowerCase(), name, order, weight: 1, countAs: 1, completed: true, discards: [],
+  })));
+  (trackingRpc as jest.Mock).mockImplementation(async (name, args) => {
+    if (name === 'public_standings') return series;
+    if (name === 'public_replay_tracks') return {
+      start: args.p_event === 'monday' ? row.replayStart : null,
+      end: args.p_event === 'monday' ? row.replayEnd : null,
+      chunks: [], heats: [], points: [],
+    };
+    return [];
+  });
+  const view = render(<RegattaBrowser />);
+  await waitFor(() => expect(view.getByLabelText('View Monday')).toBeTruthy());
+  expect(view.getAllByText('Replay available')).toHaveLength(1);
+  fireEvent.press(view.getByLabelText('View Monday'));
+  await waitFor(() => expect(view.getByText('Replay')).toBeTruthy());
+  await waitFor(() => expect(view.getByLabelText('View series Sunday sailing')).toBeTruthy());
+  fireEvent.press(view.getByLabelText('View series Sunday sailing'));
+  fireEvent.press(view.getByLabelText('View race Tuesday'));
+  await waitFor(() => expect(view.getByText('Luna')).toBeTruthy());
+  expect(view.queryByText('Replay')).toBeNull();
+  fireEvent.press(view.getByText('Back'));
+  fireEvent.press(view.getByLabelText('View race Monday'));
+  await waitFor(() => expect(view.getByText('Replay')).toBeTruthy());
+  fireEvent.press(view.getByText('Replay'));
+  expect(router.push).toHaveBeenCalledWith({ pathname: '/race-replay', params: { seriesId: 'series', eventId: 'monday' } });
+  view.unmount();
+});
+
+test('failed replay availability leaves results usable and can be retried', async () => {
+  let unavailable = true;
+  (trackingRpc as jest.Mock).mockImplementation(async (name) => {
+    if (name === 'public_standings') return makeSeries();
+    if (unavailable) throw new Error('Offline');
+    return { start: row.replayStart, end: row.replayEnd, chunks: [], heats: [], points: [] };
+  });
+  const view = render(<RegattaBrowser />);
+  await waitFor(() => expect(view.getByLabelText('View Sunday race')).toBeTruthy());
+  fireEvent.press(view.getByLabelText('View Sunday race'));
+  await waitFor(() => expect(view.getByText('Retry replay availability')).toBeTruthy());
+  await waitFor(() => expect(view.getByText('Luna')).toBeTruthy());
+  expect(view.queryByText('Replay')).toBeNull();
+  unavailable = false;
+  fireEvent.press(view.getByText('Retry replay availability'));
+  await waitFor(() => expect(view.getByText('Replay')).toBeTruthy());
+  expect(view.queryByText('Retry replay availability')).toBeNull();
+  view.unmount();
+});
+
+test('Czech labels preserve filter values, live tabs and replay navigation', async () => {
+  const { i18n } = require('../../i18n');
+  await i18n.changeLanguage('cs');
+  const view = render(<RegattaBrowser />);
+  try {
+    await waitFor(() => expect(view.getByLabelText('Zobrazit Sunday race')).toBeTruthy());
+    fireEvent.press(view.getByText('Živě'));
+    expect(view.getByLabelText('Zobrazit Sunday race')).toBeTruthy();
+    fireEvent.press(view.getByLabelText('Zobrazit Sunday race'));
+    await waitFor(() => expect(view.getByText('Luna')).toBeTruthy());
+    fireEvent.press(view.getAllByText('Živě').at(-1)!);
+    await waitFor(() => expect(trackingRpc).toHaveBeenCalledWith('public_tracking_positions', { p_series: 'series' }));
+    fireEvent.press(view.getByText('Přehrát'));
+    await waitFor(() => expect(router.push).toHaveBeenCalledWith({ pathname: '/race-replay', params: { seriesId: 'series', eventId: 'event' } }));
+  } finally {
+    view.unmount();
+    await i18n.changeLanguage('en');
+  }
 });

@@ -1,10 +1,14 @@
+import { requestNorthAlignment, northResultMessage } from '../../utils/northAlignment';
+import { t, useLanguageRefresh } from '../../i18n';
+import PreferencesSettings from "../../components/PreferencesSettings";
 import AccountSettings from "../../components/AccountSettings";
 import LocationSettings from "../../tracking/LocationSettings";
 import CalibrationControls from "../../components/CalibrationControls";
 import QuickGuide from "../../components/QuickGuide";
 import RegattaSettings from "../../components/RegattaSettings";
 import BluetoothSettings from "../../components/BluetoothSettings";
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import { useFocusEffect } from "expo-router";
 import {
   View,
   Text,
@@ -17,24 +21,25 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../context/ThemeContext";
 import { themeColors } from "../../constants/colors";
 import { useBLE } from "../../context/BLEContext";
-import { FirmwareUpdateCard } from "../../components/cards/FirmwareUpdateCard";
-import DataManager from "../../components/DataManager";
-import ThemeToggle from "../../components/ThemeToggle";
 import { APP_VERSION } from "../../utils/version";
 
 type ViewType =
+  | "preferences"
   | "account"
   | "location"
   | "guide"
   | "bluetooth"
   | "main"
   | "regatta"
-  | "calibration"
-  | "about";
+  | "calibration";
 
 export default function SettingsTab() {
+  useLanguageRefresh();
   const insets = useSafeAreaInsets();
   const [currentView, setCurrentView] = useState<ViewType>("main");
+  useFocusEffect(useCallback(() => {
+    setCurrentView("main");
+  }, []));
   const { state, sendCommand } = useBLE();
   const { theme } = useTheme();
   const colors = themeColors[theme];
@@ -43,23 +48,23 @@ export default function SettingsTab() {
 
   const handleCalibrateLevel = () => {
     if (!state.isConnected) {
-      Alert.alert("Not Connected", "Please connect to Veetr device first");
+      Alert.alert(t("Not Connected"), t("Please connect to Veetr Vane first"));
       return;
     }
     Alert.alert(
-      "Calibrate Level",
-      "This will set the current orientation as level (0°) across all axes.",
+      t("Calibrate Level"),
+      t("This will set the current orientation as level (0°) across all axes."),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("Cancel"), style: "cancel" },
         {
-          text: "Calibrate",
+          text: t("Calibrate"),
           onPress: async () => {
             const success = await sendCommand({ action: "resetHeelAngle" });
             Alert.alert(
-              success ? "Success" : "Failed",
+              success ? t("Success") : t("Failed"),
               success
-                ? "Vessel level calibration completed!"
-                : "Failed to calibrate.",
+                ? t("Vessel level calibration completed!")
+                : t("Failed to calibrate."),
             );
           },
         },
@@ -69,19 +74,16 @@ export default function SettingsTab() {
 
   const handleCalibrateCompass = () => {
     if (!state.isConnected) {
-      Alert.alert("Not Connected", "Please connect to Veetr device first");
+      Alert.alert(t("Not Connected"), t("Please connect to Veetr Vane first"));
       return;
     }
-    Alert.alert("Calibrate Compass", "Point the vessel's bow toward north.", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t("Calibrate Compass"), t("Point the vessel's bow toward north."), [
+      { text: t("Cancel"), style: "cancel" },
       {
-        text: "Calibrate",
+        text: t("Calibrate"),
         onPress: async () => {
-          const success = await sendCommand({ action: "resetCompassNorth" });
-          Alert.alert(
-            success ? "Success" : "Failed",
-            success ? "Compass calibrated!" : "Failed to calibrate.",
-          );
+          const result = await requestNorthAlignment(sendCommand);
+          Alert.alert(t(result === 'accepted' ? 'Success' : 'Compass reference'), t(northResultMessage[result]));
         },
       },
     ]);
@@ -89,41 +91,38 @@ export default function SettingsTab() {
 
   const renderMain = () => (
     <>
-      <Text style={[styles.pageTitle, { color: colors.text }]}>Settings</Text>
+      <Text style={[styles.pageTitle, { color: colors.text }]}>{t("Settings")}</Text>
 
       <TouchableOpacity
         accessibilityRole="button"
-        accessibilityLabel="Account"
+        accessibilityLabel={t("Veetr Account")}
         style={[styles.menuItem, { borderBottomColor: colors.border }]}
         onPress={() => navigateTo("account")}
       >
         <Text style={[styles.menuItemText, { color: colors.text }]}>
-          Account
-        </Text>
+          {t("Veetr Account")}</Text>
         <Text style={[styles.arrow, { color: colors.textSubtle }]}>›</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
         accessibilityRole="button"
-        accessibilityLabel="Bluetooth settings"
+        accessibilityLabel={t("Bluetooth settings")}
         style={[styles.menuItem, { borderBottomColor: colors.border }]}
         onPress={() => navigateTo("bluetooth")}
       >
         <Text style={[styles.menuItemText, { color: colors.text }]}>
-          Bluetooth settings
-        </Text>
+          {t("Bluetooth settings")}</Text>
         <Text style={[styles.arrow, { color: colors.textSubtle }]}>›</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
         accessibilityRole="button"
-        accessibilityLabel="Race"
+        accessibilityLabel={t("Race Start Line")}
         style={[styles.menuItem, { borderBottomColor: colors.border }]}
         onPress={() => navigateTo("regatta")}
       >
         <Text style={[styles.menuItemText, { color: colors.text }]}>
-          Race
-        </Text>
+          {t("Race Start Line")}</Text>
         <Text style={[styles.arrow, { color: colors.textSubtle }]}>›</Text>
       </TouchableOpacity>
       <TouchableOpacity
@@ -131,46 +130,47 @@ export default function SettingsTab() {
         onPress={() => navigateTo("calibration")}
       >
         <Text style={[styles.menuItemText, { color: colors.text }]}>
-          Calibration
-        </Text>
-        <Text style={[styles.arrow, { color: colors.textSubtle }]}>›</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.menuItem, { borderBottomColor: colors.border }]}
-        onPress={() => navigateTo("about")}
-      >
-        <Text style={[styles.menuItemText, { color: colors.text }]}>About</Text>
+          {t("Calibration")}</Text>
         <Text style={[styles.arrow, { color: colors.textSubtle }]}>›</Text>
       </TouchableOpacity>
 
+
       <TouchableOpacity
         accessibilityRole="button"
-        accessibilityLabel="Quick guide"
+        accessibilityLabel={t("Quick guide")}
         style={[styles.menuItem, { borderBottomColor: colors.border }]}
         onPress={() => navigateTo("guide")}
       >
         <Text style={[styles.menuItemText, { color: colors.text }]}>
-          Quick guide
-        </Text>
+          {t("Quick guide")}</Text>
         <Text style={[styles.arrow, { color: colors.textSubtle }]}>›</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
         accessibilityRole="button"
-        accessibilityLabel="Location and tracking settings"
+        accessibilityLabel={t("Location and tracking settings")}
         style={[styles.menuItem, { borderBottomColor: colors.border }]}
         onPress={() => navigateTo("location")}
       >
         <Text style={[styles.menuItemText, { color: colors.text }]}>
-          Location & tracking
-        </Text>
+          {t("Location & tracking")}</Text>
         <Text style={[styles.arrow, { color: colors.textSubtle }]}>›</Text>
       </TouchableOpacity>
 
-      <View style={styles.themeRow}>
-        <Text style={[styles.themeLabel, { color: colors.text }]}>Theme</Text>
-        <ThemeToggle />
-      </View>
+      <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityLabel={t("Preferences")}
+        style={[styles.menuItem, { borderBottomColor: colors.border }]}
+        onPress={() => navigateTo("preferences")}
+      >
+        <Text style={[styles.menuItemText, { color: colors.text }]}>
+          {t("Preferences")}
+        </Text>
+        <Text style={[styles.arrow, { color: colors.textSubtle }]}>›</Text>
+      </TouchableOpacity>
+      <Text style={[styles.version, { color: colors.textSubtle }]}>
+        {t("App Version:")} {APP_VERSION}
+      </Text>
     </>
   );
 
@@ -178,11 +178,10 @@ export default function SettingsTab() {
     <>
       <View style={styles.headerRow}>
         <TouchableOpacity onPress={() => navigateTo("main")}>
-          <Text style={styles.back}>‹ Back</Text>
+          <Text style={styles.back}>{t("‹ Back")}</Text>
         </TouchableOpacity>
         <Text style={[styles.pageTitle, { color: colors.text }]}>
-          Calibration
-        </Text>
+          {t("Calibration")}</Text>
         <View style={{ width: 50 }} />
       </View>
 
@@ -191,24 +190,6 @@ export default function SettingsTab() {
         onLevel={handleCalibrateLevel}
         onNorth={handleCalibrateCompass}
       />
-    </>
-  );
-
-  const renderAbout = () => (
-    <>
-      <View style={styles.headerRow}>
-        <TouchableOpacity onPress={() => navigateTo("main")}>
-          <Text style={styles.back}>‹ Back</Text>
-        </TouchableOpacity>
-        <Text style={[styles.pageTitle, { color: colors.text }]}>About</Text>
-        <View style={{ width: 50 }} />
-      </View>
-
-      <FirmwareUpdateCard />
-      <DataManager />
-      <Text style={[styles.version, { color: colors.textSubtle }]}>
-        App Version: {APP_VERSION}
-      </Text>
     </>
   );
 
@@ -236,14 +217,28 @@ export default function SettingsTab() {
         { backgroundColor: colors.bg, paddingTop: insets.top + 8 },
       ]}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView key={currentView} contentContainerStyle={styles.scrollContent}>
+        {currentView === "preferences" && (
+          <>
+            <TouchableOpacity
+              accessibilityRole="button"
+              onPress={() => navigateTo("main")}
+            >
+              <Text style={styles.back}>{t("‹ Settings")}</Text>
+            </TouchableOpacity>
+            <Text accessibilityRole="header" style={[styles.pageTitle, { color: colors.text }]}>
+              {t("Preferences")}
+            </Text>
+            <PreferencesSettings />
+          </>
+        )}
         {currentView === "location" && (
           <>
             <TouchableOpacity
               accessibilityRole="button"
               onPress={() => navigateTo("main")}
             >
-              <Text style={styles.back}>‹ Settings</Text>
+              <Text style={styles.back}>{t("‹ Settings")}</Text>
             </TouchableOpacity>
             <LocationSettings />
 
@@ -251,7 +246,6 @@ export default function SettingsTab() {
         )}
         {currentView === "main" && renderMain()}
         {currentView === "calibration" && renderCalibration()}
-        {currentView === "about" && renderAbout()}
       </ScrollView>
     </View>
   );
@@ -287,12 +281,6 @@ const styles = StyleSheet.create({
   },
   menuItemText: { fontSize: 16 },
   arrow: { fontSize: 22 },
-  themeRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 14,
-  },
-  themeLabel: { fontSize: 16 },
+
   version: { fontSize: 14, textAlign: "center", marginTop: 16 },
 });

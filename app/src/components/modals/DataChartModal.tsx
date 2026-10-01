@@ -1,3 +1,4 @@
+import { formatNumber, t, useLanguageRefresh } from '../../i18n';
 import { useState, useEffect, useRef } from 'react'
 import { View, Text, TouchableOpacity, Modal, ScrollView, StyleSheet, Dimensions } from 'react-native'
 import { useTheme } from '../../context/ThemeContext'
@@ -17,6 +18,7 @@ interface DataChartModalProps {
 }
 
 export default function DataChartModal({ visible, onClose }: DataChartModalProps) {
+  useLanguageRefresh();
   const { theme } = useTheme()
   const colors = themeColors[theme]
   const [data, setData] = useState<DataPoint[]>([])
@@ -57,7 +59,7 @@ export default function DataChartModal({ visible, onClose }: DataChartModalProps
       <View style={styles.overlay}>
         <View style={[styles.modal, { backgroundColor: colors.panelBg }]}>
           <View style={styles.header}>
-            <Text style={[styles.title, { color: colors.text }]}>Performance Data</Text>
+            <Text style={[styles.title, { color: colors.text }]}>{t("Performance Data")}</Text>
             <TouchableOpacity onPress={onClose}><Text style={[styles.close, { color: colors.textMuted }]}>✕</Text></TouchableOpacity>
           </View>
 
@@ -77,9 +79,9 @@ export default function DataChartModal({ visible, onClose }: DataChartModalProps
             </View>
 
             {loading ? (
-              <Text style={[styles.loading, { color: colors.textMuted }]}>Loading data...</Text>
+              <Text style={[styles.loading, { color: colors.textMuted }]}>{t("Loading data...")}</Text>
             ) : data.length === 0 ? (
-              <Text style={[styles.empty, { color: colors.textMuted }]}>No data available for this time range</Text>
+              <Text style={[styles.empty, { color: colors.textMuted }]}>{t("No data available for this time range")}</Text>
             ) : (
               <>
                 <SimpleBarChart data={data} colors={colors} />
@@ -115,6 +117,7 @@ function getChartStats(data: DataPoint[]) {
 }
 
 function SimpleBarChart({ data, colors }: { data: DataPoint[]; colors: Colors }) {
+  useLanguageRefresh();
   const { width: screenWidth } = Dimensions.get('window')
   const chartWidth = screenWidth - 80
   const chartHeight = 200
@@ -139,6 +142,7 @@ function SimpleBarChart({ data, colors }: { data: DataPoint[]; colors: Colors })
 }
 
 function Legend({ color, label, theme }: { color: string; label: string; theme: 'light' | 'dark' }) {
+  useLanguageRefresh();
   const colors = themeColors[theme]
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
@@ -149,12 +153,13 @@ function Legend({ color, label, theme }: { color: string; label: string; theme: 
 }
 
 function StatsSection({ stats, colors }: { stats: ReturnType<typeof getChartStats>; colors: Colors }) {
+  useLanguageRefresh();
   const renderStat = (title: string, data: { min: number; max: number; avg: number }) => (
     <View style={styles.statGroup}>
       <Text style={[styles.statTitle, { color: colors.text }]}>{title} (kt)</Text>
-      <Text style={[styles.statValue, { color: colors.textMuted }]}>Min: {data.min.toFixed(1)}</Text>
-      <Text style={[styles.statValue, { color: colors.textMuted }]}>Avg: {data.avg.toFixed(1)}</Text>
-      <Text style={[styles.statValue, { color: colors.textMuted }]}>Max: {data.max.toFixed(1)}</Text>
+      <Text style={[styles.statValue, { color: colors.textMuted }]}>{t("Min:")} {formatNumber(data.min, 1)}</Text>
+      <Text style={[styles.statValue, { color: colors.textMuted }]}>{t("Avg:")} {formatNumber(data.avg, 1)}</Text>
+      <Text style={[styles.statValue, { color: colors.textMuted }]}>{t("Max:")} {formatNumber(data.max, 1)}</Text>
     </View>
   )
 

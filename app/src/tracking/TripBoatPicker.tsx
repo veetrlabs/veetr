@@ -1,8 +1,10 @@
+import { translateMessage, t, useLanguageRefresh } from '../i18n';
 import { useEffect, useState } from "react";
-import { Pressable, Text, TextInput, View } from "react-native";
+import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { createTripBoat, tripBoats, type TripBoat } from "./tripSharing";
 import { useTheme } from "../context/ThemeContext";
 import { themeColors } from "../constants/colors";
+import { recentTripBoats, orderTripBoats } from "./recentTripBoats";
 export default function TripBoatPicker({
   selected,
   onSelect,
@@ -10,21 +12,25 @@ export default function TripBoatPicker({
   selected?: string;
   onSelect: (boat: TripBoat) => void;
 }) {
+  useLanguageRefresh();
   const c = themeColors[useTheme().theme];
   const [boats, setBoats] = useState<TripBoat[]>([]),
+    [expanded, setExpanded] = useState(false),
+    [query, setQuery] = useState(""),
+    [loading, setLoading] = useState(true),
     [error, setError] = useState(""),
     [creating, setCreating] = useState(false),
     [name, setName] = useState(""),
     [busy, setBusy] = useState(false);
   useEffect(() => {
     let alive = true;
-    tripBoats()
-      .then((b) => {
-        if (alive) setBoats(b);
+    Promise.all([tripBoats(), recentTripBoats().catch(() => [])])
+      .then(([b, recent]) => {
+        if (alive) setBoats(orderTripBoats(b, recent));
       })
       .catch((e) => {
         if (alive) setError(e.message);
-      });
+      }).finally(() => { if (alive) setLoading(false); });
     return () => {
       alive = false;
     };
@@ -39,15 +45,12 @@ export default function TripBoatPicker({
     return (
       <View style={{ gap: 12 }}>
         <Text style={{ color: c.text, fontSize: 20, fontWeight: "600" }}>
-          Create a boat
-        </Text>
+          {t("Create a boat")}</Text>
         <Text style={{ color: c.textMuted }}>
-          You’ll manage its profile and crew. You can add the other boat details
-          later.
-        </Text>
-        <Text style={{ color: c.text }}>Boat name</Text>
+          {t("You’ll manage its profile and crew. You can add the other boat details later.")}</Text>
+        <Text style={{ color: c.text }}>{t("Boat name")}</Text>
         <TextInput
-          accessibilityLabel="Boat name"
+          accessibilityLabel={t("Boat name")}
           maxLength={120}
           value={name}
           onChangeText={setName}
@@ -75,7 +78,7 @@ export default function TripBoatPicker({
               .finally(() => setBusy(false));
           }}
         >
-          <Text style={{ color: c.text }}>Create and select boat</Text>
+          <Text style={{ color: c.text }}>{t("Create and select boat")}</Text>
         </Pressable>
         <Pressable
           accessibilityRole="button"
@@ -83,11 +86,11 @@ export default function TripBoatPicker({
           onPress={() => setCreating(false)}
           style={button}
         >
-          <Text style={{ color: c.text }}>Cancel</Text>
+          <Text style={{ color: c.text }}>{t("Cancel")}</Text>
         </Pressable>
         {!!error && (
           <Text accessibilityRole="alert" style={{ color: c.text }}>
-            {error}
+            {translateMessage(error)}
           </Text>
         )}
       </View>
@@ -95,14 +98,25 @@ export default function TripBoatPicker({
   return (
     <View style={{ gap: 10 }}>
       <Text style={{ color: c.text, fontWeight: "600" }}>
-        Boat for this trip
-      </Text>
-      {boats.map((b) => (
+        {t("Boat for this trip")}</Text>
+      <Pressable accessibilityRole="button" accessibilityLabel={t("Boat for this trip")}
+        accessibilityState={{ expanded, disabled: loading }} disabled={loading}
+        onPress={() => { setExpanded(!expanded); setQuery(""); }}
+        style={{ ...button, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Text style={{ color: c.text, flex: 1 }}>{boats.find(b => b.id === selected)?.name ?? t(loading ? "Loading boats…" : "Choose a boat")}</Text>
+        <Text style={{ color: c.text }} accessibilityElementsHidden>{expanded ? '▴' : '▾'}</Text>
+      </Pressable>
+      {expanded && <View style={{ borderWidth: 1, borderColor: c.border, borderRadius: 12, padding: 6, gap: 6 }}>
+        <TextInput accessibilityLabel={t("Search boats")} placeholder={t("Search boats")}
+          placeholderTextColor={c.textMuted} value={query} onChangeText={setQuery}
+          style={{ ...button, color: c.text }} />
+        <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled" style={{ maxHeight: 240 }}>
+      {boats.filter(b => b.name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())).map((b) => (
         <Pressable
           key={b.id}
           accessibilityRole="radio"
           accessibilityState={{ checked: selected === b.id }}
-          onPress={() => onSelect(b)}
+          onPress={() => { onSelect(b); setExpanded(false); setQuery(""); }}
           style={{
             ...button,
             borderWidth: 2,
@@ -115,9 +129,12 @@ export default function TripBoatPicker({
           </Text>
         </Pressable>
       ))}
+      {!boats.some(b => b.name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())) && <Text style={{ padding: 14, color: c.textMuted }}>{t("No boats found")}</Text>}
+        </ScrollView>
+      </View>}
       {!!error ? (
         <Text accessibilityRole="alert" style={{ color: c.text }}>
-          {error}
+          {translateMessage(error)}
         </Text>
       ) : (
         <Pressable
@@ -125,7 +142,7 @@ export default function TripBoatPicker({
           onPress={() => setCreating(true)}
           style={button}
         >
-          <Text style={{ color: c.text }}>＋ Create a boat</Text>
+          <Text style={{ color: c.text }}>{t("＋ Create a boat")}</Text>
         </Pressable>
       )}
     </View>

@@ -6,6 +6,7 @@ import { trackingRpc } from "../client";
 import { claimRacePhone } from "../racePhone";
 import { readyForRace } from "../service";
 jest.mock("react-native", () => ({
+  Platform: { OS: "ios" },
   Text: "Text",
   View: "View",
   ScrollView: "ScrollView",
