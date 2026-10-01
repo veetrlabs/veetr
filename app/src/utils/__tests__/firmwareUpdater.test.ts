@@ -82,3 +82,15 @@ test('identifies the flash-write boundary and confirmed byte count in device err
   });
   await expect(updater.updateFirmware(new ArrayBuffer(8000))).rejects.toThrow('Device rejected chunk 20, offset 4000, length 200: Write failed; confirmed=4000 bytes');
 });
+
+test.each([182,509,512])('negotiated fast chunks remain bounded and byte-perfect at %i bytes',async limit=>{
+ const {updater,commands}=setup((c,u)=>{
+  const types:Record<string,string>={START_FW_UPDATE:'update_ready',FW_CHUNK:'chunk_ack',VERIFY_FW:'update_complete',APPLY_FW:'restarting'};
+  u.handleResponse({type:types[c.cmd],index:c.index,maxChunkBytes:330});
+ },limit);
+ const bytes=Uint8Array.from({length:1501},(_,i)=>i%251);await updater.updateFirmware(bytes.buffer);
+ const chunks=commands.filter(c=>c.cmd==='FW_CHUNK');
+ expect(commands.every(c=>JSON.stringify(c).length<=limit)).toBe(true);
+ expect(chunks.flatMap(c=>Array.from(atob(c.data),v=>v.charCodeAt(0)))).toEqual(Array.from(bytes));
+ if(limit>=509)expect(atob(chunks[0].data).length).toBe(330);
+});

@@ -118,8 +118,15 @@ void test_send_fails_when_set_value_fails() {
   TEST_ASSERT_EQUAL_INT(0, ch.notifyCalls);
 }
 
+void test_ota_ack_does_not_sleep_after_notify() {
+ bool sending=false; MockCharacteristic ch; auto before=fakeMillis;
+ TEST_ASSERT_TRUE(safeBleSendCore(reinterpret_cast<void*>(0x1),1,&ch,sending,String("{}"),true,testMillis,testDelay,mockSetValue,mockNotify,false));
+ TEST_ASSERT_EQUAL(1,ch.notifyCalls); TEST_ASSERT_EQUAL(before,fakeMillis); TEST_ASSERT_FALSE(sending);
+}
+
 int main(int, char**) {
   UNITY_BEGIN();
+  RUN_TEST(test_ota_ack_does_not_sleep_after_notify);
   RUN_TEST(test_send_fails_without_server_or_characteristic);
   RUN_TEST(test_send_fails_when_already_sending_and_timeout);
   RUN_TEST(test_send_succeeds_and_notifies);

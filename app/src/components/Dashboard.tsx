@@ -20,6 +20,7 @@ export default function Dashboard() {
   const colors = themeColors[theme], insets = useSafeAreaInsets(), d = state.sailingData
   const [space, setSpace] = useState({ width: 0, height: 0 })
   const landscape = space.width > space.height * 1.15
+  const deviceHeading = d.recordingInstruments?.heading ?? null
   const device = nav.deviceFresh
   const phoneLine = nav.phoneStartLine.line
   const localLine = !shouldUseDeviceStartLine(state.isConnected, nav.phoneStartLine)
@@ -47,7 +48,7 @@ export default function Dashboard() {
     { label: 'TWS', value: number(d.trueWindSpeed, 1), unit: 'kn' },
     { label: 'TWA', value: number(d.trueWindAngle), unit: '°' },
     { label: 'SOG', value: number(nav.fix?.sogKnots, 1), unit: 'kn' },
-    { label: 'HDG', value: number(d.heading), unit: '°' },
+    { label: 'HDG', value: number(deviceHeading), unit: '°' },
     { label: t('Line'), value: localLine ? number(phoneDistance) : d.hasStartLine ? number(d.distanceToLine) : '—', unit: 'm' },
     { label: t('HEEL'), value: number(d.tilt), unit: '°' },
   ]
@@ -57,7 +58,7 @@ export default function Dashboard() {
       <View style={[styles.layout, { flexDirection: landscape ? 'row' : 'column' }]}>
         <View style={{ width: compassSize, height: compassSize, alignSelf: 'center' }}>
           <WindAngleCard
-            heading={device ? d.heading : bearings.heading}
+            heading={device ? deviceHeading : bearings.heading}
             course={device ? null : bearings.course}
             showWind={device}
             windDirection={d.windDirection}

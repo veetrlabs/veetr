@@ -1,3 +1,6 @@
+#include "sensor_calibration.h"
+static SensorCalibration sensorCalibration;
+static volatile uint32_t pendingCalibrationCommand = 0;
 #include "vane_diagnostics.h"
 static volatile unsigned long pendingDiagnosticRequest = 0;
 #include <Arduino.h>
@@ -159,9 +162,9 @@ WindSensorReader<ModbusMaster, HardwareSerial, HardwareSerial> windReader(
 
 // Safe BLE transmission function to prevent data corruption
 bool safeBLESend(const String& data, bool isCommand) {
-  Serial.printf("[BLE DEBUG] Attempting to send %d chars, command=%s\n", 
+  if (!otaState.active) Serial.printf("[BLE DEBUG] Attempting to send %d chars, command=%s\n",
                data.length(), isCommand ? "true" : "false");
-  Serial.printf("[BLE DEBUG] Connected devices: %d\n", pServer ? pServer->getConnectedCount() : 0);
+  if (!otaState.active) Serial.printf("[BLE DEBUG] Connected devices: %d\n", pServer ? pServer->getConnectedCount() : 0);
 
   auto setValueFn = [](void* characteristic, const uint8_t* value, size_t len) -> bool {
     auto* ch = static_cast<NimBLECharacteristic*>(characteristic);
@@ -187,12 +190,12 @@ bool safeBLESend(const String& data, bool isCommand) {
                             millis,
                             reinterpret_cast<void (*)(unsigned long)>(delay),
                             setValueFn,
-                            notifyFn);
+                            notifyFn, !otaState.active);
 
   if (!ok) {
     Serial.println("[BLE DEBUG] FAILED: Transmission skipped or failed");
   } else {
-    Serial.printf("[BLE DEBUG] Delay completed (%d ms)\n", isCommand ? 10 : 5);
+    if (!otaState.active) Serial.printf("[BLE DEBUG] Delay completed (%d ms)\n", isCommand ? 10 : 5);
   }
 
   return ok;
@@ -262,7 +265,7 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
       std::string value = pCharacteristic->getValue();
       
       if (value.length() > 0) {
-        Serial.printf("[BLE RECV] Received %d bytes\n", value.length());
+        if (!otaState.active) Serial.printf("[BLE RECV] Received %d bytes\n", value.length());
         
         #ifdef DEBUG_BLE_DATA
         Serial.print("BLE Command received: ");
@@ -271,18 +274,18 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
         
         // Parse JSON command - increased buffer size for base64 chunk data
         // Base64 chunks can be ~440 bytes total with JSON overhead
-        DynamicJsonDocument doc(512);
+        DynamicJsonDocument doc(1024);
         DeserializationError error = deserializeJson(doc, value.c_str());
         
         if (!error) {
           BleCommand command;
           parseBleCommandDoc(doc, command);
           
-          Serial.printf("[BLE RECV] Parsed JSON - action: '%s', cmd: '%s'\n", 
+          if (!otaState.active) Serial.printf("[BLE RECV] Parsed JSON - action: '%s', cmd: '%s'\n",
                        command.action.c_str(), command.cmd.c_str());
           
           // Log OTA-related commands with extra detail
-          if (command.cmd == "START_FW_UPDATE" || command.cmd == "FW_CHUNK" || command.cmd == "VERIFY_FW" || command.cmd == "APPLY_FW") {
+          if (command.cmd == "START_FW_UPDATE" || command.cmd == "VERIFY_FW" || command.cmd == "APPLY_FW") {
             Serial.printf("[OTA CMD] Received: %s\n", command.cmd.c_str());
             if (command.cmd == "FW_CHUNK" && command.hasIndex) {
               Serial.printf("[OTA CMD] Chunk index: %d\n", command.index);
@@ -321,7 +324,7 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
             }
           }
           else if (command.action == "resetCompassNorth") {
-            const char* result = alignCompassNorth(imuAvailable, millis(), imu,
+            const char* result = alignCompassNorth(imuAvailable && !sensorCalibration.active, millis(), imu,
                 imuService, preferences, headingOffset, northCalibrated);
             Serial.printf("North alignment: %s\n", result);
             // Only clients requesting an acknowledgement receive this new packet.
@@ -535,6 +538,12 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
             delay(500); // Give time for response to be sent
             ESP.restart();
           }
+          else if (doc["cmd"] == "SENSOR_CAL") {
+            unsigned int id = doc["id"] | 0U;
+            unsigned int op = doc["op"] | 0U;
+            if (id > 0 && id <= 65535 && op >= 1 && op <= 4)
+              pendingCalibrationCommand = (id << 16) | op;
+          }
           else if (doc["cmd"] == "VANE_DIAGNOSTICS") {
             unsigned long id = doc["id"] | 0UL;
             if (id > 0 && id <= 65535) pendingDiagnosticRequest = id;
@@ -586,6 +595,7 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
             }
           }
           else if (doc["cmd"] == "START_FW_UPDATE") {
+            if (sensorCalibration.active) { safeBLESend("{\"type\":\"error\",\"message\":\"Stop sensor calibration before updating firmware\"}", true); return; }
             Serial.println("[BLE OTA] Starting firmware update using ESP32 Update library");
             
             OtaResponse otaResponse;
@@ -612,6 +622,7 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
 
             DynamicJsonDocument response(128);
             response["type"] = otaResponse.type;
+            response["maxChunkBytes"] = 330;
             if (otaResponse.hasMessage) {
               response["message"] = otaResponse.message;
             }
@@ -660,7 +671,7 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
               if (otaResponse.hasMessage) {
                 Serial.printf("[BLE OTA] Error: %s\n", otaResponse.message);
               }
-            } else if (otaResponse.hasWritten && otaResponse.hasProgress) {
+            } else if (otaResponse.hasWritten && otaResponse.hasProgress && (otaResponse.index % 64 == 0)) {
               Serial.printf("[BLE OTA] Wrote %u bytes, total: %u/%u (%.1f%%)\n",
                            otaResponse.written, otaState.written, otaState.size, otaResponse.progress);
             }
@@ -969,7 +980,7 @@ void setupBLE() {
   NimBLEDevice::init(deviceName.c_str());
   // Request a larger MTU to support bigger notifications; client decides final value
   // Using 185 aligns with widely supported browser stacks
-  NimBLEDevice::setMTU(185);
+  NimBLEDevice::setMTU(517);
   
   // Use random address type to help bypass client cache on name changes
   NimBLEDevice::setOwnAddrType(BLE_OWN_ADDR_RANDOM);
@@ -1000,7 +1011,7 @@ void restartBLE() {
   
   NimBLEDevice::init(deviceName.c_str());
   // Request larger MTU after re-init as well
-  NimBLEDevice::setMTU(185);
+  NimBLEDevice::setMTU(517);
   
   // Set TX power for balance between range and power consumption
   NimBLEDevice::setPower(ESP_PWR_LVL_P3); // +3dBm for better range
@@ -1440,7 +1451,20 @@ void loop() {
 void serviceFastSensors() {
   if (!fastSensorsReady || otaState.active) return;
   readGpsStream(gpsSerial, gps, 256);
-  if (imuAvailable) {
+  if (pendingCalibrationCommand) {
+    uint32_t command = pendingCalibrationCommand; pendingCalibrationCommand = 0;
+    if (imuAvailable) sensorCalibration.command(command & 65535, imu, millis());
+    StaticJsonDocument<256> reply;
+    reply["type"] = "sensor_cal"; reply["id"] = command >> 16;
+    reply["state"] = imuAvailable ? sensorCalibration.state : "unavailable";
+    reply["mag"] = sensorCalibration.mag; reply["accel"] = sensorCalibration.accel;
+    reply["gyro"] = sensorCalibration.gyro; reply["ready"] = sensorCalibration.ready(millis());
+    String packet; serializeJson(reply, packet); safeBLESend(packet, true);
+  }
+  if (sensorCalibration.active) {
+    sensorCalibration.tick(imu, millis(), deviceConnected);
+    currentData.HDM = -1;
+  } else if (imuAvailable) {
     imuService.poll(imu, currentData, millis, rollOffset, pitchOffset,
                     headingOffset, northCalibrated, storeAccelReading);
   }

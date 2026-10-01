@@ -108,7 +108,10 @@ export class BLEFirmwareUpdater {
       this.chunkSize = Math.min(200, Math.floor((this.maxWriteBytes - overhead) / 4) * 3)
       if (this.chunkSize < 1) throw new Error('Bluetooth packet size is too small for a firmware update. Reconnect and try again.')
       this.diagnostic = `START_FW_UPDATE (${firmwareData.byteLength} bytes)`
-      await this.initializeUpdate(firmwareData.byteLength)
+      const ready = await this.initializeUpdate(firmwareData.byteLength)
+      if (Number.isInteger(ready.maxChunkBytes) && ready.maxChunkBytes > 200) {
+        this.chunkSize = Math.min(330, ready.maxChunkBytes, Math.floor((this.maxWriteBytes - overhead) / 4) * 3)
+      }
       await this.transferFirmware(firmwareData)
       await this.verifyFirmware()
       await this.applyUpdate()
@@ -127,13 +130,14 @@ export class BLEFirmwareUpdater {
     }
   }
 
-  private async initializeUpdate(totalSize: number): Promise<void> {
-    await this.exchange({ cmd: FIRMWARE_COMMANDS.START_UPDATE, size: totalSize }, 'update_ready', undefined, 30000)
+  private async initializeUpdate(totalSize: number): Promise<any> {
+    return this.exchange({ cmd: FIRMWARE_COMMANDS.START_UPDATE, size: totalSize }, 'update_ready', undefined, 30000)
   }
 
   private async transferFirmware(firmwareData: ArrayBuffer): Promise<void> {
     const totalChunks = Math.ceil(firmwareData.byteLength / this.chunkSize)
 
+    let lastProgress = 0
     for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
       this.checkAborted()
       const offset = chunkIndex * this.chunkSize
@@ -153,11 +157,14 @@ export class BLEFirmwareUpdater {
       const estimatedRemainingTimeMs = remainingBytes / transferRate
       const estimatedTotalTimeMs = elapsedTimeMs + estimatedRemainingTimeMs
 
+      if (chunkIndex === totalChunks - 1 || Date.now() - lastProgress >= 250) {
+      lastProgress = Date.now()
       this.onProgress({
         percentage, bytesTransferred, totalBytes: firmwareData.byteLength,
         stage: 'transferring', message: `Transferring... ${chunkIndex + 1}/${totalChunks}`,
         elapsedTimeMs, estimatedTotalTimeMs, estimatedRemainingTimeMs
       })
+      }
     }
   }
 

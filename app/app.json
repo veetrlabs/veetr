@@ -3,7 +3,7 @@
     "name": "Veetr",
     "slug": "veetr",
     "owner": "veetrlabs",
-    "version": "0.0.34",
+    "version": "0.0.35",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",

@@ -46,8 +46,12 @@ export default function GPSStatusButton() {
               {fix.source === 'Veetr GPS' && <Text style={{ color: c.textSecondary }}>{t("{{count}} satellite", { count: state.sailingData.gpsSatellites })} · HDOP {hdop != null && hdop > 0 ? formatNumber(hdop, 1) : t("unavailable")}</Text>}
             </>}
             <NavigationStatus showMode={false} />
-            {!!nav.phoneHeading.status && <Text style={{ color: c.textSecondary }}>{translateMessage(nav.phoneHeading.status)}</Text>}
-            {nav.phoneHeading.rawSample && <Text selectable style={{ color: c.textSecondary }}>
+            {state.isConnected && <Text selectable style={{ color: c.textSecondary }}>
+              {t("Vane compass")}
+              {'\n'}{t("Sensor quality:")} {state.sailingData.compass && Date.now() - state.sailingData.compass.receivedAt <= 5000 ? `${state.sailingData.compass.quality}/3` : t("unavailable")}
+            </Text>}
+            {!state.isConnected && !!nav.phoneHeading.status && <Text style={{ color: c.textSecondary }}>{translateMessage(nav.phoneHeading.status)}</Text>}
+            {!state.isConnected && nav.phoneHeading.rawSample && <Text selectable style={{ color: c.textSecondary }}>
               {t("Compass magnetic: raw")} {formatNumber(nav.phoneHeading.rawSample.magHeading, 1)}{t("° · filtered")} {nav.phoneHeading.heading == null ? '—' : formatNumber(nav.phoneHeading.heading, 1)}°
               {'\n'}{t("Compass true:")} {nav.phoneHeading.sample?.trueHeading != null && nav.phoneHeading.sample.trueHeading >= 0 ? `${formatNumber(nav.phoneHeading.sample.trueHeading, 1)}°` : t("unavailable")}  {t("· sensor quality")} {nav.phoneHeading.rawSample.accuracy}/3
             </Text>}

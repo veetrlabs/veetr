@@ -405,3 +405,29 @@ The shared `@veetr/shared` package under `packages/shared/` also has 42 tests wh
 ## Regatta tracking
 
 The **Track** tab can share phone GPS through Supabase to the series live map. See [Mobile tracking setup and field checks](../docs/MOBILE_TRACKING.md). Copy `.env.example` to `.env.local` and configure the matching backend and website; rebuild the native app for the new background location permissions.
+
+### Vane sensor calibration (0.0.35)
+
+Settings → Calibration → Calibrate Vane sensors runs a guided device calibration.
+Detach the assembled Vane from the boat, keep power/Bluetooth connected, and move
+Vane itself through the prompted orientations. Do not attempt to tilt the boat.
+The guide covers 4–6 held orientations, three seconds stationary, then roughly
+180° rotations and returns around roll, pitch and yaw, away from magnetic objects.
+Save is gated on a fresh magnetic-field quality of 2/3 or better and a minimum
+15-second session. The firmware requests the manufacturer's 50 Hz magnetic reports.
+
+A matching SH-2 Save DCD response with success status is required before the app
+says saved. The ME-calibration command response alone is not proof of a flash save.
+Lost responses are reported as unconfirmed. Disconnect/no heartbeat cancels an
+unsaved session; an already issued save is allowed to finish. Cancellation stops
+calibration without requesting a save; it does not undo live sensor adjustments.
+Remount Vane in its sailing position, then set vessel level and north reference.
+No Supabase schema change is needed for this workflow.
+
+OTA uses the old bounded chunks until firmware advertises support for 330-byte
+chunks. Firmware 0.0.35 advertises MTU 517, increases JSON parsing capacity, removes
+the fixed 10 ms post-ack sleep during OTA, and reduces per-chunk serial logging.
+The app respects the actual negotiated MTU and still waits for every chunk ack.
+The first upgrade from 0.0.34 remains limited by that firmware's smaller MTU;
+subsequent upgrades can carry about three times as many firmware bytes per write.
+This is a payload improvement, not a measured hardware transfer-time guarantee.

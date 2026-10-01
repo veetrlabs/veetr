@@ -1,3 +1,4 @@
+import { receiveSensorCalibration } from '../utils/sensorCalibration';
 import { receiveVaneDiagnostic } from '../diagnostics/vane';
 import { receiveNorthAlignment } from '../utils/northAlignment';
 import { compassTelemetry, type CompassTelemetry } from '../utils/compassTelemetry';
@@ -283,6 +284,7 @@ export function BLEProvider({ children }: { children: ReactNode }) {
         return
       }
 
+      if (receiveSensorCalibration(parsed)) return;
       if (receiveVaneDiagnostic(parsed)) return;
       if (receiveNorthAlignment(parsed)) return;
 
