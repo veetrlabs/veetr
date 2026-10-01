@@ -64,7 +64,7 @@ test('fresh instrument readings can accompany phone GPS when device GPS has no f
 });
 
 test('retains compass diagnostics with both device and contemporaneous phone fixes', () => {
-  const compass = { rawHeading: 220, quality: 0, accuracyRad: .4, rejected: 5, receivedAt: now };
+  const compass = { status: "uncertain" as const, rawHeading: 220, quality: 0, accuracyRad: .4, rejected: 5, receivedAt: now };
   const recordingInstruments = { heading: null, aws: 1, tws: 1, awa: 0, twa: 0 };
   const device = setDeviceRecordingSource({ gpsValid: true, lat: 49, lon: 14, compass, recordingInstruments }, now);
   expect(device?.compass).toEqual(compass);

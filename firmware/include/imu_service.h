@@ -58,6 +58,11 @@ class ImuService {
             imu.enableAccelerometer(50);
             accelEnabled_ = true;
           }
+        } else {
+          data.HDM = -1;
+          data.headingRaw = NAN;
+          qualitySince_ = 0;
+          qualityReady_ = false;
         }
       } else if (report == 0x01) { // SH-2 accelerometer, including gravity
         data.accelX = imu.getAccelX();
@@ -82,6 +87,7 @@ class ImuService {
     }
     if (quaternionReports == 0 || end - lastQuaternionMs > 3000) {
       data.HDM = -1;
+      data.headingRaw = NAN;
       qualitySince_ = 0;
       qualityReady_ = false;
     }

@@ -99,10 +99,16 @@ void test_display_and_ble_agree_through_quality_drop_and_recovery() {
   poll(); check(false);
   clockMs = 2100; poll(); check(true); // Genuine north must remain 000.
   clockMs = 2200; imu.quality = 1; poll(); check(false);
+  char uncertainLabel[16]; formatDisplayHeading(data, uncertainLabel, sizeof(uncertainLabel));
+  TEST_ASSERT_EQUAL_STRING("HDG ~000", uncertainLabel);
+  TEST_ASSERT_TRUE(hasFreshDisplayHeading(data));
   clockMs = 2300; imu.quality = 2; poll(); check(false);
   clockMs = 4200; poll(); check(false); // Recovery requires two full seconds.
   clockMs = 4300; poll(); check(true);
   clockMs = 7401; service.poll(imu, data, now, 0, 0, 0, false, store); check(false);
+  TEST_ASSERT_FALSE(hasFreshDisplayHeading(data));
+  formatDisplayHeading(data, uncertainLabel, sizeof(uncertainLabel));
+  TEST_ASSERT_EQUAL_STRING("HDG ---", uncertainLabel);
 }
 
 int main(int, char**) {

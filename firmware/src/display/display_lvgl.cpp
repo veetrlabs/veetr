@@ -168,8 +168,8 @@ static void draw_compass_overlay(const SensorData &data) {
     static unsigned long lastFrameMs = 0;
     static bool animationInitialized = false;
 
-    const bool hasHeading = hasDisplayHeading(data.HDM);
-    const int targetHeading = hasHeading ? data.HDM : 0;
+    const bool hasHeading = hasFreshDisplayHeading(data);
+    const float targetHeading = hasHeading ? displayHeading(data) : 0;
     static bool hadHeading = false;
     if (data.windAngle >= 0 && data.windAngle <= 359) {
         lastAwa = normalize_angle(data.windAngle, lastAwa);
@@ -387,7 +387,7 @@ void display_lvgl_update(const SensorData& data, const DisplayStatus& status) {
     lv_label_set_text(ui.sog_value, buf);
 
     int heel = isnan(data.tilt) ? 0 : (int)roundf(fabsf(data.tilt));
-    formatDisplayHeading(data.HDM, buf, sizeof(buf));
+    formatDisplayHeading(data, buf, sizeof(buf));
     lv_label_set_text(ui.heading_status, buf);
     snprintf(buf, sizeof(buf), "HEEL %d", heel);
     lv_label_set_text(ui.heel_status, buf);

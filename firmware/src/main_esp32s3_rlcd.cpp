@@ -1006,7 +1006,7 @@ void postTransmission() {
 }
 
 // Current sensor data
-SensorData currentData = {NAN, NAN, -999, NAN, -999, NAN, NAN, -1, NAN, NAN, NAN};
+SensorData currentData = {NAN, NAN, -999, NAN, -999, NAN, NAN, -1, NAN, NAN, NAN, NAN, NAN, 0, 0};
 
 // GPS status
 bool gpsDataValid = false;
@@ -1591,6 +1591,7 @@ void serviceFastSensors() {
   if (sensorCalibration.active) {
     sensorCalibration.tick(imu, millis(), deviceConnected);
     currentData.HDM = -1;
+    currentData.headingRaw = NAN;
   } else if (imuAvailable) {
     imuService.poll(imu, currentData, millis, rollOffset, pitchOffset,
                     headingOffset, northCalibrated, storeAccelReading,
