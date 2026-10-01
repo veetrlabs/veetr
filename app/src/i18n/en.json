@@ -790,5 +790,7 @@
   "Sensor confirmed calibration saved to flash. Remount Vane in its sailing position, then set vessel level and north reference below.": "Sensor confirmed calibration saved to flash. Remount Vane in its sailing position, then set vessel level and north reference below.",
   "Calibration stopped. No save was requested.": "Calibration stopped. No save was requested.",
   "Calibration was not confirmed. Check the connection and try again. A save timeout does not prove that saving failed.": "Calibration was not confirmed. Check the connection and try again. A save timeout does not prove that saving failed.",
-  "Vane did not confirm the calibration command. Check Bluetooth and firmware 0.0.35 or later.": "Vane did not confirm the calibration command. Check Bluetooth and firmware 0.0.35 or later."
+  "Vane did not confirm the calibration command. Check Bluetooth and firmware 0.0.35 or later.": "Vane did not confirm the calibration command. Check Bluetooth and firmware 0.0.35 or later.",
+  "Extended sensor measurements are included in this report.": "Extended sensor measurements are included in this report.",
+  "Detailed sensor measurements require firmware 0.0.36 or newer.": "Detailed sensor measurements require firmware 0.0.36 or newer."
 }

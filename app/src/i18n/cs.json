@@ -800,5 +800,7 @@
   "Sensor confirmed calibration saved to flash. Remount Vane in its sailing position, then set vessel level and north reference below.": "Senzor potvrdil uložení kalibrace do paměti. Namontujte Vane zpět do plavební polohy a níže nastavte vodorovnou polohu lodi a severní referenci.",
   "Calibration stopped. No save was requested.": "Kalibrace byla zastavena. Uložení nebylo vyžádáno.",
   "Calibration was not confirmed. Check the connection and try again. A save timeout does not prove that saving failed.": "Kalibrace nebyla potvrzena. Zkontrolujte připojení a zkuste to znovu. Vypršení čekání na potvrzení neznamená, že uložení selhalo.",
-  "Vane did not confirm the calibration command. Check Bluetooth and firmware 0.0.35 or later.": "Vane nepotvrdilo příkaz kalibrace. Zkontrolujte Bluetooth a firmware 0.0.35 nebo novější."
+  "Vane did not confirm the calibration command. Check Bluetooth and firmware 0.0.35 or later.": "Vane nepotvrdilo příkaz kalibrace. Zkontrolujte Bluetooth a firmware 0.0.35 nebo novější.",
+  "Extended sensor measurements are included in this report.": "Zpráva obsahuje rozšířená měření senzorů.",
+  "Detailed sensor measurements require firmware 0.0.36 or newer.": "Podrobná měření senzorů vyžadují firmware 0.0.36 nebo novější."
 }

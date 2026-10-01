@@ -431,3 +431,28 @@ The app respects the actual negotiated MTU and still waits for every chunk ack.
 The first upgrade from 0.0.34 remains limited by that firmware's smaller MTU;
 subsequent upgrades can carry about three times as many firmware bytes per write.
 This is a payload improvement, not a measured hardware transfer-time guarantee.
+
+
+### Extended Vane sensor diagnostics (0.0.36)
+
+The same Run Vane diagnostics button requests protocol v2; older firmware still
+returns the original two-part report. V2 requires all four bounded parts before a
+sample is accepted. Optional `sample.sensor` fields use integer units:
+`mx/my/mz` are calibrated magnetic field in 0.1 µT; `gx/gy/gz` are uncalibrated
+gyro rates and `bx/by/bz` are estimated gyro biases in 0.001 rad/s; `acc` is the
+rotation-vector accuracy estimate in 0.001 rad. `mq/gq` are sensor quality 0–3;
+`ma/ga/ca` are ages in milliseconds (-1 means unavailable). `ce` is the confirmed
+calibration-enable bitmask (1 accelerometer, 2 gyro, 4 magnetometer; -1 unknown).
+Missing numeric measurements are null, never invented zero values.
+
+Extra magnetic and gyro subscriptions expire eight seconds after the last request
+and stop before guided calibration or on disconnect. Reading the calibration
+flags does not change them or save DCD. The first sample may lack fresh extra
+measurements. This report does not prove saved DCD persistence or diagnose a bad
+chip by itself. It records evidence for comparing stationary gyro residuals,
+magnetic-field changes, and the sensor's reported calibration modes.
+
+Guided calibration now restores the normal accel+mag dynamic-calibration policy,
+with gyro dynamic calibration disabled, instead of disabling every calibration.
+Completion waits for the matching restore-command acknowledgement. The restart
+experiment still showed low quality, so this correction is not a verified drift fix.

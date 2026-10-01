@@ -29,3 +29,16 @@ test('heading changes handle north crossing and missing samples',()=>{
  expect(largestHeadingStep([{...sample,raw:359},{...sample,q:11,raw:1}])).toBe(2);
  expect(largestHeadingStep([{...sample,raw:null},{...sample,q:11}])).toBeNull();
 });
+
+test('extended samples wait for all four parts and retain only bounded sensor fields', async()=>{
+ let id=0;const request=requestVaneDiagnostic(async c=>{id=c.id;expect(c.v).toBe(2);return true},new AbortController().signal);
+ const sensor={mx:200,my:-100,mz:300,mq:1,ma:20,ce:5,ca:20,acc:100,gx:10,gy:20,gz:30,bx:1,by:2,bz:3,gq:2,ga:20};
+ let done=false;void request.then(()=>{done=true});
+ receiveVaneDiagnostic({type:'vane_diag',id,part:3,...sensor});
+ receiveVaneDiagnostic({type:'vane_diag',id,part:1,...sample});
+ receiveVaneDiagnostic({type:'vane_diag',id,part:0,n:4,...sample});
+ receiveVaneDiagnostic({type:'vane_diag',id,part:2,...sensor,ce:8});
+ await Promise.resolve();expect(done).toBe(false);
+ receiveVaneDiagnostic({type:'vane_diag',id,part:2,...sensor,latitude:42});
+ expect(await request).toEqual({...sample,sensor});
+});

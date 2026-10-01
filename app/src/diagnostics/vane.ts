@@ -1,22 +1,38 @@
+export const sensorFields = ['mx','my','mz','mq','ma','gx','gy','gz','bx','by','bz','gq','ga','acc','ce','ca'] as const;
+export type VaneSensorSample = Record<typeof sensorFields[number], number | null>;
+const nullableSensorFields = ['mx','my','mz','gx','gy','gz','bx','by','bz','acc'];
+export function validSensorValue(key: string, value: unknown): boolean {
+  if(value === null)return nullableSensorFields.includes(key);
+  if(typeof value !== 'number' || !Number.isInteger(value))return false;
+  if(['mq','gq'].includes(key))return value>=0 && value<=3;
+  if(key==='ce')return value>=-1 && value<=7;
+  if(['ma','ga','ca'].includes(key))return value>=-1 && value<=4294967295;
+  return Math.abs(value)<=1000000 && (key!=='acc'||value>=0);
+}
 export type VaneSample = {
+  sensor?: VaneSensorSample;
   up: number; imu: boolean; q: number; a: number; age: number; quality: number;
   north: boolean; offset: number; raw: number | null; hdg: number; rej: number; gps: boolean; sat: number;
 };
 export type VaneReport = { id: string; occurredAt: string; firmware: string; appVersion: string; samples: VaneSample[] };
-const fields = [['up','imu','q','a','age','quality'], ['north','offset','raw','hdg','rej','gps','sat']];
+const fields = [['up','imu','q','a','age','quality'], ['north','offset','raw','hdg','rej','gps','sat'], ['mx','my','mz','mq','ma','ce','ca','acc'], ['gx','gy','gz','bx','by','bz','gq','ga']];
 let nextId = 0;
-let pending: { id: number; parts: Record<number, Record<string, unknown>>; finish: (value?: VaneSample) => void } | null = null;
+let pending: { id: number; count?: number; parts: Record<number, Record<string, unknown>>; finish: (value?: VaneSample) => void } | null = null;
 export function receiveVaneDiagnostic(packet: any): boolean {
   if (packet?.type !== 'vane_diag') return false;
-  if (!pending || packet.id !== pending.id || ![0,1].includes(packet.part)) return true;
+  if (!pending || packet.id !== pending.id || ![0,1,2,3].includes(packet.part)) return true;
   const part: Record<string, unknown> = {};
   for (const key of fields[packet.part]) {
     const value = packet[key];
-    if (['imu','north','gps'].includes(key) ? typeof value !== 'boolean' : !(key === 'raw' && value === null) && (typeof value !== 'number' || !Number.isFinite(value))) return true;
+    if (packet.part>=2) {if(!validSensorValue(key,value))return true;}
+    else if (['imu','north','gps'].includes(key) ? typeof value !== 'boolean' : !(key === 'raw' && value === null) && (typeof value !== 'number' || !Number.isFinite(value))) return true;
     part[key] = value;
   }
+  if(packet.part===0){if(packet.n!==undefined && packet.n!==4)return true;pending.count=packet.n===4?4:2;}
   pending.parts[packet.part] = part;
-  if (pending.parts[0] && pending.parts[1]) pending.finish({...pending.parts[0], ...pending.parts[1]} as VaneSample);
+  if (pending.parts[0] && pending.parts[1] && (pending.count===2 || (pending.parts[2] && pending.parts[3]))) {
+    pending.finish({...pending.parts[0], ...pending.parts[1], ...(pending.count===4 ? {sensor:{...pending.parts[2],...pending.parts[3]}} : {})} as VaneSample);
+  }
   return true;
 }
 export async function requestVaneDiagnostic(send: (command: any) => Promise<boolean>, signal: AbortSignal): Promise<VaneSample> {
@@ -33,7 +49,7 @@ export async function requestVaneDiagnostic(send: (command: any) => Promise<bool
     const timer = setTimeout(() => finish(), 5000);
     pending = {id, parts: {}, finish};
     signal.addEventListener('abort', abort, {once: true});
-    void send({cmd:'VANE_DIAGNOSTICS', id}).then(ok => { if (!ok && pending?.id === id) finish(); }).catch(() => { if (pending?.id === id) finish(); });
+    void send({cmd:'VANE_DIAGNOSTICS', id, v:2}).then(ok => { if (!ok && pending?.id === id) finish(); }).catch(() => { if (pending?.id === id) finish(); });
   });
 }
 export function vaneFindings(samples: VaneSample[]): string[] {
@@ -44,6 +60,7 @@ export function vaneFindings(samples: VaneSample[]): string[] {
     last.q === 0 || last.age < 0 || last.age > 3000 ? 'Compass quality is unavailable without recent readings.' : samples.every(s => s.quality < 2) ? 'Compass quality stayed low. North alignment alone cannot fix sensor calibration.' : 'Compass reached usable quality during this check.',
     last.north ? 'A north alignment is loaded on Vane.' : 'No saved north alignment is loaded on Vane.',
     last.gps ? 'Vane has a recent GPS position.' : 'Vane does not have a recent GPS position.',
+    ...(last.sensor ? ['Extended sensor measurements are included in this report.'] : ['Detailed sensor measurements require firmware 0.0.36 or newer.']),
   ];
 }
 

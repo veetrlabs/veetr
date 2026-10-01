@@ -1,4 +1,6 @@
 #include "sensor_calibration.h"
+#include "imu_diagnostics.h"
+static ImuDiagnostics imuDiagnostics;
 static SensorCalibration sensorCalibration;
 static volatile uint32_t pendingCalibrationCommand = 0;
 #include "vane_diagnostics.h"
@@ -657,7 +659,7 @@ class CommandCallbacks: public NimBLECharacteristicCallbacks {
           }
           else if (doc["cmd"] == "VANE_DIAGNOSTICS") {
             unsigned long id = doc["id"] | 0UL;
-            if (id > 0 && id <= 65535) pendingDiagnosticRequest = id;
+            if (id > 0 && id <= 65535) pendingDiagnosticRequest = id | (doc["v"] == 2 ? 65536UL : 0);
           }
           else if (doc["cmd"] == "GET_FW_VERSION") {
             // Send firmware version response
@@ -1179,11 +1181,13 @@ void updateBLEData() {
   if (pendingDiagnosticRequest && deviceConnected && !otaState.active) {
     unsigned long request = pendingDiagnosticRequest;
     pendingDiagnosticRequest = 0;
-    for (int part = 0; part < 2; ++part) {
+    bool extended = request & 65536UL; request &= 65535;
+    if (extended && imuAvailable && !sensorCalibration.active) imuDiagnostics.request(imu,millis());
+    for (int part = 0; part < (extended ? 4 : 2); ++part) {
       String packet = vaneDiagnosticPacket(request, part, millis(), currentData,
           imuService, imuAvailable, northCalibrated, headingOffset,
           gps.location.isValid() && gps.location.age() < 3000,
-          gps.satellites.isValid() ? gps.satellites.value() : 0);
+          gps.satellites.isValid() ? gps.satellites.value() : 0, extended ? &imuDiagnostics : nullptr);
       if (packet.length()) safeBLESend(packet, true);
     }
   }
@@ -1575,7 +1579,10 @@ void serviceFastSensors() {
   readGpsStream(gpsSerial, gps, 256);
   if (pendingCalibrationCommand) {
     uint32_t command = pendingCalibrationCommand; pendingCalibrationCommand = 0;
-    if (imuAvailable) sensorCalibration.command(command & 65535, imu, millis());
+    if (imuAvailable) {
+      if ((command & 65535)==1) imuDiagnostics.stop(imu);
+      sensorCalibration.command(command & 65535, imu, millis());
+    }
     StaticJsonDocument<256> reply;
     reply["type"] = "sensor_cal"; reply["id"] = command >> 16;
     reply["state"] = imuAvailable ? sensorCalibration.state : "unavailable";
@@ -1583,12 +1590,14 @@ void serviceFastSensors() {
     reply["gyro"] = sensorCalibration.gyro; reply["ready"] = sensorCalibration.ready(millis());
     String packet; serializeJson(reply, packet); safeBLESend(packet, true);
   }
+  imuDiagnostics.tick(imu,millis(),deviceConnected && !sensorCalibration.active);
   if (sensorCalibration.active) {
     sensorCalibration.tick(imu, millis(), deviceConnected);
     currentData.HDM = -1;
   } else if (imuAvailable) {
     imuService.poll(imu, currentData, millis, rollOffset, pitchOffset,
-                    headingOffset, northCalibrated, storeAccelReading);
+                    headingOffset, northCalibrated, storeAccelReading,
+                    [](BNO080& sensor,uint16_t report,unsigned long now){imuDiagnostics.observe(sensor,report,now);});
   }
   // Animate the RLCD independently of the 1 Hz sensor acquisition cycle.
   tickDisplayClock();
