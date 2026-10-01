@@ -1156,11 +1156,8 @@ void setup() {
     Serial.println("[Boot] No level calibration found");
   }
   
-  northCalibrated = preferences.isKey("northOffsetV2") || preferences.getBool("northCal", false);
+  northCalibrated = loadCompassNorth(preferences, headingOffset);
   if (northCalibrated) {
-    headingOffset = preferences.isKey("northOffsetV2")
-        ? preferences.getFloat("northOffsetV2", 0.0f)
-        : preferences.getFloat("headingOffset", 0.0f);
     Serial.printf("[Boot] Loaded north calibration - Heading offset: %.1f°\n", headingOffset);
   } else {
     Serial.println("[Boot] No north calibration found");

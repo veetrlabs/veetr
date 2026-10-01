@@ -33,7 +33,7 @@ void test_heading_identity_quaternion() {
   TEST_ASSERT_FLOAT_WITHIN(0.1f, 0.0f, heading);
 }
 
-void test_heading_yaw_90_degrees() {
+void test_counterclockwise_turn_is_west() {
   float heading = 0.0f;
   float half = kPi * 0.25f;
   float quatK = sinf(half);
@@ -41,7 +41,24 @@ void test_heading_yaw_90_degrees() {
   bool ok = computeHeadingDegreesFromQuaternion(0.0f, 0.0f, quatK, quatReal, heading);
 
   TEST_ASSERT_TRUE(ok);
-  TEST_ASSERT_FLOAT_WITHIN(0.1f, 90.0f, heading);
+  TEST_ASSERT_FLOAT_WITHIN(0.1f, 270.0f, heading);
+}
+
+void test_clockwise_turn_is_east() {
+  float heading;
+  TEST_ASSERT_TRUE(computeHeadingDegreesFromQuaternion(0, 0, -sinf(kPi/4), cosf(kPi/4), heading));
+  TEST_ASSERT_FLOAT_WITHIN(.01, 90, heading);
+}
+
+void test_north_marker_cancels_physical_turn() {
+  for (int ccw = -179; ccw <= 179; ccw += 13) {
+    const float half = ccw * kPi / 360;
+    float heading;
+    TEST_ASSERT_TRUE(computeHeadingDegreesFromQuaternion(0, 0, sinf(half), cosf(half), heading));
+    // Display angles are clockwise: physical device turn is -ccw,
+    // its north marker is -heading. Their world angle must stay zero.
+    TEST_ASSERT_FLOAT_WITHIN(.01, 0, remainderf(-ccw - heading, 360));
+  }
 }
 
 void test_heading_rejects_zero_quaternion() {
@@ -64,7 +81,9 @@ int main(int, char**) {
   RUN_TEST(test_roll_pitch_level);
   RUN_TEST(test_roll_pitch_right_heel);
   RUN_TEST(test_heading_identity_quaternion);
-  RUN_TEST(test_heading_yaw_90_degrees);
+  RUN_TEST(test_counterclockwise_turn_is_west);
+  RUN_TEST(test_clockwise_turn_is_east);
+  RUN_TEST(test_north_marker_cancels_physical_turn);
   RUN_TEST(test_heading_rejects_zero_quaternion);
   return UNITY_END();
 }
