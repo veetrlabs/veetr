@@ -1,5 +1,6 @@
 #include "display_lvgl.h"
 #include "display_driver.h"
+#include "heading_display.h"
 #include "../screens/screen_main.h"
 #include <lvgl.h>
 #include <math.h>
@@ -167,7 +168,9 @@ static void draw_compass_overlay(const SensorData &data) {
     static unsigned long lastFrameMs = 0;
     static bool animationInitialized = false;
 
-    int targetHeading = normalize_angle(data.HDM, 0);
+    const bool hasHeading = hasDisplayHeading(data.HDM);
+    const int targetHeading = hasHeading ? data.HDM : 0;
+    static bool hadHeading = false;
     if (data.windAngle >= 0 && data.windAngle <= 359) {
         lastAwa = normalize_angle(data.windAngle, lastAwa);
         hasAwa = true;
@@ -187,11 +190,15 @@ static void draw_compass_overlay(const SensorData &data) {
         shownTwa = lastTwa;
         animationInitialized = true;
     } else {
-        shownHeading = move_angle_toward(shownHeading, targetHeading, 220.0f * dt);
+        if (hasHeading) {
+            // A recovered reading must not animate from a stale/placeholder heading.
+            shownHeading = hadHeading ? move_angle_toward(shownHeading, targetHeading, 220.0f * dt) : targetHeading;
+        }
         shownAwa = move_angle_toward(shownAwa, lastAwa, 240.0f * dt);
         shownTwa = move_angle_toward(shownTwa, lastTwa, 240.0f * dt);
     }
 
+    hadHeading = hasHeading;
     float heading = shownHeading;
     float awa = shownAwa;
     float twa = shownTwa;
@@ -204,8 +211,8 @@ static void draw_compass_overlay(const SensorData &data) {
     // A single clean stroke reads better than a simulated thick ring at 1-bit.
     display_draw_circle(cx, cy, cr, BLACK);
 
-    // Heading reference: filled north marker outside the ring.
-    {
+    // Heading reference: omit the marker when the sensor has no usable heading.
+    if (hasHeading) {
         float rad = -heading * 3.14159265f / 180.0f;
         float ux = sinf(rad), uy = -cosf(rad);
         int base_cx = cx + (int)(cr * ux);
@@ -379,9 +386,8 @@ void display_lvgl_update(const SensorData& data, const DisplayStatus& status) {
     format_speed(data.speed, buf, sizeof(buf));
     lv_label_set_text(ui.sog_value, buf);
 
-    int heading = normalize_angle(data.HDM, 0);
     int heel = isnan(data.tilt) ? 0 : (int)roundf(fabsf(data.tilt));
-    snprintf(buf, sizeof(buf), "HDG %03d", heading);
+    formatDisplayHeading(data.HDM, buf, sizeof(buf));
     lv_label_set_text(ui.heading_status, buf);
     snprintf(buf, sizeof(buf), "HEEL %d", heel);
     lv_label_set_text(ui.heel_status, buf);

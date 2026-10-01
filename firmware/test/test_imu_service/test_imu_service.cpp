@@ -1,5 +1,7 @@
 #include <unity.h>
 #include "imu_service.h"
+#include "ble_json.h"
+#include "heading_display.h"
 static unsigned long clockMs;
 static int stored;
 static unsigned long now() { return clockMs; }
@@ -82,8 +84,30 @@ void test_quality_gate_and_alignment_readiness() {
   service.poll(imu, data, now, 0, 0, 10, true, store);
   TEST_ASSERT_EQUAL(-1, data.HDM);
 }
+void test_display_and_ble_agree_through_quality_drop_and_recovery() {
+  ImuService service; MockImu imu; SensorData data = {};
+  auto check = [&](bool available) {
+    TEST_ASSERT_EQUAL(available, hasDisplayHeading(data.HDM));
+    char label[16]; formatDisplayHeading(data.HDM, label, sizeof(label));
+    TEST_ASSERT_EQUAL_STRING(available ? "HDG 000" : "HDG ---", label);
+    BleGpsSnapshot gps = {}; BleRegattaSnapshot line = {false, NAN};
+    String packet = buildSensorDataJson(data, gps, true, -60, line);
+    StaticJsonDocument<1024> doc; deserializeJson(doc, packet.c_str());
+    TEST_ASSERT_EQUAL(available, doc.containsKey("HDM"));
+  };
+  auto poll = [&]() { imu.remaining = 1; service.poll(imu, data, now, 0, 0, 0, false, store); };
+  poll(); check(false);
+  clockMs = 2100; poll(); check(true); // Genuine north must remain 000.
+  clockMs = 2200; imu.quality = 1; poll(); check(false);
+  clockMs = 2300; imu.quality = 2; poll(); check(false);
+  clockMs = 4200; poll(); check(false); // Recovery requires two full seconds.
+  clockMs = 4300; poll(); check(true);
+  clockMs = 7401; service.poll(imu, data, now, 0, 0, 0, false, store); check(false);
+}
+
 int main(int, char**) {
   UNITY_BEGIN();
+  RUN_TEST(test_display_and_ble_agree_through_quality_drop_and_recovery);
   RUN_TEST(test_quality_gate_and_alignment_readiness);
   RUN_TEST(test_drains_queue_and_only_stores_fresh_accel);
   RUN_TEST(test_bounded_drain_and_poll_interval);
