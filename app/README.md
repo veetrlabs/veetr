@@ -456,3 +456,31 @@ Guided calibration now restores the normal accel+mag dynamic-calibration policy,
 with gyro dynamic calibration disabled, instead of disabling every calibration.
 Completion waits for the matching restore-command acknowledgement. The restart
 experiment still showed low quality, so this correction is not a verified drift fix.
+
+## Anchor alarm
+
+Settings → Anchor alarm saves an anchor with **Anchor dropped** or by moving the map beneath a fixed center target.
+Chain out and an extra margin (metres) persist locally; the displayed alarm radius
+is their sum. Editing an armed alarm requires confirmation and resets its latch.
+A position outside the radius latches the alarm and repeats local notifications
+at most every 30 seconds until stopped. Test alarm sound before use.
+
+The bundle entry registers `veetr-anchor-location-v1` independently of trip
+recording. Fresh Vane telemetry is preferred, with phone GPS as fallback; the
+phone must remain aboard. Phone positions older than 30 seconds or with reported
+accuracy worse than 50 m are rejected. A native notification scheduled roughly
+90 seconds ahead warns if reliable position delivery stops. Monitoring resumes
+from saved settings when the app reopens. No anchor data is uploaded.
+
+This requires a new native build for `expo-notifications` and the location-service
+ownership patch. Background location and audible notification permission are
+required to arm. Notifications respect OS sound/Focus settings; this does not
+provide iOS Critical Alerts or an uninterrupted siren. Force-quitting, OS power
+management and permission changes can interrupt monitoring. The native watchdog
+is a best-effort notification, not a guarantee of continuous GPS execution.
+
+Before release, validate on physical iOS and Android devices: screen lock,
+notification sound/Do Not Disturb, Vane disconnect and phone fallback, GPS loss,
+process termination/reopen, and stopping trip recording and anchor monitoring in
+both orders. Map selection, persistence, boundary detection, background callbacks,
+permission denial and cleanup are covered in `src/anchor/__tests__`.

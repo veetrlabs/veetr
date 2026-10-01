@@ -3,7 +3,7 @@
     "name": "Veetr",
     "slug": "veetr",
     "owner": "veetrlabs",
-    "version": "0.0.36",
+    "version": "0.0.38",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -78,7 +78,7 @@
         "expo-location",
         {
           "locationWhenInUsePermission": "Use your location to show your position, speed and course while Veetr is open. Recording and sharing start only when you choose them.",
-          "locationAlwaysAndWhenInUsePermission": "Share your boat position during an active tracking session, including while the screen is locked.",
+          "locationAlwaysAndWhenInUsePermission": "Use your location for active tracking or anchor monitoring, including while the screen is locked.",
           "isIosBackgroundLocationEnabled": true,
           "isAndroidBackgroundLocationEnabled": true,
           "isAndroidForegroundServiceEnabled": true
@@ -106,7 +106,8 @@
             ]
           }
         }
-      ]
+      ],
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true

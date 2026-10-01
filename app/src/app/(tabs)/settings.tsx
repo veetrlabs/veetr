@@ -1,5 +1,6 @@
 import { requestNorthAlignment, northResultMessage } from '../../utils/northAlignment';
 import { t, useLanguageRefresh } from '../../i18n';
+import AnchorSettings from "../../anchor/AnchorSettings";
 import PreferencesSettings from "../../components/PreferencesSettings";
 import AccountSettings from "../../components/AccountSettings";
 import LocationSettings from "../../tracking/LocationSettings";
@@ -24,6 +25,7 @@ import { useBLE } from "../../context/BLEContext";
 import { APP_VERSION } from "../../utils/version";
 
 type ViewType =
+  | "anchor"
   | "preferences"
   | "account"
   | "location"
@@ -168,6 +170,11 @@ export default function SettingsTab() {
         </Text>
         <Text style={[styles.arrow, { color: colors.textSubtle }]}>›</Text>
       </TouchableOpacity>
+      <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("Anchor alarm")}
+        style={[styles.menuItem, { borderBottomColor: colors.border }]} onPress={() => navigateTo("anchor")}>
+        <Text style={[styles.menuItemText, { color: colors.text }]}>{t("Anchor alarm")}</Text>
+        <Text style={[styles.arrow, { color: colors.textSubtle }]}>›</Text>
+      </TouchableOpacity>
       <Text style={[styles.version, { color: colors.textSubtle }]}>
         {t("App Version:")} {APP_VERSION}
       </Text>
@@ -192,6 +199,8 @@ export default function SettingsTab() {
       />
     </>
   );
+
+  if (currentView === "anchor") return <AnchorSettings onBack={() => navigateTo("main")} />;
 
   if (currentView === "account")
     return <AccountSettings onBack={() => navigateTo("main")} />;

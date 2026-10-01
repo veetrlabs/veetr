@@ -1,3 +1,4 @@
+import AnchorRuntime from "../anchor/AnchorRuntime";
 import LanguageProvider from "../i18n/LanguageProvider";
 import { NavigationProvider } from "../navigation/NavigationContext";
 import TrackingRuntime from "../tracking/TrackingRuntime";
@@ -28,6 +29,7 @@ export default function RootLayout() {
       <BLEProvider>
         <NavigationProvider>
           <TrackingRuntime />
+          <AnchorRuntime />
           <StatusBar style="auto" />
           <View style={styles.container}>
             <OfflineIndicator />

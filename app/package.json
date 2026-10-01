@@ -1,6 +1,6 @@
 {
   "name": "veetr-mobile",
-  "version": "0.0.36",
+  "version": "0.0.38",
   "main": "index.js",
   "scripts": {
     "start": "expo start",
@@ -26,6 +26,7 @@
     "expo-linking": "~8.0.12",
     "expo-localization": "~17.0.9",
     "expo-location": "~19.0.8",
+    "expo-notifications": "~0.32.17",
     "expo-router": "~6.0.24",
     "expo-sensors": "~15.0.8",
     "expo-sharing": "~14.0.8",

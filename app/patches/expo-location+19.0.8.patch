@@ -250,10 +250,9 @@ index 0000000..614e10b
 +
 +}
 diff --git a/node_modules/expo-location/android/src/main/java/expo/modules/location/services/LocationTaskService.kt b/node_modules/expo-location/android/src/main/java/expo/modules/location/services/LocationTaskService.kt
-index 80647ab..06600f0 100644
 --- a/node_modules/expo-location/android/src/main/java/expo/modules/location/services/LocationTaskService.kt
 +++ b/node_modules/expo-location/android/src/main/java/expo/modules/location/services/LocationTaskService.kt
-@@ -13,6 +13,7 @@ import android.os.Binder
+@@ -13,6 +13,7 @@
  import android.os.Build
  import android.os.Bundle
  import android.os.IBinder
@@ -261,10 +260,25 @@ index 80647ab..06600f0 100644
  
  class LocationTaskService : Service() {
    private var mChannelId: String? = null
-@@ -47,11 +48,13 @@ class LocationTaskService : Service() {
+@@ -46,21 +47,43 @@
+     mParentContext = context
    }
  
-   fun stop() {
+-  fun stop() {
++  // Location tasks share this service; retain foreground protection until
++  // the last owner stops (for example, trip recording and anchor monitoring).
++  private val owners = linkedMapOf<String, Bundle>()
++
++  fun stop(owner: String? = null) {
++    if (owner != null) {
++      owners.remove(owner)
++      owners.entries.lastOrNull()?.let { (name, options) ->
++        startForeground(options, name)
++        return
++      }
++    } else {
++      owners.clear()
++    }
 +    VeetrLocationDiagnostics.record(this, "serviceStopRequested")
      stopForeground(true)
      stopSelf()
@@ -275,8 +289,12 @@ index 80647ab..06600f0 100644
      if (mKillService) {
        super.onTaskRemoved(rootIntent)
        stop()
-@@ -61,6 +64,12 @@ class LocationTaskService : Service() {
-   fun startForeground(serviceOptions: Bundle) {
+     }
+   }
+ 
+-  fun startForeground(serviceOptions: Bundle) {
++  fun startForeground(serviceOptions: Bundle, owner: String) {
++    owners[owner] = serviceOptions
      val notification = buildServiceNotification(serviceOptions)
      startForeground(mServiceId, notification)
 +    VeetrLocationDiagnostics.record(this, "serviceStarted")
@@ -289,10 +307,9 @@ index 80647ab..06600f0 100644
  
    //region private
 diff --git a/node_modules/expo-location/android/src/main/java/expo/modules/location/taskConsumers/LocationTaskConsumer.kt b/node_modules/expo-location/android/src/main/java/expo/modules/location/taskConsumers/LocationTaskConsumer.kt
-index e659285..0986981 100644
 --- a/node_modules/expo-location/android/src/main/java/expo/modules/location/taskConsumers/LocationTaskConsumer.kt
 +++ b/node_modules/expo-location/android/src/main/java/expo/modules/location/taskConsumers/LocationTaskConsumer.kt
-@@ -28,6 +28,7 @@ import expo.modules.interfaces.taskManager.TaskExecutionCallback
+@@ -28,6 +28,7 @@
  import expo.modules.interfaces.taskManager.TaskInterface
  import expo.modules.interfaces.taskManager.TaskManagerUtilsInterface
  import expo.modules.location.AppForegroundedSingleton
@@ -300,7 +317,7 @@ index e659285..0986981 100644
  import expo.modules.location.LocationHelpers
  import expo.modules.location.records.LocationOptions
  import expo.modules.location.records.LocationResponse
-@@ -54,6 +55,7 @@ class LocationTaskConsumer(context: Context, taskManagerUtils: TaskManagerUtilsI
+@@ -54,6 +55,7 @@
    }
  
    override fun didRegister(task: TaskInterface) {
@@ -308,7 +325,7 @@ index e659285..0986981 100644
      mTask = task
      startLocationUpdates()
      maybeStartForegroundService()
-@@ -79,6 +81,7 @@ class LocationTaskConsumer(context: Context, taskManagerUtils: TaskManagerUtilsI
+@@ -79,6 +81,7 @@
    }
  
    override fun didReceiveBroadcast(intent: Intent) {
@@ -316,7 +333,7 @@ index e659285..0986981 100644
      mTask ?: return
      val result = LocationResult.extractResult(intent)
      if (result != null) {
-@@ -99,7 +102,13 @@ class LocationTaskConsumer(context: Context, taskManagerUtils: TaskManagerUtilsI
+@@ -99,7 +102,13 @@
      }
    }
  
@@ -330,7 +347,7 @@ index e659285..0986981 100644
      val data = taskManagerUtils.extractDataFromJobParams(params)
      val locationBundles = ArrayList<Bundle>()
      for (persistableLocationBundle in data) {
-@@ -148,7 +157,10 @@ class LocationTaskConsumer(context: Context, taskManagerUtils: TaskManagerUtilsI
+@@ -148,7 +157,10 @@
  
      try {
        mLocationClient.requestLocationUpdates(locationRequest, intent)
@@ -341,7 +358,34 @@ index e659285..0986981 100644
        Log.w(TAG, "Location request has been rejected.", e)
      }
    }
-@@ -228,6 +240,7 @@ class LocationTaskConsumer(context: Context, taskManagerUtils: TaskManagerUtilsI
+@@ -206,12 +218,12 @@
+             mService = (service as? ServiceBinder)?.service
+             mService?.let {
+               it.setParentContext(context)
+-              it.startForeground(serviceOptions)
++              it.startForeground(serviceOptions, task.name)
++              if (mTask !== task) it.stop(task.name)
+             }
+           }
+ 
+           override fun onServiceDisconnected(name: ComponentName) {
+-            mService?.stop()
+             mService = null
+           }
+         },
+@@ -219,15 +231,17 @@
+       )
+     } else {
+       // Restart the service with new service options.
+-      mService?.startForeground(options.getArguments(FOREGROUND_SERVICE_KEY).toBundle())
++      mService?.startForeground(options.getArguments(FOREGROUND_SERVICE_KEY).toBundle(), task.name)
+     }
+   }
+ 
+   private fun stopForegroundService() {
+-    mService?.stop()
++    mTask?.let { mService?.stop(it.name) }
++    mService = null
    }
  
    private fun deferLocations(locations: List<Location>) {
@@ -349,7 +393,7 @@ index e659285..0986981 100644
      val size = mDeferredLocations.size
      var lastLocation = if (size > 0) mDeferredLocations[size - 1] else mLastReportedLocation
      for (location in locations) {
-@@ -263,6 +276,7 @@ class LocationTaskConsumer(context: Context, taskManagerUtils: TaskManagerUtilsI
+@@ -263,6 +277,7 @@
        mDeferredLocations.clear()
  
        // Schedule new job.
@@ -357,7 +401,7 @@ index e659285..0986981 100644
        taskManagerUtils.scheduleJob(context, mTask, data)
      }
    }
-@@ -292,7 +306,11 @@ class LocationTaskConsumer(context: Context, taskManagerUtils: TaskManagerUtilsI
+@@ -292,7 +307,11 @@
      if (locationBundles.size > 0 && mTask != null) {
        val data = Bundle()
        data.putParcelableArrayList("locations", locationBundles)
