@@ -83,3 +83,6 @@ coverage/
 .env
 .env.*
 !.env.example
+
+# Local previews and intermediate assets
+/tmp/
