@@ -107,8 +107,8 @@
           }
         }
       ],
-      "expo-notifications",
-      "./plugins/with-local-notifications"
+      "./plugins/with-local-notifications",
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true
