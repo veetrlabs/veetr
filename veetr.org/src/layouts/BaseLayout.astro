@@ -42,7 +42,7 @@ const heroImage = optimizedImage
     } : undefined,
     actions: heroActions ? [
       { text: 'Open Live App', link: 'https://app.veetr.org/', icon: 'right-arrow', variant: 'primary' },
-      { text: 'Get Your Veetr', link: '/get-your-veetr/', variant: 'secondary' },
+      { text: 'Get your Veetr Vane', link: '/get-your-veetr/', variant: 'secondary' },
     ] : undefined,
   },
 }}>
@@ -50,7 +50,7 @@ const heroImage = optimizedImage
     <slot name="before-intro" />
     {hero && <div class="page-intro">
       <p class="eyebrow">{hero.eyebrow}</p>
-      <p class="page-support">{hero.heroSupport}</p>
+      {hero.heroSupport && <p class="page-support">{hero.heroSupport}</p>}
     </div>}
     <slot />
   </div>

@@ -1,12 +1,12 @@
 ---
 title: Compliance and certifications
-description: Current regulatory context and certification considerations for Veetr hardware.
+description: Current regulatory context and certification considerations for Veetr Vane hardware.
 editUrl: https://github.com/veetrlabs/veetr/edit/main/docs/COMPLIANCE.md
 ---
 
 > **Important:** This page describes the project's current understanding and is not legal, regulatory, engineering, or certification advice.
 
-This document outlines the regulatory compliance and certifications for the Veetr device.
+This document outlines the regulatory compliance and certifications for the Veetr Vane.
 
 ## ESP32 Module Certifications
 
@@ -55,7 +55,7 @@ The Veetr project is based on the **ESP32-WROOM-32U** module, which holds the fo
 
 ### Important Notes
 
-This open hardware project does **not** provide product certifications. The compliance information refers only to the ESP32 module used in the design. Anyone building or selling Veetr devices is responsible for ensuring compliance in their jurisdiction.
+This open hardware project does **not** provide product certifications. The compliance information refers only to the ESP32 module used in the design. Anyone building or selling Veetr Vane units is responsible for ensuring compliance in their jurisdiction.
 
 ## FCC Compliance Statement
 
@@ -124,7 +124,7 @@ Le présent appareil est conforme aux CNR d'Industrie Canada applicables aux app
 - **Is an open hardware design** - builders are responsible for their own compliance
 - **Cannot guarantee compliance** of derivative works or modifications
 
-**Users building or selling Veetr devices must:**
+**Users building or selling Veetr Vane units must:**
 
 1. Verify current certification status of all components
 2. Obtain independent legal and regulatory advice

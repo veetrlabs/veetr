@@ -8,7 +8,7 @@ options:
     href: "/build/"
     linkText: "Explore the build guide"
   - title: "Sail with just your phone"
-    text: "Use the iOS and Android apps with your phone’s GPS for speed over ground (SOG), trip tracking and joining races. You don’t need a Veetr device to get started. Contact us for access to the apps while testing is in progress."
+    text: "Use the iOS and Android apps with your phone’s GPS for speed over ground (SOG), trip tracking and joining races. You don’t need a Veetr Vane to get started. Contact us for access to the apps while testing is in progress."
     href: "/about/#contact"
     linkText: "Get mobile app access"
   - title: "Start managing races"

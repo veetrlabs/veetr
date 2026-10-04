@@ -81,12 +81,12 @@ test('dashboard is optimized without losing its landscape proportions', async ()
 });
 
 test('hardware is the primary homepage image', async () => {
-  const homeHardware = home.match(/<img[^>]*alt="Veetr hardware unit with wind sensor, Bluetooth antenna, and GPS antenna"[^>]*>/)?.[0];
+  const homeHardware = home.match(/<img[^>]*alt="Veetr Vane unit with wind sensor, Bluetooth antenna, and GPS antenna"[^>]*>/)?.[0];
   assert.ok(homeHardware);
   assert.match(homeHardware, /src="[^"]+\.webp"/);
   const src = homeHardware.match(/src="([^"]+)"/)[1];
   assert.ok((await stat(new URL(src.replace(/^\//, ''), dist))).size > 0);
-  assert.ok(home.includes('A portable sensor unit measures wind'));
+  assert.ok(home.includes('Veetr Vane is our portable hardware unit. It measures wind'));
 });
 
 test('the build hero uses a transparent PCB cutout with a contrast surface', async () => {

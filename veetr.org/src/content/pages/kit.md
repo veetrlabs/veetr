@@ -11,4 +11,4 @@ Veetr.com previously described a made-to-order kit and a complete do-it-yourself
 
 The former complete-kit offer is **not currently accepting orders**. Prices, shipping estimates, and sales terms below are retained for reference and may change before finished hardware becomes available again.
 
-For the current product plan, including the work needed before a distributable batch, see **[Get Your Veetr](/get-your-veetr/)**. For the supported route today, use the **[build guide](/build/)** and **[hardware documentation](/docs/hardware/)**.
+For the current product plan, including the work needed before a distributable batch, see **[Get your Veetr Vane](/get-your-veetr/)**. For the supported route today, use the **[build guide](/build/)** and **[hardware documentation](/docs/hardware/)**.

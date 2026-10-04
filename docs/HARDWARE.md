@@ -4,9 +4,13 @@ description: How the Veetr controller, sensors, antennas, and sailing dashboard 
 editUrl: https://github.com/veetrlabs/veetr/edit/main/docs/HARDWARE.md
 ---
 
-Veetr is an ESP32-based sailing instrument. A portable controller reads the wind, motion, and GPS sensors, calculates the sailing data, and sends it to the Veetr web app over Bluetooth Low Energy (BLE).
+Veetr Vane is the ESP32-based sailing instrument in the Veetr family. A portable controller reads the wind, motion, and GPS sensors, calculates the sailing data, and sends it to the Veetr web app over Bluetooth Low Energy (BLE).
 
 ![Veetr PCB installed in the prototype enclosure](../pcb/Veetr-in-box.jpg)
+
+## Why Veetr Vane?
+
+“Vane” connects English and Czech: in English, a wind vane shows the wind’s direction; in Czech, **“vítr vane” means “the wind blows.”** It gives the instrument its own name while keeping its Czech roots.
 
 ## At a glance
 

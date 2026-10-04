@@ -1,9 +1,9 @@
 ---
 title: "Build"
-description: "Build Veetr from open hardware files, standard parts, and project documentation."
+description: "Build Veetr Vane from open hardware files, standard parts, and project documentation."
 eyebrow: "Build"
-heroTitle: "Build your own Veetr"
-heroLead: "The current way to get Veetr hardware is to build it yourself from the open design."
+heroTitle: "Build your own Veetr Vane"
+heroLead: "The current way to get Veetr Vane hardware is to build it yourself from the open design."
 heroSupport: "Use the docs, PCB files, firmware, and component list to assemble, test, and improve the system."
 ---
 

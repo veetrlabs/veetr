@@ -4,12 +4,12 @@ import Search from '@astrojs/starlight/components/Search.astro';
 import { Icon } from '@astrojs/starlight/components';
 
 const hardwareLinks = [
-  { href: '/get-your-veetr/', label: 'Get your Veetr' },
+  { href: '/get-your-veetr/', label: 'Get your Veetr Vane' },
   { href: '/build/', label: 'Build your own' },
   { href: '/docs/', label: 'Docs' },
 ];
 const navigationGroups = [
-  { label: 'Hardware', links: hardwareLinks },
+  { label: 'Vane', links: hardwareLinks },
 ];
 const pathname = Astro.url.pathname;
 const isCurrent = (href: string) => pathname === href || (['/docs/', '/races/'].includes(href) && pathname.startsWith(href));
