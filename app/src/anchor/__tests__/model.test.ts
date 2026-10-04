@@ -25,3 +25,8 @@ it('rejects corrupt or invalid settings rather than pretending to monitor', () =
   expect(() => validateSettings({ ...defaults, chainM: NaN })).toThrow();
   expect(() => validateSettings({ ...defaults, marginM: -1 })).toThrow();
 });
+it('preserves the sound choice and migrates older settings to the system sound', () => {
+  expect(restoreState(JSON.stringify({ ...defaults, sound: 'siren' })).sound).toBe('siren');
+  const { sound, ...legacy } = defaults;
+  expect(restoreState(JSON.stringify(legacy)).sound).toBe('system');
+});

@@ -4,7 +4,7 @@ const mockLocation = {
   startLocationUpdatesAsync: jest.fn(), hasStartedLocationUpdatesAsync: jest.fn(), stopLocationUpdatesAsync: jest.fn(),
   Accuracy: { BestForNavigation: 6 }, ActivityType: { OtherNavigation: 4 },
 };
-const mockNotifications = { clearNotifications: jest.fn(), notifyAlarm: jest.fn(), prepareNotifications: jest.fn(), scheduleWatchdog: jest.fn() };
+const mockNotifications = { checkAlarmReadiness: jest.fn(), clearNotifications: jest.fn(), notifyAlarm: jest.fn(), prepareNotifications: jest.fn(), scheduleWatchdog: jest.fn() };
 const mockTasks = { isTaskDefined: jest.fn(() => false), defineTask: jest.fn() };
 jest.mock('@react-native-async-storage/async-storage', () => mockStorage);
 jest.mock('react-native', () => ({ Platform: { OS: 'ios' }, AppState: { currentState: 'active' } }));
@@ -95,4 +95,22 @@ it('serializes stop against incoming callbacks', async () => {
   await Promise.all([service.stopAnchor(), service.receiveAnchorFix(fix(43.001))]);
   expect(service.getAnchorSnapshot().settings.armed).toBe(false);
   expect(mockNotifications.notifyAlarm).not.toHaveBeenCalled();
+});
+it('does not refresh the native watchdog during a latched drag alarm', async () => {
+  await arm(); mockNotifications.scheduleWatchdog.mockClear(); now += 21000;
+  await service.receiveAnchorFix(fix(43.001));
+  expect(mockNotifications.notifyAlarm).toHaveBeenCalledWith(false, 'system');
+  expect(mockNotifications.scheduleWatchdog).not.toHaveBeenCalled();
+});
+it('clears the native latch when explicitly changing an armed area', async () => {
+  await arm(); mockNotifications.clearNotifications.mockClear();
+  await service.editAnchor({ chainM: 70, sound: 'siren' });
+  expect(mockNotifications.clearNotifications).toHaveBeenCalledTimes(1);
+  expect(mockNotifications.scheduleWatchdog).toHaveBeenLastCalledWith(now, 'siren');
+});
+it('refuses to arm when native alarm permission is denied', async () => {
+  await service.editAnchor({ anchor }); await service.receiveAnchorFix(fix());
+  mockNotifications.prepareNotifications.mockRejectedValueOnce(new Error('Allow Alarms'));
+  await expect(service.armAnchor()).rejects.toThrow('Allow Alarms');
+  expect(service.getAnchorSnapshot().settings.armed).toBe(false);
 });

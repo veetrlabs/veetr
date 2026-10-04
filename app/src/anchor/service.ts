@@ -4,7 +4,7 @@ import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import { t } from '../i18n';
 import { AnchorFix, AnchorState, chooseFix, defaults, distanceM, radiusM, restoreState, validateSettings } from './model';
-import { clearNotifications, notifyAlarm, prepareNotifications, scheduleWatchdog } from './notifications';
+import { checkAlarmReadiness, clearNotifications, notifyAlarm, prepareNotifications, scheduleWatchdog } from './notifications';
 export const ANCHOR_TASK = 'veetr-anchor-location-v1';
 const KEY = '@veetr_anchor_v1';
 type Snapshot = { settings: AnchorState; fix: AnchorFix | null; error: string; ready: boolean };
@@ -28,13 +28,18 @@ async function save(settings: AnchorState) {
   await AsyncStorage.setItem(KEY, JSON.stringify(settings));
   publish({ settings });
 }
-export function editAnchor(patch: Partial<Pick<AnchorState, 'anchor' | 'chainM' | 'marginM'>>) {
+export function editAnchor(patch: Partial<Pick<AnchorState, 'anchor' | 'chainM' | 'marginM' | 'sound'>>) {
   return serial(async () => {
     await loadAnchor();
     const settings = { ...snapshot.settings, ...patch, alarm: false };
     validateSettings(settings);
+    if (settings.armed) {
+      if (!chooseFix(phone, vane, Date.now())) throw new Error('Wait for a reliable GPS position before starting.');
+      await checkAlarmReadiness();
+    }
     await save(settings);
-    alarmAt = 0;
+    if (settings.armed) await clearNotifications();
+    watchdogAt = 0; alarmAt = 0;
     await evaluate();
   });
 }
@@ -43,12 +48,15 @@ async function evaluate() {
   publish({ fix });
   const s = snapshot.settings;
   if (!s.armed) return;
+  await checkAlarmReadiness();
   if (fix) {
-    if (now - watchdogAt > 20000) { await scheduleWatchdog(); watchdogAt = now; }
     if (s.anchor && distanceM(s.anchor, fix) > radiusM(s) && !s.alarm) await save({ ...s, alarm: true });
   }
   if (snapshot.settings.alarm && now - alarmAt >= 30000) {
-    await notifyAlarm(); alarmAt = now;
+    await notifyAlarm(false, snapshot.settings.sound); alarmAt = now;
+  }
+  if (!snapshot.settings.alarm && fix && now - watchdogAt > 20000) {
+    await scheduleWatchdog(fix.timestamp, s.sound); watchdogAt = now;
   }
 }
 export function receiveAnchorFix(fix: AnchorFix) {
@@ -83,10 +91,13 @@ export function armAnchor() {
     if ((await Location.requestForegroundPermissionsAsync()).status !== 'granted' ||
       (await Location.requestBackgroundPermissionsAsync()).status !== 'granted')
       throw new Error('Allow precise location and background location in system settings to monitor your anchor.');
+    const initialFix = chooseFix(phone, vane, Date.now());
+    if (!initialFix) throw new Error('Wait for a reliable GPS position before starting.');
     try {
+      await clearNotifications();
       await save({ ...snapshot.settings, armed: true, alarm: false });
       await startLocation();
-      await scheduleWatchdog(); watchdogAt = Date.now(); alarmAt = 0;
+      await scheduleWatchdog(initialFix.timestamp, snapshot.settings.sound); watchdogAt = Date.now(); alarmAt = 0;
       publish({ error: '' });
       await evaluate();
     } catch (error) {
@@ -104,8 +115,8 @@ async function stopLocation() {
 export function stopAnchor() {
   return serial(async () => {
     await loadAnchor();
-    await save({ ...snapshot.settings, armed: false, alarm: false });
     await clearNotifications();
+    await save({ ...snapshot.settings, armed: false, alarm: false });
     await stopLocation();
     publish({ error: '' });
   });
@@ -114,6 +125,7 @@ export function resumeAnchor() {
   return serial(async () => {
     await loadAnchor();
     if (snapshot.settings.armed) {
+      await checkAlarmReadiness();
       // Do not renew the watchdog until an actual fresh position arrives.
       await startLocation();
       await evaluate();

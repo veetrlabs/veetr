@@ -462,25 +462,36 @@ experiment still showed low quality, so this correction is not a verified drift 
 Settings → Anchor alarm saves an anchor with **Anchor dropped** or by moving the map beneath a fixed center target.
 Chain out and an extra margin (metres) persist locally; the displayed alarm radius
 is their sum. Editing an armed alarm requires confirmation and resets its latch.
-A position outside the radius latches the alarm and repeats local notifications
-at most every 30 seconds until stopped. Test alarm sound before use.
+A position outside the radius latches a native alarm. Stop and restart monitoring
+(or explicitly edit the area) to rearm after acknowledging a drag event.
 
 The bundle entry registers `veetr-anchor-location-v1` independently of trip
 recording. Fresh Vane telemetry is preferred, with phone GPS as fallback; the
 phone must remain aboard. Phone positions older than 30 seconds or with reported
-accuracy worse than 50 m are rejected. A native notification scheduled roughly
-90 seconds ahead warns if reliable position delivery stops. Monitoring resumes
+accuracy worse than 50 m are rejected. A native alarm scheduled for 90 seconds
+after the last reliable fix warns if position delivery stops. Monitoring resumes
 from saved settings when the app reopens. No anchor data is uploaded.
 
-This requires a new native build for `expo-notifications` and the location-service
-ownership patch. Background location and audible notification permission are
-required to arm. Notifications respect OS sound/Focus settings; this does not
-provide iOS Critical Alerts or an uninterrupted siren. Force-quitting, OS power
-management and permission changes can interrupt monitoring. The native watchdog
-is a best-effort notification, not a guarantee of continuous GPS execution.
+`modules/veetr-anchor-alarm` provides AlarmKit on iOS 26+ and an exact alarm
+receiver plus a media-playback foreground service on Android. iOS users grant
+Alarms permission; Android users allow notifications and Alarms & reminders,
+raise Alarm volume and allow alarms through Do Not Disturb. Unsupported iOS
+versions or missing native modules cannot arm; there is no ordinary-notification
+fallback. Use Xcode 26+ to build. Expo autolinks the local module.
 
-Before release, validate on physical iOS and Android devices: screen lock,
-notification sound/Do Not Disturb, Vane disconnect and phone fallback, GPS loss,
+Users can save a system-alarm or bundled siren sound and schedule a test five
+seconds ahead to check with the phone locked. Stop test sound cancels only the
+test, preserving real warnings. iOS AlarmKit overrides Silent mode and Focus;
+volume remains system-controlled. Android playback loops on the alarm audio
+stream until dismissed, stopped, or interrupted by the OS. No silent background
+audio is used. The watchdog does not guarantee continuous GPS execution:
+force-quitting, restarting the phone, power management or permission changes can
+interrupt monitoring or cancel alarms. Restart monitoring after a reboot.
+
+A new native build is required, including the location-service ownership patch.
+Before release, validate on physical iOS and Android devices: both sounds,
+locked-screen alarm/volume/Focus, Vane disconnect and phone fallback, GPS loss,
 process termination/reopen, and stopping trip recording and anchor monitoring in
-both orders. Map selection, persistence, boundary detection, background callbacks,
-permission denial and cleanup are covered in `src/anchor/__tests__`.
+both orders. Simulator tests cannot establish that an alarm will wake a person.
+Logic, persistence, permission failure, alarm bridging and cleanup are covered
+in `src/anchor/__tests__`.

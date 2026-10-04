@@ -23,7 +23,8 @@
           "bluetooth-central"
         ],
         "ITSAppUsesNonExemptEncryption": false,
-        "CFBundleDevelopmentRegion": "en"
+        "CFBundleDevelopmentRegion": "en",
+        "NSAlarmKitUsageDescription": "Sound an alarm if your boat leaves the anchor area or reliable GPS updates stop."
       },
       "bundleIdentifier": "com.veetr.mobile",
       "associatedDomains": [

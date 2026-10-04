@@ -4,10 +4,11 @@ export type AnchorState = {
   anchor: Coordinate | null;
   chainM: number;
   marginM: number;
+  sound: 'system' | 'siren';
   armed: boolean;
   alarm: boolean;
 };
-export const defaults: AnchorState = { anchor: null, chainM: 30, marginM: 15, armed: false, alarm: false };
+export const defaults: AnchorState = { anchor: null, chainM: 30, marginM: 15, sound: 'system', armed: false, alarm: false };
 export const FRESH_MS = 30000;
 export function coordinateValid(p: Coordinate): boolean {
   return Number.isFinite(p.latitude) && Math.abs(p.latitude) <= 90 &&
@@ -29,6 +30,7 @@ export function distanceM(a: Coordinate, b: Coordinate) {
 }
 export function radiusM(s: AnchorState) { return s.chainM + s.marginM; }
 export function validateSettings(s: AnchorState) {
+  if (s.sound !== 'system' && s.sound !== 'siren') throw new Error('Invalid alarm sound.');
   if (s.anchor && !coordinateValid(s.anchor)) throw new Error('Invalid anchor position.');
   if (!Number.isFinite(s.chainM) || s.chainM < 1 || s.chainM > 1000 ||
     !Number.isFinite(s.marginM) || s.marginM < 0 || s.marginM > 500)
@@ -38,7 +40,7 @@ export function restoreState(raw: string | null): AnchorState {
   if (!raw) return { ...defaults };
   const value = JSON.parse(raw);
   const s: AnchorState = { anchor: value.anchor ?? null, chainM: value.chainM, marginM: value.marginM,
-    armed: value.armed === true, alarm: value.alarm === true };
+    sound: value.sound ?? 'system', armed: value.armed === true, alarm: value.alarm === true };
   validateSettings(s);
   if (s.armed && !s.anchor) throw new Error('Saved anchor position is missing.');
   return s;

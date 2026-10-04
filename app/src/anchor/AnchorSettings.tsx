@@ -8,7 +8,7 @@ import { t, translateMessage, useLanguageRefresh } from '../i18n';
 import { useNavigation } from '../navigation/NavigationContext';
 import { Coordinate, distanceM, radiusM, usableFix } from './model';
 import { armAnchor, editAnchor, getAnchorSnapshot, loadAnchor, stopAnchor, subscribeAnchor } from './service';
-import { notifyAlarm, prepareNotifications } from './notifications';
+import { notifyAlarm, openAlarmSettings, prepareNotifications, stopAlarmTest } from './notifications';
 // Allow clearing/retyping and either decimal separator, but reject invalid edits
 // (including pasted text) instead of turning them into a different number.
 const DECIMAL_INPUT = /^\d*(?:[.,]\d*)?$/;
@@ -50,7 +50,7 @@ export default function AnchorSettings({ onBack }: { onBack: () => void }) {
     ]);
   }
   function start() {
-    Alert.alert(t('Start anchor alarm'), t('Veetr uses location in the background, including with the screen locked, to monitor your anchor. Positions stay on this phone for this feature. Keep the phone aboard; it is the fallback when Vane GPS is unavailable. Allow precise location and background access on the next screens. Sound depends on notification volume, silent mode and Do Not Disturb. Force-quitting the app can stop monitoring.'), [
+    Alert.alert(t('Start anchor alarm'), t('Veetr uses location in the background, including with the screen locked, to monitor your anchor. Positions stay on this phone for this feature. Keep the phone aboard; it is the fallback when Vane GPS is unavailable. Allow precise location and background access on the next screens. Test the alarm with your phone locked before use. Force-quitting the app can stop monitoring and, on Android, cancel scheduled alarms.'), [
       { text: t('Cancel'), style: 'cancel' }, { text: t('Start'), onPress: () => void run(armAnchor) },
     ]);
   }
@@ -125,8 +125,14 @@ export default function AnchorSettings({ onBack }: { onBack: () => void }) {
     {button('Save chain and margin', () => confirmChange(() => editAnchor({ chainM, marginM })), !dirty || !ready)}
     {s.armed ? button('Stop anchor alarm', () => void run(stopAnchor), false, true) : button('Start anchor alarm', start, startRequirements.length > 0)}
     {!s.armed && startRequirements.map(reason => <Text key={reason} style={[styles.help, { color: c.textSecondary }]}>{t(reason)}</Text>)}
-    {button('Test alarm sound', () => void run(async () => { await prepareNotifications(); await notifyAlarm(true); }), Platform.OS === 'web')}
-    <Text style={[styles.help, { color: c.textSecondary }]}>{t('Keep the phone aboard and charged. Vane GPS is preferred while fresh; phone GPS takes over when needed. Alerts repeat while the alarm is triggered until you stop it. If reliable updates stop, a notification warns you after about 90 seconds. Test sound before relying on it; silent mode, Do Not Disturb and force-quitting can prevent alerts.')}</Text>
+    <Text style={[styles.label, { color: c.text }]}>{t('Alarm sound')}</Text>
+    {button(s.sound === 'system' ? 'System alarm sound ✓' : 'System alarm sound', () => confirmChange(() => editAnchor({ sound: 'system' })), !ready)}
+    {button(s.sound === 'siren' ? 'Siren ✓' : 'Siren', () => confirmChange(() => editAnchor({ sound: 'siren' })), !ready)}
+    {button('Alarm permissions and volume', () => void run(openAlarmSettings), Platform.OS === 'web')}
+    {button('Test alarm sound', () => void run(async () => { await prepareNotifications(); await notifyAlarm(true, s.sound); }), Platform.OS === 'web')}
+    {button('Stop test sound', () => void run(stopAlarmTest), Platform.OS === 'web')}
+    <Text style={[styles.help, { color: c.textSecondary }]}>{t(Platform.OS === 'ios' ? 'Requires iOS 26 or newer and Alarms permission. AlarmKit sounds through Silent mode and Focus. Adjust Ringtone and Alerts volume in iPhone Settings → Sounds & Haptics.' : 'Uses Android alarm volume. Allow Alarms & reminders and notifications. Turn up Alarm volume and allow alarms through Do Not Disturb in system settings.')}</Text>
+    <Text style={[styles.help, { color: c.textSecondary }]}>{t('Keep the phone aboard and charged. Vane GPS is preferred while fresh; phone GPS takes over when needed. A native alarm sounds when the boat leaves the radius or reliable GPS updates stop for 90 seconds. After a drag alarm, stop and restart to rearm. The test starts in five seconds: lock the phone and check that it wakes you. Force-quitting can stop position monitoring.')}</Text>
   </ScrollView>;
 }
 const styles = StyleSheet.create({

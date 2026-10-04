@@ -3,8 +3,9 @@
     "NSBluetoothAlwaysUsageDescription": "Připojení k jachtařskému snímači Veetr.",
     "NSBluetoothPeripheralUsageDescription": "Komunikace se zařízením Veetr.",
     "NSLocationWhenInUseUsageDescription": "Poloha slouží k zobrazení vaší pozice, rychlosti a kurzu, když je Veetr otevřený. Záznam a sdílení spustíte sami.",
-    "NSLocationAlwaysAndWhenInUseUsageDescription": "Sdílení polohy lodi během aktivního záznamu, včetně zamčené obrazovky.",
-    "NSLocationAlwaysUsageDescription": "Sdílení polohy lodi během aktivního záznamu, včetně zamčené obrazovky.",
-    "NSMotionUsageDescription": "Pohybové snímače pomáhají omezit kolísání rychlosti GPS, když je telefon v klidu."
+    "NSLocationAlwaysAndWhenInUseUsageDescription": "Poloha slouží k aktivnímu záznamu nebo hlídání kotvy, včetně zamčené obrazovky.",
+    "NSLocationAlwaysUsageDescription": "Poloha slouží k aktivnímu záznamu nebo hlídání kotvy, včetně zamčené obrazovky.",
+    "NSMotionUsageDescription": "Pohybové snímače pomáhají omezit kolísání rychlosti GPS, když je telefon v klidu.",
+    "NSAlarmKitUsageDescription": "Spuštění alarmu při opuštění kotevní oblasti nebo ztrátě spolehlivé polohy GPS."
   }
 }
