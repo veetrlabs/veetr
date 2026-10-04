@@ -29,7 +29,11 @@ export default defineConfig({
           items: [
             {
               label: 'Get started',
-              items: ['docs', 'docs/firmware-update'],
+              items: ['docs', 'docs/mobile-apps', 'docs/share-your-trip'],
+            },
+            {
+              label: 'Race management',
+              items: ['docs/race-guide', 'docs/race-managers', 'docs/race-referees', 'docs/race-skippers', 'docs/race-crew', 'docs/race-spectators', 'docs/race-administrators', 'docs/race-scoring'],
             },
             {
               label: 'Hardware',
@@ -48,11 +52,17 @@ export default defineConfig({
               label: 'Software',
               items: [
                 { label: 'Overview', slug: 'docs/software' },
-                'docs/firmware',
+                {
+                  label: 'Firmware',
+                  items: [
+                    { label: 'Overview', slug: 'docs/firmware' },
+                    'docs/firmware-update',
+                    'docs/firmware-testing',
+                  ],
+                },
                 'docs/pwa',
                 'docs/development',
                 'docs/platformio',
-                'docs/firmware-testing',
                 'docs/version-management',
               ],
             },

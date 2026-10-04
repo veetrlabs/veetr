@@ -6,6 +6,10 @@ editUrl: https://github.com/veetrlabs/veetr/edit/main/docs/SETUP.md
 
 Step-by-step instructions for sailors to get their Veetr sailing dashboard up and running.
 
+Looking for the Android or iPhone app? See [Get the mobile app](/docs/mobile-apps/) for beta access and installation. The instructions below cover the browser dashboard.
+
+Looking for regatta help? Start with the [Race management guide](/docs/race-guide/) and choose your role.
+
 ## What You Need 🛒
 
 ### Required Hardware:
@@ -28,7 +32,7 @@ See the **[Hardware Guide](https://veetr.org/docs/hardware/)** for detailed spec
 - **Important**: iOS Safari doesn't support Web Bluetooth
 - **Download**: [Bluefy - Web BLE Browser](https://apps.apple.com/app/bluefy-web-ble-browser/id1492822055) from App Store
 - **Open**: https://app.veetr.org in Bluefy
-- Sadly, iOS users will get the worst experience due to the OS limitations. We should fix that with a custom app in the future.
+- For the native iPhone app, see [Get the mobile app](/docs/mobile-apps/).
 
 **📱 Android Phone/Tablet:**
 - **Open**: Chrome browser (pre-installed)
@@ -54,7 +58,7 @@ See the **[Hardware Guide](https://veetr.org/docs/hardware/)** for detailed spec
 - **Chrome/Chromium**: Click install icon (⊞) in address bar → "Install"
 - **Firefox**: Click menu → "Install this site as an app"
 
-### 2. Prepare the Veetr device
+### 2. Prepare the Veetr Vane
 
 1. Position the GPS module (has built-in antenna, external antenna optional for better reception)
 2. Connect the BLE (Bluetooth Low Energy) antenna
@@ -63,7 +67,7 @@ See the **[Hardware Guide](https://veetr.org/docs/hardware/)** for detailed spec
 ### 3. Connect to Your Boat 🔗
 
 **First Time Setup:**
-1. **Power on the Veetr device** (connect to a powerbank via USB C)
+1. **Power on the Veetr Vane** (connect to a powerbank via USB C)
 2. **Activate Discovery Mode**: The device is in the discovery mode 5 minutes after start
 3. **Check Status**: The built-in blue LED turn on when the discovery mode active. It turns off after 5 minutes for security.
 4. **Open Dashboard**: Launch the Veetr app on your device
@@ -82,7 +86,7 @@ Once your Veetr is connected and showing data, you'll want to calibrate it for a
 
 #### **Sensor Orientation** 📐
 
-**Important**: The Veetr device can be mounted in **ANY orientation** - horizontal, vertical, upside down, or at any angle! The calibration process learns your sensor's orientation automatically.
+**Important**: The Veetr Vane can be mounted in **ANY orientation** - horizontal, vertical, upside down, or at any angle! The calibration process learns your sensor's orientation automatically.
 
 **Mounting tips**:
 - Mount firmly so it doesn't move (calibration depends on consistent positioning)
