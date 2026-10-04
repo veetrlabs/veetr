@@ -2,15 +2,28 @@ const { withAppDelegate, withInfoPlist } = require('@expo/config-plugins');
 const fs = require('node:fs');
 const path = require('node:path');
 const marker = '// Veetr scene lifecycle';
+const launchSetup = `    self.initialLaunchOptions = launchOptions
+#if DEBUG
+    // Expo's dev launcher needs a window before app-delegate subscribers run.
+    // The scene delegate attaches this same window when its scene connects.
+    window = UIWindow(frame: UIScreen.main.bounds)
+    factory.startReactNative(withModuleName: "main", in: window, launchOptions: launchOptions)
+    window?.makeKeyAndVisible()
+#endif
+`;
+
 
 function patchAppDelegate(contents) {
-  if (contents.includes(marker)) return contents;
+  if (contents.includes(marker)) {
+    if (contents.includes("Expo's dev launcher needs a window")) return contents;
+    return contents.replace('    self.initialLaunchOptions = launchOptions', launchSetup.trimEnd());
+  }
   const start = contents.indexOf('#if os(iOS) || os(tvOS)');
   const end = contents.indexOf('#endif', start);
   if (start < 0 || end < 0 || !contents.slice(start, end).includes('factory.startReactNative')) {
     throw new Error('Veetr scene plugin: Expo startup template changed; review the migration');
   }
-  contents = contents.slice(0, start) + '    self.initialLaunchOptions = launchOptions\n' + contents.slice(end + '#endif'.length);
+  contents = contents.slice(0, start) + launchSetup + contents.slice(end + '#endif'.length);
   contents = contents.replace('  var window: UIWindow?', '  var window: UIWindow?\n  var initialLaunchOptions: [UIApplication.LaunchOptionsKey: Any]?');
   return contents + '\n' + fs.readFileSync(path.join(__dirname, 'ios-scene-delegate.swift'), 'utf8');
 }
