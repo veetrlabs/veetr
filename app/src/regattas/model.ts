@@ -52,12 +52,10 @@ export function publishedRaceRegattas(directory: Regatta, series: Series): RaceR
     if (!heats.length) return [];
     const dates = heats.map(r => r.date).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d || "")).sort();
     const boatIds = [...new Set(heats.flatMap(r => r.entries))];
-    // Tracking currently belongs to a series. Never attach another event's track
-    // to this race: attribution is unambiguous only for a single-event series.
+    // The directory's live count belongs to the series; only attribute it when
+    // there is one event. Replay availability is fetched separately per event.
     const tracking = events.length === 1 ? {
       liveBoats: event.completed ? 0 : directory.liveBoats,
-      replayStart: directory.replayStart,
-      replayEnd: directory.replayEnd,
     } : {};
     return [{
       id: `${series.id}/${event.id}`, seriesId: series.id, eventId: event.id,

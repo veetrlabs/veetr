@@ -1,3 +1,4 @@
+import { locale, translateMessage, t, useLanguageRefresh } from '../i18n';
 import AccountSignIn from "../components/AccountSignIn";
 import { router, type Href } from "expo-router";
 import { useEffect, useState } from "react";
@@ -27,6 +28,7 @@ const site = (process.env.EXPO_PUBLIC_SITE_URL || "https://veetr.org").replace(
   "",
 );
 export default function RegattaSharingScreen() {
+  useLanguageRefresh();
   const { theme } = useTheme(),
     colors = themeColors[theme];
   const [auth, setAuth] = useState<Session | null>(null),
@@ -138,21 +140,19 @@ export default function RegattaSharingScreen() {
         contentContainerStyle={styles.page}
         keyboardShouldPersistTaps="handled"
       >
-        {button("Back", () => router.back())}
-        <Text style={[styles.title, text]}>Share boat location</Text>
+        {button(t("Back"), () => router.back())}
+        <Text style={[styles.title, text]}>{t("Share boat location")}</Text>
         {!ownSession && (
           <Text style={{ color: colors.textSecondary }}>
-            Boat invitations and race readiness are under the Races tab.
-          </Text>
+            {t("Boat invitations and race readiness are under the Races tab.")}</Text>
         )}
         {!trackingClient ? (
           <Text style={{ color: colors.textMuted }}>
-            Race sign-in is currently unavailable.
-          </Text>
+            {t("Race sign-in is currently unavailable.")}</Text>
         ) : !ready ? (
-          <Text style={text}>Restoring account…</Text>
+          <Text style={text}>{t("Restoring account…")}</Text>
         ) : !auth && !showSignIn ? (
-          button("Sign in for race tracking", () => setShowSignIn(true))
+          button(t("Sign in for race tracking"), () => setShowSignIn(true))
         ) : !auth ? (
           <AccountSignIn />
         ) : (
@@ -163,18 +163,14 @@ export default function RegattaSharingScreen() {
             {session?.mode === "race" ? (
               <View style={styles.section}>
                 <Text style={text}>
-                  This phone is connected to {session.boatName} for race
-                  tracking.
-                </Text>
-                {button("Open my race", () =>
+                  {t("This phone is connected to")} {session.boatName}  {t("for race tracking.")}</Text>
+                {button(t("Open my race"), () =>
                   router.push("/race-phone" as Href),
                 )}
               </View>
             ) : session && session.mode !== "local" && !ownSession ? (
               <Text style={text}>
-                A saved tracking session belongs to another account. Sign in
-                with that account to finish syncing.
-              </Text>
+                {t("A saved tracking session belongs to another account. Sign in with that account to finish syncing.")}</Text>
             ) : ownSession ? (
               <View
                 style={[
@@ -188,10 +184,10 @@ export default function RegattaSharingScreen() {
               >
                 <Text style={[styles.heading, text]}>
                   {active
-                    ? "● Sharing live location"
+                    ? t("● Sharing live location")
                     : ownSession.phase === "starting"
-                      ? "Starting session…"
-                      : "Tracking stopped on this phone"}
+                      ? t("Starting session…")
+                      : t("Tracking stopped on this phone")}
                 </Text>
                 <Text style={[styles.heading, text]}>
                   {ownSession.boatName}
@@ -200,43 +196,38 @@ export default function RegattaSharingScreen() {
                 {active && (
                   <Text style={text}>
                     {fixAge === null
-                      ? "Waiting for GPS…"
+                      ? t("Waiting for GPS…")
                       : fixAge > 30
-                        ? `GPS may be paused · last fix ${fixAge}s ago`
-                        : `Last GPS fix ${fixAge}s ago`}{" "}
-                    · phone GPS
-                  </Text>
+                        ? t("GPS may be paused · last fix {{v0}}s ago", { v0: fixAge })
+                        : t("Last GPS fix {{v0}}s ago", { v0: fixAge })}{" "}
+                    {t("· phone GPS")}</Text>
                 )}
-                <Text style={text}>{pending} positions waiting to upload</Text>
+                <Text style={text}>{t("{{count}} position waiting to upload", { count: pending })}</Text>
                 <Text style={{ color: colors.textSecondary }}>
                   {ownSession.lastUploadAt
-                    ? `Last upload ${new Date(ownSession.lastUploadAt).toLocaleTimeString()}`
-                    : "No positions uploaded yet"}
+                    ? t("Last upload {{v0}}", { v0: new Date(ownSession.lastUploadAt).toLocaleTimeString(locale()) })
+                    : t("No positions uploaded yet")}
                 </Text>
                 {active && (
                   <Text style={{ color: colors.textSecondary }}>
-                    Automatic stop at{" "}
-                    {new Date(ownSession.expiresAt).toLocaleTimeString()}. Keep
-                    the app installed and allow background location;
-                    force-closing it may stop tracking.
+                    {t("Automatic stop at")}{" "}
+                    {new Date(ownSession.expiresAt).toLocaleTimeString(locale())}{t(". Keep the app installed and allow background location; force-closing it may stop tracking.")}
                   </Text>
                 )}
                 {ownSession.phase === "stopping" && (
                   <Text style={text}>
-                    Reconnect to finish syncing and confirm the stop on the live
-                    map. Saved positions stay on this phone until acknowledged.
-                  </Text>
+                    {t("Reconnect to finish syncing and confirm the stop on the live map. Saved positions stay on this phone until acknowledged.")}</Text>
                 )}
                 {ownSession.error && (
                   <Text
                     accessibilityRole="alert"
                     style={{ color: colors.text }}
                   >
-                    {ownSession.error}
+                    {translateMessage(ownSession.error)}
                   </Text>
                 )}
                 {button(
-                  "Open spectator map",
+                  t("Open spectator map"),
                   () =>
                     void Linking.openURL(
                       `${site}/races/?series=${encodeURIComponent(ownSession.seriesId)}#tracking`,
@@ -244,28 +235,28 @@ export default function RegattaSharingScreen() {
                 )}
                 {ownSession.phase !== "stopping" &&
                   button(
-                    "Stop sharing",
+                    t("Stop sharing"),
                     () => void run(stopTracking),
                     true,
                     false,
                   )}
                 {button(
                   ownSession.phase === "starting"
-                    ? "Retry start"
+                    ? t("Retry start")
                     : ownSession.phase === "recording"
-                      ? "Resume / sync now"
-                      : "Retry final sync",
+                      ? t("Resume / sync now")
+                      : t("Retry final sync"),
                   () => void run(resumeTracking),
                 )}
                 {ownSession.phase === "stopping" &&
-                  button("Discard unsent positions", () =>
+                  button(t("Discard unsent positions"), () =>
                     Alert.alert(
-                      "Discard unsent positions?",
-                      "This removes this phone’s unsent track after the server confirms sharing has stopped.",
+                      t("Discard unsent positions?"),
+                      t("This removes this phone’s unsent track after the server confirms sharing has stopped."),
                       [
-                        { text: "Cancel", style: "cancel" },
+                        { text: t("Cancel"), style: "cancel" },
                         {
-                          text: "Discard",
+                          text: t("Discard"),
                           style: "destructive",
                           onPress: () => void run(discardStoppedTracking),
                         },
@@ -276,14 +267,12 @@ export default function RegattaSharingScreen() {
             ) : (
               <View style={styles.section}>
                 <Text style={text}>
-                  Join your boat using the private race invitation from your
-                  referee. No account or fleet selection is needed.
-                </Text>
-                {button("Go to Races", () => router.replace("/regattas"))}
+                  {t("Join your boat using the private race invitation from your referee. No account or fleet selection is needed.")}</Text>
+                {button(t("Go to Races"), () => router.replace("/regattas"))}
               </View>
             )}
             {button(
-              "Sign out",
+              t("Sign out"),
               () =>
                 void run(async () => {
                   const { error } = await trackingClient!.auth.signOut({
@@ -296,20 +285,18 @@ export default function RegattaSharingScreen() {
             )}
             {ownSession && (
               <Text style={{ color: colors.textSecondary }}>
-                Finish this tracking session before signing out.
-              </Text>
+                {t("Finish this tracking session before signing out.")}</Text>
             )}
           </>
         )}
         {error ? (
           <Text accessibilityRole="alert" style={text}>
-            {error}
+            {translateMessage(error)}
           </Text>
         ) : null}
         {busy && (
           <Text accessibilityLiveRegion="polite" style={text}>
-            Working…
-          </Text>
+            {t("Working…")}</Text>
         )}
       </ScrollView>
     </SafeAreaView>

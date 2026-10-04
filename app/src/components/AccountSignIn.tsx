@@ -1,3 +1,4 @@
+import { translateMessage, t, useLanguageRefresh } from '../i18n';
 import { useState } from "react";
 import { Linking, Pressable, Text, TextInput, View } from "react-native";
 import { useTheme } from "../context/ThemeContext";
@@ -6,6 +7,7 @@ import { trackingClient } from "../tracking/client";
 import { resumeTracking } from "../tracking/service";
 const site = (process.env.EXPO_PUBLIC_SITE_URL || "https://veetr.org").replace(/\/$/, "");
 export default function AccountSignIn({ onSignedIn }: { onSignedIn?: () => void }) {
+  useLanguageRefresh();
   const { theme } = useTheme();
   const colors = themeColors[theme], text = { color: colors.text };
   const [email, setEmail] = useState(""), [password, setPassword] = useState("");
@@ -17,15 +19,14 @@ export default function AccountSignIn({ onSignedIn }: { onSignedIn?: () => void 
     finally { setBusy(false); }
   }
   const button = (title: string, action: () => void, disabled = busy) => <Pressable accessibilityRole="button" disabled={disabled} onPress={action} style={{ padding: 14, borderRadius: 8, backgroundColor: colors.buttonBg, opacity: disabled ? 0.5 : 1 }}><Text style={text}>{title}</Text></Pressable>;
-  if (!trackingClient) return <Text style={text}>Account sign-in is unavailable in this build.</Text>;
+  if (!trackingClient) return <Text style={text}>{t("Account sign-in is unavailable in this build.")}</Text>;
   return <View>
           <View style={styles.section}>
             <Text style={[styles.heading, text]}>
-              Sign in to your Veetr account
-            </Text>
+              {t("Sign in to your Veetr account")}</Text>
             <TextInput
-              accessibilityLabel="Email"
-              placeholder="Email"
+              accessibilityLabel={t("Email")}
+              placeholder={t("Email")}
               autoCapitalize="none"
               autoComplete="email"
               keyboardType="email-address"
@@ -39,8 +40,8 @@ export default function AccountSignIn({ onSignedIn }: { onSignedIn?: () => void 
               ]}
             />
             <TextInput
-              accessibilityLabel="Password"
-              placeholder="Password"
+              accessibilityLabel={t("Password")}
+              placeholder={t("Password")}
               secureTextEntry
               autoComplete="current-password"
               value={password}
@@ -53,7 +54,7 @@ export default function AccountSignIn({ onSignedIn }: { onSignedIn?: () => void 
               ]}
             />
             {button(
-              "Sign in",
+              t("Sign in"),
               () =>
                 void run(async () => {
                   const { error } =
@@ -69,11 +70,11 @@ export default function AccountSignIn({ onSignedIn }: { onSignedIn?: () => void 
               busy || !email.trim() || !password,
             )}
             {button(
-              "Create an account or reset password",
+              t("Create an account or reset password"),
               () => void Linking.openURL(`${site}/account/`),
             )}
           </View>
-    {!!error && <Text accessibilityRole="alert" style={text}>{error}</Text>}
-    {busy && <Text accessibilityLiveRegion="polite" style={text}>Signing in…</Text>}
+    {!!error && <Text accessibilityRole="alert" style={text}>{translateMessage(error)}</Text>}
+    {busy && <Text accessibilityLiveRegion="polite" style={text}>{t("Signing in…")}</Text>}
   </View>;
 }

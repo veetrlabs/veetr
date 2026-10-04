@@ -1,3 +1,4 @@
+import { formatNumber, t, useLanguageRefresh } from '../../i18n';
 import { View, Text, StyleSheet } from 'react-native'
 import { useCardTextSize } from '../../hooks/useCardTextSize'
 import { useTheme } from '../../context/ThemeContext'
@@ -9,13 +10,14 @@ interface StartingLineCardProps {
 }
 
 export default function StartingLineCard({ hasStartLine, distanceToLine }: StartingLineCardProps) {
+  useLanguageRefresh();
   const { fontSize, unitFontSize, titleFontSize, onCardLayout } = useCardTextSize()
   const { theme } = useTheme()
   const colors = themeColors[theme]
 
   const formatDistance = () => {
     if (!hasStartLine || distanceToLine === null) return null
-    return Math.abs(distanceToLine).toFixed(0)
+    return formatNumber(Math.abs(distanceToLine), 0)
   }
 
   const distanceValue = formatDistance()
@@ -24,7 +26,7 @@ export default function StartingLineCard({ hasStartLine, distanceToLine }: Start
   return (
     <View style={[styles.card, { backgroundColor: colors.cardBg }]} onLayout={onCardLayout}>
       <View style={[styles.titleCol, { width: titleFontSize }]}>
-        {'Line'.split('').map((char, i) => (
+        {t("Line").split('').map((char, i) => (
           <Text key={i} style={[styles.title, { color: colors.textSecondary, fontSize: titleFontSize }]}>
             {char}
           </Text>

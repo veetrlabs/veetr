@@ -1,3 +1,5 @@
+import { raceReplayBounds } from './replayAvailability';
+import { formatNumber, translateMessage, t, useLanguageRefresh } from '../i18n';
 import { router } from 'expo-router';
 import { useEffect, useState } from "react";
 import {
@@ -29,6 +31,7 @@ import RegattaResults from "./RegattaResults";
 import type { Series } from "../../../veetr.org/src/features/racing/domain";
 
 export default function RegattaBrowser({ onShare }: { onShare?: () => void } = {}) {
+  useLanguageRefresh();
   const { theme } = useTheme(),
     c = themeColors[theme];
   const [rows, setRows] = useState<RaceRegatta[]>([]),
@@ -56,7 +59,11 @@ export default function RegattaBrowser({ onShare }: { onShare?: () => void } = {
       } else directory = reply.data as Regatta[];
       const races = await Promise.all(directory.map(async row => {
         const series = await trackingRpc<Series | null>("public_standings", { series_id: row.id });
-        return series ? publishedRaceRegattas(row, series) : [];
+        return series ? Promise.all(publishedRaceRegattas(row, series).map(async race => {
+          // A failed availability request must not hide the race results.
+          try { return { ...race, ...await raceReplayBounds(race) }; }
+          catch { return { ...race, replayStart: undefined, replayEnd: undefined }; }
+        })) : [];
       }));
       return races.flat();
     }
@@ -102,17 +109,17 @@ export default function RegattaBrowser({ onShare }: { onShare?: () => void } = {
         colors={["#006b62"]}
       />}
     >
-      <Text style={{ color: c.text, fontSize: 28, fontWeight: "700" }}>Races</Text>
-      {onShare && button("My boat · join with invitation", onShare)}
+      <Text style={{ color: c.text, fontSize: 28, fontWeight: "700" }}>{t("Races")}</Text>
+      {onShare && button(t("My boat · join with invitation"), onShare)}
       <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
         {(["All", "Live", "Upcoming", "Past"] as RegattaFilter[]).map((f) =>
-          button(f, () => setFilter(f), filter === f),
+          button(t(f), () => setFilter(f), filter === f),
         )}
       </View>
-      {loading && revision === 0 && <Text style={{ color: c.textMuted }}>Loading races…</Text>}
+      {loading && revision === 0 && <Text style={{ color: c.textMuted }}>{t("Loading races…")}</Text>}
       {error && (
         <Text accessibilityRole="alert" style={{ color: c.text }}>
-          {error}
+          {translateMessage(error)}
         </Text>
       )}
       {!loading &&
@@ -120,9 +127,7 @@ export default function RegattaBrowser({ onShare }: { onShare?: () => void } = {
         !rows.filter((r) => filter === "All" || regattaState(r) === filter)
           .length && (
           <Text style={{ color: c.textMuted }}>
-            No {filter === "All" ? "published" : filter.toLowerCase()} races
-            yet.
-          </Text>
+            {t(`No ${filter === "All" ? "published" : filter.toLowerCase()} races yet.`)}</Text>
         )}
       {rows
         .filter((r) => filter === "All" || regattaState(r) === filter)
@@ -130,7 +135,7 @@ export default function RegattaBrowser({ onShare }: { onShare?: () => void } = {
           <Pressable
             key={r.id}
             accessibilityRole="button"
-            accessibilityLabel={`View ${r.name}`}
+            accessibilityLabel={t("View {{v0}}", { v0: r.name })}
             onPress={() => setSelected(r)}
             style={{
               padding: 16,
@@ -145,10 +150,9 @@ export default function RegattaBrowser({ onShare }: { onShare?: () => void } = {
               {r.name}
             </Text>
             <Text style={{ color: c.textMuted }}>
-              {regattaState(r) === "Scheduled" ? "Date not set" : regattaState(r)} · {r.firstDate || r.year} · {r.boatCount} boats
-            </Text>
+              {regattaState(r) === "Scheduled" ? t("Date not set") : t(regattaState(r))} · {r.firstDate || r.year} · {t("{{count}} boat", { count: r.boatCount })}</Text>
             {r.replayStart && (
-              <Text style={{ color: c.textSecondary }}>Replay available</Text>
+              <Text style={{ color: c.textSecondary }}>{t("Replay available")}</Text>
             )}
           </Pressable>
         ))}
@@ -165,6 +169,7 @@ function Spectator({
   regatta: RaceRegatta;
   close: () => void;
 }) {
+  useLanguageRefresh();
   const { theme } = useTheme(),
     c = themeColors[theme];
   type Page = {kind:"race"; regatta:RaceRegatta} | {kind:"series"; series:Series} | {kind:"boat"; series:Series; boatId:string};
@@ -173,7 +178,18 @@ function Spectator({
   const r = page.kind === "race" ? page.regatta : initialRace;
   const navigate = (next:Page) => { setPages(history=>[...history,next]); setTab("Results"); };
   const [tab, setTab] = useState<"Results" | "Live">("Results");
-  const hasReplay = Number.isFinite(Date.parse(r.replayStart || "")) && Number.isFinite(Date.parse(r.replayEnd || "")) && Date.parse(r.replayEnd!) >= Date.parse(r.replayStart!);
+  const [replayAvailability, setReplayAvailability] = useState<{id: string; start?: string; end?: string; error?: boolean}>();
+  const [replayRetry, setReplayRetry] = useState(0);
+  useEffect(() => {
+    if (page.kind !== 'race') return;
+    let alive = true;
+    void raceReplayBounds(r).then(bounds => {
+      if (alive) setReplayAvailability({ id: r.id, start: bounds.replayStart, end: bounds.replayEnd });
+    }).catch(() => { if (alive) setReplayAvailability({ id: r.id, error: true }); });
+    return () => { alive = false; };
+  }, [page.kind, r.id, r.seriesId, r.eventId, replayRetry]);
+  const replay = replayAvailability?.id === r.id ? replayAvailability : undefined;
+  const hasReplay = !!(replay ? replay.start && replay.end : r.replayStart && r.replayEnd);
   const [retry, setRetry] = useState(0);
   const [positions, setPositions] = useState<TrackingPosition[]>([]),
     [error, setError] = useState(""),
@@ -239,7 +255,7 @@ function Spectator({
         opacity: disabled ? 0.4 : 1,
       }}
     >
-      <Text style={{ color: c.text }}>{label}</Text>
+      <Text style={{ color: c.text }}>{t(label)}</Text>
     </Pressable>
   );
   return (
@@ -248,7 +264,7 @@ function Spectator({
       <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
         <View style={{ padding: 16, gap: 10 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            {action(pages.length > 1 ? "Back" : "Close", pages.length > 1 ? () => { setPages(history=>history.slice(0,-1)); setTab("Results"); } : close)}
+            {action(pages.length > 1 ? t("Back") : t("Close"), pages.length > 1 ? () => { setPages(history=>history.slice(0,-1)); setTab("Results"); } : close)}
             <Text
               style={{
                 flex: 1,
@@ -257,7 +273,7 @@ function Spectator({
                 fontWeight: "700",
               }}
             >
-              {page.kind === "race" ? r.name : page.kind === "series" ? page.series.name : "Boat details"}
+              {page.kind === "race" ? r.name : page.kind === "series" ? page.series.name : t("Boat details")}
             </Text>
           </View>
           {page.kind === "race" && (hasReplay || (r.liveBoats ?? 0) > 0) && <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
@@ -265,21 +281,21 @@ function Spectator({
               <Pressable key={label} accessibilityRole="tab" accessibilityState={{ selected: tab === label }}
                 onPress={() => { if (label === 'Replay') { close(); router.push({ pathname: '/race-replay', params: { seriesId: r.seriesId, eventId: r.eventId } }); return; } setTab(label as typeof tab); }}
                 style={{ minHeight: 44, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 22, backgroundColor: tab === label ? "#006b62" : c.buttonBg }}>
-                <Text style={{ color: tab === label ? "white" : c.text, fontWeight: "600" }}>{label}</Text>
+                <Text style={{ color: tab === label ? "white" : c.text, fontWeight: "600" }}>{t(label)}</Text>
               </Pressable>
             ))}
           </View>}
-          {tab !== "Results" && error && action("Retry positions", () => setRetry((v) => v + 1))}
+          {page.kind === 'race' && replay?.error && action(t("Retry replay availability"), () => setReplayRetry(v => v + 1))}
+          {tab !== "Results" && error && action(t("Retry positions"), () => setRetry((v) => v + 1))}
           {tab === "Results" ? null : error ? (
             <Text accessibilityRole="alert" style={{ color: c.text }}>
-              {error}
+              {translateMessage(error)}
             </Text>
           ) : loading ? (
-            <Text style={{ color: c.textMuted }}>Loading positions…</Text>
+            <Text style={{ color: c.textMuted }}>{t("Loading positions…")}</Text>
           ) : !positions.length ? (
             <Text style={{ color: c.textMuted }}>
-              No boats sharing right now.
-            </Text>
+              {t("No boats sharing right now.")}</Text>
           ) : null}
         </View>
         {page.kind !== "race" ? <SeriesDetail key={page.kind === "boat" ? page.boatId : page.series.id} series={page.series} boatId={page.kind === "boat" ? page.boatId : undefined}
@@ -299,9 +315,9 @@ function Spectator({
           {positions.map((p) => (
             <Text key={p.boatId} style={{ color: c.text }}>
               {p.boatName} ·{" "}
-              {p.sogMps === null ? "—" : (p.sogMps * 1.94384449).toFixed(1)} kn
+              {p.sogMps === null ? "—" : formatNumber((p.sogMps * 1.94384449), 1)} kn
               {now - Date.parse(p.recordedAt) > 60000
-                ? " · stale GPS"
+                ? t(" · stale GPS")
                 : ""}
             </Text>
           ))}
@@ -309,7 +325,7 @@ function Spectator({
         </>}
         {page.kind === "race" && <View style={{ padding: 16, gap: 8 }}>
           {action(
-            "Open on website",
+            t("Open on website"),
             () =>
               void Linking.openURL(
                 `https://veetr.org/races/?series=${encodeURIComponent(r.seriesId)}&event=${encodeURIComponent(r.eventId)}`,
@@ -323,8 +339,7 @@ function Spectator({
               paddingTop: 6,
             }}
           >
-            Seamarks © OpenSeaMap contributors
-          </Text>}
+            {t("Seamarks © OpenSeaMap contributors")}</Text>}
         </View>}
       </SafeAreaView>
       </SafeAreaProvider>

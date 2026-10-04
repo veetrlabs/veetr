@@ -1,3 +1,4 @@
+import { t, useLanguageRefresh } from '../i18n';
 import { useState } from 'react'
 import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native'
 import Svg, { Path } from 'react-native-svg'
@@ -7,6 +8,7 @@ import { useTheme } from '../context/ThemeContext'
 import { themeColors } from '../constants/colors'
 
 export default function BluetoothButton() {
+  useLanguageRefresh();
   const { state } = useBLE()
   const { theme } = useTheme()
   const colors = themeColors[theme]
@@ -27,14 +29,14 @@ export default function BluetoothButton() {
         <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setShowModal(false)}>
           <View style={[styles.modal, { backgroundColor: colors.panelBg }]}>
             <View style={styles.header}>
-              <Text style={[styles.title, { color: colors.text }]}>Bluetooth Signal</Text>
+              <Text style={[styles.title, { color: colors.text }]}>{t("Bluetooth Signal")}</Text>
               <TouchableOpacity onPress={() => setShowModal(false)}>
                 <Text style={[styles.close, { color: colors.textMuted }]}>✕</Text>
               </TouchableOpacity>
             </View>
             <View style={styles.body}>
-              <InfoRow label="Status" value="Connected" valueColor="#22c55e" theme={theme} />
-              <InfoRow label="Device" value={state.deviceName || 'Unknown'} theme={theme} />
+              <InfoRow label={t("Status")} value={t("Connected")} valueColor="#22c55e" theme={theme} />
+              <InfoRow label={t("Device")} value={state.deviceName || t("Unknown")} theme={theme} />
             </View>
           </View>
         </TouchableOpacity>
@@ -44,6 +46,7 @@ export default function BluetoothButton() {
 }
 
 function InfoRow({ label, value, valueColor, theme }: { label: string; value: string; valueColor?: string; theme: 'light' | 'dark' }) {
+  useLanguageRefresh();
   const colors = themeColors[theme]
   return (
     <View style={[styles.row, { borderBottomColor: colors.border }]}>

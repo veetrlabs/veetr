@@ -1,0 +1,59 @@
+diff --git a/node_modules/react-native-maps/android/src/main/java/com/rnmaps/maps/MapMarker.java b/node_modules/react-native-maps/android/src/main/java/com/rnmaps/maps/MapMarker.java
+--- a/node_modules/react-native-maps/android/src/main/java/com/rnmaps/maps/MapMarker.java
++++ b/node_modules/react-native-maps/android/src/main/java/com/rnmaps/maps/MapMarker.java
+@@ -522,8 +522,19 @@
+   }
+ 
+   private Bitmap createDrawable() {
+-    int width = this.width <= 0 ? 100 : this.width;
+-    int height = this.height <= 0 ? 100 : this.height;
++    // Fabric interop may not deliver SizeReportingShadowNode's extra data.
++    // Size the bitmap from laid-out native children (physical pixels), otherwise
++    // a 112dp SVG is cropped to the legacy 100px fallback on high-density phones.
++    int contentWidth = 0;
++    int contentHeight = 0;
++    for (int i = 0; i < getChildCount(); i++) {
++      View child = getChildAt(i);
++      if (child instanceof MapCallout) continue;
++      contentWidth = Math.max(contentWidth, child.getLeft() + Math.max(child.getWidth(), child.getMeasuredWidth()));
++      contentHeight = Math.max(contentHeight, child.getTop() + Math.max(child.getHeight(), child.getMeasuredHeight()));
++    }
++    int width = contentWidth > 0 ? contentWidth : (this.width <= 0 ? 100 : this.width);
++    int height = contentHeight > 0 ? contentHeight : (this.height <= 0 ? 100 : this.height);
+     this.buildDrawingCache();
+ 
+     // Do not create the doublebuffer-bitmap each time. reuse it to save memory.
+diff --git a/node_modules/react-native-maps/ios/AirMaps/AIRMapMarker.m b/node_modules/react-native-maps/ios/AirMaps/AIRMapMarker.m
+--- a/node_modules/react-native-maps/ios/AirMaps/AIRMapMarker.m
++++ b/node_modules/react-native-maps/ios/AirMaps/AIRMapMarker.m
+@@ -63,11 +63,30 @@
+     self.bounds = bounds;
+ }
+ 
++// Fabric interop can attach the annotation before its custom content has size.
++// Recover bounds from the laid-out child rather than waiting for a later GPS update.
++- (void)layoutSubviews
++{
++    [super layoutSubviews];
++    if (self.image || (self.bounds.size.width > 0 && self.bounds.size.height > 0)) return;
++    CGSize contentSize = CGSizeZero;
++    for (UIView *child in self.subviews) {
++        if ([child isKindOfClass:[AIRMapCallout class]]) continue;
++        contentSize.width = MAX(contentSize.width, CGRectGetMaxX(child.frame));
++        contentSize.height = MAX(contentSize.height, CGRectGetMaxY(child.frame));
++    }
++    if (contentSize.width > 0 && contentSize.height > 0) {
++        self.bounds = (CGRect){CGPointZero, contentSize};
++        [self setNeedsDisplay];
++    }
++}
++
+ - (void)insertReactSubview:(id<RCTComponent>)subview atIndex:(NSInteger)atIndex {
+     if ([subview isKindOfClass:[AIRMapCallout class]]) {
+         self.calloutView = (AIRMapCallout *)subview;
+     } else {
+         [super insertReactSubview:(UIView *)subview atIndex:atIndex];
++        [self setNeedsLayout];
+     }
+ }
+ 

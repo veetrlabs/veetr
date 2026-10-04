@@ -92,3 +92,4 @@ begin
 end; $$;
 revoke all on function public.submit_diagnostics(jsonb) from public;
 grant execute on function public.submit_diagnostics(jsonb) to anon,authenticated;
+

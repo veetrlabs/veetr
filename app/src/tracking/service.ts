@@ -1,6 +1,10 @@
+import { validSpeedMps } from './speed';
+import { usesNativeRaceRecorder, startNativeRaceRecorder, wakeNativeRaceRecorder, stopNativeRaceRecorder } from './nativeRaceRecorder';
+import { t } from '../i18n';
 import { syncSharedTrip } from "./tripSharing";
 import { confirmTrackingLocationUse } from "./locationDisclosure";
 import { createSpeedFilter } from '../navigation/speedFilter';
+import { markTrackingDiagnostic } from '../diagnostics/native';
 import { reportDiagnostic } from '../diagnostics/service';
 import { phoneMotion } from '../navigation/phoneMotion';
 import {
@@ -57,6 +61,7 @@ export const recoverStalledTracking = () => serialize(async () => {
     Date.parse(session.startedAt) || 0,
   );
   if (Date.now() - lastActivity < 45000) return;
+  await markTrackingDiagnostic('recovery');
   await store.patch(session.id, {
     lastGPSRecoveryAt: new Date().toISOString(),
     gpsRecoveryCount: (session.gpsRecoveryCount ?? 0) + 1,
@@ -86,6 +91,7 @@ export async function stopTracking(reason: "user" | "expired" = "user") {
     stopReason: session.stopReason ?? reason,
     stoppedAt: session.stoppedAt ?? new Date().toISOString(),
   });
+  await markTrackingDiagnostic('tripStopped');
   await stopGPS();
   return serialize(stopInternal);
 }
@@ -102,6 +108,7 @@ async function owner(session: TrackingSession) {
 }
 async function stopGPS() {
   pauseForegroundGPS();
+  await stopNativeRaceRecorder();
   if (await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK))
     await Location.stopLocationUpdatesAsync(LOCATION_TASK);
 }
@@ -132,6 +139,21 @@ async function startGPS(local = false) {
     (await Location.getBackgroundPermissionsAsync()).status === "granted";
   const store = await trackingStore();
   const session = await store.get();
+  if (session && usesNativeRaceRecorder(session)) {
+    if (!background) throw new Error("Enable background location permission to resume live tracking.");
+    if (AppState.currentState !== 'active') {
+      if (session.backgroundEnabled) return;
+      throw new Error('Keep Veetr open while starting background recording. Return to Veetr and retry.');
+    }
+    pauseForegroundGPS();
+    if (await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK))
+      await Location.stopLocationUpdatesAsync(LOCATION_TASK);
+    if (session.phase === 'recording') {
+      await startNativeRaceRecorder(session);
+      await store.patch(session.id, { backgroundEnabled: true, backgroundStartedAt: new Date().toISOString() });
+    }
+    return;
+  }
   // Android can register a task while silently skipping its foreground service
   // if permission dialogs/network requests outlive the visible activity.
   if (background && Platform.OS === "android" && AppState.currentState !== "active") {
@@ -171,12 +193,12 @@ async function startGPS(local = false) {
     activityType: Location.ActivityType.OtherNavigation,
     showsBackgroundLocationIndicator: true,
     foregroundService: {
-      notificationTitle: "Veetr race tracking",
+      notificationTitle: t("Veetr race tracking"),
       notificationBody: local
-        ? "Recording GPS on this phone. Open Veetr to stop."
+        ? t("Recording GPS on this phone. Open Veetr to stop.")
         : session?.mode === "race"
-          ? "Ready for race tracking. Open Veetr to check or stop."
-          : "Sharing your boat position. Open Veetr to stop.",
+          ? t("Ready for race tracking. Open Veetr to check or stop.")
+          : t("Sharing your boat position. Open Veetr to stop."),
       killServiceOnDestroy: false,
     },
   });
@@ -194,6 +216,11 @@ async function flush() {
   const store = await trackingStore();
   const session = await store.get();
   if (!session || session.phase === "starting") return;
+  if (usesNativeRaceRecorder(session) && session.phase === 'recording') {
+    // The separate Android process owns race polling and the outbox; never await it from a GPS callback.
+    if (AppState.currentState === 'active') await wakeNativeRaceRecorder();
+    return;
+  }
   if (session.mode === "local") {
     if (session.sharing) await syncSharedTrip(session.id);
     return;
@@ -238,16 +265,18 @@ async function flush() {
         return;
       const batch = await store.batch(session.id);
       if (!batch.length) break;
+      // Compass telemetry stays in the local trip/export, outside public tracking APIs.
+      const uploadBatch = batch.map(({ compass: _compass, ...point }) => ({ ...point, sogMps: validSpeedMps(point.sogMps) }));
       const accepted =
         session.mode === "race"
           ? await racePhoneRpc<number>(
               session.raceLinkId!,
               "ingest_race_phone_points",
-              { p_session: session.id, p_points: batch },
+              { p_session: session.id, p_points: uploadBatch },
             )
           : await trackingRpc<number>("ingest_tracking_points", {
               p_session: session.id,
-              p_points: batch,
+              p_points: uploadBatch,
             });
       if (accepted !== batch.length)
         throw new Error("The server did not acknowledge the complete batch.");
@@ -287,7 +316,14 @@ export function syncTracking(force = false): Promise<void> {
 export const startLocalTracking = (boat?: {id:string;name:string}) =>
   serialize(async () => {
     const store = await trackingStore();
-    const previous = await store.get();
+    let previous = await store.get();
+    // A finished race may still be draining its upload queue. Preserve those
+    // points and finish syncing before replacing the current session.
+    if (previous && previous.mode !== "local" && previous.phase === "stopping") {
+      await syncing?.catch(() => {});
+      await syncTracking(true);
+      previous = await store.get();
+    }
     if (
       previous &&
       (previous.mode !== "local" || previous.phase !== "stopping")
@@ -305,13 +341,14 @@ export const startLocalTracking = (boat?: {id:string;name:string}) =>
       mode: "local",
       userId,
       boatId: boat?.id ?? "",
-      boatName: boat?.name ?? "Local GPS recording",
+      boatName: boat?.name ?? t("Local GPS recording"),
       seriesId: "",
       seriesName: "",
       phase: "recording",
       startedAt: new Date(now).toISOString(),
       expiresAt: new Date(now + 12 * 60 * 60 * 1000).toISOString(),
     });
+    await markTrackingDiagnostic('tripStarted');
     await resumeInternal();
     return id;
   });
@@ -356,9 +393,11 @@ async function startInternal(
     startedAt: new Date().toISOString(),
     expiresAt: "",
   });
+  await markTrackingDiagnostic('tripStarted');
   await resumeInternal();
 }
 async function resumeInternal() {
+  await markTrackingDiagnostic('resume');
   const store = await trackingStore();
   let session = await store.get();
   if (!session) return;
@@ -450,6 +489,7 @@ async function stopInternal(reason: "user" | "expired" = "user") {
     stopReason: session.stopReason ?? reason,
     stoppedAt: session.stoppedAt ?? new Date().toISOString(),
   });
+  await markTrackingDiagnostic('tripStopped');
   await stopGPS();
   await syncing?.catch(() => {});
   await syncTracking(true);
@@ -474,9 +514,11 @@ async function discardInternal() {
 let speedFilterSession: string | null = null;
 let filterPhoneSpeed = createSpeedFilter();
 export async function recordLocations(locations: LocationFix[], via: 'foreground' | 'task' = 'task') {
+  await markTrackingDiagnostic(via === 'foreground' ? 'jsForeground' : 'jsTask');
   const store = await trackingStore(),
     session = await store.get();
   if (!session || session.phase !== "recording") return;
+  if (usesNativeRaceRecorder(session)) return;
   if (locations.length) await store.patch(session.id, {
     lastLocationCallbackAt: new Date().toISOString(),
     lastReportedAccuracyM: locations[locations.length - 1].coords.accuracy,
@@ -512,7 +554,15 @@ export async function recordLocations(locations: LocationFix[], via: 'foreground
         return preferredRecordingPoint(point ? filterPhoneSpeed(point, phoneMotion.state(f.timestamp)) : null);
       })
       .filter((p): p is NonNullable<typeof p> => p !== null);
-    if (points.length) await store.append(session.id, points);
+    if (points.length) {
+      try {
+        const saved = await store.append(session.id, points);
+        if (saved > 0) await markTrackingDiagnostic('saved', saved);
+      } catch (error) {
+        await markTrackingDiagnostic('storageFailed');
+        throw error;
+      }
+    }
     else
       await store.patch(session.id, {
         error: "Waiting for an accurate GPS fix (100 m or better).",
@@ -602,5 +652,6 @@ export const readyForRace = (phone: RacePhone) =>
       startedAt: new Date().toISOString(),
       expiresAt: phone.expiresAt,
     });
+    await markTrackingDiagnostic('tripStarted');
     await resumeInternal();
   });

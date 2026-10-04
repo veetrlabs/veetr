@@ -1,3 +1,4 @@
+import { formatNumber, t, useLanguageRefresh } from '../i18n';
 import { useState } from 'react'
 import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native'
 import Svg, { Path } from 'react-native-svg'
@@ -7,6 +8,7 @@ import { useTheme } from '../context/ThemeContext'
 import { themeColors } from '../constants/colors'
 
 export default function SatelliteButton() {
+  useLanguageRefresh();
   const { state } = useBLE()
   const { theme } = useTheme()
   const colors = themeColors[theme]
@@ -21,7 +23,7 @@ export default function SatelliteButton() {
 
   const formatLatLon = (value: number, isLatitude: boolean) => {
     if (!value || value === 0) return '0.000°'
-    return `${Math.abs(value).toFixed(3)}°${isLatitude ? (value >= 0 ? 'N' : 'S') : (value >= 0 ? 'E' : 'W')}`
+    return `${formatNumber(Math.abs(value), 3)}°${isLatitude ? (value >= 0 ? 'N' : 'S') : (value >= 0 ? 'E' : 'W')}`
   }
 
   return (
@@ -38,16 +40,16 @@ export default function SatelliteButton() {
         <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setShowModal(false)}>
           <View style={[styles.modal, { backgroundColor: colors.panelBg }]}>
             <View style={styles.header}>
-              <Text style={[styles.title, { color: colors.text }]}>GPS Information</Text>
+              <Text style={[styles.title, { color: colors.text }]}>{t("GPS Information")}</Text>
               <TouchableOpacity onPress={() => setShowModal(false)}>
                 <Text style={[styles.close, { color: colors.textMuted }]}>✕</Text>
               </TouchableOpacity>
             </View>
             <View style={styles.body}>
-              <InfoRow label="Satellites" value={`${sailingData.gpsSatellites || 0}`} theme={theme} />
-              <InfoRow label="HDOP" value={(sailingData.hdop || 0).toFixed(1)} theme={theme} />
-              <InfoRow label="Latitude" value={formatLatLon(sailingData.lat || 0, true)} theme={theme} />
-              <InfoRow label="Longitude" value={formatLatLon(sailingData.lon || 0, false)} theme={theme} />
+              <InfoRow label={t("Satellites")} value={`${sailingData.gpsSatellites || 0}`} theme={theme} />
+              <InfoRow label="HDOP" value={formatNumber((sailingData.hdop || 0), 1)} theme={theme} />
+              <InfoRow label={t("Latitude")} value={formatLatLon(sailingData.lat || 0, true)} theme={theme} />
+              <InfoRow label={t("Longitude")} value={formatLatLon(sailingData.lon || 0, false)} theme={theme} />
             </View>
           </View>
         </TouchableOpacity>
@@ -57,6 +59,7 @@ export default function SatelliteButton() {
 }
 
 function InfoRow({ label, value, theme }: { label: string; value: string; theme: 'light' | 'dark' }) {
+  useLanguageRefresh();
   const colors = themeColors[theme]
   return (
     <View style={[styles.row, { borderBottomColor: colors.border }]}>

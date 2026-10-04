@@ -39,7 +39,7 @@ test("loads fleet with the joined phone credential and clears old race on switch
       recordedAt: new Date(start).toISOString(),
     },
   ];
-  (racePhoneRpc as jest.Mock).mockImplementation(async (_id, _name, args) => ({
+  (racePhoneRpc as jest.Mock).mockImplementation(async (_id, _name, args) => _name === "race_phone_status" ? { endedAt: null, active: false } : ({
     start: new Date(start).toISOString(),
     end: new Date(now).toISOString(),
     heats: [],
@@ -71,5 +71,26 @@ test("without a joined invitation no fleet request is made", () => {
   (racePhoneRpc as jest.Mock).mockClear();
   const ui = renderHook(() => useJoinedFleet());
   expect(racePhoneRpc).not.toHaveBeenCalled();
+  ui.unmount();
+});
+
+test("finished race hides cached fleet and does not request replay tracks", async () => {
+  (racePhoneRpc as jest.Mock).mockReset();
+  (racePhoneRpc as jest.Mock).mockResolvedValue({ endedAt: new Date().toISOString() });
+  const ui = renderHook(() => useJoinedFleet("finished-link"));
+  await waitFor(() => expect(ui.result.current.finished).toBe(true));
+  expect(ui.result.current.positions).toEqual([]);
+  expect(racePhoneRpc).toHaveBeenCalledTimes(1);
+  expect(racePhoneRpc).toHaveBeenCalledWith("finished-link", "race_phone_status");
+  ui.unmount();
+});
+
+test("race completed checkbox hides fleet even when tracking has no endedAt", async () => {
+  (racePhoneRpc as jest.Mock).mockReset();
+  (racePhoneRpc as jest.Mock).mockResolvedValue({ completed: true, endedAt: null });
+  const ui = renderHook(() => useJoinedFleet("completed-link"));
+  await waitFor(() => expect(ui.result.current.finished).toBe(true));
+  expect(ui.result.current.positions).toEqual([]);
+  expect(racePhoneRpc).toHaveBeenCalledTimes(1);
   ui.unmount();
 });

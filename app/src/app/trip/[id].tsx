@@ -1,8 +1,12 @@
-import { useCallback, useState } from "react";
+import type { MapRegion } from "../../maps/headingRay";
+import { formatNumber, locale, translateMessage, t, useLanguageRefresh } from '../../i18n';
+import { errorOccurredAt } from "../../tracking/errorHistory";
+import { useCallback, useMemo, useState } from "react";
 import {
   Alert,
   Pressable,
   ScrollView,
+  Switch,
   Text,
   View,
   useWindowDimensions,
@@ -27,6 +31,7 @@ import TripChart from "../../tracking/TripChart";
 import { recordingStatus } from "../../tracking/recordingStatus";
 import { trackingErrorMessage } from "../../tracking/errorMessage";
 export default function TripDetail() {
+  useLanguageRefresh();
   const { id } = useLocalSearchParams<{ id: string }>(),
     { theme } = useTheme(),
     c = themeColors[theme],
@@ -38,15 +43,20 @@ export default function TripDetail() {
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [scrubbing, setScrubbing] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [chartFollowsMap, setChartFollowsMap] = useState(true);
+  const [mapRegion, setMapRegion] = useState<MapRegion>();
+  const [fitRequest, setFitRequest] = useState(0);
   useFocusEffect(
     useCallback(() => {
       let alive = true;
+      let archived = false;
       const refresh = async () => {
         try {
-          const records = await (await trackingStore()).localRecordings();
+          const record = await (await trackingStore()).localRecording(id);
           if (alive) {
             setNow(Date.now());
-            const record = records.find((r) => r.session.id === id);
+            archived = !!record?.archived;
             setTrip((previous) => {
               const next = record
                 ? { ...record, points: orderedPoints(record.points) }
@@ -65,7 +75,7 @@ export default function TripDetail() {
         }
       };
       void refresh();
-      const timer = setInterval(() => void refresh(), 5000);
+      const timer = setInterval(() => { if (!archived) void refresh(); }, 5000);
       return () => {
         alive = false;
         clearInterval(timer);
@@ -96,12 +106,12 @@ export default function TripDetail() {
     if (!trip) return;
     if (trip.session.sharing && (trip.session.sharing.visibility!=="private" || trip.session.sharing.pendingVisibility)) { setError("Stop sharing in the sharing page before deleting this trip."); return; }
     Alert.alert(
-      "Delete from this phone?",
-      "This removes your personal copy from this phone. It does not delete the official race history. Export first to keep a copy.",
+      t("Delete from this phone?"),
+      t("This removes your personal copy from this phone. It does not delete the official race history. Export first to keep a copy."),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("Cancel"), style: "cancel" },
         {
-          text: "Delete",
+          text: t("Delete"),
           style: "destructive",
           onPress: () => {
             setBusy(true);
@@ -126,10 +136,13 @@ export default function TripDetail() {
       ],
     );
   }
+  const warning = trackingErrorMessage(trip?.session.error || trip?.session.lastTaskError, trip ? errorOccurredAt(trip.session) : undefined);
+  const distance = useMemo(() => trip ? distanceNm(trip.points) : 0, [trip?.points]);
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
       <View
         style={{
+          zIndex: 10,
           paddingHorizontal: 16,
           paddingVertical: 8,
           flexDirection: "row",
@@ -142,27 +155,51 @@ export default function TripDetail() {
           onPress={() => router.back()}
           style={{ paddingVertical: 10, paddingRight: 10 }}
         >
-          <Text style={{ color: "#008c80", fontSize: 16 }}>‹ Trips</Text>
+          <Text style={{ color: "#008c80", fontSize: 16 }}>{t("‹ Trips")}</Text>
         </Pressable>
         <View style={{ flex: 1 }}>
           <Text style={{ color: c.text, fontWeight: "600", fontSize: 16 }}>
             {trip
-              ? new Date(trip.session.startedAt).toLocaleDateString(undefined, {
+              ? new Date(trip.session.startedAt).toLocaleDateString(locale(), {
                   month: "long",
                   day: "numeric",
                   year: "numeric",
                 })
-              : "Trip"}
+              : t("Trip")}
           </Text>
           {trip && (
             <Text style={{ color: c.textMuted, fontSize: 12, marginTop: 3 }}>
-              {distanceNm(trip.points).toFixed(2)} nm ·{" "}
+              {formatNumber(distance, 2)} nm ·{" "}
               {durationLabel(tripDuration(trip))}
               {trip.session.phase === "recording" ? ` · ${recordingStatus(trip.session, now)}` : ""}
             </Text>
           )}
         </View>
+        {trip && <View>
+          <Pressable accessibilityRole="button" accessibilityLabel={t("Trip options")}
+            accessibilityState={{ expanded: menuOpen, disabled: busy }} disabled={busy}
+            onPress={() => setMenuOpen(open => !open)}
+            style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
+            <View accessible={false} style={{ gap: 4 }}>
+              {[0, 1, 2].map(line => <View key={line} style={{ width: 22, height: 2, borderRadius: 1, backgroundColor: c.text }} />)}
+            </View>
+          </Pressable>
+        </View>}
       </View>
+      {trip && menuOpen && <View accessibilityLabel={t("Trip options")} onAccessibilityEscape={() => setMenuOpen(false)}
+        style={{ marginHorizontal: 16, marginBottom: 12, alignSelf: 'flex-end', width: 260, padding: 6, borderRadius: 14, backgroundColor: c.panelBg }}>
+        {(trip.session.mode === "local" || trip.session.phase === "stopping") && <Pressable accessibilityRole="button"
+          onPress={() => { setMenuOpen(false); router.push({pathname: '/trip-sharing', params: {id: trip.session.id}}); }} style={{ padding: 14 }}>
+          <Text style={{ color: c.text }}>{trip.session.phase === 'recording' ? t("Live sharing") : t("Publish / manage sharing")}</Text>
+        </Pressable>}
+        <Pressable accessibilityRole="button" onPress={() => { setMenuOpen(false); void exportTrip(); }} style={{ padding: 14 }}>
+          <Text style={{ color: c.text }}>{t("Export trip")}</Text>
+        </Pressable>
+        {trip.session.phase === "stopping" && (trip.archived || trip.session.mode === "local") && <Pressable accessibilityRole="button"
+          onPress={() => { setMenuOpen(false); deleteTrip(); }} style={{ padding: 14 }}>
+          <Text style={{ color: '#c45c55' }}>{t("Delete trip")}</Text>
+        </Pressable>}
+      </View>}
       {trip ? (
         <ScrollView
           scrollEnabled={!scrubbing}
@@ -176,69 +213,54 @@ export default function TripDetail() {
               overflow: "hidden",
             }}
           >
-            <TripMap points={trip.points} selected={trip.points[index]} />
+            <TripMap points={trip.points} selected={trip.points[index]} onViewportChange={setMapRegion} fitRequest={fitRequest} />
           </View>
           <View style={{ padding: 20, gap: 24 }}>
             {trip.session.phase === "recording" && (
-              (trip.session.error || trip.session.lastTaskError || recordingStatus(trip.session, now) !== "Recording") && (
-                <Pressable accessibilityRole="button" onPress={() => router.push("/settings")}>
+              (trip.session.error || trip.session.lastTaskError || recordingStatus(trip.session, now) !== t("Recording")) && (
+                <Pressable accessibilityRole={warning?.settings === false ? undefined : "button"} disabled={warning?.settings === false} onPress={() => router.push("/settings")}>
                   <Text accessibilityRole="alert" style={{ color: c.textSecondary }}>
-                    {trackingErrorMessage(trip.session.error || trip.session.lastTaskError)?.text ||
+                    {warning?.text ||
                       (trip.session.lastRecordedAt
-                        ? "No recent GPS positions. Your saved route is kept; recording will continue when GPS updates return."
-                        : "No GPS positions have been saved yet. Recording will continue when a location fix arrives.")}
-                    {" · Location & tracking settings ›"}
+                        ? t("No recent GPS positions. Your saved route is kept; recording will continue when GPS updates return.")
+                        : t("No GPS positions have been saved yet. Recording will continue when a location fix arrives."))}
+                    {warning?.settings !== false && t(" · Location & tracking settings ›")}
                   </Text>
                 </Pressable>
               )
             )}
             {trip.session.mode === 'race' && trip.session.eventId && <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/race-replay', params: { seriesId: trip.session.seriesId, eventId: trip.session.eventId!, tripId: trip.session.id } })} style={{ padding: 14, backgroundColor: c.buttonBg, borderRadius: 12 }}>
-              <Text style={{ color: c.text }}>Replay race · show competitors</Text>
+              <Text style={{ color: c.text }}>{t("Replay race · show competitors")}</Text>
             </Pressable>}
-            {(trip.session.mode === "local" || trip.session.phase === "stopping") && <Pressable accessibilityRole="button" onPress={() => router.push({pathname:"/trip-sharing",params:{id:trip.session.id}})} style={{padding:14,backgroundColor:c.buttonBg,borderRadius:12}}><Text style={{color:c.text}}>{trip.session.boatId ? `${trip.session.boatName} · ` : ""}{trip.session.phase === "recording" ? "Live sharing" : "Publish / manage sharing"} ›</Text></Pressable>}
+
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Switch accessibilityLabel={t("Chart follows map")} value={chartFollowsMap} onValueChange={setChartFollowsMap} />
+                <Text style={{ color: c.text }}>{t("Chart follows map")}</Text>
+              </View>
+              <Pressable accessibilityRole="button" onPress={() => { setMapRegion(undefined); setFitRequest(n => n + 1); }} style={{ paddingVertical: 12 }}>
+                <Text style={{ color: "#008c80" }}>{t("Fit whole trip")}</Text>
+              </Pressable>
+            </View>
             <TripChart
+              region={chartFollowsMap ? mapRegion : undefined}
+              resetKey={fitRequest}
               points={trip.points}
               index={index}
               onSelect={setIndex}
               onScrubbing={setScrubbing}
             />
-            <View style={{ flexDirection: "row", gap: 12 }}>
-              <Pressable
-                disabled={busy}
-                accessibilityRole="button"
-                onPress={() => void exportTrip()}
-                style={{
-                  flex: 1,
-                  padding: 14,
-                  borderRadius: 12,
-                  backgroundColor: c.buttonBg,
-                }}
-              >
-                <Text style={{ color: c.text, textAlign: "center" }}>
-                  Export trip
-                </Text>
-              </Pressable>
-              {trip.session.phase === "stopping" && (trip.archived || trip.session.mode === "local") && (
-                <Pressable
-                  disabled={busy}
-                  accessibilityRole="button"
-                  onPress={deleteTrip}
-                  style={{ padding: 14 }}
-                >
-                  <Text style={{ color: "#c45c55" }}>Delete trip</Text>
-                </Pressable>
-              )}
-            </View>
+
           </View>
         </ScrollView>
       ) : (
         <Text style={{ padding: 24, color: c.textMuted }}>
-          {loading ? "Loading trip…" : "This trip is no longer available."}
+          {loading ? t("Loading trip…") : t("This trip is no longer available.")}
         </Text>
       )}
       {!!error && (
         <Text accessibilityRole="alert" style={{ color: c.text, padding: 16 }}>
-          {error}
+          {translateMessage(error)}
         </Text>
       )}
     </SafeAreaView>

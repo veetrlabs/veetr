@@ -1,3 +1,6 @@
+import { requestNorthAlignment, northResultMessage } from '../utils/northAlignment';
+import { translateMessage, t, useLanguageRefresh } from '../i18n';
+import PreferencesSettings from "./PreferencesSettings";
 import CalibrationControls from './CalibrationControls'
 import { useState, useRef, useEffect } from 'react'
 import { View, Text, TouchableOpacity, ScrollView, TextInput, Alert, StyleSheet, Animated, Dimensions } from 'react-native'
@@ -7,15 +10,14 @@ import { themeColors } from '../constants/colors'
 import { useBLE } from '../context/BLEContext'
 import { hasValidGPSFix } from '../utils/gpsValidation'
 import { FirmwareUpdateCard } from './cards/FirmwareUpdateCard'
-import DataManager from './DataManager'
-import ThemeToggle from './ThemeToggle'
 import { APP_VERSION } from '../utils/version'
 
 const PANEL_WIDTH = Math.min(Dimensions.get('window').width * 0.85, 360)
 
-type ViewType = 'main' | 'bluetooth' | 'calibration' | 'regatta' | 'about'
+type ViewType = 'preferences' | 'main' | 'bluetooth' | 'calibration' | 'regatta'
 
 export default function Settings() {
+  useLanguageRefresh();
   const insets = useSafeAreaInsets()
   const [menuOpen, setMenuOpen] = useState(false)
   const [isVisible, setIsVisible] = useState(false)
@@ -46,57 +48,57 @@ export default function Settings() {
   }
 
   const handleCalibrateLevel = () => {
-    if (!state.isConnected) { Alert.alert('Not Connected', 'Please connect to Veetr device first'); return }
-    Alert.alert('Calibrate Level', 'This will set the current orientation as level (0°) across all axes.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Calibrate', onPress: async () => {
+    if (!state.isConnected) { Alert.alert(t("Not Connected"), t("Please connect to Veetr Vane first")); return }
+    Alert.alert(t("Calibrate Level"), t("This will set the current orientation as level (0°) across all axes."), [
+      { text: t("Cancel"), style: 'cancel' },
+      { text: t("Calibrate"), onPress: async () => {
         const success = await sendCommand({ action: 'resetHeelAngle' })
-        Alert.alert(success ? 'Success' : 'Failed', success ? 'Vessel level calibration completed!' : 'Failed to calibrate.')
+        Alert.alert(success ? t("Success") : t("Failed"), success ? t("Vessel level calibration completed!") : t("Failed to calibrate."))
       }}
     ])
   }
 
   const handleCalibrateCompass = () => {
-    if (!state.isConnected) { Alert.alert('Not Connected', 'Please connect to Veetr device first'); return }
-    Alert.alert('Calibrate Compass', "Point the vessel's bow toward north.", [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Calibrate', onPress: async () => {
-        const success = await sendCommand({ action: 'resetCompassNorth' })
-        Alert.alert(success ? 'Success' : 'Failed', success ? 'Compass calibrated!' : 'Failed to calibrate.')
+    if (!state.isConnected) { Alert.alert(t("Not Connected"), t("Please connect to Veetr Vane first")); return }
+    Alert.alert(t("Calibrate Compass"), t("Point the vessel's bow toward north."), [
+      { text: t("Cancel"), style: 'cancel' },
+      { text: t("Calibrate"), onPress: async () => {
+          const result = await requestNorthAlignment(sendCommand);
+          Alert.alert(t(result === 'accepted' ? 'Success' : 'Compass reference'), t(northResultMessage[result]));
       }}
     ])
   }
 
   const handleSetDeviceName = () => {
-    if (!state.isConnected) { Alert.alert('Not Connected', 'Please connect first'); return }
-    if (!deviceName.trim()) { Alert.alert('Invalid', 'Please enter a device name'); return }
-    Alert.alert('Set Device Name', `Change device name to "${deviceName.trim()}"? Device will restart.`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Set', onPress: async () => {
+    if (!state.isConnected) { Alert.alert(t("Not Connected"), t("Please connect first")); return }
+    if (!deviceName.trim()) { Alert.alert(t("Invalid"), t("Please enter a device name")); return }
+    Alert.alert(t("Set Device Name"), t("Change device name to \"{{v0}}\"? Device will restart.", { v0: deviceName.trim() }), [
+      { text: t("Cancel"), style: 'cancel' },
+      { text: t("Set"), onPress: async () => {
         const success = await sendCommand({ action: 'setDeviceName', deviceName: deviceName.trim() })
-        Alert.alert(success ? 'Success' : 'Failed', success ? 'Device name set. Device is restarting.' : 'Failed to set name.')
+        Alert.alert(success ? t("Success") : t("Failed"), success ? t("Device name set. Device is restarting.") : t("Failed to set name."))
       }}
     ])
   }
 
   const handleRegattaSet = async (side: 'port' | 'starboard') => {
-    if (!state.isConnected) { Alert.alert('Not Connected', 'Please connect first'); return }
+    if (!state.isConnected) { Alert.alert(t("Not Connected"), t("Please connect first")); return }
     const hasGPS = hasValidGPSFix(state.sailingData.gpsSatellites, state.sailingData.lat, state.sailingData.lon)
-    if (!hasGPS) { Alert.alert('No GPS', 'GPS fix required. Need at least 3 satellites.'); return }
+    if (!hasGPS) { Alert.alert(t("No GPS"), t("GPS fix required. Need at least 3 satellites.")); return }
     const success = await sendCommand({ action: side === 'port' ? 'regattaSetPort' : 'regattaSetStarboard' })
-    if (!success) Alert.alert('Failed', `Failed to set ${side} position.`)
+    if (!success) Alert.alert(t("Failed"), t("Failed to set {{v0}} position.", { v0: t(side) }))
   }
 
   const handleRegattaClear = async (side: 'port' | 'starboard') => {
-    if (!state.isConnected) { Alert.alert('Not Connected', 'Please connect first'); return }
+    if (!state.isConnected) { Alert.alert(t("Not Connected"), t("Please connect first")); return }
     const success = await sendCommand({ action: side === 'port' ? 'regattaClearPort' : 'regattaClearStarboard' })
-    if (!success) Alert.alert('Failed', `Failed to clear ${side} position.`)
+    if (!success) Alert.alert(t("Failed"), t("Failed to clear {{v0}} position.", { v0: t(side) }))
   }
 
   const renderMainMenu = () => (
     <>
       <View style={[styles.menuHeader, { borderBottomColor: colors.border }]}>
-        <Text style={[styles.menuTitle, { color: colors.text }]}>Veetr Menu</Text>
+        <Text style={[styles.menuTitle, { color: colors.text }]}>{t("Veetr Menu")}</Text>
         <TouchableOpacity onPress={closeMenu}><Text style={[styles.close, { color: colors.textMuted }]}>✕</Text></TouchableOpacity>
       </View>
 
@@ -105,29 +107,27 @@ export default function Settings() {
         <Text style={[styles.arrow, { color: colors.textSubtle }]}>›</Text>
       </TouchableOpacity>
       <TouchableOpacity style={[styles.menuItem, { borderBottomColor: colors.border }]} onPress={() => navigateTo('regatta')}>
-        <Text style={[styles.menuItemText, { color: colors.text }]}>Race</Text>
+        <Text style={[styles.menuItemText, { color: colors.text }]}>{t("Race Start Line")}</Text>
         <Text style={[styles.arrow, { color: colors.textSubtle }]}>›</Text>
       </TouchableOpacity>
       <TouchableOpacity style={[styles.menuItem, { borderBottomColor: colors.border }]} onPress={() => navigateTo('calibration')}>
-        <Text style={[styles.menuItemText, { color: colors.text }]}>Calibration</Text>
-        <Text style={[styles.arrow, { color: colors.textSubtle }]}>›</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={[styles.menuItem, { borderBottomColor: colors.border }]} onPress={() => navigateTo('about')}>
-        <Text style={[styles.menuItemText, { color: colors.text }]}>About</Text>
+        <Text style={[styles.menuItemText, { color: colors.text }]}>{t("Calibration")}</Text>
         <Text style={[styles.arrow, { color: colors.textSubtle }]}>›</Text>
       </TouchableOpacity>
 
-      <View style={[styles.themeRow]}>
-        <Text style={[styles.themeLabel, { color: colors.text }]}>Theme</Text>
-        <ThemeToggle />
-      </View>
+
+      <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("Preferences")} style={[styles.menuItem, { borderBottomColor: colors.border }]} onPress={() => navigateTo('preferences')}>
+        <Text style={[styles.menuItemText, { color: colors.text }]}>{t("Preferences")}</Text>
+        <Text style={[styles.arrow, { color: colors.textSubtle }]}>›</Text>
+      </TouchableOpacity>
+      <Text style={[styles.version, { color: colors.textSubtle }]}>{t("App Version:")} {APP_VERSION}</Text>
     </>
   )
 
   const renderBluetooth = () => (
     <>
       <View style={[styles.menuHeader, { borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => navigateTo('main')}><Text style={styles.back}>‹ Back</Text></TouchableOpacity>
+        <TouchableOpacity onPress={() => navigateTo('main')}><Text style={styles.back}>{t("‹ Back")}</Text></TouchableOpacity>
         <Text style={[styles.menuTitle, { color: colors.text }]}>Bluetooth</Text>
         <TouchableOpacity onPress={closeMenu}><Text style={[styles.close, { color: colors.textMuted }]}>✕</Text></TouchableOpacity>
       </View>
@@ -135,7 +135,7 @@ export default function Settings() {
       <View style={styles.statusBox}>
         <View style={[styles.statusDot, state.isConnected ? styles.connected : styles.disconnected]} />
         <Text style={[styles.statusText, { color: colors.text }]}>
-          {state.isConnecting ? 'Connecting...' : state.isConnected ? 'Connected' : 'Disconnected'}
+          {state.isConnecting ? t("Connecting...") : state.isConnected ? t("Connected") : t("Disconnected")}
         </Text>
       </View>
 
@@ -145,18 +145,18 @@ export default function Settings() {
         disabled={state.isConnecting}
       >
         <Text style={styles.bigButtonText}>
-          {state.isConnecting ? 'Connecting...' : state.isConnected ? 'Disconnect' : 'Connect to Veetr'}
+          {state.isConnecting ? t("Connecting...") : state.isConnected ? t("Disconnect") : t("Connect to Veetr")}
         </Text>
       </TouchableOpacity>
 
       {state.error && (
         <Text selectable accessibilityRole="alert" style={{ color: colors.text, marginTop: 12 }}>
-          Bluetooth error: {state.error}
+          {t("Bluetooth error:")} {translateMessage(state.error)}
         </Text>
       )}
 
       <View style={styles.section}>
-        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Device Name</Text>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t("Device Name")}</Text>
         <TextInput
           style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
           value={deviceName}
@@ -166,17 +166,18 @@ export default function Settings() {
           maxLength={20}
         />
         <TouchableOpacity accessibilityRole="button" disabled={!state.isConnected || state.isConnecting} accessibilityState={{ disabled: !state.isConnected || state.isConnecting }} style={[styles.smallButton, { backgroundColor: state.isConnected && !state.isConnecting ? '#006b62' : colors.chartBg }]} onPress={handleSetDeviceName}>
-          <Text style={[styles.smallButtonText, (!state.isConnected || state.isConnecting) && { color: colors.textMuted }]}>Set Name</Text>
+          <Text style={[styles.smallButtonText, (!state.isConnected || state.isConnecting) && { color: colors.textMuted }]}>{t("Set Name")}</Text>
         </TouchableOpacity>
       </View>
+      <FirmwareUpdateCard />
     </>
   )
 
   const renderCalibration = () => (
     <>
       <View style={[styles.menuHeader, { borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => navigateTo('main')}><Text style={styles.back}>‹ Back</Text></TouchableOpacity>
-        <Text style={[styles.menuTitle, { color: colors.text }]}>Calibration</Text>
+        <TouchableOpacity onPress={() => navigateTo('main')}><Text style={styles.back}>{t("‹ Back")}</Text></TouchableOpacity>
+        <Text style={[styles.menuTitle, { color: colors.text }]}>{t("Calibration")}</Text>
         <TouchableOpacity onPress={closeMenu}><Text style={[styles.close, { color: colors.textMuted }]}>✕</Text></TouchableOpacity>
       </View>
 
@@ -187,37 +188,23 @@ export default function Settings() {
   const renderRegatta = () => (
     <>
       <View style={[styles.menuHeader, { borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => navigateTo('main')}><Text style={styles.back}>‹ Back</Text></TouchableOpacity>
-        <Text style={[styles.menuTitle, { color: colors.text }]}>Race</Text>
+        <TouchableOpacity onPress={() => navigateTo('main')}><Text style={styles.back}>{t("‹ Back")}</Text></TouchableOpacity>
+        <Text style={[styles.menuTitle, { color: colors.text }]}>{t("Race Start Line")}</Text>
         <TouchableOpacity onPress={closeMenu}><Text style={[styles.close, { color: colors.textMuted }]}>✕</Text></TouchableOpacity>
       </View>
 
       <TouchableOpacity style={[styles.menuItem, { borderBottomColor: colors.border }]} onPress={() => handleRegattaSet('port')}>
-        <Text style={[styles.menuItemText, { color: colors.text }]}>Set Port Line</Text>
+        <Text style={[styles.menuItemText, { color: colors.text }]}>{t("Set Port Line")}</Text>
       </TouchableOpacity>
       <TouchableOpacity style={[styles.menuItem, { borderBottomColor: colors.border }]} onPress={() => handleRegattaClear('port')}>
-        <Text style={[styles.menuItemText, { color: '#e53e3e' }]}>Clear Port Line</Text>
+        <Text style={[styles.menuItemText, { color: '#e53e3e' }]}>{t("Clear Port Line")}</Text>
       </TouchableOpacity>
       <TouchableOpacity style={[styles.menuItem, { borderBottomColor: colors.border }]} onPress={() => handleRegattaSet('starboard')}>
-        <Text style={[styles.menuItemText, { color: colors.text }]}>Set Starboard Line</Text>
+        <Text style={[styles.menuItemText, { color: colors.text }]}>{t("Set Starboard Line")}</Text>
       </TouchableOpacity>
       <TouchableOpacity style={[styles.menuItem, { borderBottomColor: colors.border }]} onPress={() => handleRegattaClear('starboard')}>
-        <Text style={[styles.menuItemText, { color: '#e53e3e' }]}>Clear Starboard Line</Text>
+        <Text style={[styles.menuItemText, { color: '#e53e3e' }]}>{t("Clear Starboard Line")}</Text>
       </TouchableOpacity>
-    </>
-  )
-
-  const renderAbout = () => (
-    <>
-      <View style={[styles.menuHeader, { borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => navigateTo('main')}><Text style={styles.back}>‹ Back</Text></TouchableOpacity>
-        <Text style={[styles.menuTitle, { color: colors.text }]}>About</Text>
-        <TouchableOpacity onPress={closeMenu}><Text style={[styles.close, { color: colors.textMuted }]}>✕</Text></TouchableOpacity>
-      </View>
-
-      <FirmwareUpdateCard />
-      <DataManager />
-      <Text style={[styles.version, { color: colors.textSubtle }]}>App Version: {APP_VERSION}</Text>
     </>
   )
 
@@ -231,12 +218,20 @@ export default function Settings() {
         <View style={styles.overlay}>
           <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={closeMenu} />
           <Animated.View style={[styles.panel, { backgroundColor: colors.panelBg, transform: [{ translateX: slideAnim }] }]}>
-            <ScrollView>
+            <ScrollView key={currentView}>
+              {currentView === 'preferences' && (
+                <>
+                  <TouchableOpacity accessibilityRole="button" onPress={() => navigateTo('main')}>
+                    <Text style={[styles.back, { paddingVertical: 12 }]}>{t("‹ Settings")}</Text>
+                  </TouchableOpacity>
+                  <Text accessibilityRole="header" style={[styles.menuTitle, { color: colors.text, marginBottom: 16 }]}>{t("Preferences")}</Text>
+                  <PreferencesSettings />
+                </>
+              )}
               {currentView === 'main' && renderMainMenu()}
               {currentView === 'bluetooth' && renderBluetooth()}
               {currentView === 'calibration' && renderCalibration()}
               {currentView === 'regatta' && renderRegatta()}
-              {currentView === 'about' && renderAbout()}
             </ScrollView>
           </Animated.View>
         </View>
@@ -298,13 +293,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   menuItemText: { fontSize: 16 },
-  themeRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 14,
-  },
-  themeLabel: { fontSize: 16 },
+
   statusBox: {
     flexDirection: 'row',
     alignItems: 'center',

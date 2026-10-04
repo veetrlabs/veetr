@@ -1,3 +1,4 @@
+import { t, useLanguageRefresh } from '../i18n';
 import { useCallback, useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
@@ -18,12 +19,13 @@ export function TripOptions({
   onVisibility: (value: TripVisibility) => void;
   disabled?: boolean;
 }) {
+  useLanguageRefresh();
   const c = themeColors[useTheme().theme];
   return (
     <View style={{ gap: 12 }}>
-      <Text style={{ color: c.text, fontWeight: "600" }}>Trip title</Text>
+      <Text style={{ color: c.text, fontWeight: "600" }}>{t("Trip title")}</Text>
       <TextInput
-        accessibilityLabel="Trip title"
+        accessibilityLabel={t("Trip title")}
         value={title}
         onChangeText={onTitle}
         editable={!disabled}
@@ -38,16 +40,16 @@ export function TripOptions({
           borderColor: c.border,
         }}
       />
-      <Text style={{ color: c.text, fontWeight: "600" }}>Who can watch?</Text>
+      <Text style={{ color: c.text, fontWeight: "600" }}>{t("Who can watch?")}</Text>
       {(
         [
-          ["private", "Private", "Only on this device. You can share later."],
+          ["private", t("Private"), t("Only on this device. You can share later.")],
           [
             "unlisted",
-            "Anyone with the link",
-            "Send the link to family and friends.",
+            t("Anyone with the link"),
+            t("Send the link to family and friends."),
           ],
-          ["public", "Public", "Listed on Veetr for anyone to discover."],
+          ["public", t("Public"), t("Listed on Veetr for anyone to discover.")],
         ] as const
       ).map(([value, label, description]) => (
         <Pressable
@@ -78,14 +80,13 @@ export function TripOptions({
       ))}
       {visibility !== "private" && (
         <Text style={{ color: c.textMuted, fontSize: 13 }}>
-          Shares your route and recorded instruments. Live sharing starts after
-          the first GPS position. When you end the trip, the same link shows the finished route.
-        </Text>
+          {t("Shares your route and recorded instruments. Live sharing starts after the first GPS position. When you end the trip, the same link shows the finished route.")}</Text>
       )}
     </View>
   );
 }
 export function TripAccountLink() {
+  useLanguageRefresh();
   const c = themeColors[useTheme().theme];
   const [signedIn, setSignedIn] = useState(false);
   useFocusEffect(
@@ -115,7 +116,7 @@ export function TripAccountLink() {
       style={{ minHeight: 44, justifyContent: "center" }}
     >
       <Text style={{ color: c.text }}>
-        {signedIn ? "Account settings" : "Sign in to share trips"} ›
+        {signedIn ? t("Account settings") : t("Sign in to share trips")} ›
       </Text>
     </Pressable>
   );

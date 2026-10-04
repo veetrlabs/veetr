@@ -1,3 +1,4 @@
+import { translateMessage, t, useLanguageRefresh } from '../i18n';
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -12,14 +13,16 @@ import {
 } from "../tracking/tripSharing";
 import { TripOptions, TripAccountLink } from "../tracking/TripOptions";
 import { trackingStore } from "../tracking/database";
+import { rememberTripBoat } from "../tracking/recentTripBoats";
 import TripBoatPicker from "../tracking/TripBoatPicker";
 import { startLocalTracking } from "../tracking/service";
 import { useTheme } from "../context/ThemeContext";
 import { themeColors } from "../constants/colors";
 export default function StartTrip() {
+  useLanguageRefresh();
   const c = themeColors[useTheme().theme];
   const [boat, setBoat] = useState<TripBoat>(),
-    [title, setTitle] = useState("My sailing trip"),
+    [title, setTitle] = useState(t("My sailing trip")),
     [visibility, setVisibility] = useState<TripVisibility>("private"),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
@@ -51,15 +54,12 @@ export default function StartTrip() {
       startedId = await startLocalTracking(boat);
       await (
         await trackingStore()
-      ).updateTrip(startedId, { tripTitle: title.trim() || "My sailing trip" });
+      ).updateTrip(startedId, { tripTitle: title.trim() || t("My sailing trip") });
       if (visibility !== "private")
         await setTripSharing(startedId, visibility, title);
       const auth = await trackingClient?.auth.getSession();
       if (boat && auth?.data.session)
-        await AsyncStorage.setItem(
-          `veetr-last-trip-boat:${auth.data.session.user.id}`,
-          boat.id,
-        );
+        await rememberTripBoat(boat.id).catch(() => {});
       if (visibility === "private") router.back();
       else
         router.replace({
@@ -82,14 +82,12 @@ export default function StartTrip() {
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
       <ScrollView contentContainerStyle={{ padding: 20, gap: 20 }}>
         <Pressable accessibilityRole="button" onPress={() => router.back()}>
-          <Text style={{ color: c.text }}>‹ Trips</Text>
+          <Text style={{ color: c.text }}>{t("‹ Trips")}</Text>
         </Pressable>
         <Text style={{ color: c.text, fontSize: 28, fontWeight: "700" }}>
-          Start a trip
-        </Text>
+          {t("Start a trip")}</Text>
         <Text style={{ color: c.textMuted }}>
-          Choose your boat and who can watch. Private trips stay on this device.
-        </Text>
+          {t("Choose your boat and who can watch. Private trips stay on this device.")}</Text>
         <TripBoatPicker selected={boat?.id} onSelect={setBoat} />
         <TripOptions
           title={title}
@@ -111,18 +109,18 @@ export default function StartTrip() {
         >
           <Text style={{ color: "white", textAlign: "center" }}>
             {busy
-              ? "Starting…"
+              ? t("Starting…")
               : visibility === "private"
-                ? "Start private recording"
+                ? t("Start private recording")
                 : visibility === "public"
-                  ? "Start recording · share publicly"
-                  : "Start recording · share by link"}
+                  ? t("Start recording · share publicly")
+                  : t("Start recording · share by link")}
           </Text>
         </Pressable>
         <TripAccountLink />
         {!!error && (
           <Text accessibilityRole="alert" style={{ color: c.text }}>
-            {error}
+            {translateMessage(error)}
           </Text>
         )}
       </ScrollView>

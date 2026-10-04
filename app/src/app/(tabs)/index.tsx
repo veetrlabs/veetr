@@ -2,6 +2,7 @@ import { View, StyleSheet } from 'react-native'
 import { useTheme } from '../../context/ThemeContext'
 import { themeColors } from '../../constants/colors'
 import Dashboard from '../../components/Dashboard'
+import BluetoothSignal from '../../components/BluetoothSignal'
 import GPSStatusButton from '../../components/GPSStatusButton'
 
 export default function DashboardTab() {
@@ -13,6 +14,7 @@ export default function DashboardTab() {
       <Dashboard />
       <View style={styles.floatingLayer} pointerEvents="box-none">
         <GPSStatusButton />
+        <BluetoothSignal />
       </View>
     </View>
   )

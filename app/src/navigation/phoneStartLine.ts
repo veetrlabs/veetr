@@ -25,3 +25,9 @@ export function parsePhoneLine(raw: string | null): PhoneStartLine {
   }
   return { port: mark(data?.port), starboard: mark(data?.starboard) }
 }
+
+// A stored empty line also counts: explicitly cleared marks must not reappear
+// from Vane on reconnect. Do not switch sources while storage is loading.
+export function shouldUseDeviceStartLine(connected: boolean, local: { loaded: boolean; hasSavedLine: boolean }): boolean {
+  return connected && local.loaded && !local.hasSavedLine
+}

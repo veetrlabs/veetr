@@ -28,6 +28,14 @@ void test_live_heading_diagnostics_do_not_block_sensor_packet() {
   TEST_ASSERT_TRUE(doc.containsKey("AWS"));
   TEST_ASSERT_TRUE(doc.containsKey("SOG"));
   TEST_ASSERT_TRUE(doc.containsKey("lat"));
+  TEST_ASSERT_EQUAL(3, doc["hQ"].as<int>());
+  TEST_ASSERT_FLOAT_WITHIN(.1, 192.1, doc["hR"].as<float>());
+  data.HDM = -1; data.headingQuality = 1;
+  TEST_ASSERT_TRUE(reduceBlePayload(buildSensorDataJson(data, gps, true, -76, line), 180, output));
+  doc.clear(); deserializeJson(doc, output.c_str());
+  TEST_ASSERT_FALSE(doc.containsKey("HDM"));
+  TEST_ASSERT_EQUAL(1, doc["hQ"].as<int>());
+  TEST_ASSERT_FLOAT_WITHIN(.1, 192.1, doc["hR"].as<float>());
 }
 
 static void makePayload(const char* deviceName, char* output, size_t outputCap) {

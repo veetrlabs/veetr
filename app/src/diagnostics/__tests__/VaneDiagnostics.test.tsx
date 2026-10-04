@@ -1,0 +1,32 @@
+import React from 'react';
+import {render,fireEvent,waitFor} from '@testing-library/react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import VaneDiagnostics from '../VaneDiagnostics';
+jest.mock('react-native',()=>({View:'View',Text:'Text',Pressable:'Pressable',StyleSheet:{flatten:(s:unknown)=>s}}));
+const mockState={isConnected:true,firmwareInfo:{isUpdating:false,currentVersion:'0.0.34'}};
+const mockSample={up:100,imu:true,q:10,a:10,age:0,quality:3,north:true,offset:10,raw:355,hdg:355,rej:0,gps:true,sat:12};
+jest.mock('../../context/BLEContext',()=>({useBLE:()=>({state:mockState,sendCommand:jest.fn()})}));
+jest.mock('../../context/ThemeContext',()=>({useTheme:()=>({theme:'dark'})}));
+jest.mock('expo-crypto',()=>({randomUUID:()=> '00000000-0000-4000-8000-000000000001'}));
+jest.mock('expo-file-system',()=>({File:jest.fn(),Paths:{cache:'cache'}}));
+jest.mock('expo-sharing',()=>({isAvailableAsync:jest.fn()}));
+jest.mock('../service',()=>({ensureDiagnosticIdentity:async()=> '00000000-0000-4000-8000-000000000002'}));
+jest.mock('@react-native-async-storage/async-storage',()=>({getItem:jest.fn(),setItem:jest.fn().mockResolvedValue(undefined)}));
+beforeEach(()=>{process.env.EXPO_PUBLIC_SUPABASE_URL='https://example.test'; process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY='test';jest.clearAllMocks(); mockState.isConnected=true; (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null); global.fetch=jest.fn();});
+test('loading saved results never uploads, sending is explicit and failed reports remain saved',async()=>{
+ (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify({id:'report-id',occurredAt:new Date().toISOString(),samples:[mockSample],firmware:'0.0.34',appVersion:'0.0.34'}));
+ const view=render(<VaneDiagnostics/>);
+ await view.findByText('Send to Veetr'); expect(fetch).not.toHaveBeenCalled();
+ (fetch as jest.Mock).mockResolvedValue({ok:false});
+ fireEvent.press(view.getByText('Send to Veetr'));
+ await view.findByText('Report could not be sent. It remains saved on this phone; try again later.');
+ expect(fetch).toHaveBeenCalledTimes(1);
+ expect(AsyncStorage.setItem).not.toHaveBeenCalled();
+ expect(view.getByText('Export report')).toBeTruthy();
+});
+test('disconnected device cannot begin diagnostics',async()=>{
+ mockState.isConnected=false;
+ const view=render(<VaneDiagnostics/>);
+ await waitFor(()=>expect(view.getByText('Run Vane diagnostics').parent?.props.disabled).toBe(true));
+ expect(fetch).not.toHaveBeenCalled();
+});

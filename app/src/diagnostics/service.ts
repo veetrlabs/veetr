@@ -1,3 +1,4 @@
+import { bleDiagnostics, clearBleDiagnostics } from './ble';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState, Platform } from 'react-native';
 import Constants from 'expo-constants';
@@ -6,11 +7,16 @@ import * as Device from 'expo-device';
 import * as Crypto from 'expo-crypto';
 import * as Location from 'expo-location';
 import { trackingStore } from '../tracking/database';
-import { nativeDiagnostics, setNativeDiagnosticsEnabled } from './native';
+import { nativeDiagnostics, setNativeDiagnosticsEnabled, trackingHistory } from './native';
 import { ageSeconds, diagnosticErrorCode, emptyState, enqueue, type DiagnosticEvent, type QueueState } from './queue';
 
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const apiKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+export function utf8Bytes(text: string): number {
+  let size = 0;
+  for (const char of text) { const code = char.codePointAt(0)!; size += code <= 0x7f ? 1 : code <= 0x7ff ? 2 : code <= 0xffff ? 3 : 4; }
+  return size;
+}
 const storageKey = `veetr-diagnostics-v1:${url ?? 'unconfigured'}`;
 let tail: Promise<unknown> = Promise.resolve();
 const exclusive = <T,>(work: () => Promise<T>): Promise<T> => {
@@ -32,11 +38,16 @@ let lastHealth = 0;
 let lastHealthState = '';
 export const diagnosticsEnabled = () => exclusive(async () => (await read()).enabled);
 export const diagnosticIdentity = () => exclusive(async () => (await read()).installationId);
+export const ensureDiagnosticIdentity = () => exclusive(async () => {
+  const state = await read();
+  if (!state.installationId) { state.installationId = Crypto.randomUUID(); await save(state); }
+  return state.installationId;
+});
 export const initializeDiagnostics = () => exclusive(async () => setNativeDiagnosticsEnabled((await read()).enabled));
 export async function setDiagnosticsEnabled(enabled: boolean) {
   // Invalidate in-progress collection immediately, even before disk I/O completes.
   revision++;
-  if (!enabled) controller?.abort();
+  if (!enabled) { controller?.abort(); clearBleDiagnostics(); }
   await exclusive(async () => {
     const state = await read();
     await save(enabled ? { ...state, enabled: true, installationId: state.installationId ?? Crypto.randomUUID() } : emptyState());
@@ -47,11 +58,11 @@ export async function setDiagnosticsEnabled(enabled: boolean) {
 
 async function snapshot(event: DiagnosticEvent['event'], consent: DiagnosticEvent['consent'], installationId: string, state: string, error?: unknown): Promise<DiagnosticEvent> {
   const now = Date.now();
-  const [storage, foreground, background, native] = await Promise.all([
+  const [storage, foreground, background, native, history] = await Promise.all([
     trackingStore().then(async store => ({ session: await store.get(), count: await store.count(), available: true }))
       .catch(() => ({ session: null, count: 0, available: false })),
     Location.getForegroundPermissionsAsync(), Location.getBackgroundPermissionsAsync(),
-    nativeDiagnostics(),
+    nativeDiagnostics(), trackingHistory(),
   ]);
   const { session, count: pendingCount } = storage;
   const short = (value: unknown) => String(value ?? 'unknown').slice(0, 80);
@@ -80,7 +91,17 @@ async function snapshot(event: DiagnosticEvent['event'], consent: DiagnosticEven
       precisePermission: Platform.OS === 'android' && foreground.android?.accuracy ? foreground.android.accuracy === 'fine' : null,
       storageAvailable: storage.available,
     },
-    native,
+    // A native race uses no Expo task queue. Never report its old JS counters as
+    // evidence that the independent recorder has stopped delivering fixes.
+    native: session?.nativeRecorderStartedAt && native ? {
+      ...Object.fromEntries(Object.entries(native).map(([key, value]) =>
+        /^(job|task|broadcast|registered|request|service).*Count$|^(job|task|broadcast|registered|request|service).*AgeSeconds$/.test(key) ? [key, null] : [key, value])),
+      fixCount: session.nativeFixCount ?? 0,
+      fixScreenOffCount: session.nativeFixScreenOffCount ?? 0,
+      fixAgeSeconds: ageSeconds(session.lastLocationCallbackAt, now),
+      serviceRunning: session.phase === 'recording' && (ageSeconds(session.nativeRecorderHeartbeatAt, now) ?? Infinity) < 120,
+    } : native,
+    trackingHistory: history, ble: bleDiagnostics(),
   };
 }
 async function collect(event: DiagnosticEvent['event'], manual: boolean, error?: unknown): Promise<string | null> {
@@ -108,12 +129,16 @@ export async function sendDiagnosticReport(): Promise<string> {
   const generation = revision;
   const id = await collect('manual', true);
   if (!id) throw new Error('Report cancelled. Please try again.');
-  await flushDiagnostics(true).catch(() => {});
+  // An automatic batch may already be uploading. Wait for it, then send the
+  // requested report itself rather than another batch from the old backlog.
+  if (uploading) await uploading.catch(() => {});
+  if (generation !== revision) return 'Reporting preference changed. Unsent reports were cancelled.';
+  await flushDiagnostics(true, id).catch(() => {});
   if (generation !== revision) return 'Reporting preference changed. Unsent reports were cancelled.';
   const queued = await exclusive(async () => (await read()).events.some(e => e.id === id));
-  return `${queued ? 'Report saved; it will send when connected.' : 'Report sent.'} Report ID: ${id}`;
+  return `${queued ? 'Report saved on this phone, but not sent yet. Keep Veetr open and check your connection to retry.' : 'Report sent.'} Report ID: ${id}`;
 }
-export function flushDiagnostics(force = false): Promise<void> {
+export function flushDiagnostics(force = false, priorityReportId?: string): Promise<void> {
   if (uploading) return uploading;
   if (!force && Date.now() - lastUploadAttempt < 60000) return Promise.resolve();
   lastUploadAttempt = Date.now();
@@ -126,8 +151,9 @@ export function flushDiagnostics(force = false): Promise<void> {
       await save(state);
       // Native counters increase report size; stay below the server's 40 KB batch cap.
       const batch: DiagnosticEvent[] = [];
-      for (const event of state.events.slice(0, 20)) {
-        if (JSON.stringify({ reports: [...batch, event] }).length > 9000) break;
+      const candidates = priorityReportId ? state.events.filter(e => e.id === priorityReportId) : state.events;
+      for (const event of candidates.slice(0, 20)) {
+        if (utf8Bytes(JSON.stringify([...batch, event], null, 1)) > 39000) break;
         batch.push(event);
       }
       return batch;

@@ -6,6 +6,7 @@
 
 // Consume reports independently of GPS/Modbus/telemetry timing. A quaternion
 // report must not count as a fresh accelerometer sample (or vice versa).
+struct IgnoreImuReport { template<class Imu> void operator()(Imu&,uint16_t,unsigned long) const {} };
 class ImuService {
  public:
   unsigned long lastQuaternionMs = 0;
@@ -18,10 +19,10 @@ class ImuService {
     return qualityReady_ && now - lastQuaternionMs < 1000;
   }
 
-  template <typename Imu, typename Clock>
+  template <typename Imu, typename Clock, typename Observer = IgnoreImuReport>
   void poll(Imu& imu, SensorData& data, Clock now, float rollOffset,
             float pitchOffset, float headingOffset, bool northCalibrated,
-            void (*storeAccel)(float, float, float)) {
+            void (*storeAccel)(float, float, float), Observer observer = Observer{}) {
     const unsigned long start = now();
     if (started_ && start - lastPollMs_ < 10) return;
     started_ = true;
@@ -29,6 +30,7 @@ class ImuService {
     for (int i = 0; i < 8 && now() - start < 5; ++i) {
       const uint16_t report = imu.getReadings();
       if (report == 0) break;
+      observer(imu,report,now());
       if (report == 0x05) { // SH-2 magnetic rotation vector
         float heading;
         if (computeHeadingDegreesFromQuaternion(imu.getQuatI(), imu.getQuatJ(),
@@ -56,6 +58,11 @@ class ImuService {
             imu.enableAccelerometer(50);
             accelEnabled_ = true;
           }
+        } else {
+          data.HDM = -1;
+          data.headingRaw = NAN;
+          qualitySince_ = 0;
+          qualityReady_ = false;
         }
       } else if (report == 0x01) { // SH-2 accelerometer, including gravity
         data.accelX = imu.getAccelX();
@@ -80,6 +87,7 @@ class ImuService {
     }
     if (quaternionReports == 0 || end - lastQuaternionMs > 3000) {
       data.HDM = -1;
+      data.headingRaw = NAN;
       qualitySince_ = 0;
       qualityReady_ = false;
     }

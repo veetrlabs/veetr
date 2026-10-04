@@ -100,3 +100,52 @@ test("chart gesture follows time; wind can appear without SOG and missing wind s
   expect(ui.getByText("12.0")).toBeTruthy();
   expect(ui.queryByText("● TWS")).toBeNull();
 });
+test('map-filtered chart scrubbing returns original trip indices and reset restores chart range', () => {
+  const select = jest.fn();
+  const data = points.map((p, i) => ({ ...p, longitude: i === 0 ? 20 : 16, sogMps: 2 }));
+  const ui = render(<TripChart points={data} index={1} onSelect={select}
+    region={{ latitude: 43, longitude: 16, latitudeDelta: 1, longitudeDelta: 1 }} />);
+  fireEvent(ui.getByRole('adjustable'), 'accessibilityAction', { nativeEvent: { actionName: 'increment' } });
+  expect(select).toHaveBeenLastCalledWith(2);
+  expect(ui.queryByLabelText('Zoom chart in')).toBeNull();
+  expect(ui.queryByLabelText('Zoom chart out')).toBeNull();
+  const timeline = ui.getByRole('adjustable');
+  fireEvent(timeline, 'layout', { nativeEvent: { layout: { width: 364 } } });
+  for (const [left, right] of [[142, 242], [92, 292]]) {
+    fireEvent(timeline, 'responderMove', { nativeEvent: { touches: [{ pageX: left, pageY: 0 }, { pageX: right, pageY: 0 }] } });
+  }
+  expect(ui.getByText('Selected time range')).toBeTruthy();
+  fireEvent.press(ui.getByText('Reset chart'));
+  expect(ui.getByText('Route visible on map')).toBeTruthy();
+});
+test('two-finger pinch narrows timeline without scrubbing on release', () => {
+  const select = jest.fn();
+  const data = Array.from({ length: 11 }, (_, i) => ({ ...points[0], recordedAt: new Date(start + i * 10000).toISOString(), sogMps: 2 }));
+  const ui = render(<TripChart points={data} index={5} onSelect={select} />);
+  const timeline = ui.getByRole('adjustable');
+  fireEvent(timeline, 'layout', { nativeEvent: { layout: { width: 364 } } });
+  const move = (left: number, right: number) => fireEvent(timeline, 'responderMove', {
+    nativeEvent: { pageX: left, touches: [{ pageX: left, pageY: 0 }, { pageX: right, pageY: 0 }] },
+  });
+  move(142, 242);
+  move(92, 292);
+  expect(ui.getByText('Selected time range')).toBeTruthy();
+  expect(ui.getByRole('adjustable').props.accessibilityValue.max).toBe(4);
+  select.mockClear();
+  fireEvent(timeline, 'responderRelease', { nativeEvent: { pageX: 292 } });
+  expect(select).not.toHaveBeenCalled();
+});
+
+test('equivalent map callbacks do not reset a pinched chart', () => {
+  const select = jest.fn();
+  const data = Array.from({ length: 11 }, (_, i) => ({ ...points[0], latitude: 43, longitude: 15, recordedAt: new Date(start + i * 10000).toISOString() }));
+  const region = { latitude: 43, longitude: 15, latitudeDelta: 1, longitudeDelta: 1 };
+  const ui = render(<TripChart points={data} index={5} onSelect={select} region={region} />);
+  const timeline = ui.getByRole('adjustable');
+  for (const [left, right] of [[100, 200], [50, 250]]) fireEvent(timeline, 'responderMove', { nativeEvent: { touches: [{ pageX: left, pageY: 0 }, { pageX: right, pageY: 0 }] } });
+  expect(ui.getByText('Selected time range')).toBeTruthy();
+  ui.rerender(<TripChart points={data} index={5} onSelect={select} region={{ ...region }} />);
+  expect(ui.getByText('Selected time range')).toBeTruthy();
+  ui.rerender(<TripChart points={data} index={5} onSelect={select} region={{ ...region, latitudeDelta: 0.5 }} />);
+  expect(ui.getByText('Route visible on map')).toBeTruthy();
+});

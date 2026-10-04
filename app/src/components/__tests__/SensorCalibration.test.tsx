@@ -1,0 +1,28 @@
+import React from 'react';
+import {render,fireEvent,act} from '@testing-library/react-native';
+import SensorCalibration from '../SensorCalibration';
+const mockCommand=jest.fn();const mockSend=jest.fn();
+jest.mock('react-native',()=>({View:'View',Text:'Text',Pressable:'Pressable',StyleSheet:{flatten:(s:unknown)=>s}}));
+jest.mock('../../context/BLEContext',()=>({useBLE:()=>({state:{isConnected:true,firmwareInfo:{isUpdating:false}},sendCommand:mockSend})}));
+jest.mock('../../context/ThemeContext',()=>({useTheme:()=>({theme:'dark'})}));
+jest.mock('../../utils/sensorCalibration',()=>({sensorCalibrationCommand:(...args:any[])=>mockCommand(...args)}));
+beforeEach(()=>{jest.useFakeTimers();mockCommand.mockReset();});
+afterEach(()=>jest.useRealTimers());
+test('guides detached-device steps, gates save on quality and waits for save confirmation',async()=>{
+ const running={state:'running',mag:0,accel:3,gyro:3,ready:false};mockCommand.mockResolvedValue(running);
+ const view=render(<SensorCalibration onActive={jest.fn()}/>);
+ expect(view.getByText(/Detach Vane from the boat/)).toBeTruthy();
+ await act(async()=>fireEvent.press(view.getByText('Vane is detached — start calibration')));
+ expect(mockCommand.mock.calls[0][1]).toBe(1);
+ fireEvent.press(view.getByText('Done — next step'));fireEvent.press(view.getByText('Done — next step'));
+ expect(view.getByText('Save sensor calibration').parent?.props.disabled).toBe(true);
+ mockCommand.mockResolvedValue({...running,mag:2,ready:true});
+ await act(async()=>jest.advanceTimersByTime(1000));
+ expect(view.getByText('Save sensor calibration').parent?.props.disabled).toBe(false);
+ mockCommand.mockResolvedValue({...running,state:'saving'});
+ await act(async()=>fireEvent.press(view.getByText('Save sensor calibration')));
+ expect(view.queryByText(/Sensor confirmed calibration saved/)).toBeNull();
+ mockCommand.mockResolvedValue({...running,state:'saved'});
+ await act(async()=>jest.advanceTimersByTime(1000));
+ expect(view.getByText(/Sensor confirmed calibration saved/)).toBeTruthy();
+});

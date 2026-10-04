@@ -8,6 +8,13 @@ const longitudeDelta = (a: number, b: number) => ((a - b + 540) % 360) - 180
 // A local metre projection accounts for longitude scale and crossing the date line.
 export function phoneStartLineDistance(line: PhoneStartLine, point: TrackingPoint | null, now = Date.now()): number | null {
   if (!line.port || !line.starboard || !canCapturePhone(point, now)) return null
+  return startLineDistanceAtPosition(line, point)
+}
+
+// Callers with a fresh external GPS fix can use the same geometry without
+// pretending that Vane supplied a phone accuracy estimate.
+export function startLineDistanceAtPosition(line: PhoneStartLine, point: { latitude: number; longitude: number } | null): number | null {
+  if (!line.port || !line.starboard || !point || !Number.isFinite(point.latitude) || Math.abs(point.latitude) > 90 || !Number.isFinite(point.longitude) || Math.abs(point.longitude) > 180) return null
   const a = line.port, b = line.starboard
   for (const mark of [a, b]) {
     if (!Number.isFinite(mark.latitude) || Math.abs(mark.latitude) > 90 || !Number.isFinite(mark.longitude) || Math.abs(mark.longitude) > 180) return null

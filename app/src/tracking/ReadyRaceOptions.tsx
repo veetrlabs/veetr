@@ -1,3 +1,4 @@
+import { locale, translateMessage, t, useLanguageRefresh } from '../i18n';
 import { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { router, type Href } from "expo-router";
@@ -6,6 +7,7 @@ import { claimRacePhone } from "./racePhone";
 import { useTheme } from "../context/ThemeContext";
 import { themeColors } from "../constants/colors";
 export default function ReadyRaceOptions() {
+  useLanguageRefresh();
   const { theme } = useTheme(),
     c = themeColors[theme];
   const [rows, setRows] = useState<
@@ -61,14 +63,14 @@ export default function ReadyRaceOptions() {
             {r.boatName} · {r.raceName}
           </Text>
           <Text style={{ color: c.text }}>
-            Expected start {new Date(r.scheduledStart).toLocaleString()}
+            {t("Expected start")} {new Date(r.scheduledStart).toLocaleString(locale())}
           </Text>
-          <Text style={{ color: c.text }}>Open race readiness →</Text>
+          <Text style={{ color: c.text }}>{t("Open race readiness →")}</Text>
         </Pressable>
       ))}
       {!!error && (
         <Text accessibilityRole="alert" style={{ color: c.text }}>
-          {error}
+          {translateMessage(error)}
         </Text>
       )}
     </View>

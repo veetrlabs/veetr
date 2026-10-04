@@ -1,3 +1,4 @@
+import { translateMessage, t, useLanguageRefresh } from '../i18n';
 import { retryRegattaRead } from "./read";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
@@ -7,6 +8,7 @@ import { trackingRpc } from "../tracking/client";
 import { eventStandings, eventsFor, type Series } from "../../../veetr.org/src/features/racing/domain";
 
 export default function RegattaResults({ seriesId, eventId, onSeries }: { seriesId: string; eventId: string; onSeries?: (series: Series) => void }) {
+  useLanguageRefresh();
   const { theme } = useTheme(), c = themeColors[theme];
   const [series, setSeries] = useState<Series | null>(null);
   const [error, setError] = useState("");
@@ -33,28 +35,28 @@ export default function RegattaResults({ seriesId, eventId, onSeries }: { series
       <Text style={{ color: selected ? "white" : c.text }}>{name}</Text>
     </Pressable>
   );
-  if (loading) return <View style={{ flex: 1, padding: 20 }}><Text style={{ color: c.textMuted }}>Loading results…</Text></View>;
-  if (error) return <View style={{ flex: 1, padding: 20, gap: 12 }}><Text accessibilityRole="alert" style={{ color: c.text }}>{error}</Text>{chip("retry", "Retry results", false, () => setRetry(v => v + 1))}</View>;
-  if (!series || !eventsFor(series).some(e => e.id === eventId)) return <View style={{ flex: 1, padding: 20 }}><Text style={{ color: c.textMuted }}>No published results yet.</Text></View>;
+  if (loading) return <View style={{ flex: 1, padding: 20 }}><Text style={{ color: c.textMuted }}>{t("Loading results…")}</Text></View>;
+  if (error) return <View style={{ flex: 1, padding: 20, gap: 12 }}><Text accessibilityRole="alert" style={{ color: c.text }}>{translateMessage(error)}</Text>{chip("retry", t("Retry results"), false, () => setRetry(v => v + 1))}</View>;
+  if (!series || !eventsFor(series).some(e => e.id === eventId)) return <View style={{ flex: 1, padding: 20 }}><Text style={{ color: c.textMuted }}>{t("No published results yet.")}</Text></View>;
   const events = eventsFor(series).sort((a, b) => a.order - b.order), event = events.find(e => e.id === eventId);
   const heats = series.races.filter(r => r.eventId === eventId && r.status === "published" && r.kind !== "aggregate").sort((a, b) => a.order - b.order);
   const selectedHeat = heats.find(r => r.id === heatId);
   const resultSeries = selectedHeat ? { ...series, races: [selectedHeat] } : series;
   const rows = event ? eventStandings(resultSeries, selectedHeat ? { ...event, discards: [] } : event, category).filter(row => row.scores.length) : [];
   return <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingTop: 0, gap: 16 }}>
-    {onSeries && <Pressable accessibilityRole="link" accessibilityLabel={`View series ${series.name}`} onPress={() => onSeries(series)} style={{minHeight:44,justifyContent:"center"}}><Text style={{color:c.text,textDecorationLine:"underline"}}>{series.name} · Series standings ›</Text></Pressable>}
+    {onSeries && <Pressable accessibilityRole="link" accessibilityLabel={t("View series {{v0}}", { v0: series.name })} onPress={() => onSeries(series)} style={{minHeight:44,justifyContent:"center"}}><Text style={{color:c.text,textDecorationLine:"underline"}}>{series.name}  {t("· Series standings ›")}</Text></Pressable>}
     <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
       {series.categories.map(cat => chip(cat.id, cat.name, category === cat.id, () => setCategory(cat.id)))}
     </View>
     {heats.length > 1 && <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-      {chip("combined", "Combined", !selectedHeat, () => setHeatId(""))}
-      {heats.map((heat, i) => chip(heat.id, `Heat ${i + 1}`, selectedHeat?.id === heat.id, () => setHeatId(heat.id)))}
+      {chip("combined", t("Combined"), !selectedHeat, () => setHeatId(""))}
+      {heats.map((heat, i) => chip(heat.id, t("Heat {{v0}}", { v0: i + 1 }), selectedHeat?.id === heat.id, () => setHeatId(heat.id)))}
     </View>}
     <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-      <Text style={{ color: c.text, fontSize: 20, fontWeight: "700", flex: 1 }}>Results</Text>
-      <Text style={{ color: c.textMuted, alignSelf: "center" }}>Points</Text>
+      <Text style={{ color: c.text, fontSize: 20, fontWeight: "700", flex: 1 }}>{t("Results")}</Text>
+      <Text style={{ color: c.textMuted, alignSelf: "center" }}>{t("Points")}</Text>
     </View>
-    {!rows.length && <Text style={{ color: c.textMuted }}>No results in this category yet.</Text>}
+    {!rows.length && <Text style={{ color: c.textMuted }}>{t("No results in this category yet.")}</Text>}
     {rows.map(row => {
       const boat = series.boats.find(b => b.id === row.id)!;
       const result = selectedHeat?.results.find(r => r.boatId === row.id);
@@ -67,13 +69,13 @@ export default function RegattaResults({ seriesId, eventId, onSeries }: { series
           {!selectedHeat && heats.length > 1 && <Text style={{ color: c.textMuted, fontSize: 12 }}>{heats.map((heat, i) => {
             const score = row.scores.find(s => s.raceId === heat.id);
             const finish = heat.results.find(r => r.boatId === row.id);
-            return `H${i + 1}: ${score?.points ?? "—"}${finish && finish.status !== "FINISHED" && finish.status !== "SCORED" ? ` (${finish.status})` : ""}`;
+            return t("H{{v0}}: {{v1}}{{v2}}", { v0: i + 1, v1: score?.points ?? "—", v2: finish && finish.status !== "FINISHED" && finish.status !== "SCORED" ? ` (${finish.status})` : "" });
           }).join(" · ")}</Text>}
-          {!!row.discardedRaceIds.length && <Text style={{ color: c.textMuted, fontSize: 12 }}>{row.discardedRaceIds.length} discarded · {row.rawTotal} total</Text>}
+          {!!row.discardedRaceIds.length && <Text style={{ color: c.textMuted, fontSize: 12 }}>{row.discardedRaceIds.length}  {t("discarded ·")} {row.rawTotal}  {t("total")}</Text>}
         </View>
         <Text style={{ color: c.text, fontSize: 20, fontWeight: "700" }}>{row.scores.length ? row.countedTotal : "—"}</Text>
       </View>;
     })}
-    <Text style={{ color: c.textMuted, fontSize: 12 }}>Published results · Points after discards</Text>
+    <Text style={{ color: c.textMuted, fontSize: 12 }}>{t("Published results · Points after discards")}</Text>
   </ScrollView>;
 }

@@ -1,3 +1,4 @@
+import { createForegroundPermissionAccess } from "./foregroundPermission";
 import { usePhoneMotion } from './usePhoneMotion';
 import { reportDiagnostic } from '../diagnostics/service';
 import { phoneMotion } from './phoneMotion';
@@ -21,6 +22,11 @@ import {
 } from "../tracking/model";
 import { trackingStore } from "../tracking/database";
 import { navigationFix } from "./model";
+const foregroundPermission = createForegroundPermissionAccess({
+  get: Location.getForegroundPermissionsAsync,
+  request: Location.requestForegroundPermissionsAsync,
+  isActive: () => AppState.currentState === "active",
+});
 const Context = createContext<ReturnType<typeof useNavigationState> | null>(
   null,
 );
@@ -54,7 +60,7 @@ function useNavigationState() {
       if (AppState.currentState !== "active") { starting = false; return; }
       try {
         const granted =
-          (await Location.getForegroundPermissionsAsync()).status === "granted";
+          (await foregroundPermission()).status === "granted";
         if (!alive || version !== generation) return;
         setPermission(granted);
         if (!granted) {
@@ -138,7 +144,7 @@ function useNavigationState() {
   async function enableGPS() {
     try {
       setError("");
-      const result = await Location.requestForegroundPermissionsAsync();
+      const result = await foregroundPermission(true);
       setPermission(result.status === "granted");
       if (result.status !== "granted")
         setError("Allow location in Settings to show phone GPS.");

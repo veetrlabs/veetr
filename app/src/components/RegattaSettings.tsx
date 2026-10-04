@@ -1,4 +1,5 @@
-import { canCapturePhone, capturePhoneMark } from '../navigation/phoneStartLine'
+import { formatNumber, translateMessage, t, useLanguageRefresh } from '../i18n';
+import { canCapturePhone, capturePhoneMark, shouldUseDeviceStartLine } from '../navigation/phoneStartLine'
 import { useEffect, useState } from 'react'
 import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -12,11 +13,12 @@ type Side = 'port' | 'starboard'
 const valid = (lat: number | null, lon: number | null) => lat !== null && lon !== null && Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180 && (lat !== 0 || lon !== 0)
 
 export default function RegattaSettings({ onBack, onBluetooth }: { onBack: () => void; onBluetooth: () => void }) {
+  useLanguageRefresh();
   const { state, sendCommand } = useBLE()
   const nav = useNavigation()
   const { deviceFresh, phoneStartLine } = nav
-  const deviceMode = state.isConnected
-  const source = deviceMode ? "Veetr GPS" : "Phone GPS"
+  const deviceMode = shouldUseDeviceStartLine(state.isConnected, phoneStartLine)
+  const source = deviceMode ? "Veetr GPS" : t("Phone GPS")
   const { theme } = useTheme()
   const c = themeColors[theme], insets = useSafeAreaInsets()
   const [busy, setBusy] = useState(false)
@@ -29,8 +31,8 @@ export default function RegattaSettings({ onBack, onBluetooth }: { onBack: () =>
   const starboardLat = deviceMode ? d.starboardLat : phoneStartLine.line.starboard?.latitude ?? null
   const starboardLon = deviceMode ? d.starboardLon : phoneStartLine.line.starboard?.longitude ?? null
   const marks = [
-    { side: 'port' as const, title: 'Port end', lat: portLat, lon: portLon, color: theme === 'dark' ? '#fb7185' : '#be3455' },
-    { side: 'starboard' as const, title: 'Starboard end', lat: starboardLat, lon: starboardLon, color: theme === 'dark' ? '#5eead4' : '#087f73' },
+    { side: 'port' as const, title: t("Port end"), lat: portLat, lon: portLon, color: theme === 'dark' ? '#fb7185' : '#be3455' },
+    { side: 'starboard' as const, title: t("Starboard end"), lat: starboardLat, lon: starboardLon, color: theme === 'dark' ? '#5eead4' : '#087f73' },
   ]
   const saved = marks.map(m => valid(m.lat, m.lon))
   const count = saved.filter(Boolean).length
@@ -44,55 +46,55 @@ export default function RegattaSettings({ onBack, onBluetooth }: { onBack: () =>
     try {
       if (!deviceMode) {
         await phoneStartLine.saveMark(side, clear ? null : capturePhoneMark(nav.phonePoint))
-        setNotice(clear ? 'Position cleared from this phone.' : 'Position saved on this phone.')
+        setNotice(clear ? "Position cleared from this phone." : "Position saved on this phone.")
         return
       }
       const action = clear ? (side === 'port' ? 'regattaClearPort' : 'regattaClearStarboard') : (side === 'port' ? 'regattaSetPort' : 'regattaSetStarboard')
       if (!await sendCommand({ action })) throw new Error('Could not reach Veetr. Check Bluetooth and try again.')
       await sendCommand({ action: 'regattaGet' })
-      setNotice('Request sent. Positions below update when Veetr replies.')
-    } catch (e) { setNotice(e instanceof Error ? e.message : 'Could not update the line. Try again.') }
+      setNotice("Request sent. Positions below update when Veetr replies.")
+    } catch (e) { setNotice(e instanceof Error ? e.message : "Could not update the line. Try again.") }
     finally { setBusy(false) }
   }
   return (
     <ScrollView style={{ flex: 1, backgroundColor: c.bg }} contentContainerStyle={[styles.content, { paddingTop: insets.top + 8 }]}>
-      <Pressable accessibilityRole="button" accessibilityLabel="Back to Settings" onPress={onBack} style={styles.back}><Text style={{ color: c.textSecondary }}>‹ Settings</Text></Pressable>
-      <Text style={[styles.eyebrow, { color: c.textMuted }]}>REGATTA</Text>
-      <Text accessibilityRole="header" style={[styles.title, { color: c.text }]}>Set your start line</Text>
-      <Text style={[styles.body, { color: c.textSecondary }]}>Sail to each end, then capture its position using {source}. You can set either end first.</Text>
+      <Pressable accessibilityRole="button" accessibilityLabel={t("Back to Settings")} onPress={onBack} style={styles.back}><Text style={{ color: c.textSecondary }}>{t("‹ Settings")}</Text></Pressable>
+      <Text style={[styles.eyebrow, { color: c.textMuted }]}>{t("REGATTA")}</Text>
+      <Text accessibilityRole="header" style={[styles.title, { color: c.text }]}>{t("Set your start line")}</Text>
+      <Text style={[styles.body, { color: c.textSecondary }]}>{t("Sail to each end, then capture its position using {{source}}. You can set either end first.", { source })}</Text>
 
       <View style={[styles.diagram, { backgroundColor: c.panelBg, borderColor: c.border }]}>
-        <View style={styles.row}><Text style={[styles.bold, { color: c.text }]}>Start line</Text><Text style={{ color: c.textSecondary }}>{count} of 2 ends set</Text></View>
-        <Svg width="100%" height={90} viewBox="0 0 320 90" accessibilityLabel="Start line schematic, not to scale">
+        <View style={styles.row}><Text style={[styles.bold, { color: c.text }]}>{t("Start line")}</Text><Text style={{ color: c.textSecondary }}>{count}  {t("of 2 ends set")}</Text></View>
+        <Svg width="100%" height={90} viewBox="0 0 320 90" accessibilityLabel={t("Start line schematic, not to scale")}>
           <Line x1="36" y1="57" x2="284" y2="57" stroke={count === 2 ? '#087f73' : c.border} strokeWidth={3} strokeDasharray={count === 2 ? undefined : '6 6'} />
           <Path d="M36 57V18l25 8-25 9" stroke={marks[0].color} fill="none" strokeWidth={3} />
           <Path d="M265 47h38l-8 15h-23z M276 47V29h14v18" stroke={marks[1].color} fill="none" strokeWidth={3} />
           <Circle cx="36" cy="57" r="6" fill={saved[0] ? marks[0].color : c.panelBg} stroke={marks[0].color} strokeWidth={2} />
           <Circle cx="284" cy="57" r="6" fill={saved[1] ? marks[1].color : c.panelBg} stroke={marks[1].color} strokeWidth={2} />
         </Svg>
-        <View style={styles.row}><Text style={{ color: marks[0].color }}>Port / pin</Text><Text style={{ color: marks[1].color }}>Starboard / boat</Text></View>
+        <View style={styles.row}><Text style={{ color: marks[0].color }}>{t("Port / pin")}</Text><Text style={{ color: marks[1].color }}>{t("Starboard / boat")}</Text></View>
       </View>
 
       <View style={styles.markColumns}>
       {marks.map((m, i) => <View key={m.side} style={[styles.card, { backgroundColor: c.panelBg, borderColor: c.border }]}>
-        <View style={styles.markHeader}><Text accessibilityRole="header" style={[styles.cardTitle, { color: c.text }]}>{m.title}</Text><Text style={{ color: saved[i] ? m.color : c.textMuted }}>{saved[i] ? 'Position saved' : 'Not set'}</Text></View>
-        {count > 0 && <View style={styles.coordinates}>{saved[i] && <Text selectable style={{ color: c.textMuted, fontSize: 12, fontVariant: ['tabular-nums'] }}>{m.lat!.toFixed(5)}°{'\n'}{m.lon!.toFixed(5)}°</Text>}</View>}
-        <Pressable accessibilityRole="button" accessibilityLabel={`${saved[i] ? 'Capture again' : 'Capture'} ${m.title.toLowerCase()}`} disabled={!gpsReady || busy} onPress={() => void command(m.side)} style={[styles.capture, { backgroundColor: gpsReady && !busy ? m.color : c.buttonBg }]}>
-          <Text style={[styles.bold, { color: gpsReady && !busy ? '#fff' : c.textMuted }]}>{busy ? 'Updating…' : saved[i] ? 'Capture again' : 'Capture'}</Text>
+        <View style={styles.markHeader}><Text accessibilityRole="header" style={[styles.cardTitle, { color: c.text }]}>{m.title}</Text><Text style={{ color: saved[i] ? m.color : c.textMuted }}>{saved[i] ? t("Position saved") : t("Not set")}</Text></View>
+        {count > 0 && <View style={styles.coordinates}>{saved[i] && <Text selectable style={{ color: c.textMuted, fontSize: 12, fontVariant: ['tabular-nums'] }}>{formatNumber(m.lat!, 5)}°{'\n'}{formatNumber(m.lon!, 5)}°</Text>}</View>}
+        <Pressable accessibilityRole="button" accessibilityLabel={`${saved[i] ? t("Capture again") : t("Capture")} ${m.title.toLowerCase()}`} disabled={!gpsReady || busy} onPress={() => void command(m.side)} style={[styles.capture, { backgroundColor: gpsReady && !busy ? m.color : c.buttonBg }]}>
+          <Text style={[styles.bold, { color: gpsReady && !busy ? '#fff' : c.textMuted }]}>{busy ? t("Updating…") : saved[i] ? t("Capture again") : t("Capture")}</Text>
         </Pressable>
-        {saved[i] && clearSide !== m.side && <Pressable accessibilityRole="button" disabled={busy || (!deviceMode && !phoneStartLine.loaded)} onPress={() => setClearSide(m.side)} style={styles.clear}><Text style={{ color: c.textMuted }}>Clear {m.title.toLowerCase()}</Text></Pressable>}
+        {saved[i] && clearSide !== m.side && <Pressable accessibilityRole="button" disabled={busy || (!deviceMode && !phoneStartLine.loaded)} onPress={() => setClearSide(m.side)} style={styles.clear}><Text style={{ color: c.textMuted }}>{t("Clear")} {m.title.toLowerCase()}</Text></Pressable>}
         {clearSide === m.side && <View style={{ gap: 10 }}>
-          <Text style={{ color: c.text }}>Clear this saved position? You will need to capture this end again.</Text>
+          <Text style={{ color: c.text }}>{t("Clear this saved position? You will need to capture this end again.")}</Text>
           <View style={styles.row}>
-            <Pressable accessibilityRole="button" onPress={() => setClearSide(null)} style={styles.smallButton}><Text style={{ color: c.text }}>Keep position</Text></Pressable>
-            <Pressable accessibilityRole="button" disabled={busy || (!deviceMode && !phoneStartLine.loaded)} onPress={() => void command(m.side, true)} style={styles.smallButton}><Text style={{ color: '#be3455', fontWeight: '600' }}>Clear position</Text></Pressable>
+            <Pressable accessibilityRole="button" onPress={() => setClearSide(null)} style={styles.smallButton}><Text style={{ color: c.text }}>{t("Keep position")}</Text></Pressable>
+            <Pressable accessibilityRole="button" disabled={busy || (!deviceMode && !phoneStartLine.loaded)} onPress={() => void command(m.side, true)} style={styles.smallButton}><Text style={{ color: '#be3455', fontWeight: '600' }}>{t("Clear position")}</Text></Pressable>
           </View>
         </View>}
       </View>)}
       </View>
-      {!deviceMode && !!(nav.error || phoneStartLine.error) && <Text accessibilityRole="alert" style={{ color: c.textSecondary }}>{nav.error || phoneStartLine.error}</Text>}
-      {!!notice && <Text accessibilityRole="alert" style={{ color: c.textSecondary }}>{notice}</Text>}
-      <Text style={[styles.body, { color: c.textMuted }]}>{deviceMode ? "Showing the line saved on Veetr." : "Showing the line saved on this phone."} Capture again if a mark moves. The line above is a diagram; the map shows the saved positions.</Text>
+      {!deviceMode && !!(nav.error || phoneStartLine.error) && <Text accessibilityRole="alert" style={{ color: c.textSecondary }}>{translateMessage(nav.error || phoneStartLine.error || "")}</Text>}
+      {!!notice && <Text accessibilityRole="alert" style={{ color: c.textSecondary }}>{translateMessage(notice)}</Text>}
+      <Text style={[styles.body, { color: c.textMuted }]}>{deviceMode ? t("Showing the line saved on Veetr.") : t("Showing the line saved on this phone.")}  {t("Capture again if a mark moves. The line above is a diagram; the map shows the saved positions.")}</Text>
     </ScrollView>
   )
 }

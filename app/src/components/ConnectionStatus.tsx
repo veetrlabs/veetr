@@ -1,3 +1,4 @@
+import { translateMessage, t, useLanguageRefresh } from '../i18n';
 import { useState, useEffect } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { useBLE } from '../context/BLEContext'
@@ -5,6 +6,7 @@ import { useTheme } from '../context/ThemeContext'
 import { themeColors } from '../constants/colors'
 
 export default function ConnectionStatus() {
+  useLanguageRefresh();
   const { state, connect, disconnect } = useBLE()
   const { theme } = useTheme()
   const colors = themeColors[theme]
@@ -18,18 +20,18 @@ export default function ConnectionStatus() {
   }, [])
 
   const getStatusText = () => {
-    if (state.isConnecting) return 'Connecting...'
-    if (state.isConnected) return 'Connected'
-    if (state.error) return `Error: ${state.error}`
-    return 'Phone mode'
+    if (state.isConnecting) return t("Connecting...")
+    if (state.isConnected) return t("Connected")
+    if (state.error) return t("Error: {{v0}}", { v0: translateMessage(state.error) })
+    return t("Phone mode")
   }
 
   const getTimeSinceLastMessage = () => {
-    if (!state.lastMessageTime) return 'Never'
+    if (!state.lastMessageTime) return t("Never")
     const diff = Math.max(0, Math.floor((currentTime - state.lastMessageTime) / 1000))
-    if (diff < 60) return `${diff}s ago`
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
-    return `${Math.floor(diff / 3600)}h ago`
+    if (diff < 60) return t("{{v0}}s ago", { v0: diff })
+    if (diff < 3600) return t("{{v0}}m ago", { v0: Math.floor(diff / 60) })
+    return t("{{v0}}h ago", { v0: Math.floor(diff / 3600) })
   }
 
   return (
@@ -38,7 +40,7 @@ export default function ConnectionStatus() {
         <View style={[styles.dot, state.isConnected ? styles.connected : state.isConnecting ? styles.connecting : styles.disconnected]} />
         <Text style={[styles.statusText, { color: colors.text }]}>{getStatusText()}</Text>
         {state.isConnected && (
-          <Text style={[styles.updated, { color: colors.textMuted }]}>Updated: {getTimeSinceLastMessage()}</Text>
+          <Text style={[styles.updated, { color: colors.textMuted }]}>{t("Updated:")} {getTimeSinceLastMessage()}</Text>
         )}
       </View>
       <TouchableOpacity
@@ -46,7 +48,7 @@ export default function ConnectionStatus() {
         onPress={() => state.isConnected ? disconnect() : connect()}
         disabled={state.isConnecting}
       >
-        <Text style={styles.buttonText}>{state.isConnected ? 'Disconnect' : 'Connect Veetr'}</Text>
+        <Text style={styles.buttonText}>{state.isConnected ? t("Disconnect") : t("Connect Veetr")}</Text>
       </TouchableOpacity>
     </View>
   )

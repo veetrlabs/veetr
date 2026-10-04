@@ -1,7 +1,7 @@
 // Service Worker for offline capability
-const CACHE_NAME = 'veetr-v1.8';
-const STATIC_CACHE_NAME = 'veetr-static-v1.8';
-const DYNAMIC_CACHE_NAME = 'veetr-dynamic-v1.8';
+const CACHE_NAME = 'veetr-v1.11';
+const STATIC_CACHE_NAME = 'veetr-static-v1.11';
+const DYNAMIC_CACHE_NAME = 'veetr-dynamic-v1.11';
 
 // Core app shell - always cache these
 const CORE_CACHE = [
@@ -68,7 +68,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Skip GitHub API requests - always fetch fresh
-  if (request.url.includes('api.github.com')) {
+  if (request.url.includes('api.github.com') || new URL(request.url).pathname.startsWith('/assets/firmware/')) {
     return;
   }
 

@@ -1,3 +1,4 @@
+import { translateMessage, t, useLanguageRefresh } from '../i18n';
 import { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -8,6 +9,7 @@ import { trackingStore } from "../tracking/database";
 import type { Trip } from "../tracking/trip";
 import RaceReplay from "../replay/RaceReplay";
 export default function RaceReplayPage() {
+  useLanguageRefresh();
   const { seriesId, eventId, tripId } = useLocalSearchParams<{
     seriesId: string;
     eventId: string;
@@ -50,17 +52,17 @@ export default function RaceReplayPage() {
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
       <View style={{ padding: 16 }}>
         <Pressable accessibilityRole="button" onPress={() => router.back()}>
-          <Text style={{ color: c.text, paddingVertical: 8 }}>‹ Back</Text>
+          <Text style={{ color: c.text, paddingVertical: 8 }}>{t("‹ Back")}</Text>
         </Pressable>
       </View>
       {loading ? (
-        <Text style={{ color: c.text }}>Loading your recording…</Text>
+        <Text style={{ color: c.text }}>{t("Loading your recording…")}</Text>
       ) : error ? (
-        <Text style={{ color: c.text, padding: 16 }}>{error}</Text>
+        <Text style={{ color: c.text, padding: 16 }}>{translateMessage(error)}</Text>
       ) : seriesId && eventId ? (
         <RaceReplay seriesId={seriesId} eventId={eventId} own={own} />
       ) : (
-        <Text style={{ color: c.text }}>Race details are missing.</Text>
+        <Text style={{ color: c.text }}>{t("Race details are missing.")}</Text>
       )}
     </SafeAreaView>
   );

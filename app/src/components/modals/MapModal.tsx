@@ -1,6 +1,10 @@
-import { useEffect, useRef } from 'react'
+import type { MapRegion } from "../../maps/headingRay";
+import BoatMarker from "../../maps/BoatMarker";
+import { useBLE } from "../../context/BLEContext";
+import { t, useLanguageRefresh } from '../../i18n';
+import { useEffect, useRef, useState } from 'react'
 import { View, Modal, TouchableOpacity, Text, StyleSheet } from 'react-native'
-import MapView, { Marker, Circle } from 'react-native-maps'
+import MapView, { Circle } from 'react-native-maps'
 
 interface MapModalProps {
   visible: boolean
@@ -10,6 +14,10 @@ interface MapModalProps {
 }
 
 export default function MapModal({ visible, onClose, lat, lon }: MapModalProps) {
+  useLanguageRefresh();
+  const [mapRegion, setMapRegion] = useState<MapRegion | undefined>();
+  const { state } = useBLE();
+  const fresh = state.isConnected && state.lastMessageTime !== null && Date.now() - state.lastMessageTime <= 15000;
   const mapRef = useRef<MapView>(null)
 
   const hasValidCoords = lat !== 0 && lon !== 0
@@ -33,6 +41,10 @@ export default function MapModal({ visible, onClose, lat, lon }: MapModalProps) 
         </TouchableOpacity>
         {hasValidCoords ? (
           <MapView
+            onRegionChange={setMapRegion}
+            onRegionChangeComplete={setMapRegion}
+            rotateEnabled={false}
+            pitchEnabled={false}
             ref={mapRef}
             style={styles.map}
             initialRegion={{
@@ -42,10 +54,11 @@ export default function MapModal({ visible, onClose, lat, lon }: MapModalProps) 
               longitudeDelta: 0.01,
             }}
           >
-            <Marker
+            <BoatMarker region={mapRegion ?? { latitude: lat, longitude: lon, latitudeDelta: 0.01, longitudeDelta: 0.01 }}
+              reading={fresh ? { cogDeg: state.sailingData.course, sogMps: state.sailingData.gpsSpeed / 1.94384449, instruments: state.sailingData.recordingInstruments } : {}}
               coordinate={{ latitude: lat, longitude: lon }}
-              title="Current Position"
-              pinColor="#e53e3e"
+              title={t("Current Position")}
+              color="#e53e3e"
             />
             <Circle
               center={{ latitude: lat, longitude: lon }}
@@ -57,7 +70,7 @@ export default function MapModal({ visible, onClose, lat, lon }: MapModalProps) 
           </MapView>
         ) : (
           <View style={styles.noData}>
-            <Text style={styles.noDataText}>No GPS data available</Text>
+            <Text style={styles.noDataText}>{t("No GPS data available")}</Text>
           </View>
         )}
       </View>

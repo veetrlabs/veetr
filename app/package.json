@@ -1,7 +1,7 @@
 {
   "name": "veetr-mobile",
-  "version": "1.0.0",
-  "main": "expo-router/entry",
+  "version": "0.0.38",
+  "main": "index.js",
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
@@ -10,7 +10,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "typecheck": "tsc --noEmit",
-    "postinstall": "patch-package --error-on-fail"
+    "postinstall": "patch-package --error-on-fail && node scripts/install-native-recorder.cjs"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
@@ -24,16 +24,20 @@
     "expo-device": "~8.0.10",
     "expo-file-system": "~19.0.24",
     "expo-linking": "~8.0.12",
+    "expo-localization": "~17.0.9",
     "expo-location": "~19.0.8",
+    "expo-notifications": "~0.32.17",
     "expo-router": "~6.0.24",
     "expo-sensors": "~15.0.8",
     "expo-sharing": "~14.0.8",
     "expo-sqlite": "~16.0.10",
     "expo-status-bar": "~3.0.9",
     "expo-task-manager": "~14.0.9",
+    "i18next": "^26.4.2",
     "leaflet": "^1.9.4",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "react-i18next": "^17.0.15",
     "react-native": "0.81.5",
     "react-native-ble-plx": "^3.5.1",
     "react-native-maps": "1.20.1",

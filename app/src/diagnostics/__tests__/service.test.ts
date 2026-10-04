@@ -1,8 +1,9 @@
+import { recordBleDiagnostic } from '../ble';
 process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://diagnostics.example.test';
 process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY = 'public-key';
 let mockStored: string | null = null;
 let mockSerial = 0;
-jest.mock('../native', () => ({ nativeDiagnostics: jest.fn(async () => null), setNativeDiagnosticsEnabled: jest.fn(async () => {}) }));
+jest.mock('../native', () => ({ nativeDiagnostics: jest.fn(async () => null), trackingHistory: jest.fn(async () => []), setNativeDiagnosticsEnabled: jest.fn(async () => {}) }));
 jest.mock('@react-native-async-storage/async-storage', () => ({ getItem: jest.fn(async () => mockStored), setItem: jest.fn(async (_key, value) => { mockStored = value; }) }));
 jest.mock('react-native', () => ({ AppState: { currentState: 'active' }, Platform: { OS: 'android', Version: 34, constants: { Model: 'OnePlus' } } }));
 jest.mock('expo-constants', () => ({ __esModule: true, default: { expoConfig: { version: '0.0.28' }, platform: { android: { versionCode: 12 } } } }));
@@ -16,7 +17,7 @@ jest.mock('../../tracking/database', () => ({ trackingStore: jest.fn(async () =>
 const { diagnosticsEnabled, setDiagnosticsEnabled, reportDiagnostic, sendDiagnosticReport, flushDiagnostics }: typeof import('../service') = require('../service');
 import { trackingStore } from '../../tracking/database';
 import { AppState } from 'react-native';
-import { setNativeDiagnosticsEnabled } from '../native';
+import { setNativeDiagnosticsEnabled, trackingHistory } from '../native';
 import { diagnosticErrorCode, emptyState, enqueue, type DiagnosticEvent } from '../queue';
 const settle = async () => { for (let i = 0; i < 10; i++) await new Promise<void>(resolve => setImmediate(resolve)); };
 beforeEach(async () => {
@@ -32,6 +33,7 @@ test('default off does not even gather a diagnostic snapshot', async () => {
   expect(fetch).not.toHaveBeenCalled();
 });
 test('manual report is one-off and excludes account, position and raw error text', async () => {
+  recordBleDiagnostic('connect', 'error', { errorCode: 2, message: 'SECRET', deviceID: 'SECRET' });
   const result = await sendDiagnosticReport();
   expect(result).toContain('Report sent.');
   expect(await diagnosticsEnabled()).toBe(false);
@@ -39,6 +41,7 @@ test('manual report is one-off and excludes account, position and raw error text
   expect(options.headers.Authorization).toBe('Bearer public-key');
   expect(options.body).not.toMatch(/SECRET|latitude|longitude|userId|recentPoints|token/);
   const report = JSON.parse(options.body).reports[0];
+  expect(report.ble).toContainEqual(expect.objectContaining({ stage: 'connect', outcome: 'error', errorCode: 2 }));
   expect(report).toMatchObject({ consent: 'manual', errorCode: 'network', model: 'OnePlus', pendingCount: 3, accuracyM: 8 });
 });
 test('offline reports retry with identical IDs without silently enabling consent', async () => {
@@ -56,6 +59,40 @@ test('broken tracking storage still allows a diagnostic report without raw datab
   const report = JSON.parse((fetch as jest.Mock).mock.calls[0][1].body).reports[0];
   expect(report.pipeline.storageAvailable).toBe(false);
   expect(JSON.stringify(report)).not.toContain('SECRET');
+});
+test('manual report bypasses a backlog without deleting older reports', async () => {
+  const backlog = Array.from({ length: 30 }, (_, i) => ({
+    id: `old-${i}`, consent: 'manual', occurredAt: new Date().toISOString(),
+  }));
+  mockStored = JSON.stringify({ ...emptyState(), events: backlog });
+  const result = await sendDiagnosticReport();
+  expect(result).toContain('Report sent.');
+  const reports = JSON.parse((fetch as jest.Mock).mock.calls[0][1].body).reports;
+  expect(reports).toHaveLength(1);
+  expect(result).toContain(reports[0].id);
+  expect(reports[0].event).toBe('manual');
+  expect(JSON.parse(mockStored!).events).toEqual(backlog);
+});
+test('manual report waits for an existing upload then sends its own snapshot', async () => {
+  mockStored = JSON.stringify({ ...emptyState(), events: [{
+    id: 'old', consent: 'manual', occurredAt: new Date().toISOString(),
+  }] });
+  let finish!: (response: Response) => void;
+  (fetch as jest.Mock).mockImplementationOnce(() => new Promise<Response>(resolve => { finish = resolve; }));
+  const backgroundUpload = flushDiagnostics(true);
+  await settle();
+  const manualUpload = sendDiagnosticReport();
+  await settle();
+  expect(fetch).toHaveBeenCalledTimes(1);
+  finish({ ok: true } as Response);
+  await backgroundUpload;
+  const result = await manualUpload;
+  expect(result).toContain('Report sent.');
+  const reports = JSON.parse((fetch as jest.Mock).mock.calls[1][1].body).reports;
+  expect(reports).toHaveLength(1);
+  expect(reports[0].event).toBe('manual');
+  expect(result).toContain(reports[0].id);
+  expect(JSON.parse(mockStored!).events).toEqual([]);
 });
 test('withdrawal clears queued events and the automatic identifier', async () => {
   await setDiagnosticsEnabled(true); await settle();
@@ -101,4 +138,28 @@ test('withdrawal aborts in-flight sends and does not claim success after cancell
   expect(await sending).toContain('cancelled');
   expect(aborted).toBe(true);
   expect(JSON.parse(mockStored!).events).toEqual([]);
+});
+
+test('a full Bluetooth failure history fits a manual upload', async () => {
+  for (let i=0;i<25;i++) recordBleDiagnostic('connect','error',{errorCode:201,iosErrorCode:6});
+  expect(await sendDiagnosticReport()).toContain('Report sent.');
+  const body=(fetch as jest.Mock).mock.calls[0][1].body;
+  expect(JSON.parse(body).reports[0].ble).toHaveLength(20);
+  expect(Buffer.byteLength(body,'utf8')).toBeLessThan(40000);
+});
+
+test('full persistent history uploads with Bluetooth evidence and unicode metadata', async () => {
+  const history = Array(64).fill({event:'serviceStopRequested',ageSeconds:604800,fixes:10000000,callbacks:10000000,saved:10000000,taskStarts:10000000,savedAgeSeconds:10000000,reason:1000,screenOff:true,quotaBlocked:true});
+  (trackingHistory as jest.Mock).mockResolvedValueOnce(history);
+  for (let i=0;i<25;i++) recordBleDiagnostic('connect','error',{errorCode:201,iosErrorCode:6});
+  expect(await sendDiagnosticReport()).toContain('Report sent.');
+  const reports=JSON.parse((fetch as jest.Mock).mock.calls[0][1].body).reports;
+  expect(reports[0].trackingHistory).toHaveLength(64);
+  expect(Buffer.byteLength(JSON.stringify(reports,null,1),'utf8')).toBeLessThan(39000);
+});
+
+test('upload size estimates account for UTF-8 characters', () => {
+  const {utf8Bytes} = require('../service');
+  const value = JSON.stringify({model:'测试📱',reports:[{event:'gap'}]},null,1);
+  expect(utf8Bytes(value)).toBe(Buffer.byteLength(value,'utf8'));
 });

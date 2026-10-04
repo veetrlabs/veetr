@@ -1,3 +1,4 @@
+import { locale, translateMessage, t, useLanguageRefresh } from '../../i18n';
 import { useState, useEffect } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native'
 import { useBLE } from '../../context/BLEContext'
@@ -6,6 +7,7 @@ import { themeColors } from '../../constants/colors'
 import { formatTime } from '../../utils/firmwareUpdater'
 
 export function FirmwareUpdateCard() {
+  useLanguageRefresh();
   const { state, checkForUpdates, startFirmwareUpdate } = useBLE()
   const { theme } = useTheme()
   const colors = themeColors[theme]
@@ -25,26 +27,21 @@ export function FirmwareUpdateCard() {
   }
 
   const handleStartUpdate = () => {
+    const update = async (board: 'esp32dev' | 'esp32s3-rlcd') => {
+      try {
+        await startFirmwareUpdate(board)
+        Alert.alert(t("Update Completed"), t("The device has restarted with the new firmware. Please wait 10-15 seconds and reconnect."))
+      } catch (error) {
+        Alert.alert(t("Update Failed"), error instanceof Error ? translateMessage(error.message) : t("Unknown error"))
+      }
+    }
     Alert.alert(
-      'Update Firmware',
-      'Are you sure you want to update the firmware? The device will restart during this process.',
+      t("Choose your Vane"),
+      t("Select the hardware you are updating. RLCD is the model with the reflective display. The device will restart after the update."),
       [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Update',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await startFirmwareUpdate()
-              Alert.alert(
-                'Update Completed',
-                'The device has restarted with the new firmware. Please wait 10-15 seconds and reconnect.'
-              )
-            } catch (error) {
-              Alert.alert('Update Failed', error instanceof Error ? error.message : 'Unknown error')
-            }
-          }
-        }
+        { text: t("Cancel"), style: 'cancel' },
+        { text: t("Standard Vane"), onPress: () => void update('esp32dev') },
+        { text: t("Vane RLCD"), onPress: () => void update('esp32s3-rlcd') },
       ]
     )
   }
@@ -59,9 +56,9 @@ export function FirmwareUpdateCard() {
     return (
       <View style={[styles.card, { backgroundColor: colors.cardBg }]}>
         <View style={[styles.badge, { backgroundColor: colors.border }]}>
-          <Text style={[styles.badgeText, { color: colors.textSecondary }]}>Device Disconnected</Text>
+          <Text style={[styles.badgeText, { color: colors.textSecondary }]}>{t("Device Disconnected")}</Text>
         </View>
-        <Text style={[styles.text, { color: colors.textSecondary }]}>Connect to your sailing device to check for firmware updates.</Text>
+        <Text style={[styles.text, { color: colors.textSecondary }]}>{t("Connect to your sailing device to check for firmware updates.")}</Text>
       </View>
     )
   }
@@ -70,61 +67,61 @@ export function FirmwareUpdateCard() {
     <View style={[styles.card, { backgroundColor: colors.cardBg }]}>
       <View style={styles.info}>
         <View style={styles.versionItem}>
-          <Text style={[styles.label, { color: colors.textMuted }]}>Device Firmware:</Text>
-          <Text style={[styles.versionNumber, { color: colors.text }]}>{state.firmwareInfo.currentVersion}</Text>
+          <Text style={[styles.label, { color: colors.textMuted }]}>{t("Device Firmware:")}</Text>
+          <Text style={[styles.versionNumber, { color: colors.text }]}>{translateMessage(state.firmwareInfo.currentVersion)}</Text>
         </View>
         {state.firmwareInfo.latestVersion && (
           <View style={styles.versionItem}>
-            <Text style={[styles.label, { color: colors.textMuted }]}>Available Firmware:</Text>
+            <Text style={[styles.label, { color: colors.textMuted }]}>{t("Available Firmware:")}</Text>
             <Text style={[styles.versionNumber, { color: colors.text }]}>{state.firmwareInfo.latestVersion}</Text>
           </View>
         )}
       </View>
 
       {state.firmwareInfo.latestVersion && !state.firmwareInfo.updateAvailable && (
-        <Text style={styles.upToDate}>Your device is running the latest firmware</Text>
+        <Text style={styles.upToDate}>{t("Your device is running the latest firmware")}</Text>
       )}
 
       {state.firmwareInfo.updateAvailable && (
-        <Text style={styles.updateReady}>A newer firmware version is available</Text>
+        <Text style={styles.updateReady}>{t("A newer firmware version is available")}</Text>
       )}
 
       {lastChecked && (
-        <Text style={[styles.lastChecked, { color: colors.textSubtle }]}>Last checked: {lastChecked.toLocaleTimeString()}</Text>
+        <Text style={[styles.lastChecked, { color: colors.textSubtle }]}>{t("Last checked:")} {lastChecked.toLocaleTimeString(locale())}</Text>
       )}
 
       {state.firmwareInfo.isUpdating && (
         <View style={styles.progress}>
           <View style={styles.progressInfo}>
-            <Text style={{ color: colors.text }}>Updating firmware...</Text>
+            <Text style={{ color: colors.text }}>{t("Updating firmware...")}</Text>
             <Text style={{ color: colors.text }}>{state.firmwareInfo.updateProgress}%</Text>
           </View>
           <View style={[styles.progressBar, { backgroundColor: colors.border }]}>
             <View style={[styles.progressFill, { width: `${Math.max(0, state.firmwareInfo.updateProgress ?? 0)}%` as any }]} />
           </View>
           <View style={styles.timingInfo}>
-            <Text style={{ color: colors.textMuted }}>Elapsed: {formatTime(state.firmwareInfo.elapsedTimeMs || 0)}</Text>
+            <Text style={{ color: colors.textMuted }}>{t("Elapsed:")} {formatTime(state.firmwareInfo.elapsedTimeMs || 0)}</Text>
             {state.firmwareInfo.estimatedRemainingTimeMs && (
-              <Text style={{ color: colors.textMuted }}>Remaining: {formatTime(state.firmwareInfo.estimatedRemainingTimeMs)}</Text>
+              <Text style={{ color: colors.textMuted }}>{t("Remaining:")} {formatTime(state.firmwareInfo.estimatedRemainingTimeMs)}</Text>
             )}
           </View>
-          <Text style={styles.warning}>Do not disconnect the device during update</Text>
+          <Text style={styles.warning}>{t("Do not disconnect the device during update")}</Text>
         </View>
       )}
 
       {!state.firmwareInfo.isUpdating && (
         <View style={styles.actions}>
           <TouchableOpacity
-            style={[styles.button, { backgroundColor: colors.textSubtle }]}
+            style={[styles.button, { backgroundColor: colors.buttonBg }]}
             onPress={handleCheckForUpdates}
             disabled={isChecking}
           >
-            <Text style={styles.buttonText}>{isChecking ? 'Checking...' : 'Check for Updates'}</Text>
+            <Text style={[styles.buttonText, { color: colors.text }]}>{isChecking ? t("Checking...") : t("Check for Updates")}</Text>
           </TouchableOpacity>
 
           {state.firmwareInfo.updateAvailable && (
             <TouchableOpacity style={[styles.button, { backgroundColor: colors.text }]} onPress={handleStartUpdate}>
-              <Text style={styles.buttonText}>Update Firmware</Text>
+              <Text style={[styles.buttonText, { color: colors.bg }]}>{t("Update Firmware")}</Text>
             </TouchableOpacity>
           )}
         </View>

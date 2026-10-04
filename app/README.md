@@ -125,6 +125,45 @@ The app expects the Veetr GATT service (`12345678-1234-1234-1234-123456789abc`) 
 
 Production builds use **EAS Build**. EAS produces installable `.ipa` (iOS) and `.aab`/`.apk` (Android) files.
 
+### Local signed builds and beta submission
+
+Use `--local` to compile on a Mac instead of consuming EAS cloud build capacity.
+Xcode, CocoaPods, fastlane, Java 17, and the Android SDK/NDK must be installed.
+EAS still provides the existing signing credentials, remote build-number increments,
+only. Upload directly from this Mac to Apple and Google; do not use EAS Submit
+or cloud build queues for these releases. Run from `app/`:
+
+```bash
+# Build sequentially to limit peak disk and memory use.
+eas build --platform ios --profile testflight --local --non-interactive \
+  --freeze-credentials --output /tmp/veetr-ios.ipa
+
+API_PRIVATE_KEYS_DIR=/path/to/private-keys xcrun altool --upload-app \
+  -f /tmp/veetr-ios.ipa --api-key APPLE_KEY_ID --api-issuer APPLE_ISSUER_ID
+
+# Homebrew paths on the release Mac; adjust for another installation.
+JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home \
+ANDROID_HOME=/opt/homebrew/share/android-commandlinetools \
+ANDROID_SDK_ROOT=/opt/homebrew/share/android-commandlinetools \
+  eas build --platform android --profile android-testing --local \
+  --non-interactive --freeze-credentials --output /tmp/veetr-android.aab
+
+fastlane supply --package_name com.veetr.app --track internal \
+  --release_status completed --aab /tmp/veetr-android.aab \
+  --json_key /path/to/google-play-service-account.json \
+  --skip_upload_metadata true --skip_upload_changelogs true \
+  --skip_upload_images true --skip_upload_screenshots true
+```
+
+These profiles target TestFlight and Google Play **internal testing**, respectively.
+Use explicit artifact paths for uploads and keep store credentials outside Git.
+Verify Apple processing is valid and the new version is on Google Play internal
+testing before reporting availability. Local builds include the current working
+tree; run the tests and review pending changes first. EAS variables with Secret
+visibility must be supplied locally; the configured Sensitive Android Maps key is
+loaded from the production environment. Keep credentials and build logs out of Git.
+The existing `main` push workflow continues to trigger cloud builds independently.
+
 ### Android internal testing
 
 The Google Play app uses package name `com.veetr.app`; the Android app config
@@ -366,3 +405,82 @@ The shared `@veetr/shared` package under `packages/shared/` also has 42 tests wh
 ## Regatta tracking
 
 The **Track** tab can share phone GPS through Supabase to the series live map. See [Mobile tracking setup and field checks](../docs/MOBILE_TRACKING.md). Copy `.env.example` to `.env.local` and configure the matching backend and website; rebuild the native app for the new background location permissions.
+
+### Vane sensor calibration (0.0.35)
+
+Settings → Calibration → Calibrate Vane sensors runs a guided device calibration.
+Detach the assembled Vane from the boat, keep power/Bluetooth connected, and move
+Vane itself through the prompted orientations. Do not attempt to tilt the boat.
+The guide covers 4–6 held orientations, three seconds stationary, then roughly
+180° rotations and returns around roll, pitch and yaw, away from magnetic objects.
+Save is gated on a fresh magnetic-field quality of 2/3 or better and a minimum
+15-second session. The firmware requests the manufacturer's 50 Hz magnetic reports.
+
+A matching SH-2 Save DCD response with success status is required before the app
+says saved. The ME-calibration command response alone is not proof of a flash save.
+Lost responses are reported as unconfirmed. Disconnect/no heartbeat cancels an
+unsaved session; an already issued save is allowed to finish. Cancellation stops
+calibration without requesting a save; it does not undo live sensor adjustments.
+Remount Vane in its sailing position, then set vessel level and north reference.
+No Supabase schema change is needed for this workflow.
+
+OTA uses the old bounded chunks until firmware advertises support for 330-byte
+chunks. Firmware 0.0.35 advertises MTU 517, increases JSON parsing capacity, removes
+the fixed 10 ms post-ack sleep during OTA, and reduces per-chunk serial logging.
+The app respects the actual negotiated MTU and still waits for every chunk ack.
+The first upgrade from 0.0.34 remains limited by that firmware's smaller MTU;
+subsequent upgrades can carry about three times as many firmware bytes per write.
+This is a payload improvement, not a measured hardware transfer-time guarantee.
+
+
+### Extended Vane sensor diagnostics (0.0.36)
+
+The same Run Vane diagnostics button requests protocol v2; older firmware still
+returns the original two-part report. V2 requires all four bounded parts before a
+sample is accepted. Optional `sample.sensor` fields use integer units:
+`mx/my/mz` are calibrated magnetic field in 0.1 µT; `gx/gy/gz` are uncalibrated
+gyro rates and `bx/by/bz` are estimated gyro biases in 0.001 rad/s; `acc` is the
+rotation-vector accuracy estimate in 0.001 rad. `mq/gq` are sensor quality 0–3;
+`ma/ga/ca` are ages in milliseconds (-1 means unavailable). `ce` is the confirmed
+calibration-enable bitmask (1 accelerometer, 2 gyro, 4 magnetometer; -1 unknown).
+Missing numeric measurements are null, never invented zero values.
+
+Extra magnetic and gyro subscriptions expire eight seconds after the last request
+and stop before guided calibration or on disconnect. Reading the calibration
+flags does not change them or save DCD. The first sample may lack fresh extra
+measurements. This report does not prove saved DCD persistence or diagnose a bad
+chip by itself. It records evidence for comparing stationary gyro residuals,
+magnetic-field changes, and the sensor's reported calibration modes.
+
+Guided calibration now restores the normal accel+mag dynamic-calibration policy,
+with gyro dynamic calibration disabled, instead of disabling every calibration.
+Completion waits for the matching restore-command acknowledgement. The restart
+experiment still showed low quality, so this correction is not a verified drift fix.
+
+## Anchor alarm
+
+Settings → Anchor alarm saves an anchor with **Anchor dropped** or by moving the map beneath a fixed center target.
+Chain out and an extra margin (metres) persist locally; the displayed alarm radius
+is their sum. Editing an armed alarm requires confirmation and resets its latch.
+A position outside the radius latches the alarm and repeats local notifications
+at most every 30 seconds until stopped. Test alarm sound before use.
+
+The bundle entry registers `veetr-anchor-location-v1` independently of trip
+recording. Fresh Vane telemetry is preferred, with phone GPS as fallback; the
+phone must remain aboard. Phone positions older than 30 seconds or with reported
+accuracy worse than 50 m are rejected. A native notification scheduled roughly
+90 seconds ahead warns if reliable position delivery stops. Monitoring resumes
+from saved settings when the app reopens. No anchor data is uploaded.
+
+This requires a new native build for `expo-notifications` and the location-service
+ownership patch. Background location and audible notification permission are
+required to arm. Notifications respect OS sound/Focus settings; this does not
+provide iOS Critical Alerts or an uninterrupted siren. Force-quitting, OS power
+management and permission changes can interrupt monitoring. The native watchdog
+is a best-effort notification, not a guarantee of continuous GPS execution.
+
+Before release, validate on physical iOS and Android devices: screen lock,
+notification sound/Do Not Disturb, Vane disconnect and phone fallback, GPS loss,
+process termination/reopen, and stopping trip recording and anchor monitoring in
+both orders. Map selection, persistence, boundary detection, background callbacks,
+permission denial and cleanup are covered in `src/anchor/__tests__`.

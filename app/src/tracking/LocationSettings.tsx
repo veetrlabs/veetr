@@ -1,3 +1,4 @@
+import { translateMessage, t, useLanguageRefresh } from '../i18n';
 import { useState } from "react";
 import { Linking, Platform, Pressable, Text, View } from "react-native";
 import { useTheme } from "../context/ThemeContext";
@@ -6,6 +7,7 @@ import { trackingStore } from "./database";
 import { enableBackgroundTracking, resumeTracking } from "./service";
 import DiagnosticSettings from "../diagnostics/DiagnosticSettings";
 export default function LocationSettings() {
+  useLanguageRefresh();
   const { theme } = useTheme(),
     c = themeColors[theme];
   const [message, setMessage] = useState(""),
@@ -31,26 +33,22 @@ export default function LocationSettings() {
   return (
     <View style={{ gap: 18 }}>
       <Text style={{ color: c.text, fontSize: 22, fontWeight: "700" }}>
-        Location & tracking
-      </Text>
+        {t("Location & tracking")}</Text>
       <Text style={{ color: c.textSecondary, lineHeight: 23 }}>
         {Platform.OS === "android"
-          ? "For screen-lock recording, allow location all the time and precise location in Android Settings → Apps → Veetr → Permissions. Start recording while Veetr is open. If Android stops recording, check Veetr’s battery settings: allow background usage and remove it from sleeping apps. Do not force-stop Veetr during a trip."
-          : "For recording with the screen locked, allow Always location access and turn on Precise Location in your phone’s settings. Avoid force-closing Veetr during a trip."}
+          ? t("For screen-lock recording, allow location all the time and precise location in Android Settings → Apps → Veetr → Permissions. Start recording while Veetr is open. If Android stops recording, check Veetr’s battery settings: allow background usage and remove it from sleeping apps. Do not force-stop Veetr during a trip.")
+          : t("For recording with the screen locked, allow Always location access and turn on Precise Location in your phone’s settings. Avoid force-closing Veetr during a trip.")}
       </Text>
       <Text style={{ color: c.textSecondary, lineHeight: 23 }}>
-        If saved positions stop updating, move to an open area and check
-        location access. Restart GPS below if the recording still does not
-        recover. This keeps the same trip.
-      </Text>
+        {t("If saved positions stop updating, move to an open area and check location access. Restart GPS below if the recording still does not recover. This keeps the same trip.")}</Text>
       {[
         {
-          label: "Open location settings",
+          label: t("Open location settings"),
           action: () =>
             void Linking.openSettings().catch((e) => setMessage(String(e))),
         },
-        { label: "Enable background recording", action: () => void run(true) },
-        { label: "Restart GPS", action: () => void run() },
+        { label: t("Enable background recording"), action: () => void run(true) },
+        { label: t("Restart GPS"), action: () => void run() },
       ].map((b) => (
         <Pressable
           key={b.label}
@@ -69,7 +67,7 @@ export default function LocationSettings() {
       ))}
       {!!message && (
         <Text accessibilityLiveRegion="polite" style={{ color: c.text }}>
-          {message}
+          {translateMessage(message)}
         </Text>
       )}
       <DiagnosticSettings />

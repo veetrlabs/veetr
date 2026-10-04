@@ -200,7 +200,7 @@ export default function SharedTrips() {
             );
           }
           points = [...points, ...result.points];
-          if (alive) setTrip({ ...result, points });
+          if (alive) setTrip({ ...result, points: [...points].sort((a, b) => a.recordedAt.localeCompare(b.recordedAt)) });
           more = result.points.length === 2000;
         }
         if (alive) setError("");

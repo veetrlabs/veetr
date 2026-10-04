@@ -62,3 +62,18 @@ test('fresh instrument readings can accompany phone GPS when device GPS has no f
  expect(preferredRecordingPoint(phone,now)).toMatchObject({source:'phone',instruments:{awa:-40,twa:-60}});
  expect(preferredRecordingPoint({...phone,recordedAt:new Date(now+16000).toISOString()},now+16000)?.instruments).toBeUndefined();
 });
+
+test('retains compass diagnostics with both device and contemporaneous phone fixes', () => {
+  const compass = { status: "uncertain" as const, rawHeading: 220, quality: 0, accuracyRad: .4, rejected: 5, receivedAt: now };
+  const recordingInstruments = { heading: null, aws: 1, tws: 1, awa: 0, twa: 0 };
+  const device = setDeviceRecordingSource({ gpsValid: true, lat: 49, lon: 14, compass, recordingInstruments }, now);
+  expect(device?.compass).toEqual(compass);
+  setDeviceRecordingSource({ gpsValid: false, compass, recordingInstruments }, now);
+  expect(preferredRecordingPoint(phone, now)?.compass).toEqual(compass);
+  expect(preferredRecordingPoint({ ...phone, recordedAt: new Date(now - 6000).toISOString() }, now)?.compass).toBeUndefined();
+});
+
+test('keeps Vane position but rejects a corrupt speed before recording', () => {
+  const p = setDeviceRecordingSource({ gpsValid: true, lat: 43.7497, lon: 15.72957, gpsSpeed: 1449.5 }, now);
+  expect(p).toMatchObject({ latitude: 43.7497, longitude: 15.72957, sogMps: null, source: 'veetr' });
+});

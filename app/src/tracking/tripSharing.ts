@@ -100,7 +100,8 @@ export const setTripSharing = (
 };
 async function syncOne(id: string) {
   const store = await trackingStore(),
-    trip = await store.trip(id);
+    // Keep upload sequence numbers stable when delayed GPS fills an older gap.
+    trip = await store.trip(id, 'captured');
   if (!trip?.session.sharing) return;
   const sharing = { ...trip.session.sharing },
     s = trip.session;

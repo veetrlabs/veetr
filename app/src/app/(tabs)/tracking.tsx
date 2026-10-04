@@ -1,3 +1,4 @@
+import { formatNumber, locale, translateMessage, t, useLanguageRefresh } from '../../i18n';
 import { useCallback, useState } from "react";
 import { FlatList, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -18,6 +19,7 @@ import {
   type Trip,
 } from "../../tracking/trip";
 export default function TrackingScreen() {
+  useLanguageRefresh();
   const { theme } = useTheme(),
     c = themeColors[theme];
   const [session, setSession] = useState<TrackingSession | null>(null),
@@ -84,9 +86,9 @@ export default function TrackingScreen() {
         onRefresh={() => void refresh().catch((e) => setError(String(e)))}
         ListHeaderComponent={
           <View style={{ gap: 14, marginBottom: 2 }}>
-            {!session || session.mode === "local" ? (
+            {!session || session.mode === "local" || session.phase === "stopping" ? (
               <LocalRecording
-                session={session}
+                session={session?.mode === "local" ? session : null}
                 count={current?.points.length || 0}
                 now={now}
                 busy={busy}
@@ -105,13 +107,12 @@ export default function TrackingScreen() {
                 }}
               >
                 <Text style={{ color: c.text }}>
-                  Race tracking · manage in Races ›
-                </Text>
+                  {t("Race tracking · manage in Races ›")}</Text>
               </Pressable>
             )}
             {!!error && (
               <Text accessibilityRole="alert" style={{ color: c.text }}>
-                {error}
+                {translateMessage(error)}
               </Text>
             )}
             <View
@@ -123,11 +124,9 @@ export default function TrackingScreen() {
               }}
             >
               <Text style={{ color: c.text, fontSize: 20, fontWeight: "700" }}>
-                Your trips
-              </Text>
+                {t("Your trips")}</Text>
               <Text style={{ color: c.textMuted, fontSize: 13 }}>
-                {trips.length} saved
-              </Text>
+                {t("{{count}} saved trip", { count: trips.length })}</Text>
             </View>
           </View>
         }
@@ -135,7 +134,7 @@ export default function TrackingScreen() {
           <View style={{ padding: 30, alignItems: "center", gap: 10 }}>
             <TrackingIcon name="route" color={c.textMuted} size={32} />
             <Text style={{ color: c.text, fontWeight: "600" }}>
-              {loading ? "Loading trips…" : "Your next trip starts here"}
+              {loading ? t("Loading trips…") : t("Your next trip starts here")}
             </Text>
             <Text
               style={{
@@ -144,14 +143,13 @@ export default function TrackingScreen() {
                 lineHeight: 21,
               }}
             >
-              Record a sail to keep its route, distance and speed together.
-            </Text>
+              {t("Record a sail to keep its route, distance and speed together.")}</Text>
           </View>
         }
         renderItem={({ item: trip }) => (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`Trip ${new Date(trip.session.startedAt).toLocaleString()}, ${distanceNm(trip.points).toFixed(2)} nautical miles, ${durationLabel(tripDuration(trip, now))}`}
+            accessibilityLabel={t("Trip {{v0}}, {{v1}} nautical miles, {{v2}}", { v0: new Date(trip.session.startedAt).toLocaleString(locale()), v1: formatNumber(distanceNm(trip.points), 2), v2: durationLabel(tripDuration(trip, now)) })}
             onPress={() =>
               router.push({
                 pathname: "/trip/[id]",
@@ -173,20 +171,17 @@ export default function TrackingScreen() {
               style={{ flex: 1, padding: 13, gap: 7, justifyContent: "center" }}
             >
               <Text style={{ color: c.text, fontWeight: "600", fontSize: 15 }}>
-                {trip.session.mode === 'race' ? `${trip.session.raceName || trip.session.seriesName} · ${trip.session.boatName}` : new Date(trip.session.startedAt).toLocaleDateString(
-                  undefined,
-                  { month: "short", day: "numeric", year: "numeric" },
-                )}
+                {trip.session.mode === 'race' ? `${trip.session.raceName || trip.session.seriesName} · ${trip.session.boatName}` : new Date(trip.session.startedAt).toLocaleDateString(locale(), { month: "short", day: "numeric", year: "numeric" })}
               </Text>
               <Text style={{ color: c.textMuted, fontSize: 12 }}>
-                {new Date(trip.session.startedAt).toLocaleTimeString([], {
+                {new Date(trip.session.startedAt).toLocaleTimeString(locale(), {
                   hour: "2-digit",
                   minute: "2-digit",
                 })}
-                {trip.session.phase === "recording" ? "  ·  ● Recording" : ""}
+                {trip.session.phase === "recording" ? t("  ·  ● Recording") : ""}
               </Text>
               <Text style={{ color: c.text, fontSize: 14 }}>
-                {distanceNm(trip.points).toFixed(2)} nm ·{" "}
+                {formatNumber(distanceNm(trip.points), 2)} nm ·{" "}
                 {durationLabel(tripDuration(trip, now))}
               </Text>
             </View>

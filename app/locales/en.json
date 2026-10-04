@@ -1,0 +1,10 @@
+{
+  "ios": {
+    "NSBluetoothAlwaysUsageDescription": "Connect to Veetr sailing sensor",
+    "NSBluetoothPeripheralUsageDescription": "Communicate with Veetr device",
+    "NSLocationWhenInUseUsageDescription": "Use your location to show your position, speed and course while Veetr is open. Recording and sharing start only when you choose them.",
+    "NSLocationAlwaysAndWhenInUseUsageDescription": "Share your boat position during an active tracking session, including while the screen is locked.",
+    "NSLocationAlwaysUsageDescription": "Share your boat position during an active tracking session, including while the screen is locked.",
+    "NSMotionUsageDescription": "Use motion sensors to reduce GPS speed drift when your phone is stationary."
+  }
+}

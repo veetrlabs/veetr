@@ -19,7 +19,7 @@ inline bool safeBleSendCore(void* serverPtr,
                             unsigned long (*millisFn)(),
                             void (*delayFn)(unsigned long),
                             bool (*setValueFn)(void* characteristic, const uint8_t* value, size_t len),
-                            void (*notifyFn)(void* characteristic)) {
+                            void (*notifyFn)(void* characteristic), bool paced = true) {
   if (!serverPtr || connectedCount == 0 || !characteristicPtr) {
     return false;
   }
@@ -39,7 +39,7 @@ inline bool safeBleSendCore(void* serverPtr,
   const uint8_t* bytes = reinterpret_cast<const uint8_t*>(data.c_str());
   if (setValueFn(characteristicPtr, bytes, data.length())) {
     notifyFn(characteristicPtr);
-    delayFn(isCommand ? 10 : 5);
+    if (paced) delayFn(isCommand ? 10 : 5);
     ok = true;
   }
 

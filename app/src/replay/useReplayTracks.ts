@@ -15,11 +15,13 @@ export function useReplayTracks(
   heatId: string | undefined,
   at: number,
   enabled: boolean,
+  includeFullTrack = false,
 ) {
   const [meta, setMeta] = useState<TrackMeta | null>(null);
   const [positions, setPositions] = useState<ReturnType<TrackCache["frame"]>>(
     [],
   );
+  const [tracks, setTracks] = useState<TrackPoint[]>([]);
   const [loading, setLoading] = useState(false),
     [error, setError] = useState(""),
     [retry, setRetry] = useState(0);
@@ -28,6 +30,7 @@ export function useReplayTracks(
   const request = useRef<ReturnType<typeof replayRequests> | null>(null);
   useEffect(() => {
     setMeta(null);
+    setTracks([]);
     setPositions([]);
     setError("");
     setLoading(enabled);
@@ -37,6 +40,7 @@ export function useReplayTracks(
     let current: TrackMeta | null = null;
     let revision = 0;
     const cache = new TrackCache();
+    const trackChunks = new Map<number, TrackPoint[]>();
     const fetchTracks = async (extra = {}) =>
       parseTracks(
         await trackingRpc("public_replay_tracks", {
@@ -55,7 +59,7 @@ export function useReplayTracks(
       const loadedRevision = revision;
       if (alive) setLoading(true);
       try {
-        for (const chunk of cache.needed(current, target)) {
+        for (const chunk of cache.needed(current, includeFullTrack ? current.end : target)) {
           if (cache.has(chunk.start, chunk.version)) continue;
           const points: TrackPoint[] = [];
           let offset = 0;
@@ -81,14 +85,17 @@ export function useReplayTracks(
             if (!page.points.length) throw new Error("Invalid replay page");
           }
           cache.put(chunk.start, chunk.version, points);
+          trackChunks.set(chunk.start, points);
         }
         if (alive) {
           setPositions(cache.frame(target));
+          if (includeFullTrack) setTracks(current.chunks.flatMap(chunk => trackChunks.get(chunk.start) ?? []).sort((a, b) => Date.parse(a.recordedAt) - Date.parse(b.recordedAt)));
           setError("");
         }
       } catch {
         if (alive) {
           setPositions([]);
+          setTracks([]);
           setError(
             "Competitors could not be loaded. Your local track is still available.",
           );
@@ -115,6 +122,7 @@ export function useReplayTracks(
           current = null;
           setMeta(null);
           setPositions([]);
+          setTracks([]);
           setError("Replay is unavailable. Check your connection and retry.");
           setLoading(false);
         }
@@ -132,12 +140,13 @@ export function useReplayTracks(
       queue.dispose();
       request.current = null;
     };
-  }, [seriesId, eventId, heatId, enabled, retry]);
+  }, [seriesId, eventId, heatId, enabled, retry, includeFullTrack]);
   useEffect(() => {
     request.current?.request(at);
   }, [at]);
   return {
     meta,
+    tracks,
     positions,
     loading,
     error,

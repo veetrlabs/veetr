@@ -1,7 +1,10 @@
+import { translateMessage, locale, t, useLanguageRefresh } from '../i18n';
 import { useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Switch, Text, View } from "react-native";
 import { useTheme } from "../context/ThemeContext";
 import { themeColors } from "../constants/colors";
+import TripChart from "../tracking/TripChart";
+import type { MapRegion } from "../maps/headingRay";
 import FleetMap from "../regattas/FleetMap";
 import type { Trip } from "../tracking/trip";
 import { routeSegments } from "../tracking/trip";
@@ -17,6 +20,7 @@ export default function RaceReplay({
   eventId: string;
   own?: Trip;
 }) {
+  const language = useLanguageRefresh();
   const { theme } = useTheme(),
     c = themeColors[theme];
   const [competitors, setCompetitors] = useState(!own),
@@ -25,8 +29,13 @@ export default function RaceReplay({
     [playing, setPlaying] = useState(false),
     [speed, setSpeed] = useState(10);
   const [hidden, setHidden] = useState<string[]>([]);
+  const [selectedBoat, setSelectedBoat] = useState<string>();
+  const [region, setRegion] = useState<MapRegion>();
+  const [chartFollowsMap, setChartFollowsMap] = useState(true);
+  const [fitRequest, setFitRequest] = useState(0);
+  const [scrubbing, setScrubbing] = useState(false);
   const [width, setWidth] = useState(1);
-  const replay = useReplayTracks(seriesId, eventId, heatId, at, competitors);
+  const replay = useReplayTracks(seriesId, eventId, heatId, at, competitors, true);
   const heat = replay.meta?.heats.find((h) => h.id === heatId);
   const points = useMemo(
     () =>
@@ -83,14 +92,22 @@ export default function RaceReplay({
       result.push({
         ...last,
         boatId: own.session.boatId || own.session.id,
-        boatName: `${own.session.boatName || "Your boat"} (you)`,
+        boatName: t("{{v0}} (you)", { v0: own.session.boatName || t("Your boat") }),
         trail: [],
         trailSegments: routeSegments(past).map((s) =>
           s.map((p) => [p.latitude, p.longitude]),
         ),
       });
     return result;
-  }, [competitors, replay.positions, own, points, selected]);
+  }, [competitors, replay.positions, own, points, selected, language]);
+  const ownId = own?.session.boatId || own?.session.id;
+  const boats = [...new Map([
+    ...(ownId ? [[ownId, own?.session.boatName || t("Your boat")] as const] : []),
+    ...(replay.tracks ?? []).map(p => [p.boatId, p.boatName] as const),
+  ]).entries()];
+  const chartBoat = boats.some(([id]) => id === selectedBoat) ? selectedBoat : boats[0]?.[0];
+  const chartPoints = useMemo(() => chartBoat === ownId ? points : (replay.tracks ?? []).filter(p => p.boatId === chartBoat), [chartBoat, ownId, points, replay.tracks]);
+  const chartIndex = Math.max(0, chartPoints.findLastIndex(p => Date.parse(p.recordedAt) <= selected));
   const button = (
     label: string,
     action: () => void,
@@ -115,16 +132,15 @@ export default function RaceReplay({
     </Pressable>
   );
   return (
-    <View style={{ flex: 1, gap: 8 }}>
-      <ScrollView
-        style={{ flexGrow: 0, flexShrink: 1, maxHeight: "52%" }}
-        contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
+    <ScrollView scrollEnabled={!scrubbing} contentContainerStyle={{ gap: 12, paddingBottom: 24 }}>
+      <View
+        style={{ paddingHorizontal: 16, gap: 8 }}
       >
         <Text style={{ color: c.text }}>
-          {own?.session.raceName || "Race replay"}
+          {own?.session.raceName || t("Race replay")}
         </Text>
         {own &&
-          button(competitors ? "Hide competitors" : "Show competitors", () => {
+          button(competitors ? t("Hide competitors") : t("Show competitors"), () => {
             setCompetitors(!competitors);
             setPlaying(false);
             setHeatId(undefined);
@@ -132,7 +148,7 @@ export default function RaceReplay({
         {competitors && (
           <ScrollView horizontal contentContainerStyle={{ gap: 8 }}>
             {button(
-              "Whole race",
+              t("Whole race"),
               () => {
                 setHeatId(undefined);
                 setAt(0);
@@ -157,7 +173,7 @@ export default function RaceReplay({
         )}
         {!!selected && (
           <Text style={{ color: c.text }}>
-            {new Date(selected).toLocaleString()}
+            {new Date(selected).toLocaleString(locale())}
           </Text>
         )}
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
@@ -170,7 +186,7 @@ export default function RaceReplay({
             !start,
           )}
           {button(
-            playing ? "Pause" : "Play",
+            playing ? t("Pause") : t("Play"),
             () => {
               if (selected >= end) setAt(start);
               setPlaying(!playing);
@@ -193,12 +209,12 @@ export default function RaceReplay({
           <View
             accessible
             accessibilityRole="adjustable"
-            accessibilityLabel="Replay timeline"
+            accessibilityLabel={t("Replay timeline")}
             accessibilityValue={{
               min: start,
               max: end,
               now: selected,
-              text: new Date(selected).toLocaleTimeString(),
+              text: new Date(selected).toLocaleTimeString(locale()),
             }}
             accessibilityActions={[
               { name: "increment" },
@@ -239,25 +255,27 @@ export default function RaceReplay({
           </View>
         )}
         {replay.loading && competitors && (
-          <Text style={{ color: c.textMuted }}>Loading competitors…</Text>
+          <Text style={{ color: c.textMuted }}>{t("Loading competitors…")}</Text>
         )}
         {!!replay.error && competitors && (
           <>
-            {<Text style={{ color: c.text }}>{replay.error}</Text>}
-            {button("Retry replay", replay.retry)}
+            {<Text style={{ color: c.text }}>{translateMessage(replay.error)}</Text>}
+            {button(t("Retry replay"), replay.retry)}
           </>
         )}
         {!start && !replay.loading && (
           <Text style={{ color: c.textMuted }}>
-            No recorded positions available.
-          </Text>
+            {t("No recorded positions available.")}</Text>
         )}
-      </ScrollView>
-      <View style={{ flex: 1, minHeight: 120 }}>
+      </View>
+      <View style={{ height: 340, marginHorizontal: 16, borderRadius: 18, overflow: 'hidden' }}>
         <FleetMap
           positions={positions.filter((p) => !hidden.includes(p.boatId))}
           at={selected}
-          ownBoatId={own?.session.boatId || own?.session.id}
+          ownBoatId={ownId}
+          onViewportChange={setRegion}
+          fitRequest={fitRequest}
+          route={chartPoints}
         />
       </View>
       <ScrollView
@@ -267,7 +285,7 @@ export default function RaceReplay({
       >
         {positions.map((p) =>
           button(
-            `${hidden.includes(p.boatId) ? "○" : "●"} ${p.boatName}${selected - Date.parse(p.recordedAt) > 60000 ? " · stale" : ""}`,
+            `${hidden.includes(p.boatId) ? "○" : "●"} ${p.boatName}${selected - Date.parse(p.recordedAt) > 60000 ? t(" · stale") : ""}`,
             () =>
               setHidden((ids) =>
                 ids.includes(p.boatId)
@@ -277,11 +295,23 @@ export default function RaceReplay({
           ),
         )}
       </ScrollView>
+      <View style={{ paddingHorizontal: 20, gap: 12 }}>
+        <Text style={{ color: c.text, fontWeight: '600' }}>{t("Boat instruments")}</Text>
+        <ScrollView horizontal contentContainerStyle={{ gap: 8 }}>
+          {boats.map(([id, name]) => button(name, () => setSelectedBoat(id), false, id === chartBoat))}
+        </ScrollView>
+        <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+          <Switch accessibilityLabel={t("Chart follows map")} value={chartFollowsMap} onValueChange={setChartFollowsMap} />
+          <Text style={{ color: c.text }}>{t("Chart follows map")}</Text>
+          {button(t("Fit whole trip"), () => setFitRequest(n => n + 1))}
+        </View>
+        {chartPoints.length > 0 && <TripChart points={chartPoints} index={chartIndex}
+          region={chartFollowsMap ? region : undefined} resetKey={fitRequest}
+          onScrubbing={setScrubbing} onSelect={index => { setPlaying(false); setAt(Date.parse(chartPoints[index].recordedAt)); }} />}
+      </View>
       <Text style={{ color: c.textMuted, textAlign: "center", fontSize: 11 }}>
-        Seamarks © OpenSeaMap contributors · Competitors cached only while this
-        view is open
-      </Text>
-    </View>
+        {t("Seamarks © OpenSeaMap contributors · Competitors cached only while this view is open")}</Text>
+    </ScrollView>
   );
   function seek(x: number) {
     setPlaying(false);

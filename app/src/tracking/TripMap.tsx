@@ -1,4 +1,7 @@
-import { memo, useEffect, useMemo, useRef } from "react";
+import type { MapRegion } from "../maps/headingRay";
+import BoatMarker from "../maps/BoatMarker";
+import { locale, t, useLanguageRefresh } from '../i18n';
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { View, Text } from "react-native";
 import { MapView, Marker, Polyline } from "../components/NativeMap";
 import type { TrackingPoint } from "./model";
@@ -9,31 +12,38 @@ export default memo(function TripMap({
   points,
   selected,
   thumbnail = false,
+  onViewportChange,
+  fitRequest = 0,
 }: {
   points: TrackingPoint[];
   selected?: TrackingPoint;
   thumbnail?: boolean;
+  onViewportChange?: (region: MapRegion) => void;
+  fitRequest?: number;
 }) {
+  useLanguageRefresh();
+  const [mapRegion, setMapRegion] = useState<MapRegion | undefined>();
   const { theme } = useTheme(),
     c = themeColors[theme],
     ref = useRef<MapView>(null);
+  const [viewport, setViewport] = useState("");
   const segments = useMemo(() => routeSegments(points), [points]);
   const coordinates = useMemo(() => segments.flat(), [segments]);
   function fit() {
     if (coordinates.length)
       ref.current?.fitToCoordinates(coordinates, {
         edgePadding: {
-          top: thumbnail ? 14 : 40,
-          bottom: thumbnail ? 14 : 40,
-          left: thumbnail ? 14 : 40,
-          right: thumbnail ? 14 : 40,
+          top: thumbnail ? 14 : 64,
+          bottom: thumbnail ? 14 : 64,
+          left: thumbnail ? 14 : 64,
+          right: thumbnail ? 14 : 64,
         },
         animated: false,
       });
   }
   useEffect(() => {
     fit();
-  }, [coordinates]);
+  }, [coordinates, fitRequest]);
   if (!MapView || !coordinates.length)
     return (
       <View
@@ -47,13 +57,14 @@ export default memo(function TripMap({
       >
         <Text style={{ color: c.textMuted, textAlign: "center", fontSize: 12 }}>
           {coordinates.length
-            ? "Route preview is available in the iPhone app"
-            : "No GPS positions"}
+            ? t("Route preview is available in the iPhone app")
+            : t("No GPS positions")}
         </Text>
       </View>
     );
   return (
     <MapView
+      onRegionChange={setMapRegion}
       ref={ref}
       style={{ flex: 1 }}
       userInterfaceStyle={theme}
@@ -65,6 +76,10 @@ export default memo(function TripMap({
         longitudeDelta: 0.025,
       }}
       onMapReady={fit}
+      onRegionChangeComplete={region => {
+        setViewport(`${region.latitude},${region.longitude},${region.latitudeDelta},${region.longitudeDelta}`);
+        onViewportChange?.(region);
+      }}
       scrollEnabled={!thumbnail}
       zoomEnabled={!thumbnail}
       rotateEnabled={false}
@@ -83,33 +98,18 @@ export default memo(function TripMap({
           />
         ))}
       {!thumbnail && (
-        <Marker coordinate={coordinates[0]} title="Start" pinColor="#008c80" />
+        <Marker coordinate={coordinates[0]} title={t("Start")} pinColor="#008c80" />
       )}
       {!thumbnail && coordinates.length > 1 && (
         <Marker
           coordinate={coordinates[coordinates.length - 1]}
-          title="Finish"
+          title={t("Finish")}
           pinColor="#64748b"
         />
       )}
       {selected && validCoordinate(selected) && (
-        <Marker
-          coordinate={selected}
-          title={new Date(selected.recordedAt).toLocaleTimeString()}
-          zIndex={10}
-          anchor={{ x: 0.5, y: 0.5 }}
-        >
-          <View
-            style={{
-              height: 22,
-              width: 22,
-              borderRadius: 11,
-              backgroundColor: "#008c80",
-              borderWidth: 4,
-              borderColor: "white",
-            }}
-          />
-        </Marker>
+        <BoatMarker region={mapRegion} key={viewport} coordinate={selected} reading={selected}
+          title={new Date(selected.recordedAt).toLocaleTimeString(locale())} />
       )}
     </MapView>
   );

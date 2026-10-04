@@ -5,7 +5,7 @@
   "description": "Modern React sailing dashboard with BLE connectivity",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "tsc && vite build && node scripts/prepare-firmware.mjs",
     "preview": "vite preview",
     "deploy": "npm run build && gh-pages -d dist"
   },

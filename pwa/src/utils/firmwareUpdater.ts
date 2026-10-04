@@ -8,8 +8,9 @@ export class BLEFirmwareUpdater {
   private onProgress: FirmwareUpdateCallback
   private chunkSize = 200
   private aborted = false
-  private pendingAckResolve: ((value: any) => void) | null = null
-  private expectedChunkIndex = 0
+  private pending: { type: string; index?: number; resolve: () => void; reject: (error: Error) => void } | null = null
+  private stage = 'preparing'
+  private terminalError: Error | null = null
   private startTime = 0
 
   constructor(
@@ -21,37 +22,54 @@ export class BLEFirmwareUpdater {
     this.aborted = false
   }
 
-  handleChunkAck(data: any): void {
-    if (this.pendingAckResolve && data.index === this.expectedChunkIndex) {
-      this.pendingAckResolve(data)
-      this.pendingAckResolve = null
+  handleResponse(data: { type: string; index?: number; message?: string; error?: string }): boolean {
+    if (['error', 'update_error', 'chunk_error'].includes(data.type)) {
+      this.terminalError = new Error(`Device rejected ${this.stage}: ${data.message || data.error || data.type}`)
+      this.pending?.reject(this.terminalError)
+      return true
     }
+    if (this.pending && data.type === this.pending.type &&
+        (this.pending.index === undefined || data.index === this.pending.index)) {
+      this.pending.resolve()
+      return true
+    }
+    return false
+  }
+
+  handleChunkAck(data: { type: string; index?: number }): void {
+    this.handleResponse(data)
   }
 
   abort(): void {
     this.aborted = true
-    if (this.pendingAckResolve) {
-      this.pendingAckResolve = null
-    }
+    this.pending?.reject(new Error('Firmware update was aborted'))
   }
 
   private checkAborted(): void {
-    if (this.aborted) {
-      throw new Error('Firmware update was aborted')
-    }
+    if (this.terminalError) throw this.terminalError
+    if (this.aborted) throw new Error('Firmware update was aborted')
   }
 
-  private async waitForChunkAck(chunkIndex: number): Promise<any> {
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        this.pendingAckResolve = null
-        reject(new Error(`Timeout waiting for chunk ${chunkIndex} acknowledgment`))
-      }, 5000)
-
-      this.pendingAckResolve = (data: any) => {
+  private async commandWithAck(command: object, type: string, stage: string, index?: number): Promise<void> {
+    this.checkAborted()
+    this.stage = stage
+    const bytes = new TextEncoder().encode(JSON.stringify(command))
+    await new Promise<void>((resolve, reject) => {
+      const finish = (error?: Error) => {
         clearTimeout(timeout)
-        resolve(data)
+        this.pending = null
+        if (error) reject(error)
+        else resolve()
       }
+      const timeout = setTimeout(() => finish(new Error(
+        `No ${type} response during ${stage} (${bytes.length} BLE bytes). Transfer stopped; no chunk resent.`
+      )), type === 'chunk_ack' ? 10000 : 30000)
+      // Install the listener before writing: notifications can arrive before the write resolves.
+      const pending = { type, index, resolve: () => finish(), reject: (error: Error) => finish(error) }
+      this.pending = pending
+      this.characteristic.writeValueWithoutResponse(bytes).catch(error => {
+        if (this.pending === pending) finish(new Error(`BLE write failed during ${stage}: ${error instanceof Error ? error.message : String(error)}`))
+      })
     })
   }
 
@@ -107,25 +125,7 @@ export class BLEFirmwareUpdater {
   }
 
   private async initializeUpdate(totalSize: number): Promise<void> {
-    const command = JSON.stringify({
-      cmd: FIRMWARE_COMMANDS.START_UPDATE,
-      size: totalSize
-    })
-
-    const encoder = new TextEncoder()
-
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      try {
-        await this.characteristic.writeValueWithoutResponse(encoder.encode(command))
-        await this.delay(2000)
-        break
-      } catch (error) {
-        if (attempt === 3) {
-          throw new Error(`Failed to initialize update after 3 attempts: ${error}`)
-        }
-        await this.delay(1000)
-      }
-    }
+    await this.commandWithAck({ cmd: FIRMWARE_COMMANDS.START_UPDATE, size: totalSize }, 'update_ready', 'initialization')
   }
 
   private async transferFirmware(firmwareData: ArrayBuffer): Promise<void> {
@@ -145,7 +145,7 @@ export class BLEFirmwareUpdater {
         chunkView[i] = dataView.getUint8(offset + i)
       }
 
-      await this.sendFirmwareChunkWithRetry(chunkIndex, chunkData)
+      await this.sendFirmwareChunk(chunkIndex, chunkData)
 
       const bytesTransferred = offset + chunkSize
       const percentage = Math.round((bytesTransferred / firmwareData.byteLength) * 90)
@@ -170,40 +170,13 @@ export class BLEFirmwareUpdater {
     }
   }
 
-  private async sendFirmwareChunkWithRetry(chunkIndex: number, chunkData: ArrayBuffer): Promise<void> {
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      try {
-        this.expectedChunkIndex = chunkIndex
-        const ackPromise = this.waitForChunkAck(chunkIndex)
-        await this.sendFirmwareChunk(chunkIndex, chunkData)
-        await ackPromise
-        return
-      } catch (error) {
-        if (attempt === 3) {
-          throw new Error(`Failed to send chunk ${chunkIndex} after 3 attempts: ${error}`)
-        }
-        await this.delay(500)
-      }
-    }
-  }
-
   private async sendFirmwareChunk(chunkIndex: number, chunkData: ArrayBuffer): Promise<void> {
-    const base64Data = this.arrayBufferToBase64(chunkData)
-
-    const command = JSON.stringify({
+    // Legacy firmware appends chunks without deduplicating indices. Never retry an uncertain write.
+    await this.commandWithAck({
       cmd: FIRMWARE_COMMANDS.TRANSFER_CHUNK,
       index: chunkIndex,
-      data: base64Data
-    })
-
-    const encoder = new TextEncoder()
-    const encodedCommand = encoder.encode(command)
-
-    if (encodedCommand.length > 2048) {
-      throw new Error(`Command too large: ${encodedCommand.length} bytes (max 2048). Chunk ${chunkIndex} size: ${chunkData.byteLength}`)
-    }
-
-    await this.characteristic.writeValueWithoutResponse(encodedCommand)
+      data: this.arrayBufferToBase64(chunkData)
+    }, 'chunk_ack', `chunk ${chunkIndex}, offset ${chunkIndex * this.chunkSize}, ${chunkData.byteLength} firmware bytes`, chunkIndex)
   }
 
   private async verifyFirmware(): Promise<void> {
@@ -215,15 +188,7 @@ export class BLEFirmwareUpdater {
       message: 'Verifying firmware integrity...'
     })
 
-    const command = JSON.stringify({ cmd: FIRMWARE_COMMANDS.VERIFY_UPDATE })
-    const encoder = new TextEncoder()
-
-    try {
-      await this.characteristic.writeValueWithoutResponse(encoder.encode(command))
-      await this.delay(8000)
-    } catch (error) {
-      throw new Error(`Verification failed: ${error}`)
-    }
+    await this.commandWithAck({ cmd: FIRMWARE_COMMANDS.VERIFY_UPDATE }, 'update_complete', 'verification')
   }
 
   private async applyUpdate(): Promise<void> {
@@ -235,15 +200,7 @@ export class BLEFirmwareUpdater {
       message: 'Applying firmware update (device will restart)...'
     })
 
-    const command = JSON.stringify({ cmd: FIRMWARE_COMMANDS.APPLY_UPDATE })
-    const encoder = new TextEncoder()
-
-    try {
-      await this.characteristic.writeValueWithoutResponse(encoder.encode(command))
-      await this.delay(8000)
-    } catch (error) {
-      throw error
-    }
+    await this.commandWithAck({ cmd: FIRMWARE_COMMANDS.APPLY_UPDATE }, 'restarting', 'restart')
   }
 
   private arrayBufferToBase64(buffer: ArrayBuffer): string {
@@ -255,7 +212,4 @@ export class BLEFirmwareUpdater {
     return btoa(binary)
   }
 
-  private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms))
-  }
 }

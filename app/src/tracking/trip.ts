@@ -1,3 +1,4 @@
+import { validSpeedMps } from './speed';
 import type { TrackingPoint, TrackingSession } from "./model";
 export type Trip = {
   archived?: boolean;
@@ -95,9 +96,9 @@ export type Metric = "sog" | "aws" | "tws" | "awa" | "twa";
 export function metricValue(p: TrackingPoint, metric: Metric): number | null {
   const v =
     metric === "sog"
-      ? p.sogMps === null
+      ? validSpeedMps(p.sogMps) === null
         ? null
-        : p.sogMps * 1.94384449
+        : p.sogMps! * 1.94384449
       : p.instruments?.[metric];
   return v != null && Number.isFinite(v) && ((metric === "awa" || metric === "twa") ? Math.abs(v) <= 180 : v >= 0) ? v : null;
 }
@@ -108,20 +109,40 @@ export function chartPath(
   width = 320,
   height = 140,
   min = 0,
+  originalIndices?: number[],
+  timeBounds?: [number, number],
 ) {
-  const start = Date.parse(points[0]?.recordedAt),
-    end = Date.parse(points.at(-1)?.recordedAt || "");
-  let previous: number | null = null,
-    path = "";
-  for (const p of points) {
-    const v = metricValue(p, metric),
-      t = Date.parse(p.recordedAt);
-    if (v === null) {
-      previous = null;
-      continue;
+  const start = timeBounds?.[0] ?? Date.parse(points[0]?.recordedAt),
+    end = timeBounds?.[1] ?? Date.parse(points.at(-1)?.recordedAt || "");
+  let previous: number | null = null;
+  const commands: string[] = [];
+  let bucket: { x: number; y: number }[] = [];
+  let column = -1;
+  let newSegment = true;
+  function flush() {
+    if (!bucket.length) return;
+    // Preserve first/last and both extremes in each horizontal pixel column.
+    // Full-resolution points remain available for selection and exports.
+    let low = 0, high = 0;
+    bucket.forEach((p, i) => { if (p.y < bucket[low].y) low = i; if (p.y > bucket[high].y) high = i; });
+    for (const i of [...new Set([0, low, high, bucket.length - 1])].sort((a, b) => a - b)) {
+      const p = bucket[i];
+      commands.push(`${newSegment ? "M" : "L"}${p.x.toFixed(2)},${p.y.toFixed(2)} `);
+      newSegment = false;
     }
-    path += `${previous === null || t - previous > TRACK_GAP_MS ? "M" : "L"}${((width * (t - start)) / Math.max(1, end - start)).toFixed(2)},${(height - (height * (v - min)) / (max - min)).toFixed(2)} `;
+    bucket = [];
+  }
+  for (const [index, p] of points.entries()) {
+    const v = metricValue(p, metric), t = Date.parse(p.recordedAt);
+    const gap = previous === null || t - previous > TRACK_GAP_MS ||
+      (originalIndices && index > 0 && originalIndices[index] !== originalIndices[index - 1] + 1);
+    if (gap || v === null) { flush(); newSegment = true; }
+    if (v === null) { previous = null; continue; }
+    const x = width * (t - start) / Math.max(1, end - start);
+    if (Math.floor(x) !== column) { flush(); column = Math.floor(x); }
+    bucket.push({ x, y: height - height * (v - min) / Math.max(0.001, max - min) });
     previous = t;
   }
-  return path;
+  flush();
+  return commands.join("");
 }

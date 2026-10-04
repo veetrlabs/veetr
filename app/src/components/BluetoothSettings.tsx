@@ -1,3 +1,6 @@
+import VaneDiagnostics from '../diagnostics/VaneDiagnostics';
+import { FirmwareUpdateCard } from './cards/FirmwareUpdateCard';
+import { translateMessage, t, useLanguageRefresh } from '../i18n';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useBLE } from '../context/BLEContext'
@@ -5,6 +8,7 @@ import { useTheme } from '../context/ThemeContext'
 import { themeColors } from '../constants/colors'
 
 export default function BluetoothSettings({ onBack }: { onBack: () => void }) {
+  useLanguageRefresh();
   const { state, connect, disconnect, sendCommand } = useBLE()
   const { theme } = useTheme()
   const colors = themeColors[theme]
@@ -12,17 +16,17 @@ export default function BluetoothSettings({ onBack }: { onBack: () => void }) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg, paddingTop: insets.top + 8 }]}>
-      <TouchableOpacity accessibilityRole="button" accessibilityLabel="Back to Settings" onPress={onBack} style={{ paddingVertical: 8 }}>
-        <Text style={{ color: colors.text, fontSize: 16 }}>‹ Settings</Text>
+      <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("Back to Settings")} onPress={onBack} style={{ paddingVertical: 8 }}>
+        <Text style={{ color: colors.text, fontSize: 16 }}>{t("‹ Settings")}</Text>
       </TouchableOpacity>
-      <Text style={[styles.title, { color: colors.text }]}>Bluetooth settings</Text>
+      <Text style={[styles.title, { color: colors.text }]}>{t("Bluetooth settings")}</Text>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
         <View style={[styles.card, { backgroundColor: colors.panelBg }]}>
           <View style={styles.statusRow}>
             <View style={[styles.dot, state.isConnected ? styles.connected : state.isConnecting ? styles.connecting : styles.disconnected]} />
             <Text style={[styles.statusText, { color: colors.text }]}>
-              {state.isConnecting ? 'Connecting...' : state.isConnected ? 'Connected' : 'Disconnected'}
+              {state.isConnecting ? t("Connecting...") : state.isConnected ? t("Connected") : t("Disconnected")}
             </Text>
           </View>
 
@@ -32,20 +36,20 @@ export default function BluetoothSettings({ onBack }: { onBack: () => void }) {
             disabled={state.isConnecting}
           >
             <Text style={styles.bigBtnText}>
-              {state.isConnecting ? 'Connecting...' : state.isConnected ? 'Disconnect' : 'Connect to Veetr'}
+              {state.isConnecting ? t("Connecting...") : state.isConnected ? t("Disconnect") : t("Connect to Veetr")}
             </Text>
           </TouchableOpacity>
           {state.error && (
             <Text selectable accessibilityRole="alert" style={{ color: colors.text, marginTop: 12 }}>
-              Bluetooth error: {state.error}
+              {t("Bluetooth error:")} {translateMessage(state.error)}
             </Text>
           )}
         </View>
 
         <View style={[styles.card, { backgroundColor: colors.panelBg }]}>
-          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Device Configuration</Text>
+          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t("Device Configuration")}</Text>
 
-          <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>Device Name</Text>
+          <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>{t("Device Name")}</Text>
           <TextInput
             style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.inputBg }]}
             placeholder="Veetr_Port_Side"
@@ -56,9 +60,11 @@ export default function BluetoothSettings({ onBack }: { onBack: () => void }) {
             accessibilityRole="button" disabled={!state.isConnected || state.isConnecting} accessibilityState={{ disabled: !state.isConnected || state.isConnecting }} style={[styles.actionBtn, { backgroundColor: state.isConnected && !state.isConnecting ? '#006b62' : colors.chartBg }]}
             onPress={() => { if (state.isConnected && !state.isConnecting) void sendCommand({ action: 'setDeviceName', deviceName: 'Veetr' }) }}
           >
-            <Text style={[styles.actionBtnText, (!state.isConnected || state.isConnecting) && { color: colors.textMuted }]}>Set Name</Text>
+            <Text style={[styles.actionBtnText, (!state.isConnected || state.isConnecting) && { color: colors.textMuted }]}>{t("Set Name")}</Text>
           </TouchableOpacity>
         </View>
+        <FirmwareUpdateCard />
+        <VaneDiagnostics />
       </ScrollView>
     </View>
   )

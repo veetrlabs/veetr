@@ -21,13 +21,13 @@ export function FirmwareUpdateCard() {
     }
   }
 
-  const handleStartUpdate = async () => {
+  const handleStartUpdate = async (file?: File) => {
     if (!window.confirm('Are you sure you want to update the firmware? The device will restart during this process.')) {
       return
     }
 
     try {
-      await startFirmwareUpdate()
+      await startFirmwareUpdate(file)
       
       // Show success message with next steps
       showSingleAlert(`The device has restarted with the new firmware. Please:
@@ -149,12 +149,27 @@ If you still see the old version, the update may have failed.`, '✅ Firmware Up
 
           {state.firmwareInfo.updateAvailable && (
             <button 
-              onClick={handleStartUpdate}
+              onClick={() => void handleStartUpdate()}
               className="btn btn-primary"
             >
               Update Firmware
             </button>
           )}
+        </div>
+      )}
+
+      {!state.firmwareInfo.isUpdating && state.firmwareInfo.updateAvailable && (
+        <div style={{ marginTop: 16, display: 'grid', gap: 10 }}>
+          <a href="https://github.com/veetrlabs/veetr/releases/latest" target="_blank" rel="noopener noreferrer">Download firmware from GitHub</a>
+          <label>
+            Update from downloaded .bin file
+            <input type="file" accept=".bin" aria-label="Select firmware file" onChange={event => {
+              const file = event.target.files?.[0]
+              event.target.value = ''
+              if (file) void handleStartUpdate(file)
+            }} />
+          </label>
+          <small>Use this if the automatic download fails. Select the latest release’s .bin file; its checksum is verified before transfer.</small>
         </div>
       )}
 

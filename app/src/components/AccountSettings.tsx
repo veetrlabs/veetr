@@ -1,3 +1,4 @@
+import { translateMessage, t, useLanguageRefresh } from '../i18n';
 import { useEffect, useState } from "react";
 import { Linking, Pressable, ScrollView, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -9,6 +10,7 @@ import { useTheme } from "../context/ThemeContext";
 import { themeColors } from "../constants/colors";
 
 export default function AccountSettings({ onBack }: { onBack: () => void }) {
+  useLanguageRefresh();
   const { theme } = useTheme(), colors = themeColors[theme];
   const insets = useSafeAreaInsets();
   const [auth, setAuth] = useState<Session | null>(null);
@@ -26,10 +28,10 @@ export default function AccountSettings({ onBack }: { onBack: () => void }) {
   }, []);
   const text = { color: colors.text };
   return <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: 20, paddingTop: insets.top + 8, gap: 20 }} keyboardShouldPersistTaps="handled">
-    <Pressable accessibilityRole="button" onPress={onBack}><Text style={text}>‹ Settings</Text></Pressable>
-    <Text accessibilityRole="header" style={[text, { fontSize: 24, fontWeight: "700" }]}>Account</Text>
-    {!ready ? <Text style={text}>Restoring account…</Text> : !auth ? <AccountSignIn /> : <>
-      <Text style={text}>Signed in as {auth.user.email}</Text>
+    <Pressable accessibilityRole="button" onPress={onBack}><Text style={text}>{t("‹ Settings")}</Text></Pressable>
+    <Text accessibilityRole="header" style={[text, { fontSize: 24, fontWeight: "700" }]}>{t("Veetr Account")}</Text>
+    {!ready ? <Text style={text}>{t("Restoring account…")}</Text> : !auth ? <AccountSignIn /> : <>
+      <Text style={text}>{t("Signed in as")} {auth.user.email}</Text>
       <Pressable accessibilityRole="button" disabled={busy} onPress={async () => {
         setBusy(true); setError("");
         try {
@@ -39,12 +41,12 @@ export default function AccountSettings({ onBack }: { onBack: () => void }) {
           if (error) throw error;
         } catch (e) { setError(e instanceof Error ? e.message : "Sign-out failed."); }
         finally { setBusy(false); }
-      }}><Text style={text}>{busy ? "Signing out…" : "Sign out"}</Text></Pressable>
+      }}><Text style={text}>{busy ? t("Signing out…") : t("Sign out")}</Text></Pressable>
     </>}
     <Pressable accessibilityRole="link" onPress={() => {
       const site = (process.env.EXPO_PUBLIC_SITE_URL || "https://veetr.org").replace(/\/$/, "");
       void Linking.openURL(`${site}/legal/delete-account/`).catch(() => setError("Could not open the deletion page. Contact veetr@linhart.email to request account deletion."));
-    }}><Text style={text}>Request account deletion</Text></Pressable>
-    {!!error && <Text accessibilityRole="alert" style={text}>{error}</Text>}
+    }}><Text style={text}>{t("Request account deletion")}</Text></Pressable>
+    {!!error && <Text accessibilityRole="alert" style={text}>{translateMessage(error)}</Text>}
   </ScrollView>;
 }

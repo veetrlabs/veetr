@@ -21,7 +21,9 @@ inline bool computeHeadingDegreesFromQuaternion(float quatI, float quatJ, float 
 
   float heading = atan2f(2.0f * (quatI * quatJ + quatReal * quatK),
                          quatReal * quatReal + quatI * quatI - quatJ * quatJ - quatK * quatK);
-  heading = heading * 180.0f / kPi;
+  // BNO08x quaternion yaw is positive counter-clockwise; compass
+  // bearings increase clockwise. Both boat-up displays use -HDG for north.
+  heading = -heading * 180.0f / kPi;
   if (heading < 0) {
     heading += 360.0f;
   }

@@ -102,7 +102,9 @@ inline String buildSensorDataJson(const SensorData& data,
   }
 
   if (imuAvailable) {
-    doc["hdgQuality"] = data.headingQuality;
+    // Compact confidence fields survive navigation-packet size reduction.
+    doc["hQ"] = data.headingQuality;
+    if (isfinite(data.headingRaw)) doc["hR"] = fmodf(round(data.headingRaw * 10) / 10.0f, 360.0f);
     doc["hdgRaw"] = data.headingRaw;
     doc["hdgAccuracyRad"] = data.headingAccuracyRad;
     doc["hdgRejected"] = data.headingRejected;

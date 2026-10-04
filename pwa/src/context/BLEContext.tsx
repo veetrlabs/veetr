@@ -332,7 +332,7 @@ const BLEContext = createContext<{
   sendCommand: (command: any) => Promise<boolean>
   getDeviceName: () => Promise<void>
   checkForUpdates: () => Promise<void>
-  startFirmwareUpdate: () => Promise<void>
+  startFirmwareUpdate: (file?: File) => Promise<void>
   refreshPWA: () => void
   checkPWAHealth: () => any
 } | null>(null)
@@ -535,6 +535,10 @@ export function BLEProvider({ children }: { children: ReactNode }) {
         return
       }
       
+      // OTA firmware uses generic "error" replies too. Let the active transfer
+      // handle them before legacy UI branches can replace the actual device error.
+      if (currentFirmwareUpdaterRef.current?.handleResponse(data)) return
+
       // Handle firmware version message
       if (data.type === 'firmware_version') {
         dispatch({ type: 'UPDATE_FIRMWARE_VERSION', payload: data.version })
@@ -790,14 +794,15 @@ Please try the update again or contact support.`, '❌ Firmware Apply Failed')
     }
   }
 
-  const startFirmwareUpdate = async () => {
+  const startFirmwareUpdate = async (file?: File) => {
     if (!state.isConnected || !state.commandCharacteristic || !state.firmwareInfo.latestVersion) {
       throw new Error('Device not connected or no update available')
     }
 
     // Add timeout protection for firmware updates (60 minutes max to match ESP32)
+    let updateTimeout: ReturnType<typeof setTimeout> | undefined
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => {
+      updateTimeout = setTimeout(() => {
         // Abort the updater if it exists
         if (currentFirmwareUpdaterRef.current) {
           currentFirmwareUpdaterRef.current.abort()
@@ -833,7 +838,16 @@ Please try the update again or contact support.`, '❌ Firmware Apply Failed')
       }
 
       // Download firmware
-      const firmwareData = await downloadFirmware(firmwareAsset)
+      const firmwareData = file ? await file.arrayBuffer() : await downloadFirmware(firmwareAsset)
+      if (firmwareData.byteLength !== firmwareAsset.size || new Uint8Array(firmwareData)[0] !== 0xe9) {
+        throw new Error('The file does not match the latest ESP32 firmware. Download the .bin from the latest release.')
+      }
+      {
+        const asset = release.assets.find(a => a.name === firmwareAsset.filename) as { digest?: string } | undefined
+        if (!asset?.digest?.startsWith('sha256:')) throw new Error('This release has no checksum to verify the selected file.')
+        const hash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', firmwareData)), b => b.toString(16).padStart(2, '0')).join('')
+        if (`sha256:${hash}` !== asset.digest) throw new Error('The selected file checksum does not match the release.')
+      }
 
       // Validate characteristics are available
       if (!state.commandCharacteristic || !state.sensorDataCharacteristic) {
@@ -872,6 +886,8 @@ Please try the update again or contact support.`, '❌ Firmware Apply Failed')
       console.error('[Firmware Update] Update failed and aborted:', errorMessage)
       
       throw error
+    } finally {
+      clearTimeout(updateTimeout)
     }
   }
 

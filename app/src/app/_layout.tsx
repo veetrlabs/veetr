@@ -1,3 +1,5 @@
+import AnchorRuntime from "../anchor/AnchorRuntime";
+import LanguageProvider from "../i18n/LanguageProvider";
 import { NavigationProvider } from "../navigation/NavigationContext";
 import TrackingRuntime from "../tracking/TrackingRuntime";
 import { useEffect } from "react";
@@ -22,10 +24,12 @@ export default function RootLayout() {
   }, []);
 
   return (
+    <LanguageProvider>
     <ThemeProvider>
       <BLEProvider>
         <NavigationProvider>
           <TrackingRuntime />
+          <AnchorRuntime />
           <StatusBar style="auto" />
           <View style={styles.container}>
             <OfflineIndicator />
@@ -36,6 +40,7 @@ export default function RootLayout() {
         </NavigationProvider>
       </BLEProvider>
     </ThemeProvider>
+    </LanguageProvider>
   );
 }
 

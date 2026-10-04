@@ -1,3 +1,4 @@
+import { translateMessage, t, useLanguageRefresh } from '../i18n';
 import { useCallback, useState } from "react";
 import { Pressable, ScrollView, Share, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -16,6 +17,7 @@ import type { Trip } from "../tracking/trip";
 import { useTheme } from "../context/ThemeContext";
 import { themeColors } from "../constants/colors";
 export default function TripSharingPage() {
+  useLanguageRefresh();
   const { id } = useLocalSearchParams<{ id: string }>(),
     c = themeColors[useTheme().theme];
   const [trip, setTrip] = useState<Trip>(),
@@ -34,16 +36,16 @@ export default function TripSharingPage() {
     useCallback(() => {
       let alive = true;
       void refresh()
-        .then((t) => {
+        .then((recording) => {
           if (alive) {
             setTitle(
-              t?.session.sharing?.title ??
-                t?.session.tripTitle ??
-                "My sailing trip",
+              recording?.session.sharing?.title ??
+                recording?.session.tripTitle ??
+                t("My sailing trip"),
             );
             setVisibility(
-              t?.session.sharing?.pendingVisibility ??
-                t?.session.sharing?.visibility ??
+              recording?.session.sharing?.pendingVisibility ??
+                recording?.session.sharing?.visibility ??
                 "private",
             );
           }
@@ -84,23 +86,19 @@ export default function TripSharingPage() {
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
       <ScrollView contentContainerStyle={{ padding: 20, gap: 18 }}>
         <Pressable accessibilityRole="button" onPress={() => router.back()}>
-          <Text style={{ color: c.text }}>‹ Back to trip</Text>
+          <Text style={{ color: c.text }}>{t("‹ Back to trip")}</Text>
         </Pressable>
         <Text style={{ color: c.text, fontSize: 28, fontWeight: "700" }}>
-          {active ? "Share live" : "Share trip"}
+          {active ? t("Share live") : t("Share trip")}
         </Text>
         {!trip ||
         (trip.session.mode !== "local" && trip.session.phase !== "stopping") ? (
           <Text style={{ color: c.text }}>
-            Choose a personal trip to share.
-          </Text>
+            {t("Choose a personal trip to share.")}</Text>
         ) : (
           <>
             <Text style={{ color: c.textMuted }}>
-              Share this trip’s route and recorded instruments. Anyone with the
-              link can view it without signing in. Public trips also appear in
-              Explore trips.
-            </Text>
+              {t("Share this trip’s route and recorded instruments. Anyone with the link can view it without signing in. Public trips also appear in Explore trips.")}</Text>
             {sh || trip.session.mode !== "local" ? (
               <Text style={{ color: c.text }}>{trip.session.boatName}</Text>
             ) : (
@@ -127,7 +125,7 @@ export default function TripSharingPage() {
                   await (
                     await trackingStore()
                   ).updateTrip(id, {
-                    tripTitle: title.trim() || "My sailing trip",
+                    tripTitle: title.trim() || t("My sailing trip"),
                   });
                   if (visibility !== "private" || sh)
                     await setTripSharing(id, visibility, title);
@@ -136,32 +134,32 @@ export default function TripSharingPage() {
             >
               <Text style={{ color: "white" }}>
                 {busy
-                  ? "Working…"
+                  ? t("Working…")
                   : visibility === "private"
                     ? shared
-                      ? "Stop sharing and disable link"
-                      : "Save private trip"
+                      ? t("Stop sharing and disable link")
+                      : t("Save private trip")
                     : active
-                      ? "Start / update live sharing"
-                      : "Publish trip"}
+                      ? t("Start / update live sharing")
+                      : t("Publish trip")}
               </Text>
             </Pressable>
             {sh?.pendingVisibility && (
               <Text accessibilityLiveRegion="polite" style={{ color: c.text }}>
                 {sh.pendingVisibility === "private"
-                  ? "Stopping sharing—waiting for server confirmation. The link may still be visible until connected."
+                  ? t("Stopping sharing—waiting for server confirmation. The link may still be visible until connected.")
                   : !trip.points.length
-                    ? "Waiting for the first GPS position to start sharing…"
-                    : "Uploading trip before publishing…"}
+                    ? t("Waiting for the first GPS position to start sharing…")
+                    : t("Uploading trip before publishing…")}
               </Text>
             )}
             {shared && !sh?.pendingVisibility && (
               <>
                 <Text style={{ color: "#008c80", fontWeight: "700" }}>
-                  {active ? "● Sharing live" : "Published"} ·{" "}
+                  {active ? t("● Sharing live") : t("Published")} ·{" "}
                   {sh.visibility === "public"
-                    ? "Public"
-                    : "Anyone with the link"}
+                    ? t("Public")
+                    : t("Anyone with the link")}
                 </Text>
                 <Pressable
                   accessibilityRole="button"
@@ -173,7 +171,7 @@ export default function TripSharingPage() {
                     })
                   }
                 >
-                  <Text style={{ color: c.text }}>Share link</Text>
+                  <Text style={{ color: c.text }}>{t("Share link")}</Text>
                 </Pressable>
               </>
             )}
@@ -187,14 +185,13 @@ export default function TripSharingPage() {
                 }
               >
                 <Text style={{ color: c.text }}>
-                  Stop sharing and disable link
-                </Text>
+                  {t("Stop sharing and disable link")}</Text>
               </Pressable>
             )}
             {sh?.error && (
               <>
                 <Text accessibilityRole="alert" style={{ color: c.text }}>
-                  {sh.error}
+                  {translateMessage(sh.error)}
                 </Text>
                 <Pressable
                   accessibilityRole="button"
@@ -202,7 +199,7 @@ export default function TripSharingPage() {
                   disabled={busy}
                   onPress={() => void run(() => syncSharedTrip(id))}
                 >
-                  <Text style={{ color: c.text }}>Retry sync</Text>
+                  <Text style={{ color: c.text }}>{t("Retry sync")}</Text>
                 </Pressable>
               </>
             )}
@@ -210,7 +207,7 @@ export default function TripSharingPage() {
         )}
         {!!error && (
           <Text accessibilityRole="alert" style={{ color: c.text }}>
-            {error}
+            {translateMessage(error)}
           </Text>
         )}
         <TripAccountLink />

@@ -1,3 +1,4 @@
+import { t, useLanguageRefresh } from '../../i18n';
 import { Platform } from "react-native";
 import { Tabs } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -14,6 +15,7 @@ function TabIcon({
   color: string;
   size?: number;
 }) {
+  useLanguageRefresh();
   const s = size || 24;
   const props = {
     width: s,
@@ -75,6 +77,7 @@ function TabIcon({
 }
 
 export default function TabLayout() {
+  const language = useLanguageRefresh();
   const { theme } = useTheme();
   const colors = themeColors[theme];
   const insets = useSafeAreaInsets();
@@ -96,7 +99,8 @@ export default function TabLayout() {
           height: (Platform.OS === "ios" ? 68 : 56) + bottomPadding,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: language === "cs" ? 10 : 11,
+          marginHorizontal: 0,
           fontWeight: "600",
         },
       }}
@@ -104,7 +108,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Data",
+          title: t("Data"),
           tabBarIcon: ({ color, size }) => (
             <TabIcon name="dashboard" color={color} size={size} />
           ),
@@ -113,7 +117,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="map"
         options={{
-          title: "Map",
+          title: t("Map"),
           tabBarIcon: ({ color, size }) => (
             <TabIcon name="map" color={color} size={size} />
           ),
@@ -122,7 +126,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="tracking"
         options={{
-          title: "Track",
+          title: t("Track"),
           tabBarIcon: ({ color, size }) => (
             <TabIcon name="tracking" color={color} size={size} />
           ),
@@ -131,7 +135,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="regattas"
         options={{
-          title: "Races",
+          title: t("Races"),
           tabBarIcon: ({ color, size }) => (
             <TabIcon name="regattas" color={color} size={size} />
           ),
@@ -140,7 +144,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="settings"
         options={{
-          title: "Settings",
+          title: t("Settings"),
           tabBarIcon: ({ color, size }) => (
             <TabIcon name="settings" color={color} size={size} />
           ),
