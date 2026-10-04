@@ -50,3 +50,13 @@ test("map orientation preserves signed wind angles, north and absent heading", a
   assert.equal(boatOrientation({}).heading, null);
   assert.equal(tripPlot([point(0)], "sog", 20).max, 20);
 });
+
+test("chart scrubbing follows time rather than sample count", async () => {
+  const {tripIndexAtFraction} = await import("./sharedTripData");
+  const points = [0, 10, 90, 100].map(seconds => ({recordedAt:new Date(seconds * 1000).toISOString()}));
+  assert.equal(tripIndexAtFraction(points, 0.2), 1);
+  assert.equal(tripIndexAtFraction(points, 0.8), 2);
+  assert.equal(tripIndexAtFraction(points, -1), 0);
+  assert.equal(tripIndexAtFraction(points, 2), 3);
+  assert.equal(tripIndexAtFraction([points[0]], 0.5), 0);
+});

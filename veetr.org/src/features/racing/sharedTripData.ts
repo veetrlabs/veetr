@@ -88,3 +88,18 @@ export function boatOrientation(p: {
     windFrom: valid(h) && valid(twa) ? normalize(h + twa) : null,
   };
 }
+
+/** Match chart time to a recorded sample, including irregular sampling and gaps. */
+export function tripIndexAtFraction(points: { recordedAt: string }[], fraction: number) {
+  if (points.length < 2) return 0;
+  const start = Date.parse(points[0].recordedAt);
+  const end = Date.parse(points[points.length - 1].recordedAt);
+  const target = start + Math.max(0, Math.min(1, fraction)) * (end - start);
+  let low = 0, high = points.length - 1;
+  while (low < high) {
+    const mid = Math.floor((low + high) / 2);
+    if (Date.parse(points[mid].recordedAt) < target) low = mid + 1;
+    else high = mid;
+  }
+  return low > 0 && target - Date.parse(points[low - 1].recordedAt) < Date.parse(points[low].recordedAt) - target ? low - 1 : low;
+}

@@ -1,4 +1,5 @@
-import { sharedDistance, tripPlot, boatOrientation } from "./sharedTripData";
+import { startCountry } from "./tripCountry";
+import { sharedDistance, tripPlot, boatOrientation, tripIndexAtFraction } from "./sharedTripData";
 import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type * as Leaflet from "leaflet";
@@ -22,6 +23,7 @@ type Point = {
   instruments?: Instruments;
 };
 type Shared = {
+  boatSlug: string | null;
   title: string;
   boat: string;
   color: string;
@@ -31,7 +33,7 @@ type Shared = {
   latest: Point | null;
   points: Point[];
 };
-type Listing = { token: string; title: string; boat: string; live: boolean };
+type Listing = { token: string; title: string; boat: string; live: boolean; startedAt: string; stoppedAt: string | null; color: string; distanceNm: number; startLatitude: number | null; startLongitude: number | null };
 async function rpc<T>(name: string, args: Record<string, unknown> = {}) {
   if (!supabase) throw new Error("Trip sharing is not configured.");
   const { data, error } = await supabase.rpc(name as never, args as never);
@@ -156,6 +158,10 @@ export default function SharedTrips() {
     [trip, setTrip] = useState<Shared | null>(null),
     [list, setList] = useState<Listing[]>([]),
     [offset, setOffset] = useState(0),
+    [hasNext, setHasNext] = useState(false),
+    [countries, setCountries] = useState<Record<string, string>>({}),
+    [status, setStatus] = useState("all"),
+    [order, setOrder] = useState("newest"),
     [error, setError] = useState(""),
     [loading, setLoading] = useState(true),
     [index, setIndex] = useState<number | null>(null),
@@ -181,9 +187,13 @@ export default function SharedTrips() {
       try {
         if (!token) {
           const rows = await rpc<Listing[]>("public_trips", {
-            p_offset: offset,
+            p_offset: offset, p_status: status, p_order: order,
           });
-          if (alive) setList(rows);
+          if (alive) {
+            setList(rows.slice(0, 20)); setHasNext(rows.length > 20); setError("");
+            const data = (await import("./countries.json")).default;
+            if (alive) setCountries(Object.fromEntries(rows.map(row => [row.token, startCountry(data, row.startLatitude, row.startLongitude)])));
+          }
           return;
         }
         let more = true;
@@ -200,6 +210,7 @@ export default function SharedTrips() {
             );
           }
           points = [...points, ...result.points];
+          // Pagination follows stable upload sequence; the route follows fix time.
           if (alive) setTrip({ ...result, points: [...points].sort((a, b) => a.recordedAt.localeCompare(b.recordedAt)) });
           more = result.points.length === 2000;
         }
@@ -221,7 +232,7 @@ export default function SharedTrips() {
       alive = false;
       clearInterval(timer);
     };
-  }, [token, offset]);
+  }, [token, offset, status, order]);
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
@@ -270,46 +281,51 @@ export default function SharedTrips() {
     : 0;
   return (
     <main id="trip-content" className="shared-trip">
-      <a href="/">Veetr</a>
+
       {token ? <a href="/trips/">Explore trips</a> : null}
       <h1>{trip?.title ?? "Sailing adventures"}</h1>
       {loading && <p role="status">Loading trip…</p>}
       {error && <p role="alert">{error}</p>}
-      {!token && !loading && (
+      {!token && (
         <>
-          <p>Trips their recorders have chosen to share publicly.</p>
-          <ul>
-            {list.map((t) => (
-              <li key={t.token}>
-                <a href={`#trip=${t.token}`}>{t.title}</a>
-                <span>
-                  {t.boat}
-                  {t.live ? " · Live" : ""}
-                </span>
-              </li>
-            ))}
-          </ul>
-          {!list.length && <p>No public trips yet.</p>}
-          <nav>
-            <button
-              disabled={!offset}
-              onClick={() => setOffset(Math.max(0, offset - 50))}
-            >
-              Previous
-            </button>
-            <button
-              disabled={list.length < 50}
-              onClick={() => setOffset(offset + 50)}
-            >
-              Next
-            </button>
-          </nav>
+          <p className="trip-directory-intro">Follow a voyage live or explore where others have sailed. <a href="/docs/share-your-trip/">How to share your trip →</a></p>
+          <div className="trip-directory-tools">
+            <div className="trip-filters" role="group" aria-label="Filter trips">
+              {[["all", "All trips"], ["active", "Active"], ["past", "Past"]].map(([value, label]) =>
+                <button key={value} aria-pressed={status === value} onClick={() => { setStatus(value); setOffset(0); }}>{label}</button>
+              )}
+            </div>
+            <label className="trip-sort">Date
+              <select aria-label="Sort trips by date" value={order} onChange={e => { setOrder(e.target.value); setOffset(0); }}>
+                <option value="newest">Newest first</option>
+                <option value="oldest">Oldest first</option>
+              </select>
+            </label>
+          </div>
+          {!loading && !error && <>
+            <ul className="trip-cards">
+              {list.map(t => <li key={t.token}>
+                <a className="trip-card" href={`#trip=${t.token}`}>
+                  <span className={`trip-badge ${t.live ? "is-live" : ""}`}>{t.live ? "● Active · Live" : "Past trip"}</span>
+                  <h2>{t.title}</h2>
+                  <p className="trip-card-boat">{t.boat}</p>
+                  <time dateTime={t.startedAt}>{new Date(t.startedAt).toLocaleDateString(undefined, {day:"numeric",month:"short",year:"numeric"})} · {new Date(t.startedAt).toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"})}</time>
+                  <p className="trip-card-details"><span title="Approximate country at the first recorded position">Start: {countries[t.token] ?? "Locating…"}</span><span>{t.distanceNm.toFixed(2)} nm recorded</span></p>
+                </a>
+              </li>)}
+            </ul>
+            {!list.length && <p className="trip-empty">{status === "active" ? "No public trips are active right now." : status === "past" ? "No past public trips yet." : "No public trips yet."}</p>}
+            {(offset > 0 || hasNext) && <nav aria-label="Trip pages"><span>Page {Math.floor(offset / 20) + 1} · 20 trips per page</span>
+              <button disabled={!offset} onClick={() => setOffset(Math.max(0, offset - 20))}>Previous</button>
+              <button disabled={!hasNext} onClick={() => setOffset(offset + 20)}>Next</button>
+            </nav>}
+          </>}
         </>
       )}
       {trip && (
         <>
           <p>
-            {trip.boat} · {new Date(trip.startedAt).toLocaleString()}
+            {trip.boatSlug ? <a href={`/boats/${encodeURIComponent(trip.boatSlug)}/`}>{trip.boat}</a> : trip.boat} · {new Date(trip.startedAt).toLocaleString()}
           </p>
           <p role="status">
             {trip.live
@@ -357,8 +373,37 @@ export default function SharedTrips() {
               </div>
               <svg
                 viewBox="0 0 600 140"
-                role="img"
-                aria-label="Boat speed, true wind speed and apparent wind speed over the trip, in knots"
+                role="slider"
+                tabIndex={0}
+                aria-label="Explore trip timeline"
+                aria-valuemin={0}
+                aria-valuemax={trip.points.length - 1}
+                aria-valuenow={index ?? trip.points.length - 1}
+                aria-valuetext={p ? new Date(p.recordedAt).toLocaleString() : ""}
+                aria-describedby="trip-chart-help"
+                onPointerDown={e => {
+                  if (e.button !== 0) return;
+                  e.currentTarget.focus();
+                  e.currentTarget.setPointerCapture(e.pointerId);
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setIndex(tripIndexAtFraction(trip.points, (e.clientX - rect.left) / rect.width));
+                }}
+                onPointerMove={e => {
+                  if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setIndex(tripIndexAtFraction(trip.points, (e.clientX - rect.left) / rect.width));
+                }}
+                onPointerUp={e => {
+                  if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
+                }}
+                onKeyDown={e => {
+                  const current = index ?? trip.points.length - 1;
+                  const next = e.key === "Home" ? 0 : e.key === "End" ? trip.points.length - 1 :
+                    ["ArrowLeft", "ArrowDown"].includes(e.key) ? current - 1 :
+                    ["ArrowRight", "ArrowUp"].includes(e.key) ? current + 1 :
+                    e.key === "PageDown" ? current - 10 : e.key === "PageUp" ? current + 10 : null;
+                  if (next !== null) { e.preventDefault(); setIndex(Math.max(0, Math.min(trip.points.length - 1, next))); }
+                }}
                 preserveAspectRatio="none"
               >
                 {[0, 70, 140].map((y) => (
@@ -391,6 +436,7 @@ export default function SharedTrips() {
                   strokeDasharray="4 4"
                   opacity=".7"
                 />
+              <circle cx={Math.max(5, Math.min(595, cursor))} cy="132" r="5" fill="currentColor" />
               </svg>
               <div className="trip-chart-times">
                 <span>{new Date(startTime).toLocaleTimeString()}</span>
@@ -405,17 +451,8 @@ export default function SharedTrips() {
           )}
           {trip.points.length > 0 && (
             <>
-              <label className="trip-timeline">
-                {p ? new Date(p.recordedAt).toLocaleString() : ""}
-                <input
-                  aria-label="Explore trip timeline"
-                  type="range"
-                  min="0"
-                  max={trip.points.length - 1}
-                  value={index ?? trip.points.length - 1}
-                  onChange={(e) => setIndex(Number(e.target.value))}
-                />
-              </label>
+              <p id="trip-chart-help" className="trip-map-key">Drag across the chart to explore the route. Use arrow keys when focused.</p>
+              <p className="trip-selected-time">{p ? new Date(p.recordedAt).toLocaleString() : ""}</p>
               {trip.live && index !== null && (
                 <button onClick={() => setIndex(null)}>Back to live</button>
               )}
