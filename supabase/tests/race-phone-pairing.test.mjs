@@ -109,6 +109,19 @@ test("race phone capabilities enforce pairing, readiness, activation, privacy an
   );
   await rpc("claim_race_tracking_link", [link.token, secret]);
   await rpc("claim_race_tracking_link", [link.token, secret]); // lost-response retry
+  // The editor checkbox is separate from ending the GPS tracking window.
+  await db.exec("reset role");
+  const originalCompleted = doc.events[0].completed;
+  await db.query("update public.series set document=jsonb_set(document,'{events,0,completed}','true') where id=$1", [sid]);
+  await login(null, "anon");
+  const completedStatus = await rpc("race_phone_status", [link.id, secret]);
+  assert.equal(completedStatus.completed, true);
+  assert.equal(completedStatus.endedAt, null);
+  await db.exec("reset role");
+  await db.query("update public.series set document=jsonb_set(document,'{events,0,completed}', $2::jsonb) where id=$1", [sid, JSON.stringify(originalCompleted)]);
+  await login(null, "anon");
+  assert.equal((await rpc("race_phone_status", [link.id, secret])).completed, originalCompleted);
+
   await assert.rejects(
     rpc("claim_race_tracking_link", [link.token, another]),
     /another phone/,

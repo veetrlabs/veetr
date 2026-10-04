@@ -1,6 +1,6 @@
 # Phone-based regatta tracking
 
-The first tracking milestone uses the React Native app's phone GPS. It does not require a Veetr device. Existing BLE instrument screens remain separate; selecting Veetr GPS and carrying extra sensor telemetry is a subsequent milestone.
+The first tracking milestone uses the React Native app's phone GPS. It does not require a Veetr Vane. Existing BLE instrument screens remain separate; selecting Veetr GPS and carrying extra sensor telemetry is a subsequent milestone.
 
 ## Participant workflow
 
@@ -155,3 +155,20 @@ Track contains the private recording controls and saved trips with map previews.
 ### GPS sampling tolerance
 
 Saved fixes target five-second spacing with 500 ms of early-arrival tolerance. A fix 4.7 seconds after the previous saved fix is retained rather than waiting for the next update around 9.4 seconds. The same timestamp rule applies to foreground callbacks, background batches, and restored sessions; duplicate and older fixes remain rejected. This changes local thinning, not Android provider scheduling, and needs physical screen-off verification.
+
+### Android native race recorder
+
+Android 8+ race readiness now starts a location foreground service in a separate
+`:veetr_recorder` process. It persists GPS directly to the same SQLite history and
+outbox used by the app. JavaScript is no longer required for race GPS delivery,
+roughly one-minute server checks, or uploads. The app waits for native GPS
+registration before displaying background readiness. A foreground-service
+notification remains visible; force-stop and OEM restrictions still apply.
+
+A disclosed local backup begins five minutes before the planned start even if
+the phone misses the referee's activation. Only official server tracking windows
+are published. GPS callbacks and networking use separate execution threads, and
+uploads acknowledge durable sequence numbers. Request timeouts, session expiry,
+referee completion, and late callbacks after user stop are handled explicitly.
+
+See `app/native-recorder/README.md` for native tests and physical-device checks.
