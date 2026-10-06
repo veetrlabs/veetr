@@ -8,8 +8,11 @@ import dismissNotificationAsync from 'expo-notifications/build/dismissNotificati
 import { AndroidImportance, AndroidNotificationVisibility } from 'expo-notifications/build/NotificationChannelManager.types';
 import { t } from '../i18n';
 import { AnchorState } from './model';
+export type AlarmTestState = 'idle' | 'scheduled' | 'alerting' | 'unknown';
 type Sound = AnchorState['sound'];
 type NativeAlarm = {
+  cleanupActivities?(): Promise<void>;
+  testState?(): Promise<AlarmTestState>;
   prepare(): Promise<void>; check(): Promise<void>;
   trigger(title: string, sound: Sound, test: boolean): Promise<void>;
   watchdog(title: string, sound: Sound, deadline: number): Promise<void>;
@@ -31,7 +34,15 @@ export async function prepareNotifications() {
   }
   await native().prepare();
 }
+export async function cleanupAlarmActivities() {
+  if (Platform.OS === 'ios') {
+    // Optional for older binaries; this must never cancel a pending sound test.
+    await requireOptionalNativeModule<NativeAlarm>('VeetrAnchorAlarm')?.cleanupActivities?.();
+  }
+}
 export const checkAlarmReadiness = () => native().check();
+// Older installed binaries cannot report state; keep Stop available until explicitly stopped.
+export const getAlarmTestState = async (): Promise<AlarmTestState> => native().testState?.() ?? 'unknown';
 export const stopAlarmTest = () => native().stopTest();
 export const openAlarmSettings = () => native().openSettings();
 export async function notifyAlarm(test = false, sound: Sound = 'system') {

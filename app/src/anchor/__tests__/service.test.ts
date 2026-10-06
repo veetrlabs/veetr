@@ -4,7 +4,7 @@ const mockLocation = {
   startLocationUpdatesAsync: jest.fn(), hasStartedLocationUpdatesAsync: jest.fn(), stopLocationUpdatesAsync: jest.fn(),
   Accuracy: { BestForNavigation: 6 }, ActivityType: { OtherNavigation: 4 },
 };
-const mockNotifications = { checkAlarmReadiness: jest.fn(), clearNotifications: jest.fn(), notifyAlarm: jest.fn(), prepareNotifications: jest.fn(), scheduleWatchdog: jest.fn() };
+const mockNotifications = { cleanupAlarmActivities: jest.fn(), checkAlarmReadiness: jest.fn(), clearNotifications: jest.fn(), notifyAlarm: jest.fn(), prepareNotifications: jest.fn(), scheduleWatchdog: jest.fn() };
 const mockTasks = { isTaskDefined: jest.fn(() => false), defineTask: jest.fn() };
 jest.mock('@react-native-async-storage/async-storage', () => mockStorage);
 jest.mock('react-native', () => ({ Platform: { OS: 'ios' }, AppState: { currentState: 'active' } }));
@@ -113,4 +113,22 @@ it('refuses to arm when native alarm permission is denied', async () => {
   mockNotifications.prepareNotifications.mockRejectedValueOnce(new Error('Allow Alarms'));
   await expect(service.armAnchor()).rejects.toThrow('Allow Alarms');
   expect(service.getAnchorSnapshot().settings.armed).toBe(false);
+});
+
+it('cleans orphaned alarm activities on resume without canceling a pending test', async () => {
+  await service.resumeAnchor();
+  expect(mockNotifications.cleanupAlarmActivities).toHaveBeenCalledTimes(1);
+  expect(mockNotifications.clearNotifications).not.toHaveBeenCalled();
+  expect(service.getAnchorSnapshot().settings.armed).toBe(false);
+});
+
+it('autosaved radius changes preserve an already triggered alarm and its sound', async () => {
+  await arm();
+  now += 1000; await service.receiveAnchorFix(fix(43.001));
+  expect(service.getAnchorSnapshot().settings.alarm).toBe(true);
+  mockNotifications.clearNotifications.mockClear();
+  await service.editAnchor({ chainM: 200 });
+  expect(service.getAnchorSnapshot().settings.chainM).toBe(200);
+  expect(service.getAnchorSnapshot().settings.alarm).toBe(true);
+  expect(mockNotifications.clearNotifications).not.toHaveBeenCalled();
 });

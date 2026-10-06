@@ -4,7 +4,7 @@ import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import { t } from '../i18n';
 import { AnchorFix, AnchorState, chooseFix, defaults, distanceM, radiusM, restoreState, validateSettings } from './model';
-import { checkAlarmReadiness, clearNotifications, notifyAlarm, prepareNotifications, scheduleWatchdog } from './notifications';
+import { cleanupAlarmActivities, checkAlarmReadiness, clearNotifications, notifyAlarm, prepareNotifications, scheduleWatchdog } from './notifications';
 export const ANCHOR_TASK = 'veetr-anchor-location-v1';
 const KEY = '@veetr_anchor_v1';
 type Snapshot = { settings: AnchorState; fix: AnchorFix | null; error: string; ready: boolean };
@@ -31,15 +31,18 @@ async function save(settings: AnchorState) {
 export function editAnchor(patch: Partial<Pick<AnchorState, 'anchor' | 'chainM' | 'marginM' | 'sound'>>) {
   return serial(async () => {
     await loadAnchor();
-    const settings = { ...snapshot.settings, ...patch, alarm: false };
+    const resetsAlarm = patch.anchor !== undefined || patch.sound !== undefined;
+    const settings = { ...snapshot.settings, ...patch, alarm: resetsAlarm ? false : snapshot.settings.alarm };
     validateSettings(settings);
     if (settings.armed) {
       if (!chooseFix(phone, vane, Date.now())) throw new Error('Wait for a reliable GPS position before starting.');
       await checkAlarmReadiness();
     }
     await save(settings);
-    if (settings.armed) await clearNotifications();
-    watchdogAt = 0; alarmAt = 0;
+    if (resetsAlarm) {
+      if (settings.armed) await clearNotifications();
+      watchdogAt = 0; alarmAt = 0;
+    }
     await evaluate();
   });
 }
@@ -130,6 +133,7 @@ export function resumeAnchor() {
       await startLocation();
       await evaluate();
     } else await stopLocation();
+    await cleanupAlarmActivities();
   });
 }
 if (Platform.OS !== 'web' && !TaskManager.isTaskDefined(ANCHOR_TASK)) {

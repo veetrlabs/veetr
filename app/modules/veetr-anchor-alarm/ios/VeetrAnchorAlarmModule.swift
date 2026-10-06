@@ -32,6 +32,13 @@ public class VeetrAnchorAlarmModule: Module {
     AsyncFunction("stopTest") { () async throws in
       if #available(iOS 26.0, *) { try await AnchorAlarms.stop(testOnly: true) }
     }
+    AsyncFunction("cleanupActivities") { () async throws in
+      if #available(iOS 26.0, *) { try await AnchorAlarms.cleanupActivities() }
+    }
+    AsyncFunction("testState") { () async throws -> String in
+      guard #available(iOS 26.0, *) else { return "idle" }
+      return try await AnchorAlarms.testState()
+    }
     AsyncFunction("openSettings") { () async in
       await MainActor.run {
         if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
@@ -50,6 +57,7 @@ private enum AnchorAlarms {
   static let test = UUID(uuidString: "42674400-8F14-438A-BE80-000000000002")!
   static let watches = [UUID(uuidString: "42674400-8F14-438A-BE80-000000000003")!, UUID(uuidString: "42674400-8F14-438A-BE80-000000000004")!]
   static let manager = AlarmManager.shared
+  static var scheduling = Set<UUID>()
   static let firedKey = "veetr.anchor.native.fired"
 
   static func check() throws {
@@ -63,6 +71,8 @@ private enum AnchorAlarms {
   }
   static func schedule(id: UUID, title: String, sound: String, at date: Date) async throws {
     try check()
+    scheduling.insert(id)
+    defer { scheduling.remove(id) }
     let alert = AlarmPresentation.Alert(title: LocalizedStringResource(stringLiteral: title),
       stopButton: AlarmButton(text: "Stop", textColor: .white, systemImageName: "stop.fill"))
     let attributes = AlarmAttributes(presentation: AlarmPresentation(alert: alert), metadata: AnchorMetadata(), tintColor: Color(red: 0, green: 0.42, blue: 0.38))
@@ -70,13 +80,26 @@ private enum AnchorAlarms {
       sound: sound == "siren" ? .named("veetr_anchor_siren.wav") : .default)
     _ = try await manager.schedule(id: id, configuration: configuration)
   }
-  static func cancel(_ ids: [UUID]) throws {
+  static func cleanupActivities(only ids: [UUID]? = nil) async throws {
+    // AlarmKit may remove an alarm before dismissing its Live Activity. End
+    // orphaned Veetr activities even when that alarm is no longer in alarms.
+    // Never end the presentation of a scheduled, ringing, or in-flight alarm.
+    let owned = ids ?? [drag, test] + watches
+    for activity in Activity<AlarmAttributes<AnchorMetadata>>.activities {
+      let id = activity.content.state.alarmID
+      guard owned.contains(id), !scheduling.contains(id),
+        !(try manager.alarms).contains(where: { $0.id == id }) else { continue }
+      await activity.end(nil, dismissalPolicy: .immediate)
+    }
+  }
+  static func cancel(_ ids: [UUID]) async throws {
     for alarm in try manager.alarms where ids.contains(alarm.id) { try manager.cancel(id: alarm.id) }
+    try await cleanupActivities(only: ids)
   }
   static func trigger(title: String, sound: String, test isTest: Bool) async throws {
     try check()
     if isTest {
-      try cancel([test])
+      try await cancel([test])
       // A few seconds to lock the phone and test the real system alarm.
       try await schedule(id: test, title: title, sound: sound, at: Date().addingTimeInterval(5))
     } else {
@@ -86,7 +109,7 @@ private enum AnchorAlarms {
         try await schedule(id: drag, title: title, sound: sound, at: Date().addingTimeInterval(1))
       }
       UserDefaults.standard.set(true, forKey: firedKey)
-      try cancel(watches)
+      try await cancel(watches)
     }
   }
   static func watchdog(title: String, sound: String, deadline: Double) async throws {
@@ -96,13 +119,18 @@ private enum AnchorAlarms {
     // Preserve a GPS-loss alarm that is already sounding until the user dismisses it.
     if existing.contains(where: { $0.state == .alerting }) { return }
     let next = existing.first?.id == watches[0] ? watches[1] : watches[0]
-    try cancel([next])
+    try await cancel([next])
     try await schedule(id: next, title: title, sound: sound, at: Date(timeIntervalSince1970: max(deadline / 1000, Date().timeIntervalSince1970 + 1)))
     // Keep the previous system alarm in place until its replacement is scheduled.
-    try cancel(watches.filter { $0 != next })
+    try await cancel(watches.filter { $0 != next })
   }
-  static func stop(testOnly: Bool) throws {
-    try cancel(testOnly ? [test] : [drag] + watches + [test])
+  static func testState() async throws -> String {
+    try await cleanupActivities()
+    guard let alarm = try manager.alarms.first(where: { $0.id == test }) else { return "idle" }
+    return alarm.state == .alerting ? "alerting" : "scheduled"
+  }
+  static func stop(testOnly: Bool) async throws {
+    try await cancel(testOnly ? [test] : [drag] + watches + [test])
     if !testOnly { UserDefaults.standard.removeObject(forKey: firedKey) }
   }
 }

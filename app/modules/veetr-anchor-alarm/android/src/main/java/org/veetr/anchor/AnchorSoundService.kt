@@ -24,12 +24,17 @@ class AnchorSoundService : Service() {
     val kind = intent?.getIntExtra("kind", 0) ?: 0
     if (kind == 0) { stopSelf(); return START_NOT_STICKY }
     // A sound test must never replace an actual anchor warning.
-    if (activeKind != 0 && kind == NativeAlarms.TEST) return START_NOT_STICKY
+    if (activeKind != 0 && kind == NativeAlarms.TEST) {
+      NativeAlarms.prefs(this).edit().remove("testPending")
+        .putString("error", "Stop the current alarm sound before testing.").apply()
+      return START_NOT_STICKY
+    }
     if (activeKind == kind && player?.isPlaying == true) return START_NOT_STICKY
     if (intent?.getLongExtra("generation", -1) != NativeAlarms.prefs(this).getLong("generation.$kind", 0)) {
       if (activeKind == 0) stopSelf()
       return START_NOT_STICKY
     }
+    if (kind == NativeAlarms.TEST) NativeAlarms.prefs(this).edit().remove("testPending").apply()
     activeKind = kind
     val notifications = getSystemService(NotificationManager::class.java)
     val channel = "veetr-native-anchor-alarm"

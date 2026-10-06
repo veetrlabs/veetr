@@ -461,9 +461,11 @@ experiment still showed low quality, so this correction is not a verified drift 
 
 Settings → Anchor alarm saves an anchor with **Anchor dropped** or by moving the map beneath a fixed center target.
 Chain out and an extra margin (metres) persist locally; the displayed alarm radius
-is their sum. Editing an armed alarm requires confirmation and resets its latch.
+is their sum. Valid chain and margin edits save when the field loses focus,
+without clearing a triggered alarm. Moving the anchor or changing its sound while
+armed requires confirmation and resets the latch.
 A position outside the radius latches a native alarm. Stop and restart monitoring
-(or explicitly edit the area) to rearm after acknowledging a drag event.
+(or explicitly move the anchor) to rearm after acknowledging a drag event.
 
 The bundle entry registers `veetr-anchor-location-v1` independently of trip
 recording. Fresh Vane telemetry is preferred, with phone GPS as fallback; the
@@ -479,9 +481,12 @@ raise Alarm volume and allow alarms through Do Not Disturb. Unsupported iOS
 versions or missing native modules cannot arm; there is no ordinary-notification
 fallback. Use Xcode 26+ to build. Expo autolinks the local module.
 
-Users can save a system-alarm or bundled siren sound and schedule a test five
-seconds ahead to check with the phone locked. Stop test sound cancels only the
-test, preserving real warnings. iOS AlarmKit overrides Silent mode and Focus;
+A labeled selector chooses the system-alarm or bundled siren sound. Tests are
+scheduled five seconds ahead; the UI asks users to allow about ten seconds for
+presentation and sound. While waiting, tapping the test control again cancels
+only the test. Once the iPhone alarm appears, use its system Stop control.
+Native test status restores the correct controls when returning to the screen.
+Orphaned iOS alarm activities are cleaned up without ending active alarms. iOS AlarmKit overrides Silent mode and Focus;
 volume remains system-controlled. Android playback loops on the alarm audio
 stream until dismissed, stopped, or interrupted by the OS. No silent background
 audio is used. The watchdog does not guarantee continuous GPS execution:

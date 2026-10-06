@@ -18,6 +18,7 @@ class VeetrAnchorAlarmModule : Module() {
     AsyncFunction("trigger") { title: String, sound: String, test: Boolean -> NativeAlarms.trigger(context(), title, sound, test) }
     AsyncFunction("watchdog") { title: String, sound: String, deadline: Double -> NativeAlarms.watchdog(context(), title, sound, deadline.toLong()) }
     AsyncFunction("stop") { NativeAlarms.stop(context(), false) }
+    AsyncFunction("testState") { NativeAlarms.testState(context()) }
     AsyncFunction("stopTest") { NativeAlarms.stop(context(), true) }
     AsyncFunction("openSettings") {
       val c = context()
@@ -74,7 +75,11 @@ internal object NativeAlarms {
       schedule(c, DRAG, title, sound, System.currentTimeMillis() + 1000)
       prefs(c).edit().putBoolean("fired", true).apply()
       cancel(c, WATCH)
-    } else schedule(c, TEST, title, sound, System.currentTimeMillis() + 5000)
+    } else {
+      check(AnchorSoundService.activeKind == 0) { "Stop the current alarm sound before testing." }
+      schedule(c, TEST, title, sound, System.currentTimeMillis() + 5000)
+      prefs(c).edit().putBoolean("testPending", true).apply()
+    }
   }
   @Synchronized fun watchdog(c: Context, title: String, sound: String, deadline: Long) {
     if (prefs(c).getBoolean("fired", false) || AnchorSoundService.activeKind == WATCH) return
@@ -82,8 +87,17 @@ internal object NativeAlarms {
   }
   private fun cancel(c: Context, kind: Int) {
     c.getSystemService(AlarmManager::class.java).cancel(pending(c, kind))
+    if (kind == TEST) prefs(c).edit().remove("testPending").apply()
     val p = prefs(c)
     p.edit().putLong("generation.$kind", p.getLong("generation.$kind", 0) + 1).apply()
+  }
+  @Synchronized fun testState(c: Context): String {
+    prefs(c).getString("error", null)?.let { error(it) }
+    return when {
+      AnchorSoundService.activeKind == TEST -> "alerting"
+      prefs(c).getBoolean("testPending", false) -> "scheduled"
+      else -> "idle"
+    }
   }
   @Synchronized fun stop(c: Context, testOnly: Boolean) {
     if (testOnly) {
