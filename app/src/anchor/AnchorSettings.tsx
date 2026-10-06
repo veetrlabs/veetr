@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Alert, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MapView, Marker, Circle } from '../components/NativeMap';
@@ -6,6 +6,7 @@ import { useTheme } from '../context/ThemeContext';
 import { themeColors } from '../constants/colors';
 import { t, translateMessage, useLanguageRefresh } from '../i18n';
 import { useNavigation } from '../navigation/NavigationContext';
+import { useFollowCamera } from '../maps/useFollowCamera';
 import { Coordinate, distanceM, radiusM, usableFix } from './model';
 import { armAnchor, editAnchor, getAnchorSnapshot, loadAnchor, stopAnchor, subscribeAnchor } from './service';
 import { notifyAlarm, openAlarmSettings, prepareNotifications, stopAlarmTest } from './notifications';
@@ -20,12 +21,24 @@ export default function AnchorSettings({ onBack }: { onBack: () => void }) {
   const { settings: s, fix, error, ready } = useSyncExternalStore(subscribeAnchor, getAnchorSnapshot);
   const [chain, setChain] = useState(String(s.chainM)), [margin, setMargin] = useState(String(s.marginM));
   const [busy, setBusy] = useState(false), [localError, setLocalError] = useState('');
+  const map = useRef<any>(null);
+  const [mapReady, setMapReady] = useState(false), [follow, setFollow] = useState(true);
+  const testBusy = useRef(false);
+  const [testWaiting, setTestWaiting] = useState(false);
+  const [testPending, setTestPending] = useState(false), [testMessage, setTestMessage] = useState('');
+  const [testError, setTestError] = useState('');
   const [mapMoving, setMapMoving] = useState(false);
   const [editing, setEditing] = useState(false), [draft, setDraft] = useState<Coordinate | null>(null);
+  useEffect(() => {
+    if (!testWaiting) return;
+    const timer = setTimeout(() => { setTestWaiting(false); setTestMessage('The test alarm is due now. If it is silent, check alarm permissions and volume.'); }, 5000);
+    return () => clearTimeout(timer);
+  }, [testWaiting]);
   useEffect(() => { void loadAnchor().catch(e => setLocalError(String(e))); }, []);
   useEffect(() => { setChain(String(s.chainM)); setMargin(String(s.marginM)); }, [s.chainM, s.marginM]);
   const live = usableFix(fix, Date.now()) ? fix : null;
-  const center = editing ? draft : s.anchor ?? live;
+  const center = editing ? draft : live ?? s.anchor;
+  useFollowCamera(map, mapReady, follow && !editing, 0, live);
   const chainM = chain.trim() ? Number(chain.replace(',', '.')) : NaN;
   const marginM = margin.trim() ? Number(margin.replace(',', '.')) : NaN;
   const dirty = chainM !== s.chainM || marginM !== s.marginM;
@@ -42,6 +55,27 @@ export default function AnchorSettings({ onBack }: { onBack: () => void }) {
     setBusy(true); setLocalError('');
     try { await action(); } catch (e) { setLocalError(e instanceof Error ? e.message : String(e)); }
     finally { setBusy(false); }
+  }
+  async function testSound(stop = false) {
+    if (testBusy.current || (!stop && testWaiting)) return;
+    testBusy.current = true;
+    setTestPending(true); setTestError('');
+    setTestMessage(stop ? 'Stopping test alarm…' : 'Preparing test alarm…');
+    try {
+      if (stop) {
+        await stopAlarmTest();
+        setTestWaiting(false);
+        setTestMessage('Test alarm stopped.');
+      } else {
+        await prepareNotifications();
+        await notifyAlarm(true, s.sound);
+        setTestWaiting(true);
+        setTestMessage('Test alarm scheduled. It starts in five seconds. Lock your phone now.');
+      }
+    } catch (e) {
+      setTestMessage('');
+      setTestError(e instanceof Error ? e.message : String(e));
+    } finally { testBusy.current = false; setTestPending(false); }
   }
   function confirmChange(action: () => Promise<unknown>) {
     if (!s.armed) { void run(action); return; }
@@ -80,7 +114,7 @@ export default function AnchorSettings({ onBack }: { onBack: () => void }) {
     {!live && gpsError && <Text accessibilityRole="alert" style={{ color: '#ef4444' }}>{translateMessage(gpsError)}</Text>}
     <Text style={[styles.help, { color: c.textSecondary }]}>{t('Anchor dropped saves your current position. If you missed the moment, edit the anchor on the map.')}</Text>
     <View style={styles.map}>
-      {MapView ? <MapView key={editing ? 'edit' : center ? 'position' : 'world'} style={{ flex: 1 }} userInterfaceStyle={theme}
+      {MapView ? <MapView ref={map} onMapReady={() => setMapReady(true)} onPanDrag={() => setFollow(false)} key={editing ? 'edit' : center ? 'position' : 'world'} style={{ flex: 1 }} userInterfaceStyle={theme}
         initialRegion={{ latitude: center?.latitude ?? 0, longitude: center?.longitude ?? 0,
           latitudeDelta: center ? Math.max(0.003, radiusM(s) / 25000) : 140, longitudeDelta: center ? Math.max(0.003, radiusM(s) / 18000) : 140 }}
         onRegionChange={region => {
@@ -108,13 +142,14 @@ export default function AnchorSettings({ onBack }: { onBack: () => void }) {
       </View>}
     </View>
     {(editing ? draft : s.anchor) && <Text style={[styles.help, { color: c.textSecondary }]}>{(editing ? draft : s.anchor)!.latitude.toFixed(6)}, {(editing ? draft : s.anchor)!.longitude.toFixed(6)}</Text>}
+    {!editing && button(follow ? 'Following boat position' : 'Show my position', () => setFollow(true), !live)}
     {editing ? <>
       <Text style={[styles.help, { color: c.text }]}>{t('Move the map until the anchor position is under the center target, then save.')}</Text>
       {button('Save anchor position', () => {
-        if (draft && !mapMoving) confirmChange(async () => { await editAnchor({ anchor: draft }); setEditing(false); });
+        if (draft && !mapMoving) confirmChange(async () => { await editAnchor({ anchor: draft }); setMapReady(false); setFollow(true); setEditing(false); });
       }, !draft || mapMoving)}
-      {button('Cancel', () => setEditing(false))}
-    </> : button('Edit anchor on map', () => { setDraft(s.anchor ?? live); setMapMoving(false); setEditing(true); }, !ready || Platform.OS === 'web')}
+      {button('Cancel', () => { setMapReady(false); setFollow(true); setEditing(false); })}
+    </> : button('Edit anchor on map', () => { setDraft(s.anchor ?? live); setMapMoving(false); setMapReady(false); setEditing(true); }, !ready || Platform.OS === 'web')}
     <Text style={[styles.label, { color: c.text }]}>{t('Chain out (m)')}</Text>
     <TextInput accessibilityLabel={t('Chain out (m)')} value={chain} onChangeText={value => { if (DECIMAL_INPUT.test(value)) setChain(value); }} autoCorrect={false} editable={!busy && ready} keyboardType="decimal-pad"
       style={[styles.input, { color: c.text, borderColor: c.border, backgroundColor: c.inputBg }]} />
@@ -129,8 +164,10 @@ export default function AnchorSettings({ onBack }: { onBack: () => void }) {
     {button(s.sound === 'system' ? 'System alarm sound ✓' : 'System alarm sound', () => confirmChange(() => editAnchor({ sound: 'system' })), !ready)}
     {button(s.sound === 'siren' ? 'Siren ✓' : 'Siren', () => confirmChange(() => editAnchor({ sound: 'siren' })), !ready)}
     {button('Alarm permissions and volume', () => void run(openAlarmSettings), Platform.OS === 'web')}
-    {button('Test alarm sound', () => void run(async () => { await prepareNotifications(); await notifyAlarm(true, s.sound); }), Platform.OS === 'web')}
-    {button('Stop test sound', () => void run(stopAlarmTest), Platform.OS === 'web')}
+    {button('Test alarm sound', () => void testSound(), Platform.OS === 'web' || testPending || testWaiting)}
+    {button('Stop test sound', () => void testSound(true), Platform.OS === 'web' || testPending)}
+    {testMessage && <Text accessibilityLiveRegion="polite" style={[styles.help, { color: c.text }]}>{t(testMessage)}</Text>}
+    {testError && <Text accessibilityRole="alert" style={[styles.help, { color: '#ef4444' }]}>{translateMessage(testError)}</Text>}
     <Text style={[styles.help, { color: c.textSecondary }]}>{t(Platform.OS === 'ios' ? 'Requires iOS 26 or newer and Alarms permission. AlarmKit sounds through Silent mode and Focus. Adjust Ringtone and Alerts volume in iPhone Settings → Sounds & Haptics.' : 'Uses Android alarm volume. Allow Alarms & reminders and notifications. Turn up Alarm volume and allow alarms through Do Not Disturb in system settings.')}</Text>
     <Text style={[styles.help, { color: c.textSecondary }]}>{t('Keep the phone aboard and charged. Vane GPS is preferred while fresh; phone GPS takes over when needed. A native alarm sounds when the boat leaves the radius or reliable GPS updates stop for 90 seconds. After a drag alarm, stop and restart to rearm. The test starts in five seconds: lock the phone and check that it wakes you. Force-quitting can stop position monitoring.')}</Text>
   </ScrollView>;
