@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { t } from "./i18n";
 import {
   trueBearing,
@@ -8,6 +8,7 @@ import {
   type StartFix,
 } from "./startSensors";
 import type { CoursePoint } from "./course";
+import { magneticCorrection } from "./magneticCorrection";
 
 export function StartLinePosition({
   onPosition,
@@ -114,9 +115,11 @@ export function StartLinePosition({
 export type CompassPreview = { degrees: number | null; trueNorth: boolean };
 
 export function StartLineCompass({
+  position,
   onBearing,
   onPreview,
 }: {
+  position?: CoursePoint;
   onBearing: (degrees: number) => void;
   onPreview?: (preview: CompassPreview | null) => void;
 }) {
@@ -124,7 +127,6 @@ export function StartLineCompass({
     [heading, setHeading] = useState<{ degrees: number; at: number } | null>(
       null,
     ),
-    [correction, setCorrection] = useState(""),
     [error, setError] = useState(""),
     [now, setNow] = useState(Date.now);
   const cleanup = useRef<(() => void) | null>(null),
@@ -150,13 +152,15 @@ export function StartLineCompass({
     };
   }, []);
   const fresh = heading && now - heading.at <= 3000;
-  const validCorrection =
-    correction.trim() !== "" &&
-    Number.isFinite(Number(correction)) &&
-    Math.abs(Number(correction)) <= 180;
+  const day = new Date(now).toISOString().slice(0, 10);
+  const correction = useMemo(
+    () => magneticCorrection(position, new Date(day)),
+    [position?.latitude, position?.longitude, day],
+  );
+  const validCorrection = correction !== null;
   useEffect(() => {
     onPreview?.(reading ? {
-      degrees: fresh && heading ? (validCorrection ? trueBearing(heading.degrees, Number(correction)) : heading.degrees) : null,
+      degrees: fresh && heading ? (validCorrection ? trueBearing(heading.degrees, correction) : heading.degrees) : null,
       trueNorth: validCorrection,
     } : null);
   }, [reading, heading, fresh, correction, validCorrection, onPreview]);
@@ -166,7 +170,7 @@ export function StartLineCompass({
       <button
         className="start-compass-action"
         type="button"
-        disabled={reading}
+        disabled={reading || !validCorrection}
         onClick={() => {
           void (async () => {
             setError("");
@@ -195,6 +199,11 @@ export function StartLineCompass({
       >
         {t("Point phone at buoy")}
       </button>
+      {!validCorrection && (
+        <p className="start-compass-error" role="status">
+          {t(!position ? "Set start A on the map or use your phone position to enable the compass." : "Automatic correction is unavailable for this location or date. Enter a true-north bearing manually.")}
+        </p>
+      )}
       {reading && (
         <div className="start-compass-panel">
           <p>
@@ -212,17 +221,7 @@ export function StartLineCompass({
                 )}
           </p>
           <div className="start-compass-capture">
-            <label>
-              {t("Magnetic correction (degrees, east positive)")}
-              <input
-                type="number"
-                step="any"
-                min="-180"
-                max="180"
-                value={correction}
-                onChange={(e) => setCorrection(e.target.value)}
-              />
-            </label>
+            <p>{validCorrection && t("Automatic magnetic correction: {degrees}° · based on start A", { degrees: correction.toFixed(1) })}</p>
             <button
               type="button"
               disabled={!fresh || !validCorrection}
@@ -232,7 +231,7 @@ export function StartLineCompass({
                   Date.now() - heading.at <= 3000 &&
                   validCorrection
                 ) {
-                  onBearing(trueBearing(heading.degrees, Number(correction)));
+                  onBearing(trueBearing(heading.degrees, correction));
                   stop();
                 }
               }}
@@ -242,7 +241,7 @@ export function StartLineCompass({
           </div>
           <p>
             {t(
-              "Enter the local magnetic correction to enable Capture bearing. Capture freezes the angle; Cancel keeps your previous bearing. Use 0 only if no correction is needed.",
+              "Capture freezes the true-north bearing. Cancel keeps your previous bearing.",
             )}
           </p>
           <button type="button" onClick={stop}>

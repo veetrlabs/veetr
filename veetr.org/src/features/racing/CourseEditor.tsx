@@ -319,14 +319,15 @@ export function CourseEditor({
                         max="359.999999"
                         step="any"
                         readOnly={compassPreview !== null}
-                        value={compassPreview ? (compassPreview.degrees === null ? "" : String(Math.round(compassPreview.degrees * 10) / 10)) : bearing}
+                        value={compassPreview ? (compassPreview.degrees === null ? "" : String((Math.round(compassPreview.degrees * 10) / 10) % 360)) : bearing}
                         onChange={(e) => setBearing(e.target.value)}
                       />
                     </label>
                     <StartLineCompass
+                      position={startA}
                       onPreview={setCompassPreview}
                       onBearing={(degrees) =>
-                        setBearing(String(Math.round(degrees * 10) / 10))
+                        setBearing(String((Math.round(degrees * 10) / 10) % 360))
                       }
                     />
                   </div>

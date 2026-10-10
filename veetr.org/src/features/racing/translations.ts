@@ -1,4 +1,8 @@
 export const cs: Record<string, string> = {
+  "Automatic magnetic correction: {degrees}° · based on start A": "Automatická magnetická korekce: {degrees}° · podle polohy A",
+  "Set start A on the map or use your phone position to enable the compass.": "Pro použití kompasu umístěte A na mapě nebo načtěte polohu telefonu.",
+  "Automatic correction is unavailable for this location or date. Enter a true-north bearing manually.": "Pro tuto polohu nebo datum není automatická korekce dostupná. Zadejte náměr od zeměpisného severu ručně.",
+  "Capture freezes the true-north bearing. Cancel keeps your previous bearing.": "Zachytit náměr zafixuje úhel od zeměpisného severu. Zrušit ponechá původní náměr.",
   "Live bearing (° magnetic)": "Živý náměr (° od magnetického severu)",
   "Live bearing (° true)": "Živý náměr (° od zeměpisného severu)",
   "Capture bearing": "Zachytit náměr",
