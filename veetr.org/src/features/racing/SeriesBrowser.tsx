@@ -2,7 +2,7 @@ import { CourseEditor } from "./CourseEditor";
 import { EditEntityButton } from "./EditEntityButton";
 import { DeleteSection } from "./DeleteAction";
 import { t } from "./i18n";
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import {
   type Series,
   type RaceEvent,
@@ -312,6 +312,9 @@ export function EntityDetails({
   edit?: (fn: (s: Series) => void, seriesId?: string) => void;
 }) {
   const [editing, setEditing] = useState(Boolean(edit && (location.editRace || location.editCourse)));
+  useEffect(() => {
+    if (location.editRace || location.editCourse) setEditing(Boolean(edit));
+  }, [Boolean(edit), location.editRace, location.editCourse]);
   const changeEditing = (value: boolean) => {
     setEditing(value);
     onEditingChange?.(value);
