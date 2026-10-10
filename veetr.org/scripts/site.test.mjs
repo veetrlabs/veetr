@@ -29,6 +29,7 @@ const docsRoutes = [
   'docs/software/',
   'docs/firmware/',
   'docs/pwa/',
+  'docs/native-apps/',
   'docs/development/',
   'docs/platformio/',
   'docs/firmware-testing/',
@@ -244,14 +245,19 @@ test('hardware resources and campaign details remain available', async () => {
   }
 });
 
-test('software documentation covers both firmware and the PWA', async () => {
+test('software documentation covers firmware, native apps, and the PWA', async () => {
   const overview = await readPage('docs/software/');
   for (const detail of [
-    'The two parts', 'Firmware', 'Progressive Web App', 'From sensor to screen',
-    'No account or cloud connection required', '/docs/firmware/', '/docs/pwa/',
+    'The software parts', 'Native apps', 'Firmware', 'Progressive Web App', 'From sensor to screen',
+    'Direct instrument connection', '/docs/firmware/', '/docs/pwa/', '/docs/native-apps/',
   ]) assert.ok(overview.includes(detail), detail);
   assert.match(overview, />Software</);
   assert.doesNotMatch(overview, />Development<\/span>\s*<svg/);
+
+  const native = await readPage('docs/native-apps/');
+  for (const detail of ['The five tabs', 'Record and review trips', 'Join a race', 'Start-line and anchor tools', '/docs/mobile-apps/', '/docs/share-your-trip/']) {
+    assert.ok(native.includes(detail), detail);
+  }
 
   const firmware = await readPage('docs/firmware/');
   for (const detail of [

@@ -25,6 +25,7 @@ export const collections = {
       pattern: [
         'SETUP.md',
         'MOBILE_APPS.md',
+        'NATIVE_APPS.md',
         'SHARE_YOUR_TRIP.md',
         'RACE_GUIDE.md',
         'RACE_MANAGERS.md',

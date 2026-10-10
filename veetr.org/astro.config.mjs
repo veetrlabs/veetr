@@ -60,6 +60,7 @@ export default defineConfig({
                     'docs/firmware-testing',
                   ],
                 },
+                'docs/native-apps',
                 'docs/pwa',
                 'docs/development',
                 'docs/platformio',
