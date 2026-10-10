@@ -1,3 +1,4 @@
+import { CourseEditor } from "./CourseEditor";
 import { EditEntityButton } from "./EditEntityButton";
 import { DeleteSection } from "./DeleteAction";
 import { t } from "./i18n";
@@ -15,6 +16,7 @@ import {
 import { Discards } from "./EventScoring";
 export interface Location {
   editCourse?: boolean;
+  editRace?: boolean;
   seriesId?: string;
   eventId?: string;
   heatId?: string;
@@ -292,6 +294,8 @@ export function SeriesBrowser({
 }
 export function EntityDetails({
   onEditingChange,
+  navigate,
+  saveDetails,
   team,
   series,
   location,
@@ -299,22 +303,26 @@ export function EntityDetails({
   onDelete,
 }: {
   onEditingChange?: (value: boolean) => void;
+  navigate?: (location: Location) => void;
+  saveDetails?: (fn: (s: Series) => void) => Promise<void>;
   team?: React.ReactNode;
   onDelete?: () => Promise<void>;
   series: Series;
   location: Location;
   edit?: (fn: (s: Series) => void, seriesId?: string) => void;
 }) {
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(Boolean(edit && (location.editRace || location.editCourse)));
   const changeEditing = (value: boolean) => {
     setEditing(value);
     onEditingChange?.(value);
+    if (event && !heat) navigate?.({ ...location, editRace: value, editCourse: false });
   };
   const event = eventsFor(series).find((e) => e.id === location.eventId);
   const heat = series.races.find((r) => r.id === location.heatId);
   const entity = heat ?? event ?? series;
   return (
     <section className="entity-details">
+      {editing && event && !heat && <button type="button" onClick={() => changeEditing(false)}>← {t("Back to race")}</button>}
       <div className="section-title entity-header">
         <h1>{entity.name}</h1>
         {edit && !editing && (
@@ -332,8 +340,9 @@ export function EntityDetails({
           event={heat ? undefined : event}
           heat={heat}
           onCancel={() => changeEditing(false)}
-          save={(fn) => {
-            edit(fn, series.id);
+          save={async (fn) => {
+            if (saveDetails) await saveDetails(fn);
+            else edit(fn, series.id);
             changeEditing(false);
           }}
         />
@@ -376,6 +385,7 @@ export function Editor({
   const [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const submitting = useRef(false);
+  const courseDraft = useRef<{ prepare: () => (series: Series) => void }>(null);
   return (
     <form
       className="race-edit"
@@ -394,8 +404,10 @@ export function Editor({
         try {
           const heatDetails = heat ? heatDetailsFromForm(d) : undefined;
           const eventDetails = event ? raceEventDetails(d, rules) : undefined;
+          const applyCourse = courseDraft.current?.prepare();
           await save((s) => {
             materializeEvents(s);
+            applyCourse?.(s);
             if (heat) {
               const r = s.races.find((r) => r.id === heat.id)!;
               Object.assign(r, heatDetails);
@@ -584,6 +596,7 @@ export function Editor({
             label={event ? t("Heat discards") : t("Series discards")}
           />
         )}
+        {event && !heat && !creating && <CourseEditor series={series} eventId={event.id} draftRef={courseDraft} save={async () => {}} onBack={onCancel} />}
       </fieldset>
       <div className="form-actions">
         <button type="submit" className="primary" disabled={busy}>

@@ -1,5 +1,4 @@
 import {CourseDetails} from "./CourseDetails";
-import {CourseEditor} from "./CourseEditor";
 import {SeriesTeam} from "./SeriesTeam";
 import {HeatCreation} from "./HeatCreation";
 import {RaceCreation} from "./RaceCreation";
@@ -71,10 +70,10 @@ function readRoute(): Location {
   return {
     seriesId: entityId("series", params.get("series") ?? params.get("public")) ?? undefined,
     eventId: params.get("event") ?? undefined,
-    heatId: params.get("heat") ?? undefined,
+    heatId: params.has("edit-course") && params.has("event") ? undefined : params.get("heat") ?? undefined,
     newRace: params.has("new-race"),
     newHeat: params.has("new-heat"),
-    editCourse: params.has("edit-course"),
+    editRace: params.has("edit-race") || params.has("edit-course"),
   };
 }
 export default function App({ updateAvailable = false, updateServiceWorker = async (_reload?: boolean) => {} }: {updateAvailable?: boolean; updateServiceWorker?: (reload?: boolean) => Promise<void>}) {
@@ -92,7 +91,7 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
     if (next.heatId) params.set("heat", next.heatId);
     if (next.newRace) params.set("new-race", "");
     if (next.newHeat) params.set("new-heat", "");
-    if (next.editCourse) params.set("edit-course", "");
+    if (next.editRace || next.editCourse) params.set("edit-race", "");
     window.history.pushState(
       null,
       "",
@@ -117,8 +116,8 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
   const [authReady, setAuthReady] = useState(!supabase);
   const [passwordRecovery, setPasswordRecovery] = useState(passwordRecoveryRequested);
   const [accountPage, setAccountPage] = useState(passwordRecoveryRequested || new URLSearchParams(window.location.search).has("invite") || new URLSearchParams(window.location.search).has("account") || (integrated && window.location.pathname === "/account/"));
-  const [entityEditing, setEntityEditing] = useState(false);
-  useEffect(() => setEntityEditing(false), [location.seriesId, location.eventId, location.heatId]);
+  const [entityEditing, setEntityEditing] = useState(Boolean(readRoute().editRace));
+  useEffect(() => setEntityEditing(Boolean(location.editRace)), [location.seriesId, location.eventId, location.heatId, location.editRace]);
   const [editingResults, setEditingResults] = useState(false);
   const [clearResultId, setClearResultId] = useState("");
   const [user, setUser] = useState(""),
@@ -489,10 +488,7 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
                 navigate={navigate}
               />
             )}
-            {location.editCourse ? (
-              series && canEdit && courseEventId ? <CourseEditor key={`${series.id}/${courseEventId}`} series={series} eventId={courseEventId} save={saveNewEntity} onBack={() => {navigate({seriesId:series.id,eventId:courseEventId,heatId:location.heatId}); window.history.replaceState(null, "", window.location.pathname + window.location.search + "#tracking"); setPage("tracking");}}/> :
-              <section><h1>{t("Course map")}</h1><p role="status">{t(!authReady ? "Restoring session…" : "Series editing access required")}</p><button onClick={() => navigate({seriesId:location.seriesId,eventId:location.eventId,heatId:location.heatId})}>{t("Back")}</button></section>
-            ) : location.newHeat ? (
+            {location.newHeat ? (
               series && canEdit && location.eventId ? <HeatCreation key={`${series.id}/${location.eventId}`} series={series} eventId={location.eventId} save={saveNewEntity} navigate={navigate} /> :
               <section><h1>{t("New heat")}</h1><p role="status">{t(!authReady ? "Restoring session…" : "Series editing access required")}</p><button onClick={() => navigate({seriesId: location.seriesId, eventId: location.eventId})}>{t("Cancel")}</button></section>
             ) : location.newRace ? (
@@ -519,8 +515,10 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
                     }}
                   />
                 ) : undefined}
+                navigate={navigate}
+                saveDetails={saveNewEntity}
                 onEditingChange={setEntityEditing}
-                key={`${location.seriesId}/${location.eventId ?? ""}/${location.heatId ?? ""}`}
+                key={`${location.seriesId}/${location.eventId ?? ""}/${location.heatId ?? ""}/${Boolean(location.editRace)}`}
                 series={series}
                 location={location}
                 edit={canEdit ? edit : undefined}
@@ -547,7 +545,7 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
                 } : undefined}
               />
             )}
-            {!entityEditing && <>
+            {(!entityEditing || !canEdit) && <>
 
             {canEdit && series && <>
               {location.eventId && <RacePhones key={`${series.id}/${location.eventId}`} series={series} eventId={location.eventId} />}
@@ -602,7 +600,7 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
               <SeriesBrowser key={`${series.id}/${location.eventId ?? ""}`} seriesList={[series]} location={location} navigate={navigate} edit={canEdit ? edit : undefined} />
             ) : series ? (
               <>
-                {page === "tracking" && courseEventId && <CourseDetails key={`${series.id}/${courseEventId}/${location.heatId ?? ""}`} series={series} eventId={courseEventId} liveReady={Boolean(record?.revision && !record.pending && online)} onEdit={canEdit ? () => navigate({seriesId:series.id,eventId:courseEventId,heatId:location.heatId,editCourse:true}) : undefined} renderMap={course => <LiveTrackingMap seriesId={series.id} eventId={courseEventId} heatId={location.heatId} course={course} boatIds={location.heatId && race ? race.entries : [...new Set(series.races.filter(r => (r.eventId ?? r.id) === courseEventId).flatMap(r => r.entries))]} />} />}
+                {page === "tracking" && courseEventId && <CourseDetails key={`${series.id}/${courseEventId}/${location.heatId ?? ""}`} series={series} eventId={courseEventId} liveReady={Boolean(record?.revision && !record.pending && online)} canManage={canEdit} renderMap={course => <LiveTrackingMap seriesId={series.id} eventId={courseEventId} heatId={location.heatId} course={course} boatIds={location.heatId && race ? race.entries : [...new Set(series.races.filter(r => (r.eventId ?? r.id) === courseEventId).flatMap(r => r.entries))]} />} />}
                 {(page === "standings" && !location.eventId) && (
                   <div className="categories" aria-label={t("Race categories")}>
                     <button

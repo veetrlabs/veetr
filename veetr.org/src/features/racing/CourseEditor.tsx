@@ -1,6 +1,6 @@
 import type { CompassPreview } from "./StartLineTools";
 import { MapPinPlus, ArrowUp, ArrowDown, Trash2 } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useImperativeHandle } from "react";
 import { CourseMap, type CourseTarget } from "./CourseMap";
 import {
   courseFingerprint,
@@ -76,11 +76,13 @@ export function CourseEditor({
   eventId,
   save,
   onBack,
+  draftRef,
 }: {
   series: Series;
   eventId: string;
   save: (change: (series: Series) => void) => Promise<void>;
   onBack: () => void;
+  draftRef?: React.Ref<{ prepare: () => (series: Series) => void }>;
 }) {
   const event = eventsFor(series).find((e) => e.id === eventId);
   const [original] = useState(() =>
@@ -170,6 +172,18 @@ export function CourseEditor({
       [next[index], next[index + delta]] = [next[index + delta], next[index]];
       return next;
     });
+  const prepare = () => {
+    if (startMode === "points" && Boolean(startA) !== Boolean(startB))
+      throw new Error("Place both ends of the start line");
+    if (compassPreview) throw new Error("Capture or cancel the compass reading before saving.");
+    if (startMode === "bearing" && !course.startBearing)
+      throw new Error("Set the referee position and a bearing");
+    validateCourse(course);
+    const next = marks.length || course.startLine || course.startBearing || course.notes ? course : undefined;
+    return (series: Series) => setCourse(series, eventId, next, courseFingerprint(original));
+  };
+  useImperativeHandle(draftRef, () => ({ prepare }));
+  const FormContainer = draftRef ? "div" : "form";
   if (!event)
     return (
       <section>
@@ -179,35 +193,18 @@ export function CourseEditor({
     );
   return (
     <section className="course-editor">
-      <button type="button" disabled={busy} onClick={onBack}>
+      {!draftRef && <button type="button" disabled={busy} onClick={onBack}>
         ← {t("Back to race")}
-      </button>
-      <h1>
-        {t("Edit course")} · {event.name}
-      </h1>
-      <form
+      </button>}
+      {draftRef ? <h2>{t("Course")}</h2> : <h1>{t("Edit course")} · {event.name}</h1>}
+      <FormContainer
         onSubmit={(e) => {
           e.preventDefault();
           void (async () => {
             setError("");
             setBusy(true);
             try {
-              if (startMode === "points" && Boolean(startA) !== Boolean(startB))
-                throw new Error("Place both ends of the start line");
-              if (compassPreview) throw new Error("Capture or cancel the compass reading before saving.");
-              if (startMode === "bearing" && !course.startBearing)
-                throw new Error("Set the referee position and a bearing");
-              validateCourse(course);
-              const next =
-                marks.length ||
-                course.startLine ||
-                course.startBearing ||
-                course.notes
-                  ? course
-                  : undefined;
-              await save((series) =>
-                setCourse(series, eventId, next, courseFingerprint(original)),
-              );
+              await save(prepare());
               onBack();
             } catch (e) {
               setError((e as Error).message);
@@ -444,14 +441,14 @@ export function CourseEditor({
             )}
           </p>
           {error && <p role="alert">{t(error)}</p>}
-          <div className="course-save-actions">
+          {!draftRef && <div className="course-save-actions">
             <button type="submit">{t(busy ? "Saving…" : "Save course")}</button>
             <button type="button" onClick={onBack}>
               {t("Cancel")}
             </button>
-          </div>
+          </div>}
         </fieldset>
-      </form>
+      </FormContainer>
     </section>
   );
 }

@@ -86,12 +86,14 @@ export function CourseDetails({
   series,
   eventId,
   onEdit,
+  canManage = false,
   liveReady = false,
   renderMap,
 }: {
   series: Series;
   eventId: string;
   onEdit?: () => void;
+  canManage?: boolean;
   liveReady?: boolean;
   renderMap?: (course: RaceCourse | undefined) => React.ReactNode;
 }) {
@@ -129,7 +131,7 @@ export function CourseDetails({
             <button type="button" onClick={() => downloadCourseGpx(course, eventsFor(series).find(event => event.id === eventId)?.name ?? series.name)}>{t("Export GPX")}</button>
             <p>{t("Includes waypoints and sailing order. Rounding sides are in point descriptions; estimated positions remain approximate.")}</p>
           </div>}
-          {onEdit && (course.startLine || course.startBearing) && (
+          {(canManage || onEdit) && (course.startLine || course.startBearing) && (
             <LiveStartLine
               key={eventId}
               seriesId={series.id}
