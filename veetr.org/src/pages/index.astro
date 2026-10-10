@@ -2,114 +2,101 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import hardwareKit from '../assets/veetr-hardware-kit-v7.png';
 import appDashboard from '../assets/veetr-tablet-phone-1024.png';
+import raceEditor from '../assets/home-race-editor.jpg';
+import raceMap from '../assets/home-race-map.jpg';
 import { Image } from 'astro:assets';
-import { Card, CardGrid } from '@astrojs/starlight/components';
-import MarkdownSection from '../components/MarkdownSection.astro';
-import Newsletter from '../components/Newsletter.astro';
-import { frontmatter, Content } from '../content/pages/home.md';
+import { frontmatter } from '../content/pages/home.md';
 
-const measurements = [
-  ['AWS', 'Apparent wind speed'],
-  ['AWA', 'Apparent wind angle'],
-  ['TWS', 'True wind speed'],
-  ['TWA', 'True wind angle'],
-  ['SOG', 'Speed over ground'],
-  ['HDG', 'Magnetic heading'],
-  ['Heel', 'Boat tilt angle'],
-  ['GPS', 'Position and signal quality'],
+const paths = [
+  {
+    id: 'sailing-app', title: 'Sail with Veetr',
+    text: 'Record a day on the water, join a race, and revisit your trips with the sailing app.',
+    image: appDashboard, alt: 'Veetr app shown on tablet and phone', caption: 'Web instruments on tablet and phone',
+    href: '/docs/mobile-apps/', action: 'Explore the app', guide: '/docs/race-skippers/', guideLabel: 'Racing with Veetr',
+    note: 'Native apps are in testing on iPhone and Android.',
+  },
+  {
+    id: 'run-a-race', title: 'Run a race',
+    text: 'Bring your fleet together. Set the course, run heats, and publish the results.',
+    image: raceEditor, alt: 'Veetr course editor with a start line and turning marks', caption: 'Course editor · local example',
+    href: '/races/manage/', action: 'Manage races', guide: '/docs/race-referees/', guideLabel: 'Referee guide',
+  },
+  {
+    id: 'veetr-vane', title: 'Meet Veetr Vane',
+    text: 'Add wind, heading, and heel data with portable hardware designed to be built and repaired.',
+    image: hardwareKit, alt: 'Veetr Vane unit with wind sensor, Bluetooth antenna, and GPS antenna', caption: 'Veetr Vane and sensors',
+    href: '/get-your-veetr/', action: 'See the hardware', guide: '/docs/hardware/', guideLabel: 'Hardware guide',
+    note: 'Open design available. Finished hardware is not sold yet.',
+  },
+  {
+    id: 'follow-a-race', title: 'Follow a race',
+    text: 'See the course, follow available live tracking, and check the results from shore.',
+    image: raceMap, alt: 'Veetr race map showing start line A–B and numbered course marks', caption: 'Race map · illustrative boats',
+    href: '/races/', action: 'Explore races', guide: '/docs/race-spectators/', guideLabel: 'Spectator guide',
+  },
 ];
 ---
 
-<BaseLayout title="Veetr" description={frontmatter.description} hero={frontmatter} image={hardwareKit} imageAlt="Veetr Vane unit with wind sensor, Bluetooth antenna, and GPS antenna" heroActions>
-
-  <MarkdownSection Content={Content} />
-
-  <section class="section">
-    <div class="shell">
-      <div class="section-heading">
-        <p class="eyebrow">Why Veetr</p>
-        <h2>Built for sailors who value independence</h2>
-      </div>
-      <CardGrid>
-        <Card title="Real wind data">
-          <p>Apparent and true wind, heading, heel, GPS position, and speed over ground with real-time updates.</p>
-        </Card>
-        <Card title="Runs on your devices">
-          <p>The web app works on phones, tablets, and laptops, and can be installed without an app store.</p>
-        </Card>
-        <Card title="No boat rewiring">
-          <p>Prototype hardware runs from USB-C power and is designed for boats without a permanent electrical system.</p>
-        </Card>
-        <Card title="Open by default">
-          <p>Firmware, PCB files, app code, and documentation are available for builders and contributors.</p>
-        </Card>
-      </CardGrid>
+<BaseLayout title="Veetr" description={frontmatter.description} hero={frontmatter} ecosystemActions>
+  <div class="home-paths">
+    {paths.map(path => (
+      <article class="home-path" id={path.id}>
+        <figure>
+          <div class="path-image">
+            {path.id === 'run-a-race' ? (
+              <div class="preview-tablet">
+                <Image src={path.image} width={960} format="webp" alt={path.alt} loading="lazy" />
+              </div>
+            ) : path.id === 'follow-a-race' ? (
+              <div class="preview-monitor">
+                <div class="preview-monitor-bezel">
+                  <div class="preview-monitor-screen">
+                    <div class="preview-race-scene">
+                    <Image src={path.image} width={960} format="webp" alt={path.alt} loading="lazy" />
+                    <svg class="preview-boats" viewBox="0 0 1000 481" role="img" aria-label="Three illustrative boats sailing from the start toward mark 1">
+                      <g transform="translate(471 346) rotate(-80) scale(.55)">
+                        <path d="M0 18 L0 38" stroke="#1682bb" stroke-width="4" stroke-dasharray="5 5" opacity=".7" />
+                        <path d="M0 -19 L10 11 Q0 23 -10 11 Z" fill="#147bc1" stroke="white" stroke-width="3" />
+                      </g>
+                      <g transform="translate(496 353) rotate(-77) scale(.55)">
+                        <path d="M0 18 L0 38" stroke="#c95b22" stroke-width="4" stroke-dasharray="5 5" opacity=".7" />
+                        <path d="M0 -19 L10 11 Q0 23 -10 11 Z" fill="#e87832" stroke="white" stroke-width="3" />
+                      </g>
+                      <g transform="translate(520 360) rotate(-76) scale(.55)">
+                        <path d="M0 18 L0 38" stroke="#7854bb" stroke-width="4" stroke-dasharray="5 5" opacity=".7" />
+                        <path d="M0 -19 L10 11 Q0 23 -10 11 Z" fill="#8858cf" stroke="white" stroke-width="3" />
+                      </g>
+                    </svg>
+                    </div>
+                    <span class="preview-map-credit">© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · <a href="https://www.openseamap.org/">OpenSeaMap</a></span>
+                  </div>
+                </div>
+                <div class="preview-monitor-stand" aria-hidden="true"></div>
+              </div>
+            ) : (
+              <Image src={path.image} width={960} format="webp" alt={path.alt} loading="lazy" />
+            )}
+          </div>
+          <figcaption>{path.caption}</figcaption>
+        </figure>
+        <div class="path-copy">
+          <h2>{path.title}</h2>
+          <p>{path.text}</p>
+          {path.note && <p class="path-note">{path.note}</p>}
+          <div class="path-links">
+            <a class="button button-secondary" href={path.href}>{path.action} →</a>
+            <a href={path.guide}>{path.guideLabel}</a>
+          </div>
+        </div>
+      </article>
+    ))}
+  </div>
+  <section class="section home-open" aria-labelledby="open-title">
+    <h2 id="open-title">Built in the open.</h2>
+    <p>Explore the guides, see how it works, and help shape what comes next.</p>
+    <div class="open-links">
+      <a href="/docs/">Read the documentation →</a>
+      <a href="https://github.com/veetrlabs/veetr">Explore the source →</a>
     </div>
   </section>
-
-  <section class="section" id="measurements" aria-labelledby="measurements-title">
-    <div class="shell">
-      <p class="product-eyebrow">Measurements</p>
-      <h2 id="measurements-title">The sailing data Veetr is designed to show</h2>
-      <dl class="product-measurements">
-        {measurements.map(([label, description]) => (
-          <div><dt>{label}</dt><dd>{description}</dd></div>
-        ))}
-      </dl>
-    </div>
-  </section>
-
-  <section class="image-band">
-    <div class="shell image-band-grid">
-      <div>
-        <p class="eyebrow">App</p>
-        <h2>A dashboard made for repeated use on the water</h2>
-        <p>Large values, responsive layouts, offline installation, and Bluetooth connectivity keep the instrument practical on small boats. Because it is a Progressive Web App, it runs on phones, tablets, and laptops without an app store.</p>
-        <a class="button button-secondary" href="https://app.veetr.org/">Open the live app</a>
-      </div>
-      <Image src={appDashboard} width={960} format="webp" alt="Veetr app shown on tablet and phone" loading="lazy" />
-    </div>
-  </section>
-
-  <section class="section product-fit" aria-labelledby="fit-title">
-    <div class="shell">
-      <p class="product-eyebrow">Fit</p>
-      <h2 id="fit-title">Where Veetr makes the most sense</h2>
-      <CardGrid>
-        <Card title="Best fit" icon="approve-check">
-          <ul>
-            <li>Dinghies, daysailers, and small keelboats</li>
-            <li>Charter boats where you want your own instruments</li>
-            <li>Backup data independent from fixed boat electronics</li>
-            <li>Sailors who like repairable, inspectable hardware</li>
-          </ul>
-        </Card>
-        <Card title="Less ideal" icon="information">
-          <ul>
-            <li>Offshore installations needing certified equipment today</li>
-            <li>Boats already committed to a complete proprietary stack</li>
-            <li>Users who need a finished retail product immediately</li>
-            <li>Installations where DIY electronics are not acceptable</li>
-          </ul>
-        </Card>
-      </CardGrid>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="shell split-panel">
-      <div>
-        <p class="eyebrow">Roadmap</p>
-        <h2>From open prototype to sustainable product</h2>
-        <p>Finished hardware is not sold yet. The current project phase is about builders, audience, feedback, and a certification fund that can make the first batch possible.</p>
-      </div>
-      <div class="milestone-list">
-        <div><strong>250 subscribers</strong><span>Publish sourced certification quotes and launch the fund campaign.</span></div>
-        <div><strong>EUR 45,000 target</strong><span>Cover testing, engineering fixes, documentation, and first-batch preparation.</span></div>
-        <div><strong>Certified batch</strong><span>Manufacture only after the final design passes the required checks.</span></div>
-      </div>
-    </div>
-  </section>
-
-  <Newsletter />
 </BaseLayout>

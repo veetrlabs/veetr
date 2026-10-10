@@ -49,10 +49,9 @@ test('the GitHub Pages build preserves the custom domain and bypasses Jekyll', a
 });
 
 test('the homepage contains the complete product story and existing destinations', () => {
-  for (const text of ['Sailing hardware', 'Progressive Web App', 'USB-C power', 'AWS', 'AWA', 'TWS', 'TWA', 'SOG', 'HDG', 'Heel', 'GPS', 'Best fit', 'Less ideal', 'certified equipment today', 'Follow the project']) {
+  for (const text of ['The open-source sailing ecosystem.', 'Sail with Veetr', 'Run a race', 'Follow a race', 'Native apps are in testing', 'Veetr Vane', 'Finished hardware is not sold yet', 'Read the documentation']) {
     assert.ok(home.includes(text), text);
   }
-  assert.match(home, /https:\/\/m\.veetr\.com\/form\/generate\.js\?id=1/);
   assert.match(home, /https:\/\/app\.veetr\.org\//);
   assert.match(home, /https:\/\/github\.com\/veetrlabs\/veetr/);
   assert.match(home, /id="cookie-banner"/);
@@ -80,13 +79,13 @@ test('dashboard is optimized without losing its landscape proportions', async ()
   assert.ok((await stat(new URL(src.replace(/^\//, ''), dist))).size > 0);
 });
 
-test('hardware is the primary homepage image', async () => {
+test('hardware remains visible in the ecosystem homepage', async () => {
   const homeHardware = home.match(/<img[^>]*alt="Veetr Vane unit with wind sensor, Bluetooth antenna, and GPS antenna"[^>]*>/)?.[0];
   assert.ok(homeHardware);
   assert.match(homeHardware, /src="[^"]+\.webp"/);
   const src = homeHardware.match(/src="([^"]+)"/)[1];
   assert.ok((await stat(new URL(src.replace(/^\//, ''), dist))).size > 0);
-  assert.ok(home.includes('Veetr Vane is our portable hardware unit. It measures wind'));
+  assert.ok(home.includes('Add wind, heading, and heel data'));
 });
 
 test('the build hero uses a transparent PCB cutout with a contrast surface', async () => {
@@ -156,7 +155,7 @@ test('all Markdown copy, effective dates, descriptions, and canonical URLs survi
 });
 
 test('newsletter, contact, campaign, and former kit forms retain their original destinations', async () => {
-  for (const [route, id] of Object.entries({ '': 1, 'build/': 1, 'about/': 2, 'get-your-veetr/': 4, 'kit/': 3 })) {
+  for (const [route, id] of Object.entries({ 'build/': 1, 'about/': 2, 'get-your-veetr/': 4, 'kit/': 3 })) {
     const page = await readPage(route);
     assert.ok(page.includes(`https://m.veetr.com/form/generate.js?id=${id}`), route);
     assert.equal((page.match(/form\/generate\.js/g) || []).length, 1, route);
