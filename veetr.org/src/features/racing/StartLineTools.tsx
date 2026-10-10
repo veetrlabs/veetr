@@ -9,6 +9,7 @@ import {
 } from "./startSensors";
 import type { CoursePoint } from "./course";
 import { magneticCorrection } from "./magneticCorrection";
+import { createCompassCapture } from "./compassCapture";
 
 export function StartLinePosition({
   onPosition,
@@ -130,9 +131,13 @@ export function StartLineCompass({
     [error, setError] = useState(""),
     [sensorIssue, setSensorIssue] = useState<string | null>(null),
     [now, setNow] = useState(Date.now);
+  const capture = useRef(createCompassCapture());
+  const [holding, setHolding] = useState(false);
+  const cancelPress = () => { capture.current.cancel(); setHolding(false); };
   const cleanup = useRef<(() => void) | null>(null),
     generation = useRef(0);
   const stop = () => {
+    cancelPress();
     generation.current++;
     cleanup.current?.();
     cleanup.current = null;
@@ -152,7 +157,7 @@ export function StartLineCompass({
       cleanup.current?.();
     };
   }, []);
-  const fresh = heading && now - heading.at <= 3000;
+  const fresh = heading && (holding || now - heading.at <= 3000);
   const day = new Date(now).toISOString().slice(0, 10);
   const correction = useMemo(
     () => magneticCorrection(position, new Date(day)),
@@ -180,6 +185,7 @@ export function StartLineCompass({
             const run = ++generation.current;
             try {
               const release = await watchStartCompass((value, issue) => {
+                if (run !== generation.current || capture.current.holding) return;
                 setSensorIssue(issue ?? null);
                 setHeading(
                   value === null ? null : { degrees: value, at: Date.now() },
@@ -228,14 +234,26 @@ export function StartLineCompass({
             <button
               type="button"
               disabled={!fresh || !validCorrection}
-              onClick={() => {
-                if (
-                  heading &&
-                  Date.now() - heading.at <= 3000 &&
-                  validCorrection
-                ) {
-                  onBearing(trueBearing(heading.degrees, correction));
+              onPointerDown={(event) => {
+                if (event.isPrimary && event.button === 0)
+                  setHolding(capture.current.begin(heading, correction, Date.now()));
+              }}
+              onPointerCancel={cancelPress}
+              onPointerLeave={(event) => { if (event.buttons !== 0) cancelPress(); }}
+              onPointerUp={(event) => {
+                const bounds = event.currentTarget.getBoundingClientRect();
+                if (event.clientX < bounds.left || event.clientX > bounds.right ||
+                    event.clientY < bounds.top || event.clientY > bounds.bottom) cancelPress();
+              }}
+              onBlur={cancelPress}
+              onClick={(event) => {
+                const degrees = capture.current.take(heading, correction, Date.now(), event.detail !== 0);
+                if (degrees !== null) {
+                  onBearing(degrees);
                   stop();
+                } else {
+                  cancelPress();
+                  setSensorIssue("Move the phone gently to refresh the compass reading.");
                 }
               }}
             >
