@@ -1,4 +1,12 @@
 export const cs: Record<string, string> = {
+  "Estimated start-line length (m)": "Odhad délky startovní čáry (m)",
+  "Compass needs calibration. Move the phone in a figure eight, away from metal or magnets.": "Kompas potřebuje kalibraci. Pohybujte telefonem do osmičky, dál od kovu a magnetů.",
+  "No valid compass heading yet. Move the phone gently to refresh it.": "Kompas zatím neposkytl platný náměr. Zkuste telefonem lehce pohnout.",
+  "This browser is not providing a compass heading. Try Safari or enter a bearing manually.": "Prohlížeč neposkytuje náměr kompasu. Zkuste Safari nebo zadejte náměr ručně.",
+  "Hold the phone flat, screen facing up, to read its compass.": "Pro měření kompasem držte telefon vodorovně, displejem vzhůru.",
+  "Move the phone gently to refresh the compass reading.": "Pro aktualizaci náměru telefonem lehce pohněte.",
+  "Waiting for phone compass data. Move the phone gently. If nothing appears, try Safari or check motion access in your browser settings.": "Čekáme na údaje kompasu telefonu. Lehce jím pohněte. Pokud se nic neobjeví, zkuste Safari nebo zkontrolujte přístup k pohybu v nastavení prohlížeče.",
+
   "Automatic magnetic correction: {degrees}° · based on start A": "Automatická magnetická korekce: {degrees}° · podle polohy A",
   "Set start A on the map or use your phone position to enable the compass.": "Pro použití kompasu umístěte A na mapě nebo načtěte polohu telefonu.",
   "Automatic correction is unavailable for this location or date. Enter a true-north bearing manually.": "Pro tuto polohu nebo datum není automatická korekce dostupná. Zadejte náměr od zeměpisného severu ručně.",

@@ -102,7 +102,7 @@ export function CourseEditor({
     String(original?.startBearing?.degrees ?? ""),
   );
   const [distance, setDistance] = useState(
-    String(original?.startBearing?.distanceMetres ?? ""),
+    String(original?.startBearing?.distanceMetres ?? 250),
   );
   const [target, setTarget] = useState<CourseTarget | "new" | null>(null);
   const [busy, setBusy] = useState(false),
@@ -305,7 +305,7 @@ export function CourseEditor({
               {startMode === "points" && (startB ? <PositionFields point={startB} onChange={p => move("startB", p)} /> : <><p>{t("Not placed yet")}</p><button type="button" onClick={() => setTarget("startB")}>{t("Place on map")}</button></>)}
               {startMode === "points" && <StartLinePosition end="startB" onPosition={(point, end) => move(end, point)} />}
               {(startB || (startMode === "bearing" && bearing.trim())) && <button type="button" className="course-end-remove" aria-label={t("Remove B")} title={t("Remove B")} onClick={() => {
-                setStartB(undefined); setBearing(""); setDistance(""); setStartMode("points"); setTarget(null);
+                setStartB(undefined); setBearing(""); setDistance("250"); setStartMode("points"); setTarget(null);
               }}><Trash2 size={18} aria-hidden="true" /></button>}
               {startMode === "bearing" && (
                 <div className="start-bearing-fields">
@@ -331,38 +331,11 @@ export function CourseEditor({
                       }
                     />
                   </div>
-                  {distance.trim() &&
-                  Number(distance) > 0 &&
-                  Number(distance) <= 10000 ? (
-                    <label className="start-length-slider">
-                      {t("Adjust estimated length")}: {Number(distance)} m
-                      <input
-                        type="range"
-                        min="1"
-                        max={Math.max(
-                          1000,
-                          Math.ceil(Number(distance) / 1000) * 1000,
-                        )}
-                        step="1"
-                        value={Number(distance)}
-                        onChange={(e) => setDistance(e.target.value)}
-                        aria-label={t("Adjust estimated length")}
-                        aria-valuetext={`${Number(distance)} m`}
-                      />
-                    </label>
-                  ) : (
-                    <button
-                      type="button"
-                      className="start-length-estimate"
-                      onClick={() => setDistance("250")}
-                    >
-                      {t("Start with an estimated 250 m")}
-                    </button>
-                  )}
                   <label className="start-length-value">
-                    {t("Estimated start-line length (m, optional)")}
+                    {t("Estimated start-line length (m)")}
                     <input
                       type="number"
+                      required
                       min="0.01"
                       max="10000"
                       step="any"
@@ -370,7 +343,6 @@ export function CourseEditor({
                       onChange={(e) => setDistance(e.target.value)}
                     />
                   </label>
-                  {!distance.trim() && <p>{t("No length set: the map shows direction only.")}</p>}
                 </div>
               )}
             </fieldset>

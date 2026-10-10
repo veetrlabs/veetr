@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   magneticHeading,
+  compassIssue,
   trueBearing,
   usableFix,
   watchStartPosition,
@@ -48,6 +49,14 @@ test("compass uses north-referenced, flat phone readings and corrects magnetic n
   );
   assert.equal(trueBearing(358, 5), 3);
   assert.equal(trueBearing(2, -5), 357);
+});
+test("iOS native heading does not depend on tilt or missing orientation angles", () => {
+  const native = {...flat, absolute:false, beta:60, gamma:null, webkitCompassHeading:186.1, webkitCompassAccuracy:5};
+  assert.equal(magneticHeading(native),186.1);
+  assert.equal(compassIssue(native),null);
+  assert.match(compassIssue({...native,webkitCompassAccuracy:-1})!, /calibration/);
+  assert.match(compassIssue({...flat,beta:60})!, /flat/);
+  assert.match(compassIssue({...flat,absolute:false})!, /not providing/);
 });
 test("GPS capture rejects stale, inaccurate, future and invalid coordinates", () => {
   const fix = { latitude: 49, longitude: 14, accuracy: 5, timestamp: 100000 };

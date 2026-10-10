@@ -22,34 +22,29 @@ type Orientation = Pick<
   DeviceOrientationEvent,
   "alpha" | "beta" | "gamma" | "absolute"
 > & { webkitCompassHeading?: number; webkitCompassAccuracy?: number };
-// Aim the physical top edge of a flat, face-up phone. Screen rotation does not
-// rotate the device sensor axes. Relative alpha and GPS travel heading are not a compass.
-export function magneticHeading(event: Orientation): number | null {
-  if (
-    event.beta === null ||
-    event.gamma === null ||
-    !Number.isFinite(event.beta) ||
-    !Number.isFinite(event.gamma) ||
-    Math.abs(event.beta) > 20 ||
-    Math.abs(event.gamma) > 20
-  )
-    return null;
+// Safari supplies a native compass heading independently of the orientation angles.
+// Only the absolute-alpha fallback requires a flat, face-up phone.
+export function compassIssue(event: Orientation): string | null {
   if (typeof event.webkitCompassHeading === "number") {
-    if (
-      !Number.isFinite(event.webkitCompassHeading) ||
-      event.webkitCompassHeading < 0 ||
-      event.webkitCompassHeading >= 360 ||
-      (event.webkitCompassAccuracy !== undefined &&
-        (!Number.isFinite(event.webkitCompassAccuracy) ||
-          event.webkitCompassAccuracy < 0 ||
-          event.webkitCompassAccuracy > 20))
-    )
-      return null;
-    return event.webkitCompassHeading;
+    if (event.webkitCompassAccuracy !== undefined &&
+        (!Number.isFinite(event.webkitCompassAccuracy) || event.webkitCompassAccuracy < 0 || event.webkitCompassAccuracy > 20))
+      return "Compass needs calibration. Move the phone in a figure eight, away from metal or magnets.";
+    if (!Number.isFinite(event.webkitCompassHeading) || event.webkitCompassHeading < 0 || event.webkitCompassHeading >= 360)
+      return "No valid compass heading yet. Move the phone gently to refresh it.";
+    return null;
   }
-  return event.absolute && event.alpha !== null && Number.isFinite(event.alpha) && event.alpha >= 0 && event.alpha < 360
-    ? wrapBearing(360 - event.alpha)
-    : null;
+  if (!event.absolute || event.alpha === null || !Number.isFinite(event.alpha) || event.alpha < 0 || event.alpha >= 360)
+    return "This browser is not providing a compass heading. Try Safari or enter a bearing manually.";
+  if (event.beta === null || event.gamma === null || !Number.isFinite(event.beta) || !Number.isFinite(event.gamma) ||
+      Math.abs(event.beta) > 20 || Math.abs(event.gamma) > 20)
+    return "Hold the phone flat, screen facing up, to read its compass.";
+  return null;
+}
+export function magneticHeading(event: Orientation): number | null {
+  if (compassIssue(event)) return null;
+  return typeof event.webkitCompassHeading === "number"
+    ? event.webkitCompassHeading
+    : wrapBearing(360 - event.alpha!);
 }
 export function trueBearing(magnetic: number, correction: number) {
   return wrapBearing(magnetic + correction);
@@ -87,7 +82,7 @@ export function watchStartPosition(
   };
 }
 export async function watchStartCompass(
-  onHeading: (heading: number | null) => void,
+  onHeading: (heading: number | null, issue?: string | null) => void,
 ): Promise<() => void> {
   if (typeof DeviceOrientationEvent === "undefined")
     throw new Error("Compass unavailable. Enter a bearing manually.");
@@ -103,7 +98,7 @@ export async function watchStartCompass(
     const orientation = e as DeviceOrientationEvent & Orientation;
     if (!orientation.absolute && orientation.webkitCompassHeading === undefined)
       return;
-    onHeading(magneticHeading(orientation));
+    onHeading(magneticHeading(orientation), compassIssue(orientation));
   };
   window.addEventListener("deviceorientation", listener);
   window.addEventListener("deviceorientationabsolute", listener);

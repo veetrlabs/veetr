@@ -1017,9 +1017,6 @@ section.entity-details { padding: 0; border: 0; border-radius: 0; background: tr
 .live-start-controls button { justify-self: start; }
 @media (max-width: 600px) { .start-bearing-fields { grid-template-columns: 1fr; } }
 
-.start-bearing-fields .start-length-slider { grid-column: 1 / -1; }
-.course-editor .start-length-slider input[type="range"] { display: block; width: 100%; padding: 0; min-height: 44px; accent-color: #173e36; }
-.start-length-estimate { justify-self: start; }
 .start-bearing-fields .start-length-help { margin-block: 0; }
 
 /* Keep the course form independent of the legacy flex-fieldset spacing. */
@@ -1072,7 +1069,6 @@ section.entity-details { padding: 0; border: 0; border-radius: 0; background: tr
 }
 
 .course-start-setup .start-bearing-fields { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
-.course-start-setup .start-length-slider { grid-column: auto; }
 .course-start-setup .start-bearing-fields > p { margin: 0; grid-column: 1 / -1; }
 .course-editor .course-placement-hint { margin: .5rem 0; }
 
@@ -1083,7 +1079,6 @@ section.entity-details { padding: 0; border: 0; border-radius: 0; background: tr
 .course-start-fields .course-start-setup { grid-row: auto; }
 .course-start-fields .start-bearing-entry,
 .course-start-fields .start-bearing-fields { grid-template-columns: minmax(0,1fr); }
-.course-start-fields .start-length-slider { grid-column: 1 / -1; }
 
 .course-map-viewport { position: relative; }
 .course-map-viewport .course-map-actions { position: absolute; top: 86px; left: 10px; z-index: 500; display: flex; flex-direction: column; gap: 0; margin: 0; border: 2px solid #0003; border-radius: 4px; overflow: hidden; }
@@ -1126,7 +1121,6 @@ section.entity-details { padding: 0; border: 0; border-radius: 0; background: tr
 .course-start-a .course-tools { margin: 0; }
 .course-start-fields .course-start-setup .start-bearing-fields { grid-template-columns: repeat(2,minmax(0,1fr)); }
 .course-start-fields .course-start-setup .start-bearing-entry { grid-template-columns: minmax(0,1fr) auto; }
-.course-start-fields .course-start-setup .start-length-slider { grid-column: auto; }
 @media (max-width: 850px) {
   .course-editor .course-start-fields .course-start-a { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .course-start-a > .start-phone-tools { grid-column: 1; }
@@ -1147,10 +1141,8 @@ section.entity-details { padding: 0; border: 0; border-radius: 0; background: tr
   .course-start-setup[data-method="bearing"] .start-compass-action { grid-column: 3; grid-row: 1; }
   .course-start-setup[data-method="bearing"] .start-length-value { grid-column: 4; grid-row: 1; }
   .course-start-setup[data-method="bearing"] > .course-end-remove { grid-column: 5; grid-row: 1; }
-  .course-start-fields .course-start-setup[data-method="bearing"] .start-length-slider,
-  .course-start-setup[data-method="bearing"] .start-length-estimate { grid-column: 1 / 5; grid-row: 2; }
-  .course-start-setup[data-method="bearing"] .course-method > p { grid-column: 1 / -1; grid-row: 4; margin: 0; }
-  .course-start-setup[data-method="bearing"] .start-compass-panel { grid-column: 1 / -1; grid-row: 3; }
+  .course-start-setup[data-method="bearing"] .course-method > p { grid-column: 1 / -1; grid-row: 3; margin: 0; }
+  .course-start-setup[data-method="bearing"] .start-compass-panel { grid-column: 1 / -1; grid-row: 2; }
 }
 
 @media (min-width: 851px) {

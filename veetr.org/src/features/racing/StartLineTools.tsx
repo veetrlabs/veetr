@@ -128,6 +128,7 @@ export function StartLineCompass({
       null,
     ),
     [error, setError] = useState(""),
+    [sensorIssue, setSensorIssue] = useState<string | null>(null),
     [now, setNow] = useState(Date.now);
   const cleanup = useRef<(() => void) | null>(null),
     generation = useRef(0);
@@ -174,10 +175,12 @@ export function StartLineCompass({
         onClick={() => {
           void (async () => {
             setError("");
+            setSensorIssue(null);
             setReading(true);
             const run = ++generation.current;
             try {
-              const release = await watchStartCompass((value) => {
+              const release = await watchStartCompass((value, issue) => {
+                setSensorIssue(issue ?? null);
                 setHeading(
                   value === null ? null : { degrees: value, at: Date.now() },
                 );
@@ -217,7 +220,7 @@ export function StartLineCompass({
                   degrees: heading.degrees.toFixed(1),
                 })
               : t(
-                  "Waiting for a usable compass reading. Hold the phone flat, or enter a bearing manually.",
+                  sensorIssue ?? (heading ? "Move the phone gently to refresh the compass reading." : "Waiting for phone compass data. Move the phone gently. If nothing appears, try Safari or check motion access in your browser settings."),
                 )}
           </p>
           <div className="start-compass-capture">

@@ -114,3 +114,14 @@ test("combined race map keeps course actions and coordinates without a second ma
   assert.match(empty,/class="tracking-map"/);
   assert.match(empty,/Set course/);
 });
+
+test("bearing editor defaults missing length to 250 m and preserves saved lengths", () => {
+  const s = newSeries(), eventId = id();
+  s.events = [{id:eventId,name:"Length test",order:1,weight:1,completed:false,discards:[]}];
+  for (const distance of [undefined, 420]) {
+    setCourse(s,eventId,{marks:[],startBearing:{origin:{latitude:49,longitude:14},degrees:90,...(distance ? {distanceMetres:distance} : {})}});
+    const html = render(<CourseEditor series={s} eventId={eventId} save={async () => {}} onBack={() => {}} />);
+    assert.match(html,new RegExp(`value="${distance ?? 250}"`));
+    assert.doesNotMatch(html,/type="range"|Start with an estimated/);
+  }
+});
