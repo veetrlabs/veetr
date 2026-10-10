@@ -1,3 +1,4 @@
+import type { CompassPreview } from "./StartLineTools";
 import { MapPinPlus, ArrowUp, ArrowDown, Trash2 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { CourseMap, type CourseTarget } from "./CourseMap";
@@ -96,6 +97,7 @@ export function CourseEditor({
   const [startMode, setStartMode] = useState(
     original?.startBearing ? "bearing" : "points",
   );
+  const [compassPreview, setCompassPreview] = useState<CompassPreview | null>(null);
   const [bearing, setBearing] = useState(
     String(original?.startBearing?.degrees ?? ""),
   );
@@ -192,6 +194,7 @@ export function CourseEditor({
             try {
               if (startMode === "points" && Boolean(startA) !== Boolean(startB))
                 throw new Error("Place both ends of the start line");
+              if (compassPreview) throw new Error("Capture or cancel the compass reading before saving.");
               if (startMode === "bearing" && !course.startBearing)
                 throw new Error("Set the referee position and a bearing");
               validateCourse(course);
@@ -308,18 +311,20 @@ export function CourseEditor({
                 <div className="start-bearing-fields">
                   <div className="start-bearing-entry">
                     <label>
-                      {t("Bearing toward buoy (° true)")}
+                      {t(compassPreview && !compassPreview.trueNorth ? "Live bearing (° magnetic)" : compassPreview ? "Live bearing (° true)" : "Bearing toward buoy (° true)")}
                       <input
                         type="number"
                         required
                         min="0"
                         max="359.999999"
                         step="any"
-                        value={bearing}
+                        readOnly={compassPreview !== null}
+                        value={compassPreview ? (compassPreview.degrees === null ? "" : String(Math.round(compassPreview.degrees * 10) / 10)) : bearing}
                         onChange={(e) => setBearing(e.target.value)}
                       />
                     </label>
                     <StartLineCompass
+                      onPreview={setCompassPreview}
                       onBearing={(degrees) =>
                         setBearing(String(Math.round(degrees * 10) / 10))
                       }

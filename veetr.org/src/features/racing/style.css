@@ -1037,7 +1037,7 @@ section.entity-details { padding: 0; border: 0; border-radius: 0; background: tr
 .start-bearing-entry { grid-column: 1 / -1; }
 .start-bearing-entry > button { width: 100%; min-height: 48px; align-self: end; }
 .start-compass-panel, .start-compass-error { grid-column: 1 / -1; }
-.start-compass-panel { display: grid; gap: .75rem; padding: .85rem; border-radius: 10px; background: #edf3e9; }
+.start-compass-panel { display: grid; gap: .75rem; padding: .85rem; border-radius: 10px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); }
 .start-compass-panel p { margin: 0; }
 .start-compass-panel > button { justify-self: start; }
 .start-position-details > summary { cursor: pointer; min-height: 48px; padding: .75rem 0; font-weight: 650; }

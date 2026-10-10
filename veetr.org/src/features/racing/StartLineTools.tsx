@@ -111,10 +111,14 @@ export function StartLinePosition({
   );
 }
 
+export type CompassPreview = { degrees: number | null; trueNorth: boolean };
+
 export function StartLineCompass({
   onBearing,
+  onPreview,
 }: {
   onBearing: (degrees: number) => void;
+  onPreview?: (preview: CompassPreview | null) => void;
 }) {
   const [reading, setReading] = useState(false),
     [heading, setHeading] = useState<{ degrees: number; at: number } | null>(
@@ -150,6 +154,13 @@ export function StartLineCompass({
     correction.trim() !== "" &&
     Number.isFinite(Number(correction)) &&
     Math.abs(Number(correction)) <= 180;
+  useEffect(() => {
+    onPreview?.(reading ? {
+      degrees: fresh && heading ? (validCorrection ? trueBearing(heading.degrees, Number(correction)) : heading.degrees) : null,
+      trueNorth: validCorrection,
+    } : null);
+  }, [reading, heading, fresh, correction, validCorrection, onPreview]);
+  useEffect(() => () => onPreview?.(null), [onPreview]);
   return (
     <>
       <button
@@ -188,7 +199,7 @@ export function StartLineCompass({
         <div className="start-compass-panel">
           <p>
             {t(
-              "For a bearing, hold the phone flat, face up, and point its physical top edge toward the other buoy. Keep it away from metal and magnets.",
+              "Hold the phone flat and point its top edge at the buoy. The bearing field updates as you turn.",
             )}
           </p>
           <p role="status">
@@ -226,16 +237,16 @@ export function StartLineCompass({
                 }
               }}
             >
-              {t("Use compass bearing")}
+              {t("Capture bearing")}
             </button>
           </div>
           <p>
             {t(
-              "Enter the local magnetic declination to convert to true north. Enter 0 only if no correction is needed. A phone compass is approximate.",
+              "Enter the local magnetic correction to enable Capture bearing. Capture freezes the angle; Cancel keeps your previous bearing. Use 0 only if no correction is needed.",
             )}
           </p>
           <button type="button" onClick={stop}>
-            {t("Stop compass")}
+            {t("Cancel")}
           </button>
         </div>
       )}

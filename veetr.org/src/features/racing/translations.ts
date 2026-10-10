@@ -1,4 +1,10 @@
 export const cs: Record<string, string> = {
+  "Live bearing (° magnetic)": "Živý náměr (° od magnetického severu)",
+  "Live bearing (° true)": "Živý náměr (° od zeměpisného severu)",
+  "Capture bearing": "Zachytit náměr",
+  "Hold the phone flat and point its top edge at the buoy. The bearing field updates as you turn.": "Držte telefon vodorovně a namiřte jeho horní hranu na bóji. Náměr v poli se při otáčení průběžně mění.",
+  "Enter the local magnetic correction to enable Capture bearing. Capture freezes the angle; Cancel keeps your previous bearing. Use 0 only if no correction is needed.": "Pro zachycení náměru zadejte místní magnetickou korekci. Zachytit náměr úhel zafixuje; Zrušit ponechá původní náměr. Nulu použijte jen tehdy, pokud korekce není potřeba.",
+  "Capture or cancel the compass reading before saving.": "Před uložením náměr zachyťte nebo zrušte měření kompasu.",
   "Course": "Trať",
   "Replay shows the current course layout.": "Přehrávání zobrazuje aktuální podobu trati.",
   "Estimated position": "Odhadovaná poloha",
