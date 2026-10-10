@@ -1192,3 +1192,13 @@ section.entity-details { padding: 0; border: 0; border-radius: 0; background: tr
   .course-start-setup .course-method > p { grid-column: 1 / -1; grid-row: 3; margin: 0; }
   .course-start-setup .start-compass-panel { grid-column: 1 / -1; grid-row: 4; }
 }
+
+/* A single GPS action should not inherit the two-column map toolbar layout. */
+.course-editor .start-phone-tools .course-tools {
+  display: flex;
+  flex-wrap: wrap;
+}
+.course-editor .start-phone-tools .course-tools > button {
+  width: auto;
+  max-width: 100%;
+}
