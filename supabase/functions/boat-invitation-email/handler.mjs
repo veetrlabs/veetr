@@ -33,8 +33,11 @@ export function createInvitationHandler(env, fetcher = fetch, localSend) {
     try {
       const auth = req.headers.get("authorization");
       if (!auth) return reply(401, "Sign in required");
-      const { invitationId, raceToken, recipientId } = await req.json();
-      const race = raceToken !== undefined;
+      const { invitationId, raceToken, seriesToken, recipientId } = await req.json();
+      const series = seriesToken !== undefined;
+      const trackingToken = series ? seriesToken : raceToken;
+      const race = trackingToken !== undefined;
+      if (series && raceToken !== undefined) return reply(400, "Invalid invitation");
       const uuid = (value) =>
         typeof value === "string" &&
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
@@ -42,8 +45,8 @@ export function createInvitationHandler(env, fetcher = fetch, localSend) {
         );
       if (
         race
-          ? typeof raceToken !== "string" ||
-            !/^[a-f0-9-]{72}$/i.test(raceToken) ||
+          ? typeof trackingToken !== "string" ||
+            !/^[a-f0-9-]{72}$/i.test(trackingToken) ||
             !uuid(recipientId)
           : !uuid(invitationId)
       )
@@ -57,7 +60,7 @@ export function createInvitationHandler(env, fetcher = fetch, localSend) {
       const base = env.SUPABASE_URL;
       const key = env.SUPABASE_SERVICE_ROLE_KEY;
       const prepared = await fetcher(
-        `${base}/rest/v1/rpc/${race ? "prepare_race_invitation_email" : "prepare_boat_invitation_email"}`,
+        `${base}/rest/v1/rpc/${series ? "prepare_series_invitation_email" : race ? "prepare_race_invitation_email" : "prepare_boat_invitation_email"}`,
         {
           method: "POST",
           headers: {
@@ -67,7 +70,7 @@ export function createInvitationHandler(env, fetcher = fetch, localSend) {
           },
           body: JSON.stringify(
             race
-              ? { token: raceToken, recipient_id: recipientId }
+              ? { token: trackingToken, recipient_id: recipientId }
               : { invitation_id: invitationId },
           ),
         },
@@ -103,10 +106,12 @@ export function createInvitationHandler(env, fetcher = fetch, localSend) {
           from: "Veetr <hello@veetr.org>",
           to: [invitation.email],
           subject: race
-            ? `Veetr: ${invitation.boat} · ${invitation.race}`
+            ? `Veetr: ${invitation.boat} · ${series ? invitation.series : invitation.race}`
             : `Veetr: ${invitation.granted ? "access granted" : "invitation"} for ${invitation.boat}`,
-          text: race
-            ? `Pozvánka / Invitation: ${invitation.boat} · ${invitation.race}\n\nOtevřete odkaz v aplikaci Veetr a potvrďte připravenost k závodu. Účet není potřeba. Sdílení polohy začne až po potvrzení v aplikaci a spuštění rozhodčím.\n\nOpen this link in Veetr and press Ready to race. No account needed. Location sharing starts only after you confirm and the referee enables tracking.\n${link}\n\nAktuální čas startu najdete v pozvánce. / Open the invitation for the current start time.`
+          text: series
+            ? `Pozvánka / Invitation: ${invitation.boat} · ${invitation.series}\n\nTento odkaz propojí telefon s lodí pro celý seriál. V aplikaci Veetr pak vyberte závod a potvrďte připravenost. Účet není potřeba.\n\nPair your phone once for this series. In Veetr, choose a race and press Ready to race. No account needed. Location sharing starts only after you confirm and the referee enables tracking for that race.\n${link}\n\nKeep this link private. It works for this series until the organiser cancels it or removes the boat.`
+            : race
+            ? `Pozvánka / Invitation: ${invitation.boat} · ${series ? invitation.series : invitation.race}\n\nOtevřete odkaz v aplikaci Veetr a potvrďte připravenost k závodu. Účet není potřeba. Sdílení polohy začne až po potvrzení v aplikaci a spuštění rozhodčím.\n\nOpen this link in Veetr and press Ready to race. No account needed. Location sharing starts only after you confirm and the referee enables tracking.\n${link}\n\nAktuální čas startu najdete v pozvánce. / Open the invitation for the current start time.`
             : accessText,
         }),
       };
@@ -119,7 +124,7 @@ export function createInvitationHandler(env, fetcher = fetch, localSend) {
           "Email delivery failed. Copy the link or retry in a minute.",
         );
       const marked = await fetcher(
-        `${base}/rest/v1/rpc/${race ? "mark_race_invitation_sent" : "mark_boat_invitation_sent"}`,
+        `${base}/rest/v1/rpc/${series ? "mark_series_invitation_sent" : race ? "mark_race_invitation_sent" : "mark_boat_invitation_sent"}`,
         {
           method: "POST",
           headers: {

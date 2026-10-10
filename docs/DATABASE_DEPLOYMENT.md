@@ -46,6 +46,24 @@ forward migration rather than rewriting applied migration history. The
 `explicit_creation_request_grant` migration supplies server-side read access to
 `series_access_requests` for both production and fresh database rebuilds.
 
+## Series phone invitations
+
+For `20261006080121_series_phone_pairing.sql`, deploy the additive migration and
+the `boat-invitation-email` function before enabling the updated invitation UI.
+Distribute the compatible mobile app before sending new series links: older apps
+only understand race links. The join page explains that the app may need updating.
+
+Existing race links retain their original scope. New series credentials create
+race-scoped child links when a paired phone chooses a published race containing
+its boat. Readiness, expiry, tracking windows, GPS ingestion and replay remain
+per race. Revoking a series invitation revokes all of its child links; finishing
+a race stops its session without revoking the series pairing. Series credentials
+have no race-based expiry and remain valid until revoked or the boat is removed.
+Tokens and device secrets are stored hashed in the database and never appear in
+the official roster. The guest RPCs check those capabilities rather than requiring
+a user account; internal helpers and raw credential tables are inaccessible to
+client roles.
+
 ## Race course maps
 
 Apply `20261006081808_race_course_map.sql` before enabling the course editor.

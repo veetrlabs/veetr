@@ -191,3 +191,26 @@ test('handover email describes explicit acceptance and the change in responsibil
  assert.match(messages[0].text,/\?invite=/);
  assert.doesNotMatch(messages[0].text,/You now have/);
 });
+
+test("series invitations email one series link through the authorised series RPC", async () => {
+  const calls = [];
+  const token = id + id;
+  const handle = createInvitationHandler(env, async (url, init) => {
+    calls.push({ url, init });
+    return url.endsWith("prepare_series_invitation_email")
+      ? Response.json({id,email:"skipper@example.test",boat:"Luna",series:"Autumn",token,deliveryKey:id})
+      : Response.json({});
+  });
+  const result = await handle(new Request("https://function.test", {
+    method:"POST",headers:{authorization:"Bearer official-jwt"},
+    body:JSON.stringify({seriesToken:token,recipientId:id}),
+  }));
+  assert.equal(result.status,200);
+  assert.equal(calls[0].init.headers.Authorization,"Bearer official-jwt");
+  assert.deepEqual(JSON.parse(calls[0].init.body),{token,recipient_id:id});
+  const message=JSON.parse(calls[1].init.body);
+  assert.match(message.subject,/Luna · Autumn/);
+  assert.match(message.text,/Pair your phone once for this series/);
+  assert.ok(message.text.includes(`/join/${token}/`));
+  assert.ok(calls[2].url.endsWith('mark_series_invitation_sent'));
+});
