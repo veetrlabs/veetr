@@ -23,11 +23,15 @@ The organisers register the boat and publish the relevant heat. The referee open
 
 Coordinate with the skipper about which phone will report the boat’s position. Do not take over reporting from another phone unless the team intends to switch devices.
 
-## Use a race-phone invitation
+## Use a series-phone invitation
 
-If the organiser sends a race invitation, open it in Veetr and choose **Ready to race**. This flow does not require an account. Treat the invitation as private: it enables a phone to join that race.
+If the organiser sends a series invitation, open it in Veetr and choose **Connect phone to series**. You only need to pair once for that boat and series, and no account is required. Pairing alone does not start GPS or publish your location.
 
-This temporary connection does not make you a permanent skipper or crew member. Ask the skipper for boat access if you need it for future races.
+Choose a published race and press **Ready to race** when you are ready. After a race finishes and its recording finishes syncing, return to **Regattas → Share boat location** to choose the next race. Your phone stays paired, so you do not need another link.
+
+Keep the link private. It connects one phone to your boat for this series until the organiser revokes it or the boat leaves the series. Ask the organiser to replace it if you switch phones. Older race-only invitations still work only for their original race.
+
+This connection does not make you a permanent skipper or crew member and grants no boat-editing or scoring access. Ask the skipper for boat access if you need to manage the boat or participate in other series.
 
 ## If positions stop updating
 

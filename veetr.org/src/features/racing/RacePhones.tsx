@@ -1,8 +1,8 @@
+import { X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { supabase } from "./api";
 import { eventsFor, type Series } from "./domain";
 import { t, useLanguage } from "./i18n";
-import { appHref } from "./routes";
 type Event = {
   id: string;
   eventId: string;
@@ -79,12 +79,10 @@ function ConfirmationDialog({
 export function BoatShareDialog({
   series,
   boat,
-  eventId,
   onClose,
 }: {
   series: Series;
   boat: Series["boats"][number];
-  eventId?: string;
   onClose: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
@@ -105,13 +103,15 @@ export function BoatShareDialog({
       aria-labelledby={titleId}
       onCancel={onClose}
     >
-      <button type="button" autoFocus onClick={onClose}>
-        {t("Back to boats")}
-      </button>
-      <h2 id={titleId}>{boat.name}</h2>
+      <div className="race-share-heading">
+        <h2 id={titleId}>{boat.name}</h2>
+        <button type="button" className="race-share-close" autoFocus aria-label={t("Close invitation")} title={t("Close invitation")} onClick={onClose}>
+          <X size={22} aria-hidden="true" />
+        </button>
+      </div>
       <RacePhones
         series={{ ...series, boats: [boat] }}
-        invitationEventId={eventId}
+        hideContext
       />
     </dialog>
   );
@@ -119,14 +119,14 @@ export function BoatShareDialog({
 export default function RacePhones({
   series,
   eventId,
-  invitationEventId,
+  hideContext = false,
 }: {
   series: Series;
   eventId?: string;
-  invitationEventId?: string;
+  hideContext?: boolean;
 }) {
   const raceControls = Boolean(eventId);
-  const language = useLanguage();
+  useLanguage();
   const [rosterLoaded, setRosterLoaded] = useState(false);
   const [confirmation, setConfirmation] = useState<{
     title: string;
@@ -140,20 +140,19 @@ export default function RacePhones({
   const [emailSent, setEmailSent] = useState(false);
   const [recipientError, setRecipientError] = useState("");
   const races = eventsFor(series);
-  const [eid, setEid] = useState(""),
-    [bid, setBid] = useState("");
+  const [bid, setBid] = useState("");
+  const [seriesPhones, setSeriesPhones] = useState<{id: string; boatId: string; connected: boolean}[]>([]);
   const [events, setEvents] = useState<Event[]>([]),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [link, setLink] = useState(""),
     [copied, setCopied] = useState(false);
   const chosen =
-    races.find((r) => r.id === (eventId ?? invitationEventId ?? eid)) ??
+    races.find((r) => r.id === eventId) ??
     races[0];
   const boat = series.boats.find((b) => b.id === bid) ?? series.boats[0];
   const current = events.find((e) => e.eventId === chosen?.id);
   const starts = chosen?.scheduledStart || current?.scheduledStart;
-  const needsDate = !starts || Date.parse(starts) < Date.now();
   const recipient =
     recipients.find((r) => r.id === recipientId) ?? recipients[0];
   useEffect(() => {
@@ -162,7 +161,7 @@ export default function RacePhones({
     setEmailSent(false);
     setRecipientError("");
     let alive = true;
-    if (boat)
+    if (boat && !raceControls)
       void rpc<{ id: string; email: string }[]>("race_invitation_recipients", {
         sid: series.id,
         bid: boat.id,
@@ -179,21 +178,30 @@ export default function RacePhones({
     return () => {
       alive = false;
     };
-  }, [series.id, boat?.id]);
+  }, [series.id, boat?.id, raceControls]);
   const ended =
     Boolean(current?.endedAt) ||
     Boolean(starts && Date.parse(starts) + 18 * 3600000 <= Date.now());
-  const refresh = async () =>
-    setEvents(await rpc<Event[]>("race_tracking_roster", { sid: series.id }));
+  const loadRosters = () => Promise.all([
+    raceControls ? rpc<Event[]>("race_tracking_roster", { sid: series.id }) : Promise.resolve([] as Event[]),
+    raceControls ? Promise.resolve([] as typeof seriesPhones) : rpc<typeof seriesPhones>("series_tracking_roster", { sid: series.id }),
+  ]);
+  const refresh = async () => {
+    const [rows, phones] = await loadRosters();
+    setEvents(rows);
+    setSeriesPhones(phones);
+  };
   useEffect(() => {
     let live = true;
     setRosterLoaded(false);
     const load = () =>
-      rpc<Event[]>("race_tracking_roster", { sid: series.id })
-        .then((rows) => {
+      loadRosters()
+        .then(([rows, phones]) => {
           if (live) {
             setEvents(rows);
+            setSeriesPhones(phones);
             setRosterLoaded(true);
+            setError("");
           }
         })
         .catch((e) => {
@@ -205,7 +213,7 @@ export default function RacePhones({
       live = false;
       clearInterval(timer);
     };
-  }, [series.id]);
+  }, [series.id, raceControls]);
   async function run(fn: () => Promise<void>) {
     setBusy(true);
     setError("");
@@ -219,20 +227,16 @@ export default function RacePhones({
     }
   }
   const cannotShare =
-    busy || !rosterLoaded || !chosen || !boat || !starts || ended;
-  const invitation = current?.phones.find((p) => p.boatId === boat?.id);
+    busy || !rosterLoaded || !boat;
+  const invitation = seriesPhones.find((p) => p.boatId === boat?.id);
   function withInvitation(send: (url: string) => Promise<void>) {
-    if (cannotShare || invitation) return;
+    if (cannotShare || (invitation && !link)) return;
     const action = async () => {
       let url = link;
       if (!url) {
-        const trackingId = await rpc<string>("configure_race_tracking", {
-          sid: series.id,
-          eid: chosen.id,
-        });
         const result = await rpc<{ token: string }>(
-          "create_race_tracking_link",
-          { eid: trackingId, bid: boat.id },
+          "create_series_tracking_link",
+          { sid: series.id, bid: boat.id },
         );
         url = `${location.origin}/join/${result.token}/`;
         setLink(url);
@@ -259,66 +263,20 @@ export default function RacePhones({
       )}
       {!raceControls && (
         <>
-          <h2>{t("Invite a boat to a race")}</h2>
+          <h2>{t("Invite a boat to this series")}</h2>
           <p>
             {t(
-              "Share an invitation with the sailor. They open it in Veetr and press Ready to race. No account is needed.",
+              "Pair a phone once for this series. The sailor chooses a race and presses Ready to race in Veetr. No account is needed.",
             )}
           </p>
-          {races.length > 1 && !invitationEventId ? (
-            <label>
-              {t("Race")}
-              <select
-                value={chosen?.id ?? ""}
-                onChange={(e) => {
-                  setEid(e.target.value);
-                  setLink("");
-                }}
-              >
-                {races.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : (
-            <p>
-              <strong>
-                {t("Race")}: {chosen?.name}
-              </strong>
-            </p>
-          )}
-          <p>
-            {starts
-              ? t("Expected start: {start}", {
-                  start: new Date(starts).toLocaleString(language, {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                  }),
-                })
-              : t("Set the start time in Edit race first")}
-          </p>
-          {chosen && needsDate && (
-            <p>
-              <a href={appHref(`?public=${series.id}&event=${chosen.id}`)}>
-                {t("Edit race start time")}
-              </a>
-              <br />
-              <small>
-                {t(
-                  "Invitations use this start time. Change it here if the race is postponed.",
-                )}
-              </small>
-            </p>
-          )}
-          {series.boats.length === 1 ? (
+          {!hideContext && <p><strong>{series.name}</strong></p>}
+          {series.boats.length === 1 ? (hideContext ? null : (
             <p>
               <strong>
                 {t("Boat")}: {boat?.name}
               </strong>
             </p>
-          ) : (
+          )) : (
             <label>
               {t("Boat")}
               <select
@@ -336,26 +294,20 @@ export default function RacePhones({
               </select>
             </label>
           )}
-          {ended && (
-            <p role="status">
-              {t("This race has ended. Update its start time in Edit race")}
-            </p>
-          )}
-          {invitation ? (
+          {invitation && !link ? (
             <div className="invitation-result">
               <h3>{t("Invitation status")}</h3>
               <p role="status">{t(invitation.connected ? "Accepted — phone connected" : "Pending — not accepted yet")}</p>
-              {invitation.connected && <p>{t(phoneTrackingStatus(invitation, current))}</p>}
-              <p>{t("Cancel this invitation to disable its link and disconnect its phone. You can then share a new invitation.")}</p>
+              <p>{t("Cancel this invitation to disconnect its phone from every race in this series. You can then share a new invitation.")}</p>
               <button
                 type="button"
                 className="danger"
                 disabled={busy}
                 onClick={() => setConfirmation({
                   title: "Cancel invitation",
-                  message: "Cancel this invitation? Its link will stop working and its phone will lose tracking access.",
+                  message: "Cancel this series invitation? Its phone will lose access to every race in this series.",
                   action: async () => {
-                    await rpc("revoke_race_tracking_link", { lid: invitation.id });
+                    await rpc("revoke_series_tracking_link", { lid: invitation.id });
                     setLink("");
                     setCopied(false);
                     setEmailSent(false);
@@ -373,7 +325,7 @@ export default function RacePhones({
             </p>
             {link && (
               <input
-                aria-label={t("Private race invitation")}
+                aria-label={t("Private series invitation")}
                 readOnly
                 value={link}
               />
@@ -439,7 +391,7 @@ export default function RacePhones({
                         "boat-invitation-email",
                         {
                           body: {
-                            raceToken: url
+                            seriesToken: url
                               .split("/join/")[1]
                               .replace(/\/$/, ""),
                             recipientId: recipient.id,
@@ -476,12 +428,10 @@ export default function RacePhones({
           )}
         </>
       )}
-      {raceControls && !current && (
-        <p>
-          {t(
-            "No boats have been invited to this race yet. Share invitations from this race’s Fleet tab.",
-          )}
-        </p>
+      {raceControls && !current && chosen && (
+        <button disabled={busy || !starts || ended} onClick={() => void run(async () => {
+          await rpc("configure_race_tracking", {sid: series.id, eid: chosen.id});
+        })}>{t(starts ? "Prepare race tracking" : "Set the start time in Edit race first")}</button>
       )}
       {current && raceControls && (
         <details

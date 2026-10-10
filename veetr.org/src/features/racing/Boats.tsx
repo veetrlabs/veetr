@@ -298,6 +298,8 @@ export function SeriesFleet({
   series: Series;
   onChange?: (change: (s: Series) => void) => void;
 }) {
+  const [sharingBoat, setSharingBoat] = useState("");
+  const sharing = series.boats.find(b => b.id === sharingBoat);
   const [boats, setBoats] = useState<RegisteredBoat[]>([]),
     [query, setQuery] = useState(""),
     [error, setError] = useState("");
@@ -329,6 +331,7 @@ export function SeriesFleet({
     series.races.some((r) => r.results.some((v) => v.boatId === boatId));
   return (
     <section className="series-fleet race-tab-content">
+      {sharing && onChange && <BoatShareDialog series={series} boat={sharing} onClose={() => setSharingBoat("")} />}
       <div className="section-title">
         <h2>{t("Series fleet")}</h2>
         <span>
@@ -337,7 +340,7 @@ export function SeriesFleet({
       </div>
       {onChange && <p>
         {t(
-          "Choose the series fleet and categories. Register boats in each race’s Fleet tab.",
+          "Share phone invitations from each boat’s menu. Register boats in each race’s Fleet tab.",
         )}
       </p>}
       {series.boats.length ? (
@@ -352,7 +355,7 @@ export function SeriesFleet({
           >
             {series.categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>,
-          actions: (b) => <button className="danger"
+          actions: (b) => <><button onClick={() => setSharingBoat(b.id)}>{t("Share invitation")}</button><button className="danger"
             aria-label={t("Remove {name}", { name: b.name })}
             disabled={hasResults(b.id)}
             aria-describedby={hasResults(b.id) ? "fleet-removal-help" : undefined}
@@ -361,7 +364,7 @@ export function SeriesFleet({
               s.events?.forEach(event => { if (event.entries) event.entries = event.entries.filter(id => id !== b.id); });
               s.races.forEach(r => { r.entries = r.entries.filter(v => v !== b.id); });
             })}
-          >{t("Remove")}</button>,
+          >{t("Remove")}</button></>,
         }} /> : <div className="table-scroll">
           <table className="fleet-table">
             <thead><tr><th scope="col">{t("Boat")}</th><th scope="col">{t("Category")}</th></tr></thead>
@@ -457,12 +460,9 @@ export function RaceFleet({series, eventId, onChange}: {
   eventId: string;
   onChange?: (change: (s: Series) => void) => void;
 }) {
-  const [sharingBoat, setSharingBoat] = useState("");
   const [tracking, setTracking] = useState<RaceTrackingEvent>();
   const [trackingError, setTrackingError] = useState("");
   const [trackingLoaded, setTrackingLoaded] = useState(false);
-  const [revoking, setRevoking] = useState("");
-  const [refreshTracking, setRefreshTracking] = useState(0);
   const canManage = Boolean(onChange);
   useEffect(() => {
     setTracking(undefined); setTrackingLoaded(false); setTrackingError("");
@@ -477,22 +477,11 @@ export function RaceFleet({series, eventId, onChange}: {
     };
     void load(); const timer = setInterval(load, 10000);
     return () => {live = false; clearInterval(timer);};
-  }, [series.id, eventId, canManage, refreshTracking]);
-  async function revokePhone(linkId: string) {
-    setRevoking(linkId); setTrackingError("");
-    try {
-      const {error} = await supabase!.rpc("revoke_race_tracking_link" as never, {lid: linkId} as never);
-      if (error) throw error;
-      setRefreshTracking(v => v + 1);
-    } catch (error) {setTrackingError((error as Error).message);}
-    finally {setRevoking("");}
-  }
+  }, [series.id, eventId, canManage]);
   const [query, setQuery] = useState("");
   const entries = eventEntries(series, eventId);
   const boats = series.boats.filter(b => onChange || entries.includes(b.id)).filter((b) => b.name.toLocaleLowerCase().includes(query.toLocaleLowerCase()));
-  const sharing = series.boats.find(b => b.id === sharingBoat);
   return <section className="race-tab-content">
-    {sharing && onChange && <BoatShareDialog series={series} boat={sharing} eventId={eventId} onClose={() => {setSharingBoat(""); setRefreshTracking(v => v + 1);}} />}
     <div className="section-title"><h2>{t("Race fleet")}</h2><span>{entries.length} {t("boats competing")}</span></div>
     {onChange && <p>{t("Select boats for this race. Registration applies to all its heats and saves automatically.")}</p>}
     <label className="fleet-search">{t("Find a boat")}<input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("Boat name")} /></label>
@@ -513,8 +502,6 @@ export function RaceFleet({series, eventId, onChange}: {
             <td className="fleet-tracking-status">{trackingLoaded ? t(phoneTrackingStatus(phone, tracking)) : t(trackingError ? "Tracking status unavailable" : "Loading…")}{phone && !phone.eligible && <small>{t("Add boat to a published heat")}</small>}</td>
             <td><FleetBoatActions name={b.name}>
               <a href={appHref(`?boat=${b.id}`)}>{t("Boat details")}</a>
-              <button onClick={() => setSharingBoat(b.id)}>{t("Share invitation")}</button>
-              {phone && <button className="danger" disabled={Boolean(revoking)} onClick={() => void revokePhone(phone.id)}>{t("Revoke phone access")}</button>}
             </FleetBoatActions></td></>}</tr>;
       })}</tbody>
     </table></div>

@@ -828,7 +828,9 @@ input.fleet-registration { width: 22px; height: 22px; min-height: 22px; margin: 
 .race-confirmation .actions { justify-content: flex-end; margin-bottom: 0; }
 
 .race-share-dialog { width: min(42rem, calc(100vw - 2rem)); }
-.race-share-dialog > h2 { margin-top: 1rem; }
+.race-share-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.race-share-heading h2 { margin: 0; overflow-wrap: anywhere; }
+.race-share-heading .race-share-close { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 44px; width: 44px; height: 44px; padding: 0; }
 
 .fleet-action-list { display: grid; gap: .75rem; margin-block: 1rem; }
 .fleet-action-list a, .fleet-action-list button { display: block; text-align: left; padding: .75rem; }

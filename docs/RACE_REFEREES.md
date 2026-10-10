@@ -41,13 +41,15 @@ A missing result is not automatically DNS. Record DNS, DNF, DSQ, RET, or OCS del
 
 ## Prepare phones
 
-A sailor can join through their boat access in the signed-in mobile app, or open a race-phone invitation and press **Ready to race** without an account.
+A sailor can join through their boat access in the signed-in mobile app, or use a private series-phone invitation without an account. Share one invitation per boat from **Series → Fleet → boat menu → Share invitation**. The sailor pairs the phone once, then selects each race and presses **Ready to race**.
+
+Finishing race tracking keeps the series pairing available for the next race. Cancel the series invitation only to remove access or replace the phone; cancellation affects all its races. Existing race-only links remain limited to their original race.
 
 Check the race’s fleet and tracking status. A ready phone still needs an eligible published heat entry and live tracking to be opened. Sending an invitation does not begin publishing positions.
 
 ## Start, pause, and finish tracking
 
-Use **Start live tracking for ready phones** when you want ready, eligible phones to share positions. Use **Pause live tracking** to pause publication. Use **Finish race tracking** when the race tracking session is over.
+If tracking has not been prepared yet, use **Prepare race tracking** after setting the race start time. Use **Start live tracking for ready phones** when you want ready, eligible phones to share positions. Use **Pause live tracking** to pause publication. Use **Finish race tracking** when the race tracking session is over.
 
 Check the map after starting. A stale position or an unreachable phone is not proof that the boat has stopped: it can indicate reception, connectivity, or phone settings. Coordinate with the sailor if updates are missing.
 

@@ -1,4 +1,5 @@
 export const cs: Record<string, string> = {
+  "Close invitation": "Zavřít pozvánku",
   "Estimated start-line length (m)": "Odhad délky startovní čáry (m)",
   "Compass needs calibration. Move the phone in a figure eight, away from metal or magnets.": "Kompas potřebuje kalibraci. Pohybujte telefonem do osmičky, dál od kovu a magnetů.",
   "No valid compass heading yet. Move the phone gently to refresh it.": "Kompas zatím neposkytl platný náměr. Zkuste telefonem lehce pohnout.",
@@ -160,6 +161,14 @@ export const cs: Record<string, string> = {
   "Invalid course mark": "Neplatná značka tratě",
   "Invalid course position": "Neplatná poloha na trati",
   "Course marks need unique IDs": "Značky tratě musí mít jedinečné identifikátory",
+
+  "Invite a boat to this series": "Pozvat loď do tohoto seriálu",
+  "Pair a phone once for this series. The sailor chooses a race and presses Ready to race in Veetr. No account is needed.": "Telefon stačí připojit jednou pro celý seriál. Závodník ve Veetru vybere závod a potvrdí připravenost. Účet není potřeba.",
+  "Cancel this invitation to disconnect its phone from every race in this series. You can then share a new invitation.": "Zrušením pozvánky odpojíte telefon od všech závodů v tomto seriálu. Poté můžete sdílet novou pozvánku.",
+  "Cancel this series invitation? Its phone will lose access to every race in this series.": "Zrušit pozvánku do seriálu? Telefon ztratí přístup ke všem závodům v tomto seriálu.",
+  "Private series invitation": "Soukromá pozvánka do seriálu",
+  "Prepare race tracking": "Připravit sledování závodu",
+  "A series invitation already exists. Cancel it before creating a replacement.": "Pozvánka do seriálu již existuje. Před vytvořením nové ji zrušte.",
 
   "Series participation": "Účast v seriálech",
   "No connected boats yet. Accept an invitation to join a boat.": "Zatím nemáte připojenou loď. Přijměte pozvánku k lodi.",
@@ -538,6 +547,7 @@ export const cs: Record<string, string> = {
   "Select boats for this race. Registration applies to all its heats and saves automatically.": "Vyberte lodě pro tento závod. Přihlášení platí pro všechny jeho rozjížďky a ukládá se automaticky.",
   "Manage the series fleet to add boats or change categories.": "Nové lodě a změny kategorií spravujte v přihlášených lodích seriálu.",
   "No matching boats.": "Žádné odpovídající lodě.",
+  "Share phone invitations from each boat’s menu. Register boats in each race’s Fleet tab.": "Pozvánky pro telefon sdílejte z nabídky u lodi. Do závodů je přihlásíte na záložce Přihlášené lodě daného závodu.",
   "Choose the series fleet and categories. Register boats in each race’s Fleet tab.": "Vyberte lodě seriálu a jejich kategorie. Do závodů je přihlásíte na záložce Přihlášené lodě daného závodu.",
 
   "Choose the series fleet and categories. Register boats for each race in its editor.": "Vyberte lodě seriálu a jejich kategorie. Do jednotlivých závodů je přihlásíte v úpravě závodu.",
