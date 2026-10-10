@@ -26,7 +26,7 @@ export async function initializeRoutes() {
  if(location.pathname==='/races/manage/' && !params.has('public') && !params.has('series')) history.replaceState(null,'','/races/'+location.search+location.hash);
  if((location.pathname==='/races/' || location.pathname==='/races/manage/') && (params.has('public') || params.has('series'))){
   const id=entityId('series',params.get('public') || params.get('series'))!;
-  history.replaceState(null,'',appHref(`?public=${id}${["event","heat","new-race","new-heat"].filter(k=>params.has(k)).map(k=>`&${k}=${encodeURIComponent(params.get(k)!)}`).join("")}`)+location.hash);
+  history.replaceState(null,'',appHref(`?public=${id}${["event","heat","new-race","new-heat","edit-course"].filter(k=>params.has(k)).map(k=>`&${k}=${encodeURIComponent(params.get(k)!)}`).join("")}`)+location.hash);
  }
  if(location.pathname==='/boats/' && params.has('boat')){
   const id=entityId('boats',params.get('boat'))!;
@@ -43,6 +43,6 @@ export function appHref(query:string):string {
  if(params.has('new-series'))return '/races/new/';
  if(params.has('browse'))return '/races/';
  if(params.has('series')) { params.set('public',params.get('series')!); params.delete('series'); }
- if(params.has('public'))return `/races/?series=${encodeURIComponent(routes.series[params.get('public')!] || params.get('public')!)}${['event','heat','new-race','new-heat'].filter(k=>params.has(k)).map(k=>`&${k}=${encodeURIComponent(params.get(k)!)}`).join('')}`;
+ if(params.has('public'))return `/races/?series=${encodeURIComponent(routes.series[params.get('public')!] || params.get('public')!)}${['event','heat','new-race','new-heat','edit-course'].filter(k=>params.has(k)).map(k=>`&${k}=${encodeURIComponent(params.get(k)!)}`).join('')}`;
  return `/races/${params.size?`?${params}`:''}`;
 }

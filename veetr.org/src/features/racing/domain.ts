@@ -1,3 +1,4 @@
+import { validateCourse, type RaceCourse } from "./course";
 import {
   calculateSeriesStandings,
   defaultPolicy,
@@ -45,6 +46,7 @@ export interface ControlRace extends Race {
   results: Result[];
 }
 export interface Series {
+  courses?: Record<string, RaceCourse>;
   id: string;
   name: string;
   year: number;
@@ -207,6 +209,13 @@ export function validateSeries(s: Series): void {
       r.entries.some((id) => !s.boats.some((b) => b.id === id))
     )
       throw new Error("Check race date, order, weight and registered boats");
+  }
+  if (s.courses !== undefined) {
+    if (!s.courses || typeof s.courses !== "object" || Array.isArray(s.courses) || Object.keys(s.courses).length > 100) throw new Error("Invalid course map");
+    for (const [eventId, course] of Object.entries(s.courses)) {
+      if (!(s.events ?? s.races).some(e => e.id === eventId)) throw new Error("Course must belong to an existing race");
+      validateCourse(course);
+    }
   }
   calculateSeriesStandings(s.boats, s.races);
 }

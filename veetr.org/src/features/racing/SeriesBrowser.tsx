@@ -14,6 +14,7 @@ import {
 } from "./domain";
 import { Discards } from "./EventScoring";
 export interface Location {
+  editCourse?: boolean;
   seriesId?: string;
   eventId?: string;
   heatId?: string;

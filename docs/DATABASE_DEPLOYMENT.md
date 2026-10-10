@@ -45,3 +45,20 @@ grant execution on the intended RPCs. For an already deployed table, add a new
 forward migration rather than rewriting applied migration history. The
 `explicit_creation_request_grant` migration supplies server-side read access to
 `series_access_requests` for both production and fresh database rebuilds.
+
+## Race course maps
+
+Apply `20261006081808_race_course_map.sql` before enabling the course editor.
+It validates optional `document.courses` keyed by race ID, permits assigned
+referees to edit that field without changing race configuration, and includes
+only courses with a published or locked heat in the public standings response.
+Race deletion removes its course. Existing documents without courses and older
+clients remain compatible; no backfill is required.
+
+Apply `20261006083733_referee_start_position.sql` before deploying the phone
+start-line controls. It adds optional bearing-only geometry and live-fix metadata,
+plus `update_race_start_position`, callable only by active assigned officials.
+The RPC changes only end A (or the bearing origin), checks fresh GPS quality,
+and compares the expected course to stop conflicting publishers. A null fix
+freezes the current position. The existing public projection exposes the course
+only for published or locked heats; no phone identity or GPS history is added.

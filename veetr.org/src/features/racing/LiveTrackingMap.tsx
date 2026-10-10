@@ -1,16 +1,18 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { LocateFixed, Minimize2 } from "lucide-react";
+import { LocateFixed, Minimize2, Scan, Focus } from "lucide-react";
 import type * as Leaflet from "leaflet";
 import { replayCoordinate } from "./replay";
 import { useHeatReplay } from "./useHeatReplay";
 import { listBoats } from "./api";
+import { drawCourse, coordinates } from "./courseLayer";
+import { coursePoints, startGeometry, type RaceCourse } from "./course";
 import { t } from "./i18n";
 import {
   positionsForHeat,
   positionAge,
 } from "./tracking";
 
-export function LiveTrackingMap({ seriesId, eventId, heatId, boatIds }: { seriesId: string; eventId: string; heatId?: string; boatIds: string[] }) {
+export function LiveTrackingMap({ seriesId, eventId, heatId, boatIds, course }: { seriesId: string; eventId: string; heatId?: string; boatIds: string[]; course?: RaceCourse }) {
   const [boatColors, setBoatColors] = useState<Record<string, string>>({});
   useEffect(() => {
     let active = true;
@@ -27,6 +29,8 @@ export function LiveTrackingMap({ seriesId, eventId, heatId, boatIds }: { series
   const [mapError, setMapError] = useState(false);
   const [mapReady, setMapReady] = useState(false),
     [seamarkError, setSeamarkError] = useState(false);
+  const courseLayer = useRef<Leaflet.LayerGroup | null>(null);
+  const courseFitted = useRef(false);
   const nautical = useRef<Leaflet.TileLayer | null>(null);
   const element = useRef<HTMLDivElement>(null),
     map = useRef<Leaflet.Map | null>(null);
@@ -51,6 +55,8 @@ export function LiveTrackingMap({ seriesId, eventId, heatId, boatIds }: { series
           })
           .addTo(map.current);
         layer.current = L.layerGroup().addTo(map.current);
+        courseLayer.current = L.layerGroup().addTo(map.current);
+        L.control.scale({imperial: false}).addTo(map.current);
         setMapReady(true);
       })
       .catch((error) => {
@@ -62,8 +68,25 @@ export function LiveTrackingMap({ seriesId, eventId, heatId, boatIds }: { series
       map.current?.remove();
       map.current = null;
       layer.current = null;
+      courseLayer.current = null;
     };
   }, []);
+  const language = t("Leave to port (left)");
+  function fitCourse(startOnly = false) {
+    if (!course || !map.current || !leaflet.current) return;
+    const points = startOnly ? startGeometry(course) : coursePoints(course);
+    if (points.length) map.current.fitBounds(leaflet.current.latLngBounds(points.map(p => coordinates(p, points[0].longitude))), {padding: [65, 65], maxZoom: startOnly ? 18 : 16});
+  }
+  useEffect(() => {
+    if (!mapReady || !leaflet.current || !map.current || !courseLayer.current) return;
+    courseLayer.current.clearLayers();
+    if (!course) return;
+    drawCourse(leaflet.current, map.current, courseLayer.current, course);
+    if (!courseFitted.current && coursePoints(course).length) {
+      fitCourse();
+      courseFitted.current = true;
+    }
+  }, [course, mapReady, language]);
   const staleIds = positions
     .filter((p) => positionAge(p, displayTime) > 60)
     .map((p) => p.boatId)
@@ -100,7 +123,7 @@ export function LiveTrackingMap({ seriesId, eventId, heatId, boatIds }: { series
     }
     if (positions.length && !fitted.current) {
       m.fitBounds(
-        L.latLngBounds(positions.map((p) => [p.latitude, p.longitude])),
+        L.latLngBounds([...positions, ...(course ? coursePoints(course) : [])].map((p) => coordinates(p, positions[0].longitude))),
         { padding: [45, 45], maxZoom: 15 },
       );
       fitted.current = true;
@@ -116,7 +139,7 @@ export function LiveTrackingMap({ seriesId, eventId, heatId, boatIds }: { series
       animation = requestAnimationFrame(animate);
     }
     return () => cancelAnimationFrame(animation);
-  }, [boatColors, positions, staleIds, mapReady, displayTime, replay.playing, replay.following, replay.speed]);
+  }, [boatColors, positions, staleIds, mapReady, displayTime, replay.playing, replay.following, replay.speed, course]);
   useEffect(() => {
     if (!mapReady || !map.current || !leaflet.current) return;
     setSeamarkError(false);
@@ -172,6 +195,8 @@ export function LiveTrackingMap({ seriesId, eventId, heatId, boatIds }: { series
         </div>
         <button ref={expandButton} onClick={() => setFullscreen(true)}>{t("Full screen")}</button>
       </div>
+      {course && <p className="course-map-legend"><strong>{t("A–B: start line")}</strong>{" · "}{t("A: referee · B: buoy · 1, 2…: turning marks")}</p>}
+      {course && !replay.following && replay.bounds && <p>{t("Replay shows the current course layout.")}</p>}
       {seamarkError && (
         <p role="status">
           {t(
@@ -190,6 +215,8 @@ export function LiveTrackingMap({ seriesId, eventId, heatId, boatIds }: { series
         aria-label={t(heatId ? "Heat map" : "Race map")}
         onCancel={event => { event.preventDefault(); exitFullscreen(); }}>
       <div className="tracking-map-actions">
+        {course && <button onClick={() => fitCourse()} disabled={!mapReady || !coursePoints(course).length} aria-label={t("Show whole course")} title={t("Show whole course")}><Scan size={22} aria-hidden="true" /></button>}
+        {course && startGeometry(course).length > 0 && <button onClick={() => fitCourse(true)} disabled={!mapReady} aria-label={t("Zoom to start line")} title={t("Zoom to start line")}><Focus size={22} aria-hidden="true" /></button>}
         <button onClick={fitFleet} disabled={!positions.length} aria-label={t("Fit fleet")} title={t("Fit fleet")}><LocateFixed size={22} aria-hidden="true" /></button>
         {fullscreen && <button onClick={exitFullscreen} aria-label={t("Exit full screen")} title={t("Exit full screen")}><Minimize2 size={22} aria-hidden="true" /></button>}
       </div>

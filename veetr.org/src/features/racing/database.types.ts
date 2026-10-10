@@ -538,6 +538,7 @@ export type Database = {
         }
         Returns: Json
       }
+      update_race_start_position: { Args: { series_id: string; event_id: string; expected_course: Json; fix?: Json }; Returns: Json };
       save_series: {
         Args: {
           payload: Json
