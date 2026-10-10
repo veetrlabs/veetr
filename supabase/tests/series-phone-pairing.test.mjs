@@ -74,9 +74,21 @@ test("series pairing reuses one credential while keeping races and legacy links 
   doc.races.push(heat);
   doc.events[0].completed = false;
   await rpc("save_series", [doc, 1, id()]);
+  const course = {marks: [{id: id(), name: "Mark 1", latitude: 49, longitude: 14, rounding: "port"}]};
+  await db.exec("reset role");
+  await db.query("update public.series set document=jsonb_set(document,'{courses}',$2::jsonb) where id=$1", [sid, JSON.stringify({[event1]: course, [event2]: {marks: []}})]);
+  await login(owner);
   const legacyEvent = await rpc("configure_race_tracking", [sid, event1]);
   const legacy = await rpc("create_race_tracking_link", [legacyEvent, bid]);
   const link = await rpc("create_series_tracking_link", [sid, bid]);
+  assert.deepEqual((await rpc("preview_race_tracking_link", [legacy.token])).course, course);
+  await db.exec("reset role; begin");
+  await db.query("update public.series set document=jsonb_set(document,'{races}',(select jsonb_agg(jsonb_set(h,'{status}','\"draft\"'::jsonb)) from jsonb_array_elements(document->'races') h)) where id=$1", [sid]);
+  await login(null, "anon");
+  assert.equal((await rpc("preview_race_tracking_link", [legacy.token])).course, null);
+  await db.exec("rollback");
+  await login(owner);
+
   await assert.rejects(
     rpc("create_series_tracking_link", [sid, bid]),
     /already exists/,
