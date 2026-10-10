@@ -1169,3 +1169,26 @@ section.entity-details { padding: 0; border: 0; border-radius: 0; background: tr
 
 .course-details-combined > .live-tracking { padding: 0; border: 0; box-shadow: none; }
 .tracking-map-actions { flex-wrap: wrap; max-width: calc(100% - 75px); }
+
+/* Keep tablet-width start settings compact without squeezing all five controls. */
+@media (min-width: 501px) and (max-width: 850px) {
+  .course-editor .course-start-fields .course-start-setup {
+    grid-template-columns: minmax(175px, 1.3fr) repeat(2, minmax(0, 1fr));
+    align-items: end;
+  }
+  .course-start-setup > .course-method,
+  .course-start-setup > .course-position-fields,
+  .course-start-fields .course-start-setup .start-bearing-fields,
+  .course-start-fields .course-start-setup .start-bearing-entry { display: contents; }
+  .course-start-setup .course-method > label { grid-column: 1; grid-row: 1; }
+  .course-start-setup > .course-position-fields > label:first-child,
+  .course-start-setup .start-bearing-entry > label { grid-column: 2; grid-row: 1; }
+  .course-start-setup > .course-position-fields > label:last-child,
+  .course-start-setup .start-length-value { grid-column: 3; grid-row: 1; }
+  .course-start-setup > .start-phone-tools,
+  .course-start-setup .start-compass-action { grid-column: 1 / 3; grid-row: 2; justify-self: start; }
+  .course-start-setup > .course-end-remove { grid-column: 3; grid-row: 2; }
+  .course-start-setup .course-tools { display: flex; margin: 0; }
+  .course-start-setup .course-method > p { grid-column: 1 / -1; grid-row: 3; margin: 0; }
+  .course-start-setup .start-compass-panel { grid-column: 1 / -1; grid-row: 4; }
+}
