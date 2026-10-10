@@ -24,11 +24,15 @@ import {
   type RacePhone,
 } from "./racePhone";
 import { invitationToken } from "./invitationLink";
+import { savedSeriesPhone, seriesPhoneStatus, type SeriesPhone } from "./seriesPhone";
+import TripMap from "./TripMap";
+import SeriesPhonePanel from "./SeriesPhonePanel";
 import type { TrackingSession } from "./model";
-export default function RacePhoneScreen({ token }: { token?: string }) {
+export default function RacePhoneScreen({ token, raceLinkId }: { token?: string; raceLinkId?: string }) {
   useLanguageRefresh();
   const { theme } = useTheme(),
     c = themeColors[theme];
+  const [seriesPhone, setSeriesPhone] = useState<SeriesPhone | null>(null);
   const [invitation, setInvitation] = useState("");
   const [showInvitation, setShowInvitation] = useState(false);
   const [phone, setPhone] = useState<RacePhone | null>(null),
@@ -41,22 +45,26 @@ export default function RacePhoneScreen({ token }: { token?: string }) {
     const load = async () => {
       try {
         const current = await (await trackingStore()).get();
-        let info = token
-          ? await trackingRpc<RacePhone | null>("preview_race_tracking_link", {
-              token,
-            })
-          : await savedRacePhone();
-        if (!token && current?.mode === "race")
-          info = await racePhoneRpc<RacePhone>(
-            current.raceLinkId!,
-            "race_phone_status",
-          );
-        else if (info && !token)
-          info = await racePhoneRpc<RacePhone>(
-            info.linkId,
-            "race_phone_status",
-          );
+        let series: SeriesPhone | null = null;
+        let info: RacePhone | null = null;
+        if (raceLinkId) {
+          info = await racePhoneRpc<RacePhone>(raceLinkId, "race_phone_status");
+        } else if (token) {
+          const preview = await trackingRpc<RacePhone | SeriesPhone | null>("preview_tracking_invitation", { token });
+          if (preview && "scope" in preview && preview.scope === "series") series = preview;
+          else info = preview as RacePhone | null;
+        } else if (current?.mode === "race") {
+          info = await racePhoneRpc<RacePhone>(current.raceLinkId!, "race_phone_status");
+        } else {
+          const saved = await savedSeriesPhone();
+          if (saved) series = await seriesPhoneStatus(saved.linkId);
+          else {
+            info = await savedRacePhone();
+            if (info) info = await racePhoneRpc<RacePhone>(info.linkId, "race_phone_status");
+          }
+        }
         if (alive) {
+          setSeriesPhone(series);
           setSession(current);
           setPhone(info);
           setLoaded(true);
@@ -74,7 +82,7 @@ export default function RacePhoneScreen({ token }: { token?: string }) {
       alive = false;
       clearInterval(timer);
     };
-  }, [token]);
+  }, [token, raceLinkId]);
   const own =
     session?.mode === "race" && session.raceLinkId === phone?.linkId
       ? session
@@ -121,6 +129,8 @@ export default function RacePhoneScreen({ token }: { token?: string }) {
       </Text>
     </Pressable>
   );
+  if (seriesPhone && session?.mode === "race") return <RacePhoneScreen raceLinkId={session.raceLinkId} />;
+  if (seriesPhone) return <SeriesPhonePanel key={seriesPhone.linkId} phone={seriesPhone} token={token} session={session} />;
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
       <ScrollView contentContainerStyle={{ padding: 20, gap: 18 }}>
@@ -150,6 +160,9 @@ export default function RacePhoneScreen({ token }: { token?: string }) {
             <Text style={{ color: c.textSecondary }}>
               {t("Expected start:")} {new Date(phone.scheduledStart).toLocaleString(locale())}
             </Text>
+            {phone.course && <View style={{ height: 260, borderRadius: 12, overflow: "hidden" }}>
+              <TripMap points={[]} course={phone.course} />
+            </View>}
             {!phone.valid && !own ? (
               <Text style={{ color: c.text }}>
                 {t("This invitation has expired or been revoked. Ask the referee for a new link.")}</Text>

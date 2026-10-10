@@ -906,5 +906,9 @@
   "Test with the screen locked before relying on the alarm.": "Než se na alarm spolehnete, vyzkoušejte jej se zamknutou obrazovkou.",
   "Do not swipe Veetr closed while monitoring.": "Během hlídání neukončujte Veetr přejetím prstem.",
   "Volume: iPhone Settings → Sounds & Haptics → Ringtone and Alerts.": "Hlasitost: Nastavení iPhonu → Zvuky a haptika → Vyzvánění a upozornění.",
-  "Turn up Alarm volume and allow alarms in Do Not Disturb.": "Zvyšte hlasitost budíku a povolte budíky v režimu Nerušit."
+  "Turn up Alarm volume and allow alarms in Do Not Disturb.": "Zvyšte hlasitost budíku a povolte budíky v režimu Nerušit.",
+  "Start line end A": "Konec startovní čáry A",
+  "Start line end B": "Konec startovní čáry B",
+  "Leave to port (left)": "Minout levobokem (vlevo)",
+  "Leave to starboard (right)": "Minout pravobokem (vpravo)"
 }

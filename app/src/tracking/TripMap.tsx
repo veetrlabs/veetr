@@ -1,3 +1,4 @@
+import CourseLayer, { courseCoordinates, type RaceCourse } from "../maps/CourseLayer";
 import type { MapRegion } from "../maps/headingRay";
 import BoatMarker from "../maps/BoatMarker";
 import { locale, t, useLanguageRefresh } from '../i18n';
@@ -10,12 +11,14 @@ import { useTheme } from "../context/ThemeContext";
 import { themeColors } from "../constants/colors";
 export default memo(function TripMap({
   points,
+  course,
   selected,
   thumbnail = false,
   onViewportChange,
   fitRequest = 0,
 }: {
   points: TrackingPoint[];
+  course?: RaceCourse | null;
   selected?: TrackingPoint;
   thumbnail?: boolean;
   onViewportChange?: (region: MapRegion) => void;
@@ -29,9 +32,10 @@ export default memo(function TripMap({
   const [viewport, setViewport] = useState("");
   const segments = useMemo(() => routeSegments(points), [points]);
   const coordinates = useMemo(() => segments.flat(), [segments]);
+  const bounds = useMemo(() => [...coordinates, ...courseCoordinates(course)], [coordinates, course]);
   function fit() {
-    if (coordinates.length)
-      ref.current?.fitToCoordinates(coordinates, {
+    if (bounds.length)
+      ref.current?.fitToCoordinates(bounds, {
         edgePadding: {
           top: thumbnail ? 14 : 64,
           bottom: thumbnail ? 14 : 64,
@@ -43,8 +47,8 @@ export default memo(function TripMap({
   }
   useEffect(() => {
     fit();
-  }, [coordinates, fitRequest]);
-  if (!MapView || !coordinates.length)
+  }, [bounds, fitRequest]);
+  if (!MapView || !bounds.length)
     return (
       <View
         style={{
@@ -70,8 +74,8 @@ export default memo(function TripMap({
       userInterfaceStyle={theme}
       mapType="standard"
       initialRegion={{
-        latitude: coordinates[0].latitude,
-        longitude: coordinates[0].longitude,
+        latitude: bounds[0].latitude,
+        longitude: bounds[0].longitude,
         latitudeDelta: 0.025,
         longitudeDelta: 0.025,
       }}
@@ -87,6 +91,7 @@ export default memo(function TripMap({
       toolbarEnabled={false}
       liteMode={thumbnail}
     >
+      <CourseLayer course={course} />
       {segments
         .filter((s) => s.length > 1)
         .map((segment, i) => (
@@ -97,7 +102,7 @@ export default memo(function TripMap({
             strokeWidth={thumbnail ? 3 : 4}
           />
         ))}
-      {!thumbnail && (
+      {!thumbnail && coordinates.length > 0 && (
         <Marker coordinate={coordinates[0]} title={t("Start")} pinColor="#008c80" />
       )}
       {!thumbnail && coordinates.length > 1 && (

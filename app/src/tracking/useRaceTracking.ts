@@ -21,7 +21,7 @@ export function useRaceTracking() {
         if (busy || AppState.currentState === "background") return;
         busy = true;
         try {
-          const [session, phone] = await Promise.all([
+          let [session, phone] = await Promise.all([
             (await trackingStore()).get(),
             savedRacePhone(),
           ]);
@@ -33,6 +33,7 @@ export function useRaceTracking() {
           if (linkId) {
             try {
               const status = await racePhoneRpc<RacePhone>(linkId, "race_phone_status");
+              phone = status;
               finished = status.completed === true || !!status.endedAt;
             } catch { /* Preserve the last confirmed completion state while offline. */ }
           }

@@ -1,3 +1,4 @@
+import CourseLayer, { courseCoordinates } from "../maps/CourseLayer";
 import { shouldUseDeviceStartLine } from '../navigation/phoneStartLine';
 import { useFollowCamera } from '../maps/useFollowCamera';
 import { courseUpBearing, KNOTS_PER_MPS } from '../maps/courseVector';
@@ -60,6 +61,8 @@ export default function Map({ onBack }: { onBack?: () => void }) {
       : race.phone?.linkId;
   const fleet = useJoinedFleet(savedLinkId);
   const linkId = fleet.finished ? undefined : savedLinkId;
+  const raceCourse = linkId ? (race.phone?.course !== undefined ? race.phone.course : race.session?.course) : undefined;
+  const coursePoints = courseCoordinates(raceCourse);
   const fittedRace = useRef<string | undefined>(undefined);
   useEffect(() => {
     fittedRace.current = undefined;
@@ -70,17 +73,17 @@ export default function Map({ onBack }: { onBack?: () => void }) {
     if (
       !ready ||
       !linkId ||
-      !fleet.positions.length ||
+      (!fleet.positions.length && !coursePoints.length) ||
       fittedRace.current === linkId
     )
       return;
     fittedRace.current = linkId;
     setFollow(false);
-    ref.current?.fitToCoordinates(fleet.positions, {
+    ref.current?.fitToCoordinates([...fleet.positions, ...coursePoints], {
       edgePadding: { top: raceMapTop, right: 50, bottom: 150, left: 50 },
       animated: true,
     });
-  }, [ready, linkId, fleet.positions]);
+  }, [ready, linkId, fleet.positions, raceCourse]);
   const ownBoatId =
     race.session?.mode === "race" ? race.session.boatId : race.phone?.boatId;
   const ownBoatName =
@@ -162,6 +165,7 @@ export default function Map({ onBack }: { onBack?: () => void }) {
           zoomEnabled
           initialRegion={initialRegion}
         >
+          <CourseLayer course={raceCourse} />
           {seamarks && (
             <UrlTile
               urlTemplate="https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png"
@@ -302,11 +306,11 @@ export default function Map({ onBack }: { onBack?: () => void }) {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={t("Show fleet")}
-              disabled={!fleet.positions.length && !position}
+              disabled={!fleet.positions.length && !coursePoints.length && !position}
               onPress={() => {
                 setFollow(false);
                 ref.current?.fitToCoordinates(
-                  [...fleet.positions, ...(position ? [position] : [])],
+                  [...fleet.positions, ...coursePoints, ...(position ? [position] : [])],
                   {
                     edgePadding: {
                       top: raceMapTop,

@@ -5,6 +5,7 @@ import RacePhoneScreen from "../RacePhoneScreen";
 import { trackingRpc } from "../client";
 import { claimRacePhone } from "../racePhone";
 import { readyForRace } from "../service";
+jest.mock("../TripMap", () => () => require("react").createElement("Text", null, "Course map"));
 jest.mock("react-native", () => ({
   Platform: { OS: "ios" },
   Text: "Text",
@@ -24,6 +25,7 @@ jest.mock("../../context/ThemeContext", () => ({
   useTheme: () => ({ theme: "light" }),
 }));
 jest.mock("../client", () => ({ trackingRpc: jest.fn() }));
+jest.mock("../seriesPhone", () => ({ savedSeriesPhone: jest.fn(), seriesPhoneStatus: jest.fn(), claimSeriesPhone: jest.fn(), connectSeriesRace: jest.fn() }));
 jest.mock("../racePhone", () => ({
   claimRacePhone: jest.fn(),
   savedRacePhone: jest.fn(),
@@ -138,4 +140,49 @@ test('existing legacy live sharing remains reachable to stop or finish syncing',
  const ui=render(<RacePhoneScreen/>);
  fireEvent.press(await ui.findByText('Manage existing live sharing'));
  expect(router.push).toHaveBeenCalledWith('/regatta-sharing');
+});
+
+const seriesPhone = {
+  scope: "series", linkId: "series-link", boatId: "boat", boatName: "Luna",
+  seriesId: "series", seriesName: "Autumn series", valid: true, connected: false,
+  races: [{eventId: "event", raceName: "Autumn race", scheduledStart: phone.scheduledStart}],
+};
+test("a series invitation pairs once without GPS and connects the selected race only after consent", async () => {
+  const { claimSeriesPhone, connectSeriesRace } = require("../seriesPhone");
+  (trackingRpc as jest.Mock).mockResolvedValue(seriesPhone);
+  claimSeriesPhone.mockResolvedValue({...seriesPhone, connected: true});
+  connectSeriesRace.mockResolvedValue(phone);
+  const ui = render(<RacePhoneScreen token="series-token" />);
+  await ui.findByText("Autumn series");
+  expect(claimSeriesPhone).not.toHaveBeenCalled();
+  fireEvent.press(ui.getByText("Connect phone to series"));
+  await ui.findByText("Phone connected to this series");
+  expect(claimSeriesPhone).toHaveBeenCalledWith("series-token");
+  expect(readyForRace).not.toHaveBeenCalled();
+  fireEvent.press(ui.getByLabelText("Ready to race: Autumn race"));
+  expect(connectSeriesRace).not.toHaveBeenCalled();
+  await act(async () => (Alert.alert as jest.Mock).mock.calls[0][2][1].onPress());
+  expect(connectSeriesRace).toHaveBeenCalledWith(expect.objectContaining({linkId:"series-link"}),"event");
+  expect(readyForRace).toHaveBeenCalledWith(phone);
+});
+test("the saved series pairing returns after a race, without another invitation", async () => {
+  const { savedSeriesPhone, seriesPhoneStatus, claimSeriesPhone, connectSeriesRace } = require("../seriesPhone");
+  savedSeriesPhone.mockResolvedValue(seriesPhone);
+  seriesPhoneStatus.mockResolvedValue({...seriesPhone, connected:true});
+  connectSeriesRace.mockResolvedValue(phone);
+  const ui = render(<RacePhoneScreen />);
+  await ui.findByText("Phone connected to this series");
+  expect(seriesPhoneStatus).toHaveBeenCalledWith("series-link");
+  fireEvent.press(ui.getByLabelText("Ready to race: Autumn race"));
+  await act(async () => (Alert.alert as jest.Mock).mock.calls[0][2][1].onPress());
+  expect(claimSeriesPhone).not.toHaveBeenCalled();
+  expect(readyForRace).toHaveBeenCalledWith(phone);
+  savedSeriesPhone.mockReset();
+});
+test("a series with no published races can still be paired", async () => {
+  (trackingRpc as jest.Mock).mockResolvedValue({...seriesPhone, races:[]});
+  const ui = render(<RacePhoneScreen token="series-token" />);
+  await ui.findByText("No upcoming published races for your boat yet. Your series invitation remains available.");
+  expect(ui.getByText("Connect phone to series")).toBeTruthy();
+  expect(ui.queryByText("Ready to race")).toBeNull();
 });

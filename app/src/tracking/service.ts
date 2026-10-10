@@ -235,6 +235,7 @@ async function flush() {
       );
       await store.patch(session.id, {
         raceActive: raceIsSharing(info),
+        ...(info.valid && session.phase !== "stopping" && info.course !== undefined ? { course: info.course } : {}),
         scheduledStart: info.scheduledStart,
         expiresAt: info.expiresAt,
         raceName: info.raceName,
@@ -247,7 +248,9 @@ async function flush() {
         await store.patch(session.id, {
           phase: "stopping",
           stoppedAt: new Date().toISOString(),
-          error: "Race connection ended. Ask the referee for a new invitation.",
+          error: info.seriesLinkId
+            ? "Race tracking ended. Your series pairing is saved; choose the next race when ready."
+            : "Race connection ended. Ask the referee for a new invitation.",
         });
         await stopGPS();
         session.phase = "stopping";
@@ -428,6 +431,7 @@ async function resumeInternal() {
           expiresAt: info.expiresAt,
           phase: current?.phase === "stopping" ? "stopping" : "recording",
           raceActive: raceIsSharing(info),
+          ...(info.valid && current?.phase !== "stopping" && info.course !== undefined ? { course: info.course } : {}),
           raceCheckedAt: new Date().toISOString(),
         });
       }

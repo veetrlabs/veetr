@@ -1,3 +1,4 @@
+import { courseRoute, startGeometry, type RaceCourse } from "../../../veetr.org/src/features/racing/course";
 import { routeSegments } from "../tracking/trip";
 import type { TrackingPoint } from "../tracking/model";
 import { distinctCourse } from "../maps/courseVector";
@@ -16,6 +17,7 @@ export default function FleetMap({
   onViewportChange,
   fitRequest = 0,
   route = [],
+  course,
 }: {
   positions: TrackingPosition[];
   at: number;
@@ -23,12 +25,13 @@ export default function FleetMap({
   onViewportChange?: (region: import("../maps/headingRay").MapRegion) => void;
   fitRequest?: number;
   route?: TrackingPoint[];
+  course?: RaceCourse | null;
 }) {
   useLanguageRefresh();
   const element = useRef<HTMLDivElement>(null);
   const map = useRef<Leaflet.Map | null>(null);
-  const latest = useRef({ positions, at, ownBoatId, route, fitRequest, onViewportChange });
-  latest.current = { positions, at, ownBoatId, route, fitRequest, onViewportChange };
+  const latest = useRef({ positions, at, ownBoatId, route, fitRequest, onViewportChange, course });
+  latest.current = { positions, at, ownBoatId, route, fitRequest, onViewportChange, course };
   const render = useRef<(() => void) | null>(null);
   useEffect(() => {
     let alive = true;
@@ -51,7 +54,18 @@ export default function FleetMap({
       render.current = () => {
         group.clearLayers();
         if (lastFit !== latest.current.fitRequest || lastRouteLength !== latest.current.route.length) { fitted = false; lastFit = latest.current.fitRequest; lastRouteLength = latest.current.route.length; }
-        const { positions, at, ownBoatId, route, fitRequest, onViewportChange } = latest.current;
+        const { positions, at, ownBoatId, route, fitRequest, onViewportChange, course } = latest.current;
+        const ends = course ? startGeometry(course) : [];
+        const coursePoints = course ? [...ends, ...course.marks] : [];
+        if (course) {
+          const line = (points: {latitude: number; longitude: number}[], color: string, dashArray?: string) => {
+            if (points.length > 1) L.polyline(points.map(p => [p.latitude,p.longitude] as [number,number]), {color, dashArray, weight: 3}).addTo(group);
+          };
+          line(ends, '#805508', course.startBearing ? '8 6' : undefined);
+          line(courseRoute(course), '#25638f', '8 6');
+          const markers = [...ends.slice(0, course.startBearing && !course.startBearing.distanceMetres ? 1 : 2).map((p, i) => ({...p, label: i ? 'B' : 'A', color: '#805508'})), ...course.marks.map((p, i) => ({...p, label: `${i+1} ${p.rounding === 'port' ? '↶' : '↷'}`, color: p.rounding === 'port' ? '#aa292d' : '#14674c'}))];
+          for (const p of markers) L.marker([p.latitude,p.longitude], {icon: L.divIcon({className: '', html: `<span style="display:grid;place-items:center;background:${p.color};color:white;border:2px solid white;border-radius:18px;width:36px;height:36px;font-weight:bold">${p.label}</span>`,iconSize:[36,36],iconAnchor:[18,18]})}).addTo(group);
+        }
         for (const segment of routeSegments(route)) {
           if (segment.length > 1) L.polyline(segment.map(p => [p.latitude, p.longitude] as [number, number]), { color: '#3b82f6', opacity: 0.3, weight: 2, interactive: false }).addTo(group);
         }
@@ -83,10 +97,10 @@ export default function FleetMap({
             .bindTooltip(label, { permanent: true })
             .addTo(group);
         }
-        if (positions.length && !fitted) {
+        if ((positions.length || coursePoints.length) && !fitted) {
           fitted = true;
           m.fitBounds(
-            (route.length ? route : positions).map((p) => [p.latitude, p.longitude]),
+            [...(route.length ? route : positions), ...coursePoints].map((p) => [p.latitude, p.longitude]),
             { padding: [45, 45], maxZoom: 15 },
           );
           fitted = true;
@@ -112,7 +126,7 @@ export default function FleetMap({
   }, []);
   useEffect(() => {
     render.current?.();
-  }, [positions, at, ownBoatId, route, fitRequest]);
+  }, [positions, at, ownBoatId, route, fitRequest, course]);
   return createElement("div", {
     ref: element,
     style: { flex: 1, minHeight: 250 },

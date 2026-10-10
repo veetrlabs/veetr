@@ -270,6 +270,7 @@ export default function RaceReplay({
       </View>
       <View style={{ height: 340, marginHorizontal: 16, borderRadius: 18, overflow: 'hidden' }}>
         <FleetMap
+          course={own?.session.course}
           positions={positions.filter((p) => !hidden.includes(p.boatId))}
           at={selected}
           ownBoatId={ownId}

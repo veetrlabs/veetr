@@ -22,6 +22,7 @@ export interface TripSharing {
   uploaded: number; finished?: boolean; error?: string;
 }
 export interface TrackingSession extends TrackingEntry {
+  course?: import("../../../veetr.org/src/features/racing/course").RaceCourse | null;
   sharing?: TripSharing;
   id: string;
   userId: string;

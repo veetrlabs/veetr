@@ -1,3 +1,4 @@
+import CourseLayer, { courseCoordinates, type RaceCourse } from "../maps/CourseLayer";
 import type { MapRegion } from "../maps/headingRay";
 import { routeSegments } from "../tracking/trip";
 import type { TrackingPoint } from "../tracking/model";
@@ -13,6 +14,7 @@ export default function FleetMap({
   onViewportChange,
   fitRequest = 0,
   route = [],
+  course,
 }: {
   positions: TrackingPosition[];
   at: number;
@@ -20,20 +22,22 @@ export default function FleetMap({
   onViewportChange?: (region: MapRegion) => void;
   fitRequest?: number;
   route?: TrackingPoint[];
+  course?: RaceCourse | null;
 }) {
   useLanguageRefresh();
   const [mapRegion, setMapRegion] = useState<MapRegion | undefined>();
   const ref = useRef<any>(null);
+  const bounds = [...(route.length ? route : positions), ...courseCoordinates(course)];
   const fitted = useRef(false);
-  useEffect(() => { fitted.current = false; }, [fitRequest, route.length]);
+  useEffect(() => { fitted.current = false; }, [fitRequest, route.length, course]);
   useEffect(() => {
-    if (!positions.length || fitted.current) return;
-    ref.current?.fitToCoordinates(route.length ? route : positions, {
+    if (!bounds.length || fitted.current) return;
+    ref.current?.fitToCoordinates(bounds, {
       edgePadding: { top: 50, bottom: 50, left: 50, right: 50 },
       animated: false,
     });
     fitted.current = true;
-  }, [positions, fitRequest, route]);
+  }, [positions, fitRequest, route, course]);
   return (
     <MapView
       onRegionChange={setMapRegion}
@@ -49,13 +53,14 @@ export default function FleetMap({
         longitudeDelta: 2,
       }}
       onMapReady={() => {
-        if (positions.length)
-          ref.current?.fitToCoordinates(route.length ? route : positions, {
+        if (bounds.length)
+          ref.current?.fitToCoordinates(bounds, {
             edgePadding: { top: 50, bottom: 50, left: 50, right: 50 },
             animated: false,
           });
       }}
     >
+      <CourseLayer course={course} />
       <UrlTile
         urlTemplate="https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png"
         maximumNativeZ={18}

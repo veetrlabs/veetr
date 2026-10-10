@@ -385,3 +385,19 @@ test('single trip lookup matches normalized archived history and latest active m
     assert.equal((await s.localRecording(session.id))?.archived, false);
   } finally { db.close(); }
 });
+
+test("race course snapshot survives archiving and later races", async () => {
+  const db = new DatabaseSync(":memory:");
+  try {
+    const s = store(db);
+    await s.init();
+    const course = {marks: [{id: "mark", name: "Mark 1", latitude: 49, longitude: 14, rounding: "port" as const}]};
+    await s.create({...session, mode: "race", course});
+    await s.append(session.id, [point(0)]);
+    await s.patch(session.id, {phase: "stopping"});
+    await s.clear(session.id);
+    await s.create({...session, id: "next-race", mode: "race", course: {marks: []}});
+    const saved = (await s.localRecordings()).find(r => r.session.id === session.id);
+    assert.deepEqual(saved?.session.course, course);
+  } finally { db.close(); }
+});

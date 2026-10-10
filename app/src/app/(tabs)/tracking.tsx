@@ -165,7 +165,7 @@ export default function TrackingScreen() {
             }}
           >
             <View pointerEvents="none" style={{ width: 104, minHeight: 108 }}>
-              <TripMap points={trip.points} thumbnail />
+              <TripMap course={trip.session.course} points={trip.points} thumbnail />
             </View>
             <View
               style={{ flex: 1, padding: 13, gap: 7, justifyContent: "center" }}

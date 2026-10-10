@@ -213,7 +213,7 @@ export default function TripDetail() {
               overflow: "hidden",
             }}
           >
-            <TripMap points={trip.points} selected={trip.points[index]} onViewportChange={setMapRegion} fitRequest={fitRequest} />
+            <TripMap course={trip.session.course} points={trip.points} selected={trip.points[index]} onViewportChange={setMapRegion} fitRequest={fitRequest} />
           </View>
           <View style={{ padding: 20, gap: 24 }}>
             {trip.session.phase === "recording" && (

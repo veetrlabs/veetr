@@ -3,7 +3,9 @@ import * as Crypto from "expo-crypto";
 import { trackingRpc } from "./client";
 import type { TrackingSession } from "./model";
 export interface RacePhone {
+  course?: import("../../../veetr.org/src/features/racing/course").RaceCourse | null;
   linkId: string;
+  seriesLinkId?: string | null;
   boatId: string;
   boatName: string;
   seriesId: string;
@@ -37,9 +39,12 @@ export async function claimRacePhone(token: string): Promise<RacePhone> {
     token,
     device_secret: secret,
   });
+  await rememberRacePhone(phone, secret);
+  return phone;
+}
+export async function rememberRacePhone(phone: RacePhone, secret: string) {
   await AsyncStorage.setItem(prefix + phone.linkId, secret);
   await AsyncStorage.setItem(prefix + "last", JSON.stringify(phone));
-  return phone;
 }
 export async function savedRacePhone(): Promise<RacePhone | null> {
   const value = await AsyncStorage.getItem(prefix + "last");

@@ -896,5 +896,9 @@
   "Test with the screen locked before relying on the alarm.": "Test with the screen locked before relying on the alarm.",
   "Do not swipe Veetr closed while monitoring.": "Do not swipe Veetr closed while monitoring.",
   "Volume: iPhone Settings → Sounds & Haptics → Ringtone and Alerts.": "Volume: iPhone Settings → Sounds & Haptics → Ringtone and Alerts.",
-  "Turn up Alarm volume and allow alarms in Do Not Disturb.": "Turn up Alarm volume and allow alarms in Do Not Disturb."
+  "Turn up Alarm volume and allow alarms in Do Not Disturb.": "Turn up Alarm volume and allow alarms in Do Not Disturb.",
+  "Start line end A": "Start line end A",
+  "Start line end B": "Start line end B",
+  "Leave to port (left)": "Leave to port (left)",
+  "Leave to starboard (right)": "Leave to starboard (right)"
 }
