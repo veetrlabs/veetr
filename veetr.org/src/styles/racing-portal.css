@@ -55,7 +55,22 @@ body:has(#veetr-racing) .content-panel { border: 0; padding-top: 1rem; }
 #veetr-racing .portal-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:1rem; margin-bottom:1.25rem; }
 #veetr-racing .portal-toolbar a {font-weight:600; font-size:.9rem; color:var(--sl-color-text-accent);text-decoration:none;}
 #veetr-language-controls select {font:inherit;min-height:2.75rem;border:1px solid var(--sl-color-hairline);border-radius:.5rem;padding:.4rem .65rem;background:var(--sl-color-bg);color:var(--sl-color-white);}
-@media(max-width:48rem){body:has(#veetr-racing) .sl-container {padding-inline:.5rem;}}
+/* Use one small outer gutter on phones instead of stacking shell and card padding. */
+@media (max-width: 48rem) {
+  body:has(#veetr-racing) .content-panel {
+    padding-inline: max(8px, env(safe-area-inset-left)) max(8px, env(safe-area-inset-right));
+  }
+  body:has(#veetr-racing) .sl-container { padding-inline: 0; }
+  #veetr-racing section, #veetr-racing .entity-details { padding-inline: 10px; }
+  #veetr-racing :is(.course-editor, .course-details, .live-tracking) {
+    padding-inline: 0;
+    border-inline: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  #veetr-racing :is(.course-start-fields, .course-mark-editors) fieldset { padding-inline: 10px; }
+  #veetr-racing .start-compass-panel { padding-inline: 10px; }
+}
 
 /* Account is a normal document page, with neutral surfaces and no overlay. */
 #veetr-racing:has(.account-page) { background: transparent; }
