@@ -6,6 +6,7 @@ import { useNavigation } from "../../navigation/NavigationContext";
 import { useJoinedFleet } from "../../regattas/useJoinedFleet";
 jest.mock("expo-router", () => ({ router: { push: jest.fn() } }));
 jest.mock("react-native", () => ({
+  Platform: { OS: "ios" },
   View: "View",
   Text: "Text",
   Pressable: "View",
