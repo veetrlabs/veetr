@@ -26,7 +26,6 @@ jest.mock("react-native", () => ({
   View: "View",
   Pressable: "View",
   ScrollView: "View",
-  Switch: "View",
   StyleSheet: { flatten: (s: unknown) => s },
 }));
 const start = Date.parse("2026-09-24T10:00:00Z");
@@ -71,6 +70,11 @@ test("own track is visible offline and seeking preserves gaps; competitors are r
   expect(ui.queryByText("Play")).toBeNull();
   expect(ui.queryByText("10×")).toBeNull();
   expect(ui.queryByLabelText("Replay timeline")).toBeNull();
+  expect(ui.queryByText("Chart follows map")).toBeNull();
+  expect(ui.queryByText("Fit whole trip")).toBeNull();
+  expect(ui.getByTestId("trip-chart").props.region).toBeUndefined();
+  expect(ui.getByTestId("trip-chart").props.showRangeLabel).toBe(false);
+  expect(ui.getByTestId("trip-chart").props.points).toHaveLength(4);
   act(() => ui.getByTestId("trip-chart").props.onSelect(3));
   expect(ui.getByTestId("fleet").props.positions[0].trailSegments).toHaveLength(
     2,

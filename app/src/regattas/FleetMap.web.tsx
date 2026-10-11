@@ -14,24 +14,20 @@ export default function FleetMap({
   positions,
   at,
   ownBoatId,
-  onViewportChange,
-  fitRequest = 0,
   route = [],
   course,
 }: {
   positions: TrackingPosition[];
   at: number;
   ownBoatId?: string;
-  onViewportChange?: (region: import("../maps/headingRay").MapRegion) => void;
-  fitRequest?: number;
   route?: TrackingPoint[];
   course?: RaceCourse | null;
 }) {
   useLanguageRefresh();
   const element = useRef<HTMLDivElement>(null);
   const map = useRef<Leaflet.Map | null>(null);
-  const latest = useRef({ positions, at, ownBoatId, route, fitRequest, onViewportChange, course });
-  latest.current = { positions, at, ownBoatId, route, fitRequest, onViewportChange, course };
+  const latest = useRef({ positions, at, ownBoatId, route, course });
+  latest.current = { positions, at, ownBoatId, route, course };
   const render = useRef<(() => void) | null>(null);
   useEffect(() => {
     let alive = true;
@@ -50,11 +46,11 @@ export default function FleetMap({
       }).addTo(m);
       const group = L.layerGroup().addTo(m);
       let fitted = false;
-      let lastFit = -1, lastRouteLength = -1;
+      let lastRouteLength = -1;
       render.current = () => {
         group.clearLayers();
-        if (lastFit !== latest.current.fitRequest || lastRouteLength !== latest.current.route.length) { fitted = false; lastFit = latest.current.fitRequest; lastRouteLength = latest.current.route.length; }
-        const { positions, at, ownBoatId, route, fitRequest, onViewportChange, course } = latest.current;
+        if (lastRouteLength !== latest.current.route.length) { fitted = false; lastRouteLength = latest.current.route.length; }
+        const { positions, at, ownBoatId, route, course } = latest.current;
         const ends = course ? startGeometry(course) : [];
         const coursePoints = course ? [...ends, ...course.marks] : [];
         if (course) {
@@ -109,8 +105,6 @@ export default function FleetMap({
       render.current();
       m.on("moveend zoomend", () => {
         render.current?.();
-        const b = m.getBounds(), c = m.getCenter();
-        latest.current.onViewportChange?.({ latitude: c.lat, longitude: c.lng, latitudeDelta: b.getNorth() - b.getSouth(), longitudeDelta: b.getEast() - b.getWest() });
       });
       const observer = new ResizeObserver(() => m.invalidateSize());
       observer.observe(element.current);
@@ -126,7 +120,7 @@ export default function FleetMap({
   }, []);
   useEffect(() => {
     render.current?.();
-  }, [positions, at, ownBoatId, route, fitRequest, course]);
+  }, [positions, at, ownBoatId, route, course]);
   return createElement("div", {
     ref: element,
     style: { flex: 1, minHeight: 250 },

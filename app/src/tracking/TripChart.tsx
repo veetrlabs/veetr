@@ -20,8 +20,10 @@ export default function TripChart({
   region,
   resetKey,
   onScrubbing,
+  showRangeLabel = true,
 }: {
   points: TrackingPoint[];
+  showRangeLabel?: boolean;
   region?: MapRegion;
   resetKey?: number;
   index: number;
@@ -97,10 +99,10 @@ export default function TripChart({
     });
   return (
     <View style={{ gap: 12 }}>
-      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+      {(showRangeLabel || window) && <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
         <Text style={{ color: c.textMuted, flex: 1 }}>{window ? t("Selected time range") : region ? t("Route visible on map") : t("Whole trip")}</Text>
         {window && <Pressable accessibilityRole="button" onPress={() => setWindow(undefined)} style={{ padding: 12 }}><Text style={{ color: "#008c80" }}>{t("Reset chart")}</Text></Pressable>}
-      </View>
+      </View>}
       {!points.length && <Text style={{ color: c.textMuted }}>{t("No recorded positions in this view. Zoom out or fit the whole trip.")}</Text>}
 
 

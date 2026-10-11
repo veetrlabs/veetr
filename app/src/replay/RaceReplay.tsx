@@ -1,10 +1,9 @@
 import { translateMessage, locale, t, useLanguageRefresh } from '../i18n';
 import { useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, Switch, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { useTheme } from "../context/ThemeContext";
 import { themeColors } from "../constants/colors";
 import TripChart from "../tracking/TripChart";
-import type { MapRegion } from "../maps/headingRay";
 import FleetMap from "../regattas/FleetMap";
 import type { Trip } from "../tracking/trip";
 import { routeSegments } from "../tracking/trip";
@@ -28,9 +27,6 @@ export default function RaceReplay({
   const [heatId, setHeatId] = useState<string>();
   const [hidden, setHidden] = useState<string[]>([]);
   const [selectedBoat, setSelectedBoat] = useState<string>();
-  const [region, setRegion] = useState<MapRegion>();
-  const [chartFollowsMap, setChartFollowsMap] = useState(true);
-  const [fitRequest, setFitRequest] = useState(0);
   const [scrubbing, setScrubbing] = useState(false);
   const replay = useReplayTracks(seriesId, eventId, heatId, at, competitors, true);
   const heat = replay.meta?.heats.find((h) => h.id === heatId);
@@ -170,8 +166,6 @@ export default function RaceReplay({
           positions={positions.filter((p) => !hidden.includes(p.boatId))}
           at={selected}
           ownBoatId={ownId}
-          onViewportChange={setRegion}
-          fitRequest={fitRequest}
           route={chartPoints}
         />
       </View>
@@ -197,13 +191,8 @@ export default function RaceReplay({
         <ScrollView horizontal contentContainerStyle={{ gap: 8 }}>
           {boats.map(([id, name]) => button(name, () => setSelectedBoat(id), false, id === chartBoat))}
         </ScrollView>
-        <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-          <Switch accessibilityLabel={t("Chart follows map")} value={chartFollowsMap} onValueChange={setChartFollowsMap} />
-          <Text style={{ color: c.text }}>{t("Chart follows map")}</Text>
-          {button(t("Fit whole trip"), () => setFitRequest(n => n + 1))}
-        </View>
-        {chartPoints.length > 0 && <TripChart points={chartPoints} index={chartIndex}
-          region={chartFollowsMap ? region : undefined} resetKey={fitRequest}
+        {chartPoints.length > 0 && <TripChart key={chartBoat} points={chartPoints} index={chartIndex}
+          showRangeLabel={false}
           onScrubbing={setScrubbing} onSelect={index => setAt(Date.parse(chartPoints[index].recordedAt))} />}
       </View>
       <Text style={{ color: c.textMuted, textAlign: "center", fontSize: 11 }}>

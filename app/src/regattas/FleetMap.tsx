@@ -14,8 +14,6 @@ export default function FleetMap({
   positions,
   at,
   ownBoatId,
-  onViewportChange,
-  fitRequest = 0,
   route = [],
   course,
   loading = false,
@@ -23,8 +21,6 @@ export default function FleetMap({
   positions: TrackingPosition[];
   at: number;
   ownBoatId?: string;
-  onViewportChange?: (region: MapRegion) => void;
-  fitRequest?: number;
   route?: TrackingPoint[];
   course?: RaceCourse | null;
   loading?: boolean;
@@ -36,7 +32,7 @@ export default function FleetMap({
   const ref = useRef<any>(null);
   const bounds = [...(route.length ? route : positions), ...courseCoordinates(course)];
   const fitted = useRef(false);
-  useEffect(() => { fitted.current = false; }, [fitRequest, route.length, course]);
+  useEffect(() => { fitted.current = false; }, [route.length, course]);
   useEffect(() => {
     if (!bounds.length || fitted.current) return;
     if (!ref.current) return;
@@ -45,7 +41,7 @@ export default function FleetMap({
       animated: false,
     });
     fitted.current = true;
-  }, [positions, fitRequest, route, course]);
+  }, [positions, route, course]);
   if (!bounds.length) return <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.chartBg }}>
     <Text accessibilityRole="text" style={{ color: c.textMuted }}>{t(loading ? "Loading competitors…" : "No GPS positions")}</Text>
   </View>;
@@ -58,7 +54,7 @@ export default function FleetMap({
   return (
     <MapView
       onRegionChange={setMapRegion}
-      onRegionChangeComplete={region => { setMapRegion(region); onViewportChange?.(region); }}
+      onRegionChangeComplete={setMapRegion}
       rotateEnabled={false}
       pitchEnabled={false}
       ref={ref}
