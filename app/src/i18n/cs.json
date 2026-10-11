@@ -916,12 +916,16 @@
   "Create private boat": "Vytvořit soukromou loď",
   "Boat class": "Třída lodi",
   "Sail number": "Číslo plachty",
-  "Private \u00b7 saved only on this device. Nothing is published.": "Soukromé · uložené pouze na tomto zařízení. Nic se nezveřejňuje.",
+  "Private · saved only on this device. Nothing is published.": "Soukromé · uložené pouze na tomto zařízení. Nic se nezveřejňuje.",
   "Private boats stay on this device. Series invitations connect you to a race boat without granting ownership.": "Soukromé lodě zůstávají na tomto zařízení. Pozvánka do série vás připojí k závodní lodi, ale nepřevádí její vlastnictví.",
   "Active boat for private trips": "Aktivní loď pro soukromé plavby",
   "No boat selected": "Žádná vybraná loď",
   "Invited races": "Pozvané závody",
   "Race access only. Boat names, results and shared race tracks are visible to spectators. Private trips remain private.": "Přístup pouze k závodům. Názvy lodí, výsledky a sdílené trasy závodů vidí diváci. Soukromé plavby zůstávají soukromé.",
   "Open your series invitation on this device to see your boat and join a race.": "Otevřete pozvánku do série na tomto zařízení. Zobrazí se vaše loď a možnost připojit se k závodu.",
-  "Join with invitation": "Připojit pozvánkou"
+  "Join with invitation": "Připojit pozvánkou",
+  "Active for private trips": "Aktivní pro soukromé plavby",
+  "Use for private trips": "Použít pro soukromé plavby",
+  "Delete boat": "Smazat loď",
+  "Delete {{v0}} from this device? Recorded trips will be kept.": "Smazat {{v0}} z tohoto zařízení? Zaznamenané plavby zůstanou zachovány."
 }

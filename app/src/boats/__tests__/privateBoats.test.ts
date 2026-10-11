@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { privateFleet, savePrivateBoat, selectPrivateBoat, activePrivateBoat } from "../privateBoats";
+import { privateFleet, savePrivateBoat, selectPrivateBoat, activePrivateBoat, deletePrivateBoat } from "../privateBoats";
 jest.mock("@react-native-async-storage/async-storage", () => require("@react-native-async-storage/async-storage/jest/async-storage-mock"));
 jest.mock("expo-crypto", () => ({ randomUUID: () => "new-boat" }));
 beforeEach(async () => { await AsyncStorage.clear(); });
@@ -20,4 +20,14 @@ test("invalid changes preserve the fleet and queued edits preserve separate boat
   await Promise.all(["a", "b"].map(id => savePrivateBoat({ id, name: id, className: "", sailNumber: "" })));
   await expect(selectPrivateBoat("missing")).rejects.toThrow();
   expect((await privateFleet()).boats.map(b => b.id)).toEqual(["a", "b"]);
+});
+
+test("deleting boats preserves other boats and clears the active selection only when needed", async () => {
+  await savePrivateBoat({ id: "a", name: "A", className: "", sailNumber: "" });
+  await savePrivateBoat({ id: "b", name: "B", className: "", sailNumber: "" });
+  await deletePrivateBoat("b");
+  expect((await activePrivateBoat())?.id).toBe("a");
+  await deletePrivateBoat("a");
+  expect(await privateFleet()).toEqual({ boats: [] });
+  expect(await activePrivateBoat()).toBeUndefined();
 });

@@ -35,3 +35,9 @@ export async function activePrivateBoat() {
   const fleet = await privateFleet();
   return fleet.boats.find(b => b.id === fleet.activeId);
 }
+export function deletePrivateBoat(id: string) {
+  return update(fleet => ({
+    boats: fleet.boats.filter(boat => boat.id !== id),
+    activeId: fleet.activeId === id ? undefined : fleet.activeId,
+  }));
+}
