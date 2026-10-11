@@ -37,7 +37,7 @@ export default function MyBoats() {
     try {
       const next = await savePrivateBoat(boat);
       setFleet(next);
-      if (!boat.id) setEdit(next.boats.at(-1));
+      if (!boat.id) setEdit(undefined);
     } catch (e) { setError((e as Error).message); }
     finally { setBusy(false); }
   };

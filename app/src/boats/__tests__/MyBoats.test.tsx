@@ -32,3 +32,24 @@ test("private details save on blur", async () => {
   await waitFor(() => expect(savePrivateBoat).toHaveBeenCalledWith({ ...boat, name: "Dawn II" }));
   ui.unmount();
 });
+
+test("creating a boat returns to the list only after saving succeeds", async () => {
+  (privateFleet as jest.Mock).mockResolvedValue({ boats: [] });
+  (savePrivateBoat as jest.Mock).mockRejectedValueOnce(new Error("Could not save"));
+  const ui = render(<MyBoats />);
+  await waitFor(() => expect(ui.getByText("Luna")).toBeTruthy());
+  fireEvent.press(ui.getByText("Create private boat"));
+  fireEvent.changeText(ui.getByLabelText("Boat name"), "Boat A");
+  fireEvent.press(ui.getByText("Create private boat"));
+  await waitFor(() => expect(ui.getByText("Could not save")).toBeTruthy());
+  expect(ui.getByLabelText("Boat name").props.value).toBe("Boat A");
+  (savePrivateBoat as jest.Mock).mockResolvedValueOnce({
+    boats: [{ id: "new", name: "Boat A", className: "", sailNumber: "" }], activeId: "new",
+  });
+  fireEvent.press(ui.getByText("Create private boat"));
+  await waitFor(() => expect(ui.getByText("Boat A")).toBeTruthy());
+  expect(ui.queryByLabelText("Boat name")).toBeNull();
+  expect(ui.getByText("Boat A ▾")).toBeTruthy();
+  expect(ui.queryByText("Could not save")).toBeNull();
+  ui.unmount();
+});
