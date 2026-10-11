@@ -6,10 +6,25 @@ import { useEffect } from "react";
 import { View, StyleSheet } from "react-native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { ThemeProvider } from "../context/ThemeContext";
+import { ThemeProvider, useTheme } from "../context/ThemeContext";
+import { themeColors } from "../constants/colors";
 import { BLEProvider } from "../context/BLEContext";
 import OfflineIndicator from "../components/OfflineIndicator";
 import { dataStorage } from "../utils/dataStorage";
+
+function AppNavigation() {
+  const { theme } = useTheme();
+  const statusBarStyle = theme === "dark" ? "light" : "dark";
+  return <>
+    <StatusBar style={statusBarStyle} />
+    <View style={[styles.container, { backgroundColor: themeColors[theme].bg }]}>
+      <OfflineIndicator />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" />
+      </Stack>
+    </View>
+  </>;
+}
 
 export default function RootLayout() {
   useEffect(() => {
@@ -30,13 +45,7 @@ export default function RootLayout() {
         <NavigationProvider>
           <TrackingRuntime />
           <AnchorRuntime />
-          <StatusBar style="auto" />
-          <View style={styles.container}>
-            <OfflineIndicator />
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="(tabs)" />
-            </Stack>
-          </View>
+          <AppNavigation />
         </NavigationProvider>
       </BLEProvider>
     </ThemeProvider>
