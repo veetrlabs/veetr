@@ -1,6 +1,6 @@
 ---
 title: Firmware
-description: Software ESP32 ve Veetru od čtení snímačů a výpočtů až po BLE a aktualizace.
+description: Software ESP32 v zařízení Veetr Vane od čtení snímačů a výpočtů až po BLE a aktualizace.
 editUrl: https://github.com/veetrlabs/veetr/edit/main/docs/cs/FIRMWARE.md
 ---
 

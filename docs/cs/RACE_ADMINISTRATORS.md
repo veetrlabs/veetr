@@ -4,7 +4,7 @@ description: "Správa uživatelů, rolí, žádostí o vytváření a zabezpeče
 editUrl: https://github.com/veetrlabs/veetr/edit/main/docs/cs/RACE_ADMINISTRATORS.md
 ---
 
-Administrátoři spravují přístupy napříč Veetrem. Jde o jiné oprávnění než správce seriálu nebo odpovědný skipper. Administrativní operace vyžadují ověření autentizační aplikací.
+Administrátoři spravují přístupy v celé platformě Veetr. Jde o jiné oprávnění než správce seriálu nebo odpovědný skipper. Administrativní operace vyžadují ověření autentizační aplikací.
 
 ## Otevření správy uživatelů
 

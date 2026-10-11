@@ -10,8 +10,8 @@ Veetr propojuje **firmware ve Veetr Vane**, **nativní aplikace pro iPhone a And
 
 | Software | Kde běží | Hlavní úkol |
 | --- | --- | --- |
-| **[Firmware](/cs/docs/firmware/)** | ESP32 uvnitř Veetru | Čte vítr, GPS a pohyb, počítá odvozené hodnoty, ukládá nastavení a poskytuje data přes BLE. |
-| **[Progresivní webová aplikace](/cs/docs/pwa/)** | Kompatibilní prohlížeč | Připojuje se k Veetru, zobrazuje přístroje, místní historii a mapu a spravuje zařízení. |
+| **[Firmware](/cs/docs/firmware/)** | ESP32 uvnitř zařízení Veetr Vane | Čte vítr, GPS a pohyb, počítá odvozené hodnoty, ukládá nastavení a poskytuje data přes BLE. |
+| **[Progresivní webová aplikace](/cs/docs/pwa/)** | Kompatibilní prohlížeč | Připojuje se k zařízení Veetr Vane, zobrazuje přístroje, místní historii a mapu a spravuje zařízení. |
 | **[Nativní aplikace](/cs/docs/native-apps/)** | iPhone a Android | Zobrazují přístroje, zaznamenávají plavby, ukazují závodní tratě a nabízejí startovní čáru a hlídání kotvy. GPS záznam funguje i bez Veetr Vane. |
 | **[Správa závodů](/cs/docs/race-guide/)** | Web Veetr | Spravuje seriály, pozvánky, tratě, rozjížďky, sledování a výsledky pro rozhodčí, jachtaře a diváky. |
 
@@ -39,6 +39,6 @@ Nativní aplikace také ukládají záznamy do telefonu. Pozvánky, živé sdíl
 ## Vyberte, co potřebujete
 
 - **Mobilní aplikace:** [popis funkcí](/cs/docs/native-apps/) nebo [ukázky a přístup k betě](/cs/docs/mobile-apps/).
-- **Používání Veetru:** začněte **[uživatelským nastavením](/cs/docs/)**, později využijte **[aktualizaci firmwaru](/cs/docs/firmware-update/)**.
+- **Používání zařízení Veetr Vane:** začněte **[uživatelským nastavením](/cs/docs/)**, později využijte **[aktualizaci firmwaru](/cs/docs/firmware-update/)**.
 - **Porozumění zařízení:** **[Firmware](/cs/docs/firmware/)** a **[PWA](/cs/docs/pwa/)**.
 - **Přispívání kódem:** **[Vývoj](/cs/docs/development/)** a **[Nastavení PlatformIO](/cs/docs/platformio/)**.

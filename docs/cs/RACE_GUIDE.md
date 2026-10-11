@@ -1,6 +1,6 @@
 ---
 title: "Správa závodů"
-description: "Vyberte si roli a zjistěte, jak ve Veetru pořádat, závodit nebo sledovat regatu."
+description: "Vyberte si roli a zjistěte, jak v aplikaci Veetr pořádat, závodit nebo sledovat regatu."
 editUrl: https://github.com/veetrlabs/veetr/edit/main/docs/cs/RACE_GUIDE.md
 ---
 
@@ -17,7 +17,7 @@ Veetr propojuje pořadatele závodů, jachtaře a diváky. Správu závodů lze 
 | Skipper | Spravuje profil a tým lodě a účastní se jejího sledování při závodech. | [Skippeři](/cs/docs/race-skippers/) |
 | Posádka | Účastní se sledování lodě, ke které patří. | [Posádka](/cs/docs/race-crew/) |
 | Divák | Prohlíží sdílené pořadí, živé mapy a dostupné záznamy. | [Diváci](/cs/docs/race-spectators/) |
-| Administrátor | Spravuje uživatele a přístupy ve Veetru po ověření autentizační aplikací. | [Administrátoři](/cs/docs/race-administrators/) |
+| Administrátor | Spravuje uživatele a přístupy v aplikaci Veetr po ověření autentizační aplikací. | [Administrátoři](/cs/docs/race-administrators/) |
 
 Role se mohou překrývat. Skipper nemá automaticky právo upravovat výsledky a rozhodčí nemá automaticky právo spravovat uživatele. Role seriálu platí pro přidělený seriál; role lodě platí pro loď ve všech závodech, kterých se účastní.
 

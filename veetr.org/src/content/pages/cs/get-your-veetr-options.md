@@ -1,7 +1,7 @@
 ---
 eyebrow: "Začněte dnes"
 title: "Co můžete udělat už teď"
-description: "Jak dnes s Veetrem stavět, plachtit a pořádat závody."
+description: "Jak dnes využít Veetr pro stavbu přístrojů, plavby a pořádání závodů."
 options:
   - title: "Sestavte vlastní Veetr"
     text: "Použijte otevřené podklady, seznam dílů a návod a sestavte vlastní zařízení."
@@ -21,4 +21,4 @@ options:
     linkText: "Odebírat novinky"
 ---
 
-Nemusíte čekat na hotový hardware. Stavte, plachtěte, uspořádejte závod nebo sledujte vývoj Veetru.
+Nemusíte čekat na hotový hardware. Stavte, plachtěte, uspořádejte závod nebo sledujte vývoj projektu Veetr.

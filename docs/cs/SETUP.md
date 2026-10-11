@@ -1,6 +1,6 @@
 ---
 title: Uživatelské nastavení
-description: Připojení telefonu, tabletu nebo notebooku k Veetru a kalibrace přístrojů.
+description: Připojení telefonu, tabletu nebo notebooku k zařízení Veetr Vane a kalibrace přístrojů.
 editUrl: https://github.com/veetrlabs/veetr/edit/main/docs/cs/SETUP.md
 ---
 

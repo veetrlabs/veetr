@@ -1,6 +1,6 @@
 ---
 title: "Pořídit Veetr Vane"
-description: "Cesta Veetru od nepájivého pole k hotovému hardwaru: co už funguje, co nás čeká a proč prodej blokuje certifikace."
+description: "Cesta zařízení Veetr Vane od nepájivého pole k hotovému hardwaru: co už funguje, co nás čeká a proč prodej blokuje certifikace."
 ---
 
 Hotový hardware Veetr Vane se zatím neprodává. Prodej blokuje certifikace a posouzení shody celého zařízení; vývoj výrobní verze a testování nás ještě čekají.

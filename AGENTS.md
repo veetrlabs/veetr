@@ -8,6 +8,7 @@
 
 # User interface guidelines
 
+- In Czech copy, keep the brand name Veetr undeclined. Rephrase naturally using words such as „aplikace Veetr“, „projekt Veetr“, or „zařízení Veetr Vane“ instead of forms such as „Veetrem“ or „Veetru“.
 - When a setting offers multiple mutually exclusive choices, use a labeled select box or platform-native picker, not a list of action buttons. Show the current selection while collapsed and clearly mark the selected option when opened.
 - Reserve buttons for actions such as Save, Start, Stop, or Test. Selecting a value must not look like running an action; keep any preview or test action separate from the selector.
 - Make actions visibly recognizable as buttons, with a filled or outlined shape, a comfortable tap target, and pressed/disabled feedback. Do not present actions such as Sign out or Request account deletion as plain text. Keep navigation links and the shared Back control visually distinct from action buttons.

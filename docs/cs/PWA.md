@@ -8,7 +8,7 @@ Progresivní webová aplikace Veetr (PWA) zobrazuje a ovládá hardware. Použí
 
 ## Funkce PWA
 
-- Přímé připojení k Veetru přes Web Bluetooth API.
+- Přímé připojení k zařízení Veetr Vane přes Web Bluetooth API.
 - Zobrazení zdánlivého a skutečného větru, rychlosti, směru, náklonu, kvality GPS, síly signálu a vzdálenosti od startovní čáry.
 - Vyhlazení pohybu přístrojů bez změny surových hodnot firmwaru.
 - Místní ukládání desetisekundových průměrů pro grafy a historii.

@@ -1,6 +1,6 @@
 ---
 title: Sdílení plavby
-description: Zaznamenejte plavbu ve Veetru a sdílejte ji živě nebo po dokončení.
+description: Zaznamenejte plavbu v aplikaci Veetr a sdílejte ji živě nebo po dokončení.
 editUrl: https://github.com/veetrlabs/veetr/edit/main/docs/cs/SHARE_YOUR_TRIP.md
 ---
 
@@ -22,7 +22,7 @@ Telefon zaznamenává GPS i bez Veetr Vane. Připojený Vane může dodat přís
 | --- | --- |
 | Soukromá | Záznam zůstává v zařízení, dokud se nerozhodnete jej sdílet. |
 | Kdokoli s odkazem | Každý příjemce odkazu jej může otevřít. Plavba není uvedena ve veřejném přehledu. |
-| Veřejná · uvedená na Veetru | Každý ji může zobrazit a objeví se v [přehledu plaveb](/cs/trips/). |
+| Veřejná · uvedená na webu Veetr | Každý ji může zobrazit a objeví se v [přehledu plaveb](/cs/trips/). |
 
 Výchozí je soukromá plavba. Sdílení odkazem není omezené na konkrétní lidi: příjemce může odkaz přeposlat.
 

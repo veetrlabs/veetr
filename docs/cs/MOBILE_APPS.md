@@ -1,6 +1,6 @@
 ---
 title: Mobilní aplikace
-description: Zaznamenávejte plavby, prohlížejte trasy a přístrojová data a závoděte s Veetrem pro Android a iPhone.
+description: Zaznamenávejte plavby, prohlížejte trasy a přístrojová data a závoděte s aplikací Veetr pro Android a iPhone.
 editUrl: https://github.com/veetrlabs/veetr/edit/main/docs/cs/MOBILE_APPS.md
 ---
 

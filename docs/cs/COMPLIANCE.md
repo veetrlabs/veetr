@@ -6,7 +6,7 @@ editUrl: https://github.com/veetrlabs/veetr/edit/main/docs/cs/COMPLIANCE.md
 
 > **Důležité:** Stránka popisuje současné porozumění projektu. Nejde o právní, regulační, technické ani certifikační poradenství.
 
-Dokument shrnuje informace o shodě a certifikacích Veetr Vane. Údaje o modulu níže **nejsou certifikací hotového Veetru**.
+Dokument shrnuje informace o shodě a certifikacích Veetr Vane. Údaje o modulu níže **nejsou certifikací hotového zařízení Veetr Vane**.
 
 ## Certifikace modulu ESP32
 

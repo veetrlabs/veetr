@@ -26,7 +26,7 @@ Se skipperem se dohodněte, který telefon bude polohu lodě odesílat. Nepřeb�
 
 ## Pozvánka pro telefon do seriálu
 
-Pokud pořadatel pošle pozvánku do seriálu, otevřete ji ve Veetru a zvolte **Připojit telefon k seriálu**. Pro danou loď a seriál stačí spárování jednou a účet není nutný. Samotné spárování nespouští GPS ani nezveřejňuje polohu.
+Pokud pořadatel pošle pozvánku do seriálu, otevřete ji v aplikaci Veetr a zvolte **Připojit telefon k seriálu**. Pro danou loď a seriál stačí spárování jednou a účet není nutný. Samotné spárování nespouští GPS ani nezveřejňuje polohu.
 
 Vyberte zveřejněný závod a až budete připraveni, stiskněte **Připraven závodit**. Po skončení závodu a dokončení synchronizace záznamu se vraťte do **Regaty → Sdílet polohu lodě** a vyberte další závod. Telefon zůstává spárovaný, takže nový odkaz nepotřebujete.
 
