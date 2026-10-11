@@ -28,7 +28,7 @@ export default function AccountSettings({ onBack }: { onBack: () => void }) {
   }, []);
   const text = { color: colors.text };
   return <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: 20, paddingTop: insets.top + 8, gap: 20 }} keyboardShouldPersistTaps="handled">
-    <Pressable accessibilityRole="button" onPress={onBack}><Text style={text}>{t("‹ Settings")}</Text></Pressable>
+    <Pressable accessibilityRole="button" onPress={onBack}><Text style={text}>{t("Back")}</Text></Pressable>
     <Text accessibilityRole="header" style={[text, { fontSize: 24, fontWeight: "700" }]}>{t("Veetr Account")}</Text>
     {!ready ? <Text style={text}>{t("Restoring account…")}</Text> : !auth ? <AccountSignIn /> : <>
       <Text style={text}>{t("Signed in as")} {auth.user.email}</Text>

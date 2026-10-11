@@ -112,7 +112,7 @@ export function TripAccountLink() {
   return (
     <Pressable
       accessibilityRole="button"
-      onPress={() => router.push("/settings")}
+      onPress={() => router.push("/account-settings")}
       style={{ minHeight: 44, justifyContent: "center" }}
     >
       <Text style={{ color: c.text }}>

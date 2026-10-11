@@ -2,7 +2,6 @@ import { requestNorthAlignment, northResultMessage } from '../../utils/northAlig
 import { t, useLanguageRefresh } from '../../i18n';
 import AnchorSettings from "../../anchor/AnchorSettings";
 import PreferencesSettings from "../../components/PreferencesSettings";
-import AccountSettings from "../../components/AccountSettings";
 import LocationSettings from "../../tracking/LocationSettings";
 import CalibrationControls from "../../components/CalibrationControls";
 import QuickGuide from "../../components/QuickGuide";
@@ -26,7 +25,6 @@ import { APP_VERSION } from "../../utils/version";
 type ViewType =
   | "anchor"
   | "preferences"
-  | "account"
   | "location"
   | "guide"
   | "main"
@@ -100,7 +98,7 @@ export default function SettingsTab() {
         accessibilityRole="button"
         accessibilityLabel={t("Veetr Account")}
         style={[styles.menuItem, { borderBottomColor: colors.border }]}
-        onPress={() => navigateTo("account")}
+        onPress={() => router.push("/account-settings")}
       >
         <Text style={[styles.menuItemText, { color: colors.text }]}>
           {t("Veetr Account")}</Text>
@@ -203,8 +201,6 @@ export default function SettingsTab() {
 
   if (currentView === "anchor") return <AnchorSettings onBack={() => navigateTo("main")} />;
 
-  if (currentView === "account")
-    return <AccountSettings onBack={() => navigateTo("main")} />;
 
   if (currentView === "guide")
     return <QuickGuide onBack={() => navigateTo("main")} />;
