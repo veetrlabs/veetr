@@ -1,4 +1,3 @@
-import type { MapRegion } from "../../maps/headingRay";
 import { formatNumber, locale, translateMessage, t, useLanguageRefresh } from '../../i18n';
 import { errorOccurredAt } from "../../tracking/errorHistory";
 import { useCallback, useMemo, useState } from "react";
@@ -6,7 +5,6 @@ import {
   Alert,
   Pressable,
   ScrollView,
-  Switch,
   Text,
   View,
   useWindowDimensions,
@@ -44,9 +42,6 @@ export default function TripDetail() {
     [busy, setBusy] = useState(false),
     [scrubbing, setScrubbing] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [chartFollowsMap, setChartFollowsMap] = useState(true);
-  const [mapRegion, setMapRegion] = useState<MapRegion>();
-  const [fitRequest, setFitRequest] = useState(0);
   useFocusEffect(
     useCallback(() => {
       let alive = true;
@@ -213,7 +208,7 @@ export default function TripDetail() {
               overflow: "hidden",
             }}
           >
-            <TripMap course={trip.session.course} points={trip.points} selected={trip.points[index]} onViewportChange={setMapRegion} fitRequest={fitRequest} />
+            <TripMap course={trip.session.course} points={trip.points} selected={trip.points[index]} />
           </View>
           <View style={{ padding: 20, gap: 24 }}>
             {trip.session.phase === "recording" && (
@@ -233,18 +228,7 @@ export default function TripDetail() {
               <Text style={{ color: c.text }}>{t("Replay race · show competitors")}</Text>
             </Pressable>}
 
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <Switch accessibilityLabel={t("Chart follows map")} value={chartFollowsMap} onValueChange={setChartFollowsMap} />
-                <Text style={{ color: c.text }}>{t("Chart follows map")}</Text>
-              </View>
-              <Pressable accessibilityRole="button" onPress={() => { setMapRegion(undefined); setFitRequest(n => n + 1); }} style={{ paddingVertical: 12 }}>
-                <Text style={{ color: "#008c80" }}>{t("Fit whole trip")}</Text>
-              </Pressable>
-            </View>
             <TripChart
-              region={chartFollowsMap ? mapRegion : undefined}
-              resetKey={fitRequest}
               points={trip.points}
               index={index}
               onSelect={setIndex}

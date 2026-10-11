@@ -690,15 +690,10 @@
   "Discovering services and characteristics: {{error}}": "Discovering services and characteristics: {{error}}",
   "Map: black line = heading · dashed = course · blue wedge = apparent wind · amber wedge = true wind. Wedges show where the wind comes from.": "Map: black line = heading · dashed = course · blue wedge = apparent wind · amber wedge = true wind. Wedges show where the wind comes from.",
   "Heading is magnetic; course is true. Wind wedges require a recorded heading.": "Heading is magnetic; course is true. Wind wedges require a recorded heading.",
-  "Chart follows map": "Chart follows map",
-  "Fit whole trip": "Fit whole trip",
   "Selected time range": "Selected time range",
-  "Route visible on map": "Route visible on map",
-  "Whole trip": "Whole trip",
   "Zoom chart out": "Zoom chart out",
   "Zoom chart in": "Zoom chart in",
   "Reset chart": "Reset chart",
-  "No recorded positions in this view. Zoom out or fit the whole trip.": "No recorded positions in this view. Zoom out or fit the whole trip.",
   "Pinch or use + and − to zoom the chart. Slide to explore your trip.": "Pinch or use + and − to zoom the chart. Slide to explore your trip.",
   "Course-up map": "Course-up map",
   "Course up": "Course up",
@@ -932,5 +927,6 @@
   "Fair": "Fair",
   "Weak": "Weak",
   "{{v0}} seconds ago": "{{v0}} seconds ago",
-  "Signal strength refreshes about every 30 seconds. A value closer to zero is stronger.": "Signal strength refreshes about every 30 seconds. A value closer to zero is stronger."
+  "Signal strength refreshes about every 30 seconds. A value closer to zero is stronger.": "Signal strength refreshes about every 30 seconds. A value closer to zero is stronger.",
+  "No recorded positions in this time range.": "No recorded positions in this time range."
 }

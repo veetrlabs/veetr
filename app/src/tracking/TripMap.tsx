@@ -14,15 +14,11 @@ export default memo(function TripMap({
   course,
   selected,
   thumbnail = false,
-  onViewportChange,
-  fitRequest = 0,
 }: {
   points: TrackingPoint[];
   course?: RaceCourse | null;
   selected?: TrackingPoint;
   thumbnail?: boolean;
-  onViewportChange?: (region: MapRegion) => void;
-  fitRequest?: number;
 }) {
   useLanguageRefresh();
   const [mapRegion, setMapRegion] = useState<MapRegion | undefined>();
@@ -47,7 +43,7 @@ export default memo(function TripMap({
   }
   useEffect(() => {
     fit();
-  }, [bounds, fitRequest]);
+  }, [bounds]);
   if (!MapView || !bounds.length)
     return (
       <View
@@ -82,7 +78,6 @@ export default memo(function TripMap({
       onMapReady={fit}
       onRegionChangeComplete={region => {
         setViewport(`${region.latitude},${region.longitude},${region.latitudeDelta},${region.longitudeDelta}`);
-        onViewportChange?.(region);
       }}
       scrollEnabled={!thumbnail}
       zoomEnabled={!thumbnail}

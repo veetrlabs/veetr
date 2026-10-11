@@ -11,7 +11,7 @@ export const chartMetrics: { key: Metric; label: string; color: string; dash?: s
 
 export function fleetChartSeries(tracks: BoatTrack[], bounds: TimeWindow, at: number) {
   const series = tracks.flatMap(track => {
-    const entries = chartEntries(track.points, undefined, bounds);
+    const entries = chartEntries(track.points, bounds);
     const points = entries.map(entry => entry.point);
     // Do not show future samples or carry stale readings through recording gaps.
     const latest = track.points.findLast(point => Date.parse(point.recordedAt) <= at);

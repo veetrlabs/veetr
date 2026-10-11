@@ -1,4 +1,3 @@
-import type { MapRegion } from "../maps/headingRay";
 import { chartEntries, zoomWindow, type TimeWindow } from "./chartWindow";
 import { formatNumber, locale, t, useLanguageRefresh } from '../i18n';
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -14,30 +13,19 @@ export default function TripChart({
   points: allPoints,
   index: selectedIndex,
   onSelect: selectOriginal,
-  region,
-  resetKey,
   onScrubbing,
-  showRangeLabel = true,
   boatTracks,
 }: {
   points: TrackingPoint[];
-  showRangeLabel?: boolean;
   boatTracks?: BoatTrack[];
-  region?: MapRegion;
-  resetKey?: number;
   index: number;
   onSelect: (index: number) => void;
   onScrubbing?: (active: boolean) => void;
 }) {
   useLanguageRefresh();
   const [window, setWindow] = useState<TimeWindow>();
-  // MapKit can repeat equivalent region notifications when the selected boat changes.
-  // Only an actual viewport change should discard a user's chart zoom.
-  const regionKey = region ? [region.latitude, region.longitude, region.latitudeDelta, region.longitudeDelta].map(n => n.toFixed(6)).join(',') : '';
-  useEffect(() => setWindow(undefined), [regionKey, resetKey]);
-  const available = useMemo(() => chartEntries(allPoints, region), [allPoints, region]);
-  const bounds: TimeWindow = [Date.parse(available[0]?.point.recordedAt || ""), Date.parse(available.at(-1)?.point.recordedAt || "")];
-  const entries = useMemo(() => chartEntries(allPoints, region, window), [allPoints, region, window]);
+  const bounds: TimeWindow = [Date.parse(allPoints[0]?.recordedAt || ""), Date.parse(allPoints.at(-1)?.recordedAt || "")];
+  const entries = useMemo(() => chartEntries(allPoints, window), [allPoints, window]);
   const points = useMemo(() => entries.map(e => e.point), [entries]);
   const originalIndices = useMemo(() => entries.map(e => e.index), [entries]);
   const index = originalIndices.indexOf(selectedIndex);
@@ -102,12 +90,12 @@ export default function TripChart({
     });
   return (
     <View style={{ gap: 12 }}>
-      {(showRangeLabel || window) && <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-        <Text style={{ color: c.textMuted, flex: 1 }}>{window ? t("Selected time range") : region ? t("Route visible on map") : t("Whole trip")}</Text>
+      {window && <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+        <Text style={{ color: c.textMuted, flex: 1 }}>{t("Selected time range")}</Text>
         {window && <Pressable accessibilityRole="button" onPress={() => setWindow(undefined)} style={{ padding: 12 }}><Text style={{ color: "#008c80" }}>{t("Reset chart")}</Text></Pressable>}
       </View>}
       {boatTracks?.length === 0 && <Text style={{ color: c.textMuted }}>{t("Turn on a boat to compare its instruments.")}</Text>}
-      {!points.length && <Text style={{ color: c.textMuted }}>{t("No recorded positions in this view. Zoom out or fit the whole trip.")}</Text>}
+      {!points.length && <Text style={{ color: c.textMuted }}>{t("No recorded positions in this time range.")}</Text>}
 
 
       <View
@@ -165,7 +153,7 @@ export default function TripChart({
           const touches = e.nativeEvent.touches || [];
           if (touches.length >= 2) {
             const distance = Math.hypot(touches[1].pageX - touches[0].pageX, touches[1].pageY - touches[0].pageY);
-            if (available.length < 2 || !distance) return;
+            if (allPoints.length < 2 || !distance) return;
             wasPinching.current = true;
             if (!pinch.current) pinch.current = { distance, window: window || bounds,
               anchor: Math.max(0, Math.min(1, ((touches[0].pageX + touches[1].pageX) / 2 - chartLeft.current - 32) / Math.max(1, width - 44))) };

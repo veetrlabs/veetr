@@ -74,7 +74,6 @@ test("own track is visible offline and seeking preserves gaps; competitors are r
   expect(ui.queryByText("Chart follows map")).toBeNull();
   expect(ui.queryByText("Fit whole trip")).toBeNull();
   expect(ui.getByTestId("trip-chart").props.region).toBeUndefined();
-  expect(ui.getByTestId("trip-chart").props.showRangeLabel).toBe(false);
   expect(ui.getByTestId("trip-chart").props.points).toHaveLength(4);
   act(() => ui.getByTestId("trip-chart").props.onSelect(3));
   expect(ui.getByTestId("fleet").props.positions[0].trailSegments).toHaveLength(

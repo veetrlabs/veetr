@@ -700,15 +700,10 @@
   "Discovering services and characteristics: {{error}}": "Vyhledávání služeb a charakteristik: {{error}}",
   "Map: black line = heading · dashed = course · blue wedge = apparent wind · amber wedge = true wind. Wedges show where the wind comes from.": "Mapa: černá čára = směr přídě · přerušovaná = kurz · modrý klín = zdánlivý vítr · oranžový = skutečný vítr. Klíny ukazují, odkud vítr přichází.",
   "Heading is magnetic; course is true. Wind wedges require a recorded heading.": "Směr přídě je magnetický; kurz je vůči skutečnému severu. Klíny větru vyžadují zaznamenaný směr přídě.",
-  "Chart follows map": "Graf sleduje mapu",
-  "Fit whole trip": "Zobrazit celou plavbu",
   "Selected time range": "Vybraný časový úsek",
-  "Route visible on map": "Trasa viditelná na mapě",
-  "Whole trip": "Celá plavba",
   "Zoom chart out": "Oddálit graf",
   "Zoom chart in": "Přiblížit graf",
   "Reset chart": "Obnovit graf",
-  "No recorded positions in this view. Zoom out or fit the whole trip.": "V tomto výřezu nejsou zaznamenané polohy. Oddalte mapu nebo zobrazte celou plavbu.",
   "Pinch or use + and − to zoom the chart. Slide to explore your trip.": "Graf přiblížíte dvěma prsty nebo tlačítky + a −. Posunem procházejte plavbu.",
   "Course-up map": "Mapa podle kurzu",
   "Course up": "Kurz nahoře",
@@ -942,5 +937,6 @@
   "Fair": "Střední",
   "Weak": "Slabý",
   "{{v0}} seconds ago": "před {{v0}} sekundami",
-  "Signal strength refreshes about every 30 seconds. A value closer to zero is stronger.": "Síla signálu se obnovuje přibližně každých 30 sekund. Hodnota blíže nule znamená silnější signál."
+  "Signal strength refreshes about every 30 seconds. A value closer to zero is stronger.": "Síla signálu se obnovuje přibližně každých 30 sekund. Hodnota blíže nule znamená silnější signál.",
+  "No recorded positions in this time range.": "V tomto časovém úseku nejsou zaznamenané polohy."
 }

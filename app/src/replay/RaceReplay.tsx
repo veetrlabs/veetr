@@ -196,7 +196,7 @@ export default function RaceReplay({
           </View>)}
         </View>
         {chartPoints.length > 0 && <TripChart points={chartPoints} index={chartIndex}
-          boatTracks={visibleBoats} showRangeLabel={false}
+          boatTracks={visibleBoats}
           onScrubbing={setScrubbing} onSelect={index => setAt(Date.parse(chartPoints[index].recordedAt))} />}
       </View>
       <Text style={{ color: c.textMuted, textAlign: "center", fontSize: 11 }}>
