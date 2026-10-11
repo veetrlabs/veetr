@@ -18,14 +18,14 @@ export default function BluetoothSignal() {
   }, [state.isConnected])
   const c = themeColors[theme]
   const rssi = state.isConnected && state.rssiUpdatedAt != null && now - state.rssiUpdatedAt < 65000 ? state.rssi : null
-  const bars = rssi == null ? 0 : rssi >= -50 ? 4 : rssi >= -70 ? 3 : rssi >= -85 ? 2 : 1
+  const bars = rssi == null ? 0 : rssi >= -70 ? 3 : rssi >= -85 ? 2 : 1
   const color = !bars ? c.textMuted : bars >= 3 ? '#22c55e' : bars === 2 ? '#f97316' : '#ef4444'
   const status = state.isConnecting ? t('Connecting...') : !state.isConnected ? t('Disconnected') : rssi == null ? t('Signal unavailable') : `${rssi} dBm`
-  return <View accessible accessibilityLabel={`${t('Bluetooth signal')}: ${status}`} style={{ position: 'absolute', top: insets.top + 4, right: Math.max(8, insets.right), alignItems: 'center', padding: 6, borderRadius: 12, backgroundColor: c.bg }}>
-    <Svg width={42} height={28} viewBox="0 0 42 28">
-      <Path d="M5 7l14 14-9 6V1l9 6L5 21" fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" />
-      {[7, 12, 17, 22].map((h, i) => <Rect key={h} x={23 + i * 5} y={26 - h} width={3} height={h} rx={1} fill={bars > i ? color : c.border} />)}
+  return <View accessible accessibilityLabel={`${t('Bluetooth signal')}: ${status}`} style={{ position: 'absolute', top: insets.top + 4, right: Math.max(8, insets.right), width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22, backgroundColor: c.bg }}>
+    <Svg width={28} height={28} viewBox="0 0 28 28">
+      <Path d="M2 5l10 7-5 4V2l5 4-10 7" fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" />
+      {[8, 13, 18].map((h, i) => <Rect key={h} x={9 + i * 6} y={26 - h} width={4} height={h} rx={1} fill={bars > i ? color : c.border} />)}
     </Svg>
-    <Text style={{ color: c.textSecondary, fontSize: 10, marginTop: 2 }}>{status}</Text>
+    <Text style={{ color: c.textSecondary, fontSize: 10, position: 'absolute', top: 44, right: 0, width: 110, textAlign: 'right' }}>{status}</Text>
   </View>
 }
