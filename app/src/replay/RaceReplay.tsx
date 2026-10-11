@@ -1,6 +1,6 @@
 import { translateMessage, locale, t, useLanguageRefresh } from '../i18n';
-import { useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Pressable, ScrollView, Switch, Text, View } from "react-native";
 import { useTheme } from "../context/ThemeContext";
 import { themeColors } from "../constants/colors";
 import TripChart from "../tracking/TripChart";
@@ -8,6 +8,7 @@ import FleetMap from "../regattas/FleetMap";
 import type { Trip } from "../tracking/trip";
 import { routeSegments } from "../tracking/trip";
 import { useReplayTracks } from "./useReplayTracks";
+import { boatColor, type BoatTrack } from "./boatTracks";
 import type { TrackingPosition } from "../regattas/positions";
 
 export default function RaceReplay({
@@ -26,7 +27,6 @@ export default function RaceReplay({
     [at, setAt] = useState(0);
   const [heatId, setHeatId] = useState<string>();
   const [hidden, setHidden] = useState<string[]>([]);
-  const [selectedBoat, setSelectedBoat] = useState<string>();
   const [scrubbing, setScrubbing] = useState(false);
   const replay = useReplayTracks(seriesId, eventId, heatId, at, competitors, true);
   const heat = replay.meta?.heats.find((h) => h.id === heatId);
@@ -72,12 +72,29 @@ export default function RaceReplay({
     return result;
   }, [competitors, replay.positions, own, points, selected, language]);
   const ownId = own?.session.boatId || own?.session.id;
-  const boats = [...new Map([
-    ...(ownId ? [[ownId, own?.session.boatName || t("Your boat")] as const] : []),
-    ...(replay.tracks ?? []).map(p => [p.boatId, p.boatName] as const),
-  ]).entries()];
-  const chartBoat = boats.some(([id]) => id === selectedBoat) ? selectedBoat : boats[0]?.[0];
-  const chartPoints = useMemo(() => chartBoat === ownId ? points : (replay.tracks ?? []).filter(p => p.boatId === chartBoat), [chartBoat, ownId, points, replay.tracks]);
+  const colors = useRef(new Map<string, string>());
+  const boats = useMemo(() => {
+    const colorFor = (id: string) => {
+      if (!colors.current.has(id)) colors.current.set(id, boatColor(id, colors.current.values()));
+      return colors.current.get(id)!;
+    };
+    const tracks = new Map<string, BoatTrack>();
+    if (ownId) tracks.set(ownId, { id: ownId, name: own?.session.boatName || t("Your boat"), color: colorFor(ownId), points });
+    if (competitors) for (const point of replay.tracks ?? []) {
+      if (point.boatId === ownId) continue;
+      let track = tracks.get(point.boatId);
+      if (!track) {
+        track = { id: point.boatId, name: point.boatName, color: colorFor(point.boatId), points: [] };
+        tracks.set(point.boatId, track);
+      }
+      track.points.push(point);
+    }
+    return [...tracks.values()].map(track => ({ ...track, points: [...track.points].sort((a, b) => Date.parse(a.recordedAt) - Date.parse(b.recordedAt)) }));
+  }, [ownId, own?.session.boatName, points, competitors, replay.tracks, language]);
+  const visibleBoats = useMemo(() => boats.filter(boat => !hidden.includes(boat.id)), [boats, hidden]);
+  // One chronological cursor drives every boat; tracks remain separate when drawn.
+  const chartPoints = useMemo(() => [...new Map(boats.flatMap(boat => boat.points).map(point => [point.recordedAt, point])).values()]
+    .sort((a, b) => Date.parse(a.recordedAt) - Date.parse(b.recordedAt)), [boats]);
   const chartIndex = Math.max(0, chartPoints.findLastIndex(p => Date.parse(p.recordedAt) <= selected));
   const button = (
     label: string,
@@ -166,33 +183,20 @@ export default function RaceReplay({
           positions={positions.filter((p) => !hidden.includes(p.boatId))}
           at={selected}
           ownBoatId={ownId}
-          route={chartPoints}
+          routes={visibleBoats}
         />
       </View>
-      <ScrollView
-        horizontal
-        style={{ maxHeight: 60 }}
-        contentContainerStyle={{ padding: 8, gap: 8 }}
-      >
-        {positions.map((p) =>
-          button(
-            `${hidden.includes(p.boatId) ? "○" : "●"} ${p.boatName}${selected - Date.parse(p.recordedAt) > 60000 ? t(" · stale") : ""}`,
-            () =>
-              setHidden((ids) =>
-                ids.includes(p.boatId)
-                  ? ids.filter((id) => id !== p.boatId)
-                  : [...ids, p.boatId],
-              ),
-          ),
-        )}
-      </ScrollView>
       <View style={{ paddingHorizontal: 20, gap: 12 }}>
-        <Text style={{ color: c.text, fontWeight: '600' }}>{t("Boat instruments")}</Text>
-        <ScrollView horizontal contentContainerStyle={{ gap: 8 }}>
-          {boats.map(([id, name]) => button(name, () => setSelectedBoat(id), false, id === chartBoat))}
-        </ScrollView>
-        {chartPoints.length > 0 && <TripChart key={chartBoat} points={chartPoints} index={chartIndex}
-          showRangeLabel={false}
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+          {boats.map(boat => <View key={boat.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={{ color: boat.color }}>●</Text>
+            <Text style={{ color: c.text }}>{boat.name}</Text>
+            <Switch accessibilityLabel={boat.name} value={!hidden.includes(boat.id)}
+              onValueChange={visible => setHidden(ids => visible ? ids.filter(id => id !== boat.id) : [...ids, boat.id])} />
+          </View>)}
+        </View>
+        {chartPoints.length > 0 && <TripChart points={chartPoints} index={chartIndex}
+          boatTracks={visibleBoats} showRangeLabel={false}
           onScrubbing={setScrubbing} onSelect={index => setAt(Date.parse(chartPoints[index].recordedAt))} />}
       </View>
       <Text style={{ color: c.textMuted, textAlign: "center", fontSize: 11 }}>

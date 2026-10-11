@@ -664,7 +664,6 @@
   "Last reported position": "Last reported position",
   "Live position": "Live position",
   ", discarded": ", discarded",
-  " · stale": " · stale",
   "Recording can continue with the screen locked.": "Recording can continue with the screen locked.",
   "Keep Veetr open. Enable background recording in Settings → Location & tracking to record with the screen locked.": "Keep Veetr open. Enable background recording in Settings → Location & tracking to record with the screen locked.",
   "Allow background location when starting to record with the screen locked.": "Allow background location when starting to record with the screen locked.",
@@ -712,7 +711,6 @@
   "Choose a boat": "Choose a boat",
   "Search boats": "Search boats",
   "No boats found": "No boats found",
-  "Boat instruments": "Boat instruments",
   "Android saves a local backup from five minutes before the planned start. Only positions inside the referee’s tracking window are shared.": "Android saves a local backup from five minutes before the planned start. Only positions inside the referee’s tracking window are shared.",
   "North alignment command sent. Check that heading settles near 0°. The device does not confirm acceptance.": "North alignment command sent. Check that heading settles near 0°. The device does not confirm acceptance.",
   "Compass quality unavailable. Update Vane firmware to 0.0.29 or later.": "Compass quality unavailable. Update Vane firmware to 0.0.29 or later.",
@@ -898,5 +896,6 @@
   "Start line end B": "Start line end B",
   "Leave to port (left)": "Leave to port (left)",
   "Leave to starboard (right)": "Leave to starboard (right)",
-  "Using the start line from your joined race. The referee manages its position.": "Using the start line from your joined race. The referee manages its position."
+  "Using the start line from your joined race. The referee manages its position.": "Using the start line from your joined race. The referee manages its position.",
+  "Turn on a boat to compare its instruments.": "Turn on a boat to compare its instruments."
 }

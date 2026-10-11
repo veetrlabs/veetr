@@ -664,7 +664,6 @@
   "Last reported position": "Poslední ohlášená poloha",
   "Live position": "Živá poloha",
   ", discarded": ", škrtnuto",
-  " · stale": " · zastaralá poloha",
   "Recording can continue with the screen locked.": "Záznam může pokračovat se zamčenou obrazovkou.",
   "Keep Veetr open. Enable background recording in Settings → Location & tracking to record with the screen locked.": "Nechte Veetr otevřený. Pro záznam při zamčené obrazovce zapněte záznam na pozadí v Nastavení → Poloha a záznam.",
   "Allow background location when starting to record with the screen locked.": "Při spouštění záznamu se zamčenou obrazovkou povolte polohu na pozadí.",
@@ -722,7 +721,6 @@
   "Choose a boat": "Vybrat loď",
   "Search boats": "Hledat lodě",
   "No boats found": "Žádné lodě nenalezeny",
-  "Boat instruments": "Přístroje lodi",
   "Android saves a local backup from five minutes before the planned start. Only positions inside the referee’s tracking window are shared.": "Android ukládá místní zálohu od pěti minut před plánovaným startem. Sdílejí se jen polohy z doby, kdy rozhodčí povolil sledování.",
   "North alignment command sent. Check that heading settles near 0°. The device does not confirm acceptance.": "Příkaz pro nastavení severu odeslán. Ověřte, že se kurz ustálí poblíž 0°. Zařízení přijetí nepotvrzuje.",
   "Compass quality unavailable. Update Vane firmware to 0.0.29 or later.": "Kvalita kompasu není dostupná. Aktualizujte firmware Vane na 0.0.29 nebo novější.",
@@ -908,5 +906,6 @@
   "Start line end B": "Konec startovní čáry B",
   "Leave to port (left)": "Minout levobokem (vlevo)",
   "Leave to starboard (right)": "Minout pravobokem (vpravo)",
-  "Using the start line from your joined race. The referee manages its position.": "Používá se startovní čára připojeného závodu. Její polohu spravuje rozhodčí."
+  "Using the start line from your joined race. The referee manages its position.": "Používá se startovní čára připojeného závodu. Její polohu spravuje rozhodčí.",
+  "Turn on a boat to compare its instruments.": "Zapněte loď pro porovnání jejích přístrojů."
 }

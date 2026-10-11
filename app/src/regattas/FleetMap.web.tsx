@@ -1,6 +1,6 @@
 import { courseRoute, startGeometry, type RaceCourse } from "../../../veetr.org/src/features/racing/course";
 import { routeSegments } from "../tracking/trip";
-import type { TrackingPoint } from "../tracking/model";
+import type { BoatTrack } from "../replay/boatTracks";
 import { distinctCourse } from "../maps/courseVector";
 import { headingRay } from "../maps/headingRay";
 import { boatBearings } from "../maps/boatSymbol";
@@ -14,20 +14,20 @@ export default function FleetMap({
   positions,
   at,
   ownBoatId,
-  route = [],
+  routes = [],
   course,
 }: {
   positions: TrackingPosition[];
   at: number;
   ownBoatId?: string;
-  route?: TrackingPoint[];
+  routes?: BoatTrack[];
   course?: RaceCourse | null;
 }) {
   useLanguageRefresh();
   const element = useRef<HTMLDivElement>(null);
   const map = useRef<Leaflet.Map | null>(null);
-  const latest = useRef({ positions, at, ownBoatId, route, course });
-  latest.current = { positions, at, ownBoatId, route, course };
+  const latest = useRef({ positions, at, ownBoatId, routes, course });
+  latest.current = { positions, at, ownBoatId, routes, course };
   const render = useRef<(() => void) | null>(null);
   useEffect(() => {
     let alive = true;
@@ -49,8 +49,10 @@ export default function FleetMap({
       let lastRouteLength = -1;
       render.current = () => {
         group.clearLayers();
-        if (lastRouteLength !== latest.current.route.length) { fitted = false; lastRouteLength = latest.current.route.length; }
-        const { positions, at, ownBoatId, route, course } = latest.current;
+        const { positions, at, ownBoatId, routes, course } = latest.current;
+        const route = routes.flatMap(track => track.points);
+        if (lastRouteLength !== route.length) { fitted = false; lastRouteLength = route.length; }
+        const colors = new Map(routes.map(track => [track.id, track.color]));
         const ends = course ? startGeometry(course) : [];
         const coursePoints = course ? [...ends, ...course.marks] : [];
         if (course) {
@@ -62,16 +64,16 @@ export default function FleetMap({
           const markers = [...ends.slice(0, course.startBearing && !course.startBearing.distanceMetres ? 1 : 2).map((p, i) => ({...p, label: i ? 'B' : 'A', color: '#805508'})), ...course.marks.map((p, i) => ({...p, label: `${i+1} ${p.rounding === 'port' ? '↶' : '↷'}`, color: p.rounding === 'port' ? '#aa292d' : '#14674c'}))];
           for (const p of markers) L.marker([p.latitude,p.longitude], {icon: L.divIcon({className: '', html: `<span style="display:grid;place-items:center;background:${p.color};color:white;border:2px solid white;border-radius:18px;width:36px;height:36px;font-weight:bold">${p.label}</span>`,iconSize:[36,36],iconAnchor:[18,18]})}).addTo(group);
         }
-        for (const segment of routeSegments(route)) {
-          if (segment.length > 1) L.polyline(segment.map(p => [p.latitude, p.longitude] as [number, number]), { color: '#3b82f6', opacity: 0.3, weight: 2, interactive: false }).addTo(group);
+        for (const track of routes) for (const segment of routeSegments(track.points)) {
+          if (segment.length > 1) L.polyline(segment.map(p => [p.latitude, p.longitude] as [number, number]), { color: track.color, opacity: 0.5, weight: 2, interactive: false }).addTo(group);
         }
         for (const p of positions) {
           const color =
             at - Date.parse(p.recordedAt) > 60000
               ? "#64748b"
-              : p.boatId === ownBoatId
+              : colors.get(p.boatId) ?? (p.boatId === ownBoatId
                 ? "#008c80"
-                : "#2563eb";
+                : "#2563eb");
           for (const segment of p.trailSegments ?? [p.trail]) {
             if (segment.length > 1) L.polyline(segment, { color }).addTo(group);
           }
@@ -93,7 +95,7 @@ export default function FleetMap({
             .bindTooltip(label, { permanent: true })
             .addTo(group);
         }
-        if ((positions.length || coursePoints.length) && !fitted) {
+        if ((route.length || positions.length || coursePoints.length) && !fitted) {
           fitted = true;
           m.fitBounds(
             [...(route.length ? route : positions), ...coursePoints].map((p) => [p.latitude, p.longitude]),
@@ -120,7 +122,7 @@ export default function FleetMap({
   }, []);
   useEffect(() => {
     render.current?.();
-  }, [positions, at, ownBoatId, route, course]);
+  }, [positions, at, ownBoatId, routes, course]);
   return createElement("div", {
     ref: element,
     style: { flex: 1, minHeight: 250 },

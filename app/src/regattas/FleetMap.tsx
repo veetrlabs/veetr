@@ -1,7 +1,7 @@
 import CourseLayer, { courseCoordinates, type RaceCourse } from "../maps/CourseLayer";
 import type { MapRegion } from "../maps/headingRay";
 import { routeSegments } from "../tracking/trip";
-import type { TrackingPoint } from "../tracking/model";
+import type { BoatTrack } from "../replay/boatTracks";
 import BoatMarker from "../maps/BoatMarker";
 import { Text, View } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
@@ -14,14 +14,14 @@ export default function FleetMap({
   positions,
   at,
   ownBoatId,
-  route = [],
+  routes = [],
   course,
   loading = false,
 }: {
   positions: TrackingPosition[];
   at: number;
   ownBoatId?: string;
-  route?: TrackingPoint[];
+  routes?: BoatTrack[];
   course?: RaceCourse | null;
   loading?: boolean;
 }) {
@@ -30,6 +30,8 @@ export default function FleetMap({
   const c = themeColors[theme];
   const [mapRegion, setMapRegion] = useState<MapRegion | undefined>();
   const ref = useRef<any>(null);
+  const route = routes.flatMap(track => track.points);
+  const colors = new Map(routes.map(track => [track.id, track.color]));
   const bounds = [...(route.length ? route : positions), ...courseCoordinates(course)];
   const fitted = useRef(false);
   useEffect(() => { fitted.current = false; }, [route.length, course]);
@@ -41,11 +43,11 @@ export default function FleetMap({
       animated: false,
     });
     fitted.current = true;
-  }, [positions, route, course]);
-  if (!bounds.length) return <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.chartBg }}>
+  }, [positions, routes, course]);
+  if (!bounds.length && !mapRegion) return <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.chartBg }}>
     <Text accessibilityRole="text" style={{ color: c.textMuted }}>{t(loading ? "Loading competitors…" : "No GPS positions")}</Text>
   </View>;
-  const initialRegion = {
+  const initialRegion = mapRegion ?? {
     latitude: bounds[0].latitude,
     longitude: bounds[0].longitude,
     latitudeDelta: 0.025,
@@ -75,7 +77,8 @@ export default function FleetMap({
         maximumZ={22}
         tileSize={256}
       />
-      {routeSegments(route).filter(segment => segment.length > 1).map((segment, i) => <Polyline key={`overview-${i}`} coordinates={segment} strokeColor="rgba(59,130,246,0.3)" strokeWidth={2} />)}
+      {routes.flatMap(track => routeSegments(track.points).filter(segment => segment.length > 1).map((segment, i) =>
+        <Polyline key={track.id + ":overview:" + i} coordinates={segment} strokeColor={track.color} strokeWidth={2} />))}
       {positions.map((p) => (
         <BoatMarker region={mapRegion ?? initialRegion}
           key={p.boatId}
@@ -86,9 +89,9 @@ export default function FleetMap({
           color={
             at - Date.parse(p.recordedAt) > 60000
               ? "#64748b"
-              : p.boatId === ownBoatId
+              : colors.get(p.boatId) ?? (p.boatId === ownBoatId
                 ? "#009688"
-                : "#3b82f6"
+                : "#3b82f6")
           }
         />
       ))}
@@ -102,7 +105,7 @@ export default function FleetMap({
                 latitude,
                 longitude,
               }))}
-              strokeColor={p.boatId === ownBoatId ? "#009688" : "#3b82f6"}
+              strokeColor={colors.get(p.boatId) ?? (p.boatId === ownBoatId ? "#009688" : "#3b82f6")}
               strokeWidth={3}
             />
           )),

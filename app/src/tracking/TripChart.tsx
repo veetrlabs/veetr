@@ -5,14 +5,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { View, Text, Pressable } from "react-native";
 import Svg, { Circle, Line, Path } from "react-native-svg";
 import type { TrackingPoint } from "./model";
-import { chartPath, metricValue, nearestPoint, type Metric } from "./trip";
+import { chartPath, metricValue, nearestPoint } from "./trip";
 import { useTheme } from "../context/ThemeContext";
 import { themeColors } from "../constants/colors";
-const series: { key: Metric; label: string; color: string }[] = [
-  { key: "sog", label: "SOG", color: "#008c80" },
-  { key: "aws", label: "AWS", color: "#3182ce" },
-  { key: "tws", label: "TWS", color: "#d68b27" },
-];
+import { chartMetrics as series, fleetChartSeries } from "./chartSeries";
+import type { BoatTrack } from "../replay/boatTracks";
 export default function TripChart({
   points: allPoints,
   index: selectedIndex,
@@ -21,9 +18,11 @@ export default function TripChart({
   resetKey,
   onScrubbing,
   showRangeLabel = true,
+  boatTracks,
 }: {
   points: TrackingPoint[];
   showRangeLabel?: boolean;
+  boatTracks?: BoatTrack[];
   region?: MapRegion;
   resetKey?: number;
   index: number;
@@ -64,17 +63,21 @@ export default function TripChart({
       ),
     [points],
   );
-  const max = useMemo(
+  const singleMax = useMemo(
     () =>
       points.reduce((largest, p) => active.reduce((value, s) => Math.max(value, metricValue(p, s.key) ?? 0), largest), 1),
     [points, active],
   );
-  const paths = useMemo(
-    () => active.map((s) => ({ ...s, path: chartPath(points, s.key, max, 320, 140, min, originalIndices, window) })),
-    [points, active, max, min, originalIndices, window],
-  );
   const start = window?.[0] ?? Date.parse(points[0]?.recordedAt),
     end = window?.[1] ?? Date.parse(points.at(-1)?.recordedAt || "");
+  const fleet = useMemo(() => boatTracks ? fleetChartSeries(boatTracks, [start, end], Date.parse(allPoints[selectedIndex]?.recordedAt)) : undefined,
+    [boatTracks, start, end, allPoints, selectedIndex]);
+  const max = fleet?.max ?? singleMax;
+  const paths = useMemo(() => fleet?.series ?? active.map(s => ({
+    ...s, id: s.key, dash: undefined,
+    value: points[index] ? metricValue(points[index], s.key) : null,
+    path: chartPath(points, s.key, max, 320, 140, min, originalIndices, window),
+  })), [fleet, active, points, index, max, min, originalIndices, window]);
   const point = points[index],
     x = point
       ? (320 * (Date.parse(point.recordedAt) - start)) /
@@ -103,6 +106,7 @@ export default function TripChart({
         <Text style={{ color: c.textMuted, flex: 1 }}>{window ? t("Selected time range") : region ? t("Route visible on map") : t("Whole trip")}</Text>
         {window && <Pressable accessibilityRole="button" onPress={() => setWindow(undefined)} style={{ padding: 12 }}><Text style={{ color: "#008c80" }}>{t("Reset chart")}</Text></Pressable>}
       </View>}
+      {boatTracks?.length === 0 && <Text style={{ color: c.textMuted }}>{t("Turn on a boat to compare its instruments.")}</Text>}
       {!points.length && <Text style={{ color: c.textMuted }}>{t("No recorded positions in this view. Zoom out or fit the whole trip.")}</Text>}
 
 
@@ -116,11 +120,11 @@ export default function TripChart({
         <Text style={{ color: c.text, fontWeight: "600" }}>{t("Speed & wind")}</Text>
         <Text style={{ color: c.textMuted, fontSize: 12 }}>{"knots"}</Text>
       </View>
-      <View style={{ flexDirection: "row", gap: 22 }}>
-        {active.map((s) => (
-          <View key={s.key} style={{ gap: 4 }}>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 22 }}>
+        {paths.map((s) => (
+          <View key={s.id} style={{ gap: 4 }}>
             <Text style={{ color: s.color, fontSize: 12, fontWeight: "600" }}>
-              ● {s.label}
+              {s.dash ? "┄" : "●"} {s.label}
             </Text>
             <Text
               style={{
@@ -130,8 +134,8 @@ export default function TripChart({
                 fontVariant: ["tabular-nums"],
               }}
             >
-              {point && metricValue(point, s.key) !== null
-                ? formatNumber(metricValue(point, s.key)!, 1)
+              {s.value !== null
+                ? formatNumber(s.value, 1)
                 : "—"}
             </Text>
           </View>
@@ -235,10 +239,11 @@ export default function TripChart({
           ))}
           {paths.map((s) => (
             <Path
-              key={s.key}
+              key={s.id}
               d={s.path}
               fill="none"
               stroke={s.color}
+              strokeDasharray={s.dash}
               strokeWidth={2}
             />
           ))}
@@ -253,13 +258,13 @@ export default function TripChart({
             />
           )}
           {point &&
-            active.map(
+            paths.map(
               (s) =>
-                metricValue(point, s.key) !== null && (
+                s.value !== null && (
                   <Circle
-                    key={s.key}
+                    key={s.id}
                     cx={x}
-                    cy={140 - (140 * (metricValue(point, s.key)! - min)) / (max - min)}
+                    cy={140 - (140 * (s.value! - min)) / (max - min)}
                     r={3.5}
                     fill={s.color}
                   />
@@ -284,7 +289,7 @@ export default function TripChart({
         }}
       >
         {point ? time(point.recordedAt) : t("No recorded positions")}
-        {point
+        {point && !boatTracks
           ? ` · ${formatNumber(point.latitude, 5)}, ${formatNumber(point.longitude, 5)}`
           : ""}
       </Text>
@@ -309,9 +314,8 @@ export default function TripChart({
       </Text>
       <Text style={{ color: c.textMuted, fontSize: 12, textAlign: "center" }}>
         {t("Pinch to zoom the chart. Slide to explore your trip.")}</Text>
-      {!points.some((p) =>
-        active.some((s) => metricValue(p, s.key) !== null),
-      ) && (
+      {(boatTracks ? boatTracks.length > 0 && !boatTracks.some(boat => boat.points.some(p => series.some(s => metricValue(p, s.key) !== null)))
+        : !points.some(p => active.some(s => metricValue(p, s.key) !== null))) && (
         <Text style={{ color: c.textMuted, fontSize: 13 }}>
           {t("No speed measurements were saved. You can still explore the recorded positions.")}</Text>
       )}

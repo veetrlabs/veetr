@@ -17,8 +17,8 @@ jest.mock("../../context/ThemeContext", () => ({
 }));
 jest.mock("../../regattas/FleetMap", () => ({
   __esModule: true,
-  default: ({ positions }: any) =>
-    require("react").createElement("View", { testID: "fleet", positions }),
+  default: (props: any) =>
+    require("react").createElement("View", { testID: "fleet", ...props }),
 }));
 jest.mock("../../tracking/TripChart", () => ({ __esModule: true, default: (props: any) => require("react").createElement("View", { ...props, testID: "trip-chart" }) }));
 jest.mock("react-native", () => ({
@@ -26,6 +26,7 @@ jest.mock("react-native", () => ({
   View: "View",
   Pressable: "View",
   ScrollView: "View",
+  Switch: "Switch",
   StyleSheet: { flatten: (s: unknown) => s },
 }));
 const start = Date.parse("2026-09-24T10:00:00Z");
@@ -93,14 +94,29 @@ test("own track is visible offline and seeking preserves gaps; competitors are r
   ui.unmount();
 });
 
-test("spectator selects a boat's shared chart and scrubs the fleet together", () => {
+test("boat switches control both the map and shared chart without changing the timeline", () => {
   const tracks = ['a', 'b'].flatMap(boatId => trip.points.map(p => ({ ...p, boatId, boatName: boatId, sessionId: boatId })));
-  (useReplayTracks as jest.Mock).mockReturnValue({ meta: { start, end: start + 125000, heats: [] }, positions: [], tracks, loading: false, error: '', retry: jest.fn() });
+  const positions = ['a', 'b'].map(boatId => ({ ...trip.points[0], boatId, boatName: boatId, trail: [] }));
+  (useReplayTracks as jest.Mock).mockReturnValue({ meta: { start, end: start + 125000, heats: [] }, positions, tracks, loading: false, error: '', retry: jest.fn() });
   const ui = render(<RaceReplay seriesId="series" eventId="event" />);
-  fireEvent.press(ui.getByText('b'));
-  const chart = ui.getByTestId('trip-chart');
-  expect(chart.props.points.every((p: any) => p.boatId === 'b')).toBe(true);
-  act(() => chart.props.onSelect(2));
+  expect(ui.queryByText("Boat instruments")).toBeNull();
+  const chart = () => ui.getByTestId('trip-chart');
+  expect(chart().props.boatTracks.map((b: any) => b.id)).toEqual(['a', 'b']);
+  expect(ui.getAllByText('a')).toHaveLength(1);
+  act(() => chart().props.onSelect(2));
   expect(useReplayTracks).toHaveBeenLastCalledWith('series', 'event', undefined, start + 120000, true, true);
+  fireEvent(ui.getByLabelText('a'), 'valueChange', false);
+  expect(chart().props.boatTracks.map((b: any) => b.id)).toEqual(['b']);
+  expect(ui.getByTestId('fleet').props.positions.map((p: any) => p.boatId)).toEqual(['b']);
+  expect(ui.getByTestId('fleet').props.routes.map((b: any) => b.id)).toEqual(['b']);
+  expect(chart().props.index).toBe(2);
+  fireEvent(ui.getByLabelText('b'), 'valueChange', false);
+  expect(chart().props.boatTracks).toEqual([]);
+  expect(ui.getByTestId('fleet').props.positions).toEqual([]);
+  expect(ui.getByLabelText('a').props.value).toBe(false);
+  expect(ui.getByLabelText('b').props.value).toBe(false);
+  fireEvent(ui.getByLabelText('a'), 'valueChange', true);
+  expect(chart().props.boatTracks.map((b: any) => b.id)).toEqual(['a']);
+  expect(chart().props.index).toBe(2);
   ui.unmount();
 });
