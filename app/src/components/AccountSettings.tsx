@@ -28,12 +28,14 @@ export default function AccountSettings({ onBack }: { onBack: () => void }) {
     return () => { live = false; subscription.unsubscribe(); };
   }, []);
   const text = { color: colors.text };
+  const actionStyle = { minHeight: 48, justifyContent: 'center' as const, padding: 16, borderRadius: 12, backgroundColor: colors.buttonBg, borderWidth: 1, borderColor: colors.border };
   return <ScrollView style={{ flex: 1, backgroundColor: colors.bg }} contentContainerStyle={{ padding: 20, paddingTop: insets.top + 8, gap: 20 }} keyboardShouldPersistTaps="handled">
     <BackButton onPress={onBack} />
     <Text accessibilityRole="header" style={[text, { fontSize: 24, fontWeight: "700" }]}>{t("Veetr Account")}</Text>
     {!ready ? <Text style={text}>{t("Restoring account…")}</Text> : !auth ? <AccountSignIn /> : <>
       <Text style={text}>{t("Signed in as")} {auth.user.email}</Text>
-      <Pressable accessibilityRole="button" disabled={busy} onPress={async () => {
+      <Pressable accessibilityRole="button" accessibilityState={{ disabled: busy, busy }} disabled={busy}
+        style={({ pressed }) => [actionStyle, { opacity: busy || pressed ? 0.5 : 1 }]} onPress={async () => {
         setBusy(true); setError("");
         try {
           const session = await (await trackingStore()).get();
@@ -44,7 +46,7 @@ export default function AccountSettings({ onBack }: { onBack: () => void }) {
         finally { setBusy(false); }
       }}><Text style={text}>{busy ? t("Signing out…") : t("Sign out")}</Text></Pressable>
     </>}
-    <Pressable accessibilityRole="link" onPress={() => {
+    <Pressable accessibilityRole="button" style={({ pressed }) => [actionStyle, { opacity: pressed ? 0.5 : 1 }]} onPress={() => {
       const site = (process.env.EXPO_PUBLIC_SITE_URL || "https://veetr.org").replace(/\/$/, "");
       void Linking.openURL(`${site}/legal/delete-account/`).catch(() => setError("Could not open the deletion page. Contact veetr@linhart.email to request account deletion."));
     }}><Text style={text}>{t("Request account deletion")}</Text></Pressable>
