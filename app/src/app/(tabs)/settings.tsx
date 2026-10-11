@@ -9,7 +9,7 @@ import QuickGuide from "../../components/QuickGuide";
 import RegattaSettings from "../../components/RegattaSettings";
 import BluetoothSettings from "../../components/BluetoothSettings";
 import { useCallback, useState } from "react";
-import { useFocusEffect } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import {
   View,
   Text,
@@ -95,6 +95,9 @@ export default function SettingsTab() {
     <>
       <Text style={[styles.pageTitle, { color: colors.text }]}>{t("Settings")}</Text>
 
+      <TouchableOpacity accessibilityRole="button" style={[styles.menuItem, { borderBottomColor: colors.border }]} onPress={() => router.push("/my-boats")}>
+        <Text style={[styles.menuItemText, { color: colors.text }]}>{t("My boats")}</Text>
+      </TouchableOpacity>
       <TouchableOpacity
         accessibilityRole="button"
         accessibilityLabel={t("Veetr Account")}

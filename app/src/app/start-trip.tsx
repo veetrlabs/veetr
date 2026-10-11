@@ -1,8 +1,8 @@
 import { translateMessage, t, useLanguageRefresh } from '../i18n';
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { Pressable, ScrollView, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { trackingClient } from "../tracking/client";
 import {
@@ -14,6 +14,7 @@ import {
 import { TripOptions, TripAccountLink } from "../tracking/TripOptions";
 import { trackingStore } from "../tracking/database";
 import { rememberTripBoat } from "../tracking/recentTripBoats";
+import { activePrivateBoat, type PrivateBoat } from "../boats/privateBoats";
 import TripBoatPicker from "../tracking/TripBoatPicker";
 import { startLocalTracking } from "../tracking/service";
 import { useTheme } from "../context/ThemeContext";
@@ -26,9 +27,12 @@ export default function StartTrip() {
     [visibility, setVisibility] = useState<TripVisibility>("private"),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
-  useEffect(() => {
+  const [privateBoat, setPrivateBoat] = useState<PrivateBoat>();
+  useFocusEffect(useCallback(() => {
     let alive = true;
     void (async () => {
+      const local = await activePrivateBoat();
+      if (alive) setPrivateBoat(local);
       const auth = await trackingClient?.auth.getSession();
       if (!auth?.data.session) return;
       const key = `veetr-last-trip-boat:${auth.data.session.user.id}`;
@@ -39,7 +43,7 @@ export default function StartTrip() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, []));
   async function start() {
     setBusy(true);
     setError("");
@@ -51,14 +55,14 @@ export default function StartTrip() {
           throw new Error("Sign in before sharing a trip.");
         if (!boat) throw new Error("Choose a boat before sharing.");
       }
-      startedId = await startLocalTracking(boat);
+      startedId = await startLocalTracking(visibility === "private" && privateBoat ? { ...privateBoat, localOnly: true } : boat);
       await (
         await trackingStore()
       ).updateTrip(startedId, { tripTitle: title.trim() || t("My sailing trip") });
       if (visibility !== "private")
         await setTripSharing(startedId, visibility, title);
       const auth = await trackingClient?.auth.getSession();
-      if (boat && auth?.data.session)
+      if (boat && !(visibility === "private" && privateBoat) && auth?.data.session)
         await rememberTripBoat(boat.id).catch(() => {});
       if (visibility === "private") router.back();
       else
@@ -88,7 +92,10 @@ export default function StartTrip() {
           {t("Start a trip")}</Text>
         <Text style={{ color: c.textMuted }}>
           {t("Choose your boat and who can watch. Private trips stay on this device.")}</Text>
-        <TripBoatPicker selected={boat?.id} onSelect={setBoat} />
+        {visibility === "private" && privateBoat ? <>
+          <Text style={{ color: c.text }}>{t("Boat for this trip")}: {privateBoat.name}</Text>
+          <Pressable accessibilityRole="button" onPress={() => router.push("/my-boats")}><Text style={{ color: c.text }}>{t("My boats")} ›</Text></Pressable>
+        </> : <TripBoatPicker selected={boat?.id} onSelect={setBoat} />}
         <TripOptions
           title={title}
           onTitle={setTitle}

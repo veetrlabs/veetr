@@ -901,5 +901,17 @@
   "Choose a race below, then press Ready to race to join.": "Choose a race below, then press Ready to race to join.",
   "Join {{v0}}": "Join {{v0}}",
   "Join race": "Join race",
-  "My boat": "My boat"
+  "My boat": "My boat",
+  "My boats": "My boats",
+  "Create private boat": "Create private boat",
+  "Boat class": "Boat class",
+  "Sail number": "Sail number",
+  "Private \u00b7 saved only on this device. Nothing is published.": "Private · saved only on this device. Nothing is published.",
+  "Private boats stay on this device. Series invitations connect you to a race boat without granting ownership.": "Private boats stay on this device. Series invitations connect you to a race boat without granting ownership.",
+  "Active boat for private trips": "Active boat for private trips",
+  "No boat selected": "No boat selected",
+  "Invited races": "Invited races",
+  "Race access only. Boat names, results and shared race tracks are visible to spectators. Private trips remain private.": "Race access only. Boat names, results and shared race tracks are visible to spectators. Private trips remain private.",
+  "Open your series invitation on this device to see your boat and join a race.": "Open your series invitation on this device to see your boat and join a race.",
+  "Join with invitation": "Join with invitation"
 }

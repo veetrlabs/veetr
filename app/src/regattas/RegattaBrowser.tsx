@@ -148,7 +148,8 @@ export default function RegattaBrowser({ onShare }: { onShare?: () => void } = {
         </> : <Text style={{ color: c.text }}>{t("This invitation has expired or been revoked. Ask the referee for a new link.")}</Text>}
       </View>}
       {!!joinedError && <Text accessibilityRole="alert" style={{ color: c.text }}>{translateMessage(joinedError)}</Text>}
-      {onShare && button(joined ? t("My boat") : t("My boat · join with invitation"), onShare)}
+      {button(t("My boats"), () => router.push("/my-boats"))}
+      {onShare && !joined && button(t("Join with invitation"), onShare)}
       <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
         {(["All", "Live", "Upcoming", "Past"] as RegattaFilter[]).map((f) =>
           button(t(f), () => setFilter(f), filter === f),

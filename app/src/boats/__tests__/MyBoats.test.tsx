@@ -1,0 +1,34 @@
+import React from "react";
+import { fireEvent, render, waitFor } from "@testing-library/react-native";
+import { router } from "expo-router";
+import MyBoats from "../../app/my-boats";
+import { privateFleet, savePrivateBoat } from "../privateBoats";
+jest.mock("expo-router", () => ({ router: { push: jest.fn(), back: jest.fn() }, useFocusEffect: (fn: any) => require("react").useEffect(fn, [fn]) }));
+jest.mock("react-native", () => ({ Text: "Text", TextInput: "TextInput", View: "View", ScrollView: "View", Pressable: "View", StyleSheet: { flatten: (s: unknown) => s } }));
+jest.mock("react-native-safe-area-context", () => ({ SafeAreaView: "View" }));
+jest.mock("../../context/ThemeContext", () => ({ useTheme: () => ({ theme: "light" }) }));
+jest.mock("../privateBoats", () => ({ privateFleet: jest.fn(), savePrivateBoat: jest.fn(), selectPrivateBoat: jest.fn() }));
+jest.mock("../../tracking/seriesPhone", () => ({
+  savedSeriesPhone: async () => ({ linkId: "link", boatName: "Luna", seriesName: "Series", valid: true, races: [{ eventId: "race", raceName: "Sunday" }] }),
+  seriesPhoneStatus: async () => ({ linkId: "link", boatName: "Luna", seriesName: "Series", valid: true, races: [{ eventId: "race", raceName: "Sunday" }] }),
+}));
+test("shows invitation access separately and opens the selected race without starting tracking", async () => {
+  (privateFleet as jest.Mock).mockResolvedValue({ boats: [] });
+  const ui = render(<MyBoats />);
+  await waitFor(() => expect(ui.getByText("Luna")).toBeTruthy());
+  fireEvent.press(ui.getByText("Join Sunday"));
+  expect(router.push).toHaveBeenCalledWith({ pathname: "/race-phone", params: { eventId: "race" } });
+  ui.unmount();
+});
+test("private details save on blur", async () => {
+  const boat = { id: "private", name: "Dawn", className: "", sailNumber: "" };
+  (privateFleet as jest.Mock).mockResolvedValue({ boats: [boat], activeId: boat.id });
+  (savePrivateBoat as jest.Mock).mockResolvedValue({ boats: [{ ...boat, name: "Dawn II" }], activeId: boat.id });
+  const ui = render(<MyBoats />);
+  await waitFor(() => expect(ui.getByText("Dawn")).toBeTruthy());
+  fireEvent.press(ui.getByText("Dawn"));
+  fireEvent.changeText(ui.getByLabelText("Boat name"), "Dawn II");
+  fireEvent(ui.getByLabelText("Boat name"), "blur");
+  await waitFor(() => expect(savePrivateBoat).toHaveBeenCalledWith({ ...boat, name: "Dawn II" }));
+  ui.unmount();
+});

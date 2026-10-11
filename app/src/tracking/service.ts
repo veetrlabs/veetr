@@ -316,7 +316,7 @@ export function syncTracking(force = false): Promise<void> {
   });
   return syncing;
 }
-export const startLocalTracking = (boat?: {id:string;name:string}) =>
+export const startLocalTracking = (boat?: {id:string;name:string;localOnly?:boolean}) =>
   serialize(async () => {
     const store = await trackingStore();
     let previous = await store.get();
@@ -335,15 +335,15 @@ export const startLocalTracking = (boat?: {id:string;name:string}) =>
     await requestPermissions(true);
     if (previous) await store.archiveLocal();
     const now = Date.now();
-    const auth = boat ? await trackingClient?.auth.getSession() : null;
+    const auth = boat && !boat.localOnly ? await trackingClient?.auth.getSession() : null;
     const userId = auth?.data.session?.user.id ?? "";
-    if (boat && !userId) throw new Error("Sign in to select a boat.");
+    if (boat && !boat.localOnly && !userId) throw new Error("Sign in to select a boat.");
     const id = Crypto.randomUUID();
     await store.create({
       id,
       mode: "local",
       userId,
-      boatId: boat?.id ?? "",
+      boatId: boat?.localOnly ? "" : boat?.id ?? "",
       boatName: boat?.name ?? t("Local GPS recording"),
       seriesId: "",
       seriesName: "",

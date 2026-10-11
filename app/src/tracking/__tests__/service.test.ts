@@ -628,3 +628,9 @@ test('an invalid speed in an existing race outbox cannot block valid positions',
   expect(corrupt.sogMps).toBe(745.6872231584739);
   expect(points).toHaveLength(0);
 });
+
+test("a device-private boat records its name without a public boat identity or account", async () => {
+  session = null;
+  await startLocalTracking({ id: "private-id", name: "Private Luna", localOnly: true });
+  expect(session).toMatchObject({ mode: "local", boatId: "", boatName: "Private Luna", userId: "" });
+});
