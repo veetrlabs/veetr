@@ -93,7 +93,7 @@ test("own track is visible offline and seeking preserves gaps; competitors are r
   ui.unmount();
 });
 
-test("boat switches control both the map and shared chart without changing the timeline", () => {
+test("boat chips control both the map and shared chart without changing the timeline", () => {
   const tracks = ['a', 'b'].flatMap(boatId => trip.points.map(p => ({ ...p, boatId, boatName: boatId, sessionId: boatId })));
   const positions = ['a', 'b'].map(boatId => ({ ...trip.points[0], boatId, boatName: boatId, trail: [] }));
   (useReplayTracks as jest.Mock).mockReturnValue({ meta: { start, end: start + 125000, heats: [] }, positions, tracks, loading: false, error: '', retry: jest.fn() });
@@ -104,17 +104,17 @@ test("boat switches control both the map and shared chart without changing the t
   expect(ui.getAllByText('a')).toHaveLength(1);
   act(() => chart().props.onSelect(2));
   expect(useReplayTracks).toHaveBeenLastCalledWith('series', 'event', undefined, start + 120000, true, true);
-  fireEvent(ui.getByLabelText('a'), 'valueChange', false);
+  fireEvent.press(ui.getByLabelText('a'));
   expect(chart().props.boatTracks.map((b: any) => b.id)).toEqual(['b']);
   expect(ui.getByTestId('fleet').props.positions.map((p: any) => p.boatId)).toEqual(['b']);
   expect(ui.getByTestId('fleet').props.routes.map((b: any) => b.id)).toEqual(['b']);
   expect(chart().props.index).toBe(2);
-  fireEvent(ui.getByLabelText('b'), 'valueChange', false);
+  fireEvent.press(ui.getByLabelText('b'));
   expect(chart().props.boatTracks).toEqual([]);
   expect(ui.getByTestId('fleet').props.positions).toEqual([]);
-  expect(ui.getByLabelText('a').props.value).toBe(false);
-  expect(ui.getByLabelText('b').props.value).toBe(false);
-  fireEvent(ui.getByLabelText('a'), 'valueChange', true);
+  expect(ui.getByLabelText('a').props.accessibilityState.checked).toBe(false);
+  expect(ui.getByLabelText('b').props.accessibilityState.checked).toBe(false);
+  fireEvent.press(ui.getByLabelText('a'));
   expect(chart().props.boatTracks.map((b: any) => b.id)).toEqual(['a']);
   expect(chart().props.index).toBe(2);
   ui.unmount();

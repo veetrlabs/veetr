@@ -1,6 +1,6 @@
 import { translateMessage, locale, t, useLanguageRefresh } from '../i18n';
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, ScrollView, Switch, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { useTheme } from "../context/ThemeContext";
 import { themeColors } from "../constants/colors";
 import TripChart from "../tracking/TripChart";
@@ -187,13 +187,18 @@ export default function RaceReplay({
         />
       </View>
       <View style={{ paddingHorizontal: 20, gap: 12 }}>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-          {boats.map(boat => <View key={boat.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Text style={{ color: boat.color }}>●</Text>
-            <Text style={{ color: c.text }}>{boat.name}</Text>
-            <Switch accessibilityLabel={boat.name} value={!hidden.includes(boat.id)}
-              onValueChange={visible => setHidden(ids => visible ? ids.filter(id => id !== boat.id) : [...ids, boat.id])} />
-          </View>)}
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          {boats.map(boat => {
+            const visible = !hidden.includes(boat.id);
+            return <Pressable key={boat.id} accessible accessibilityRole="checkbox"
+              accessibilityLabel={boat.name} accessibilityState={{ checked: visible }}
+              onPress={() => setHidden(ids => ids.includes(boat.id) ? ids.filter(id => id !== boat.id) : [...ids, boat.id])}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 44, maxWidth: '100%',
+                paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, backgroundColor: c.buttonBg }}>
+              <Text style={{ color: visible ? boat.color : c.textMuted, fontSize: 18 }}>{visible ? '●' : '○'}</Text>
+              <Text style={{ color: c.text, flexShrink: 1 }}>{boat.name}</Text>
+            </Pressable>;
+          })}
         </View>
         {chartPoints.length > 0 && <TripChart points={chartPoints} index={chartIndex}
           boatTracks={visibleBoats}
