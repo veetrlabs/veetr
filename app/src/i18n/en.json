@@ -918,5 +918,19 @@
   "Use for private trips": "Use for private trips",
   "Delete boat": "Delete boat",
   "Delete {{v0}} from this device? Recorded trips will be kept.": "Delete {{v0}} from this device? Recorded trips will be kept.",
-  "Done": "Done"
+  "Done": "Done",
+  "Open Bluetooth settings": "Open Bluetooth settings",
+  "Signal strength": "Signal strength",
+  "Signal measured": "Signal measured",
+  "Last data received": "Last data received",
+  "Waiting for data": "Waiting for data",
+  "Connected since": "Connected since",
+  "Device identifier": "Device identifier",
+  "Bluetooth packet size (MTU)": "Bluetooth packet size (MTU)",
+  "bytes": "bytes",
+  "Strong": "Strong",
+  "Fair": "Fair",
+  "Weak": "Weak",
+  "{{v0}} seconds ago": "{{v0}} seconds ago",
+  "Signal strength refreshes about every 30 seconds. A value closer to zero is stronger.": "Signal strength refreshes about every 30 seconds. A value closer to zero is stronger."
 }

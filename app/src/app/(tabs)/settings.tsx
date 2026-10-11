@@ -7,7 +7,6 @@ import LocationSettings from "../../tracking/LocationSettings";
 import CalibrationControls from "../../components/CalibrationControls";
 import QuickGuide from "../../components/QuickGuide";
 import RegattaSettings from "../../components/RegattaSettings";
-import BluetoothSettings from "../../components/BluetoothSettings";
 import { useCallback, useState } from "react";
 import { router, useFocusEffect } from "expo-router";
 import {
@@ -30,7 +29,6 @@ type ViewType =
   | "account"
   | "location"
   | "guide"
-  | "bluetooth"
   | "main"
   | "regatta"
   | "calibration";
@@ -113,7 +111,7 @@ export default function SettingsTab() {
         accessibilityRole="button"
         accessibilityLabel={t("Bluetooth settings")}
         style={[styles.menuItem, { borderBottomColor: colors.border }]}
-        onPress={() => navigateTo("bluetooth")}
+        onPress={() => router.push("/bluetooth-settings")}
       >
         <Text style={[styles.menuItemText, { color: colors.text }]}>
           {t("Bluetooth settings")}</Text>
@@ -215,12 +213,10 @@ export default function SettingsTab() {
     return (
       <RegattaSettings
         onBack={() => navigateTo("main")}
-        onBluetooth={() => navigateTo("bluetooth")}
+        onBluetooth={() => router.push("/bluetooth-settings")}
       />
     );
 
-  if (currentView === "bluetooth")
-    return <BluetoothSettings onBack={() => navigateTo("main")} />;
 
   return (
     <View

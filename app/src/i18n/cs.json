@@ -928,5 +928,19 @@
   "Use for private trips": "Použít pro soukromé plavby",
   "Delete boat": "Smazat loď",
   "Delete {{v0}} from this device? Recorded trips will be kept.": "Smazat {{v0}} z tohoto zařízení? Zaznamenané plavby zůstanou zachovány.",
-  "Done": "Hotovo"
+  "Done": "Hotovo",
+  "Open Bluetooth settings": "Otevřít nastavení Bluetooth",
+  "Signal strength": "Síla signálu",
+  "Signal measured": "Signál změřen",
+  "Last data received": "Poslední přijatá data",
+  "Waiting for data": "Čekání na data",
+  "Connected since": "Připojeno od",
+  "Device identifier": "Identifikátor zařízení",
+  "Bluetooth packet size (MTU)": "Velikost paketu Bluetooth (MTU)",
+  "bytes": "bajtů",
+  "Strong": "Silný",
+  "Fair": "Střední",
+  "Weak": "Slabý",
+  "{{v0}} seconds ago": "před {{v0}} sekundami",
+  "Signal strength refreshes about every 30 seconds. A value closer to zero is stronger.": "Síla signálu se obnovuje přibližně každých 30 sekund. Hodnota blíže nule znamená silnější signál."
 }

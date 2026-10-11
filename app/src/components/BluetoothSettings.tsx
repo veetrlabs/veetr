@@ -1,3 +1,4 @@
+import BluetoothDetails from './BluetoothDetails';
 import VaneDiagnostics from '../diagnostics/VaneDiagnostics';
 import { FirmwareUpdateCard } from './cards/FirmwareUpdateCard';
 import { translateMessage, t, useLanguageRefresh } from '../i18n';
@@ -16,8 +17,8 @@ export default function BluetoothSettings({ onBack }: { onBack: () => void }) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg, paddingTop: insets.top + 8 }]}>
-      <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("Back to Settings")} onPress={onBack} style={{ paddingVertical: 8 }}>
-        <Text style={{ color: colors.text, fontSize: 16 }}>{t("‹ Settings")}</Text>
+      <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("Back")} onPress={onBack} style={{ paddingVertical: 8 }}>
+        <Text style={{ color: colors.text, fontSize: 16 }}>{t("Back")}</Text>
       </TouchableOpacity>
       <Text style={[styles.title, { color: colors.text }]}>{t("Bluetooth settings")}</Text>
 
@@ -30,7 +31,9 @@ export default function BluetoothSettings({ onBack }: { onBack: () => void }) {
             </Text>
           </View>
 
+          <BluetoothDetails />
           <TouchableOpacity
+            accessibilityRole="button"
             style={[styles.bigBtn, state.isConnected ? styles.disconnectBtn : styles.connectBtn]}
             onPress={() => state.isConnected ? disconnect() : connect()}
             disabled={state.isConnecting}

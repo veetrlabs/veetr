@@ -92,6 +92,7 @@ interface SensorReading {
 }
 
 export interface BLEState {
+  connectionDetails?: { deviceId: string; mtu: number | null; connectedAt: number } | null
   rssi: number | null
   rssiUpdatedAt: number | null
   isConnected: boolean
@@ -106,7 +107,7 @@ export interface BLEState {
 type BLEAction =
   | { type: 'UPDATE_RSSI'; payload: number | null }
   | { type: 'CONNECT_START' }
-  | { type: 'CONNECT_SUCCESS' }
+  | { type: 'CONNECT_SUCCESS'; payload?: BLEState['connectionDetails'] }
   | { type: 'CONNECT_ERROR'; payload: string }
   | { type: 'DISCONNECT' }
   | { type: 'UPDATE_DATA'; payload: Partial<SailingData> }
@@ -171,13 +172,13 @@ function bleReducer(state: BLEState, action: BLEAction): BLEState {
     case 'CONNECT_START':
       return { ...state, isConnecting: true, error: null }
     case 'CONNECT_SUCCESS':
-      return { ...state, isConnecting: false, isConnected: true, error: null }
+      return { ...state, isConnecting: false, isConnected: true, error: null, connectionDetails: action.payload ?? null }
     case 'CONNECT_ERROR':
       return { ...state, isConnecting: false, error: action.payload }
     case 'DISCONNECT':
       return {
         ...state, isConnected: false, isConnecting: false,
-        error: null, lastMessageTime: null, deviceName: null, rssi: null, rssiUpdatedAt: null,
+        error: null, connectionDetails: null, lastMessageTime: null, deviceName: null, rssi: null, rssiUpdatedAt: null,
         sailingData: { ...initialState.sailingData }
       }
     case 'UPDATE_DATA':
@@ -379,10 +380,11 @@ export function BLEProvider({ children }: { children: ReactNode }) {
 
       recordBleDiagnostic('discover', 'success')
       // CoreBluetooth negotiates MTU itself. Android exposes requestMTU.
+      let connectionMtu = connectedDevice.mtu
       if (Platform.OS === 'android') {
         try {
           recordBleDiagnostic('mtu', 'start')
-          await connectedDevice.requestMTU(512)
+          connectionMtu = (await connectedDevice.requestMTU(512)).mtu
           recordBleDiagnostic('mtu', 'success')
         } catch (error) { recordBleDiagnostic('mtu', 'error', error) }
         checkCancelled()
@@ -460,7 +462,7 @@ export function BLEProvider({ children }: { children: ReactNode }) {
       console.info('[BLE] Connected; sensor notifications registered')
       recordBleDiagnostic('connected', 'success')
       retryAttemptRef.current = 0
-      dispatch({ type: 'CONNECT_SUCCESS' })
+      dispatch({ type: 'CONNECT_SUCCESS', payload: { deviceId: connectedDevice.id, mtu: Number.isFinite(connectionMtu) ? connectionMtu : null, connectedAt: Date.now() } })
       let readingRssi = false
       const pollRssi = async () => {
         if (readingRssi || signal.aborted || connectedDeviceRef.current !== connectedDevice) return
