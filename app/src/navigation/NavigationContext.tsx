@@ -1,3 +1,5 @@
+import { joinedStartLine } from './joinedStartLine';
+import { savedRacePhone, type RacePhone } from '../tracking/racePhone';
 import { createForegroundPermissionAccess } from "./foregroundPermission";
 import { usePhoneMotion } from './usePhoneMotion';
 import { reportDiagnostic } from '../diagnostics/service';
@@ -32,13 +34,14 @@ const Context = createContext<ReturnType<typeof useNavigationState> | null>(
 );
 function useNavigationState() {
   const { state } = useBLE();
-  const phoneStartLine = usePhoneStartLine();
+  const [racePhone, setRacePhone] = useState<RacePhone | null>(null);
   const phoneHeading = usePhoneHeading();
   usePhoneMotion();
   const [phone, setPhone] = useState<TrackingPoint | null>(null);
   const [session, setSession] = useState<TrackingSession | null>(null);
   const [trail, setTrail] = useState<TrackingPoint[]>([]);
   const [now, setNow] = useState(Date.now());
+  const phoneStartLine = usePhoneStartLine(joinedStartLine(racePhone, session, now));
   const [permission, setPermission] = useState(false);
   const [error, setError] = useState("");
   useEffect(() => {
@@ -104,7 +107,8 @@ function useNavigationState() {
       setNow(Date.now());
       void trackingStore()
         .then(async (s) => {
-          const value = await s.get();
+          const [value, joined] = await Promise.all([s.get(), savedRacePhone()]);
+          if (alive) setRacePhone(joined);
           const key = `${value?.id}/${value?.lastRecordedAt}/${value?.phase}`;
           if (key !== trailKey) {
             const points = value ? await s.points(value.id) : [];

@@ -25,7 +25,7 @@ export default function RegattaSettings({ onBack, onBluetooth }: { onBack: () =>
   const [notice, setNotice] = useState('')
   const [clearSide, setClearSide] = useState<Side | null>(null)
   const d = state.sailingData
-  const gpsReady = deviceMode ? deviceFresh && !!d.gpsValid && valid(d.lat, d.lon) : nav.permission && phoneStartLine.loaded && canCapturePhone(nav.phonePoint)
+  const gpsReady = !phoneStartLine.fromRace && (deviceMode ? deviceFresh && !!d.gpsValid && valid(d.lat, d.lon) : nav.permission && phoneStartLine.loaded && canCapturePhone(nav.phonePoint))
   const portLat = deviceMode ? d.portLat : phoneStartLine.line.port?.latitude ?? null
   const portLon = deviceMode ? d.portLon : phoneStartLine.line.port?.longitude ?? null
   const starboardLat = deviceMode ? d.starboardLat : phoneStartLine.line.starboard?.latitude ?? null
@@ -41,7 +41,7 @@ export default function RegattaSettings({ onBack, onBluetooth }: { onBack: () =>
   }, [state.isConnected, sendCommand])
 
   async function command(side: Side, clear = false) {
-    if (busy || (!clear && !gpsReady)) return
+    if (phoneStartLine.fromRace || busy || (!clear && !gpsReady)) return
     setBusy(true); setNotice(''); setClearSide(null)
     try {
       if (!deviceMode) {
@@ -61,7 +61,7 @@ export default function RegattaSettings({ onBack, onBluetooth }: { onBack: () =>
       <Pressable accessibilityRole="button" accessibilityLabel={t("Back to Settings")} onPress={onBack} style={styles.back}><Text style={{ color: c.textSecondary }}>{t("‹ Settings")}</Text></Pressable>
       <Text style={[styles.eyebrow, { color: c.textMuted }]}>{t("REGATTA")}</Text>
       <Text accessibilityRole="header" style={[styles.title, { color: c.text }]}>{t("Set your start line")}</Text>
-      <Text style={[styles.body, { color: c.textSecondary }]}>{t("Sail to each end, then capture its position using {{source}}. You can set either end first.", { source })}</Text>
+      <Text style={[styles.body, { color: c.textSecondary }]}>{phoneStartLine.fromRace ? t("Using the start line from your joined race. The referee manages its position.") : t("Sail to each end, then capture its position using {{source}}. You can set either end first.", { source })}</Text>
 
       <View style={[styles.diagram, { backgroundColor: c.panelBg, borderColor: c.border }]}>
         <View style={styles.row}><Text style={[styles.bold, { color: c.text }]}>{t("Start line")}</Text><Text style={{ color: c.textSecondary }}>{count}  {t("of 2 ends set")}</Text></View>
@@ -82,7 +82,7 @@ export default function RegattaSettings({ onBack, onBluetooth }: { onBack: () =>
         <Pressable accessibilityRole="button" accessibilityLabel={`${saved[i] ? t("Capture again") : t("Capture")} ${m.title.toLowerCase()}`} disabled={!gpsReady || busy} onPress={() => void command(m.side)} style={[styles.capture, { backgroundColor: gpsReady && !busy ? m.color : c.buttonBg }]}>
           <Text style={[styles.bold, { color: gpsReady && !busy ? '#fff' : c.textMuted }]}>{busy ? t("Updating…") : saved[i] ? t("Capture again") : t("Capture")}</Text>
         </Pressable>
-        {saved[i] && clearSide !== m.side && <Pressable accessibilityRole="button" disabled={busy || (!deviceMode && !phoneStartLine.loaded)} onPress={() => setClearSide(m.side)} style={styles.clear}><Text style={{ color: c.textMuted }}>{t("Clear")} {m.title.toLowerCase()}</Text></Pressable>}
+        {!phoneStartLine.fromRace && saved[i] && clearSide !== m.side && <Pressable accessibilityRole="button" disabled={busy || (!deviceMode && !phoneStartLine.loaded)} onPress={() => setClearSide(m.side)} style={styles.clear}><Text style={{ color: c.textMuted }}>{t("Clear")} {m.title.toLowerCase()}</Text></Pressable>}
         {clearSide === m.side && <View style={{ gap: 10 }}>
           <Text style={{ color: c.text }}>{t("Clear this saved position? You will need to capture this end again.")}</Text>
           <View style={styles.row}>
@@ -94,7 +94,7 @@ export default function RegattaSettings({ onBack, onBluetooth }: { onBack: () =>
       </View>
       {!deviceMode && !!(nav.error || phoneStartLine.error) && <Text accessibilityRole="alert" style={{ color: c.textSecondary }}>{translateMessage(nav.error || phoneStartLine.error || "")}</Text>}
       {!!notice && <Text accessibilityRole="alert" style={{ color: c.textSecondary }}>{translateMessage(notice)}</Text>}
-      <Text style={[styles.body, { color: c.textMuted }]}>{deviceMode ? t("Showing the line saved on Veetr.") : t("Showing the line saved on this phone.")}  {t("Capture again if a mark moves. The line above is a diagram; the map shows the saved positions.")}</Text>
+      <Text style={[styles.body, { color: c.textMuted }]}>{phoneStartLine.fromRace ? t("Using the start line from your joined race. The referee manages its position.") : deviceMode ? t("Showing the line saved on Veetr.") : t("Showing the line saved on this phone.")}  {!phoneStartLine.fromRace && t("Capture again if a mark moves. The line above is a diagram; the map shows the saved positions.")}</Text>
     </ScrollView>
   )
 }

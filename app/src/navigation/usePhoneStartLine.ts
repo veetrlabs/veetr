@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { emptyLine, parsePhoneLine, type PhoneStartLine, type StartMark } from './phoneStartLine'
 const KEY = '@veetr_phone_start_line_v1'
-export function usePhoneStartLine() {
+export function usePhoneStartLine(raceLine: PhoneStartLine | null = null) {
   const [line, setLine] = useState<PhoneStartLine>(emptyLine)
   const [hasSavedLine, setHasSavedLine] = useState(false)
   const [loaded, setLoaded] = useState(false)
@@ -26,5 +26,5 @@ export function usePhoneStartLine() {
     tail.current = next.catch(() => {})
     return next
   }
-  return { line, loaded, hasSavedLine, error, saveMark }
+  return { line: raceLine ?? line, loaded: !!raceLine || loaded, hasSavedLine: !!raceLine || hasSavedLine, fromRace: !!raceLine, error, saveMark }
 }

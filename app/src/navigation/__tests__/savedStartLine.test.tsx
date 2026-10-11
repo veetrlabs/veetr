@@ -49,3 +49,22 @@ test('Vane line is available only after storage confirms there is no phone line'
   expect(shouldUseDeviceStartLine(true, result)).toBe(false)
   await act(async () => { tree!.unmount() })
 })
+
+test('joined race line takes priority without overwriting saved marks and restores them on leaving', async () => {
+  (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(saved))
+  const race = { port: { ...mark, latitude: 44 }, starboard: { ...mark, latitude: 44, longitude: 15.02 } }
+  function Joined({ line }: { line: typeof race | null }) { result = usePhoneStartLine(line); return null }
+  let tree: any
+  await act(async () => { tree = TestRenderer.create(<Joined line={race} />) })
+  expect(result.line).toEqual(race)
+  expect(result.fromRace).toBe(true)
+  expect(shouldUseDeviceStartLine(true, result)).toBe(false)
+  expect(AsyncStorage.setItem).not.toHaveBeenCalled()
+  const moved = { ...race, port: { ...race.port, latitude: 44.01 } }
+  await act(async () => { tree.update(<Joined line={moved} />) })
+  expect(result.line).toEqual(moved)
+  await act(async () => { tree.update(<Joined line={null} />) })
+  expect(result.line).toEqual(saved)
+  expect(result.fromRace).toBe(false)
+  await act(async () => { tree.unmount() })
+})
