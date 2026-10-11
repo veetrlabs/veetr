@@ -1,6 +1,7 @@
 import { translateMessage, t, useLanguageRefresh } from '../i18n';
 import { useCallback, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Modal, Platform, Pressable, ScrollView, Text, View } from "react-native";
+import { Picker } from "@react-native-picker/picker";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -28,8 +29,8 @@ export default function StartTrip() {
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const [privateBoat, setPrivateBoat] = useState<PrivateBoat>();
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [privateBoats, setPrivateBoats] = useState<PrivateBoat[]>([]);
-  const [boatsExpanded, setBoatsExpanded] = useState(false);
   useFocusEffect(useCallback(() => {
     let alive = true;
     void (async () => {
@@ -37,7 +38,6 @@ export default function StartTrip() {
       if (alive) {
         setPrivateBoats(local.boats);
         setPrivateBoat(local.boats.find(b => b.id === local.activeId));
-        setBoatsExpanded(false);
       }
       const auth = await trackingClient?.auth.getSession();
       if (!auth?.data.session) return;
@@ -100,22 +100,35 @@ export default function StartTrip() {
           {t("Choose your boat and who can watch. Private trips stay on this device.")}</Text>
         {visibility === "private" && privateBoats.length > 0 ? <View style={{ gap: 10 }}>
           <Text style={{ color: c.text, fontWeight: "600" }}>{t("Boat for this trip")}</Text>
-          <Pressable accessibilityRole="button" accessibilityLabel={t("Boat for this trip")}
-            accessibilityState={{ expanded: boatsExpanded, disabled: busy }} disabled={busy}
-            onPress={() => setBoatsExpanded(!boatsExpanded)}
+          {Platform.OS === "ios" ? <><Pressable accessibilityRole="button" accessibilityLabel={t("Boat for this trip")}
+            accessibilityValue={{ text: privateBoat?.name ?? t("No boat selected") }} disabled={busy}
+            onPress={() => setPickerOpen(true)}
             style={{ padding: 14, minHeight: 48, borderRadius: 12, backgroundColor: c.buttonBg, flexDirection: "row", justifyContent: "space-between" }}>
-            <Text style={{ color: c.text }}>{privateBoat?.name ?? t("No boat selected")}</Text>
-            <Text style={{ color: c.text }} accessibilityElementsHidden>{boatsExpanded ? "▴" : "▾"}</Text>
+            <Text style={{ color: c.text, flex: 1 }}>{privateBoat?.name ?? t("No boat selected")}</Text>
+            <Text style={{ color: c.text }} accessibilityElementsHidden>⌄</Text>
           </Pressable>
-          {boatsExpanded && <View style={{ borderWidth: 1, borderColor: c.border, borderRadius: 12, padding: 6 }}>
-            <ScrollView nestedScrollEnabled style={{ maxHeight: 240 }}>
-              {[undefined, ...privateBoats].map(option => <Pressable key={option?.id ?? "none"}
-                accessibilityRole="radio" accessibilityState={{ checked: privateBoat?.id === option?.id }} disabled={busy}
-                onPress={() => { setPrivateBoat(option); setBoatsExpanded(false); }}
-                style={{ padding: 14, minHeight: 48, borderRadius: 12, backgroundColor: c.buttonBg }}>
-                <Text style={{ color: c.text }}>{privateBoat?.id === option?.id ? "✓ " : ""}{option?.name ?? t("No boat selected")}</Text>
-              </Pressable>)}
-            </ScrollView>
+          <Modal visible={pickerOpen} transparent animationType="slide" onRequestClose={() => setPickerOpen(false)}>
+            <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.35)" }}>
+              <Pressable style={{ flex: 1 }} accessibilityLabel={t("Close")} onPress={() => setPickerOpen(false)} />
+              <SafeAreaView style={{ backgroundColor: c.bg }}>
+                <View style={{ padding: 16, flexDirection: "row", justifyContent: "space-between" }}>
+                  <Text style={{ color: c.text, fontWeight: "600" }}>{t("Boat for this trip")}</Text>
+                  <Pressable accessibilityRole="button" onPress={() => setPickerOpen(false)}><Text style={{ color: c.text }}>{t("Done")}</Text></Pressable>
+                </View>
+                <Picker accessibilityLabel={t("Boat for this trip")} selectedValue={privateBoat?.id ?? ""}
+                  itemStyle={{ color: c.text }} onValueChange={id => setPrivateBoat(privateBoats.find(option => option.id === id))}>
+                  <Picker.Item label={t("No boat selected")} value="" />
+                  {privateBoats.map(option => <Picker.Item key={option.id} label={option.name} value={option.id} />)}
+                </Picker>
+              </SafeAreaView>
+            </View>
+          </Modal></> : <View style={{ borderRadius: 12, backgroundColor: c.buttonBg }}>
+            <Picker accessibilityLabel={t("Boat for this trip")} selectedValue={privateBoat?.id ?? ""}
+              enabled={!busy} mode="dropdown" style={{ color: c.text }} dropdownIconColor={c.text}
+              onValueChange={id => setPrivateBoat(privateBoats.find(option => option.id === id))}>
+              <Picker.Item label={t("No boat selected")} value="" />
+              {privateBoats.map(option => <Picker.Item key={option.id} label={option.name} value={option.id} />)}
+            </Picker>
           </View>}
         </View> : <TripBoatPicker selected={boat?.id} onSelect={setBoat} />}
         <TripOptions

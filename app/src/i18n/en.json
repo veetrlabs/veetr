@@ -917,5 +917,6 @@
   "Active for private trips": "Active for private trips",
   "Use for private trips": "Use for private trips",
   "Delete boat": "Delete boat",
-  "Delete {{v0}} from this device? Recorded trips will be kept.": "Delete {{v0}} from this device? Recorded trips will be kept."
+  "Delete {{v0}} from this device? Recorded trips will be kept.": "Delete {{v0}} from this device? Recorded trips will be kept.",
+  "Done": "Done"
 }

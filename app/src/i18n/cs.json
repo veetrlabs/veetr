@@ -927,5 +927,6 @@
   "Active for private trips": "Aktivní pro soukromé plavby",
   "Use for private trips": "Použít pro soukromé plavby",
   "Delete boat": "Smazat loď",
-  "Delete {{v0}} from this device? Recorded trips will be kept.": "Smazat {{v0}} z tohoto zařízení? Zaznamenané plavby zůstanou zachovány."
+  "Delete {{v0}} from this device? Recorded trips will be kept.": "Smazat {{v0}} z tohoto zařízení? Zaznamenané plavby zůstanou zachovány.",
+  "Done": "Hotovo"
 }
