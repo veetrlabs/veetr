@@ -135,8 +135,10 @@ export function CourseMap({
     group.clearLayers();
     drawCourse(L, m, group, course, {startDraft, onMove: onMove ? (target, point) => callbacks.current.onMove?.(target, point) : undefined, onGesture: () => {markerGesture.current = true;}});
     const all = [...course.marks, ...(startDraft ?? startGeometry(course)).filter(Boolean)];
-    if (!fitted.current && all.length) {
-      fit();
+    if (!fitted.current && (all.length || onMove)) {
+      // An empty editor has no initial bounds. Preserve the user's view when
+      // they place its first point instead of fitting that point at maxZoom 16.
+      if (all.length) fit();
       fitted.current = true;
     }
   }, [course, startDraft, ready, language, !!onMove]);
