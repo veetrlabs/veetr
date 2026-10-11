@@ -1,6 +1,6 @@
 import { translateMessage, t, useLanguageRefresh } from '../i18n';
 import { useCallback, useState } from "react";
-import { Pressable, ScrollView, Text } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -14,7 +14,7 @@ import {
 import { TripOptions, TripAccountLink } from "../tracking/TripOptions";
 import { trackingStore } from "../tracking/database";
 import { rememberTripBoat } from "../tracking/recentTripBoats";
-import { activePrivateBoat, type PrivateBoat } from "../boats/privateBoats";
+import { privateFleet, type PrivateBoat } from "../boats/privateBoats";
 import TripBoatPicker from "../tracking/TripBoatPicker";
 import { startLocalTracking } from "../tracking/service";
 import { useTheme } from "../context/ThemeContext";
@@ -28,11 +28,17 @@ export default function StartTrip() {
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const [privateBoat, setPrivateBoat] = useState<PrivateBoat>();
+  const [privateBoats, setPrivateBoats] = useState<PrivateBoat[]>([]);
+  const [boatsExpanded, setBoatsExpanded] = useState(false);
   useFocusEffect(useCallback(() => {
     let alive = true;
     void (async () => {
-      const local = await activePrivateBoat();
-      if (alive) setPrivateBoat(local);
+      const local = await privateFleet();
+      if (alive) {
+        setPrivateBoats(local.boats);
+        setPrivateBoat(local.boats.find(b => b.id === local.activeId));
+        setBoatsExpanded(false);
+      }
       const auth = await trackingClient?.auth.getSession();
       if (!auth?.data.session) return;
       const key = `veetr-last-trip-boat:${auth.data.session.user.id}`;
@@ -55,14 +61,14 @@ export default function StartTrip() {
           throw new Error("Sign in before sharing a trip.");
         if (!boat) throw new Error("Choose a boat before sharing.");
       }
-      startedId = await startLocalTracking(visibility === "private" && privateBoat ? { ...privateBoat, localOnly: true } : boat);
+      startedId = await startLocalTracking(visibility === "private" && privateBoats.length ? (privateBoat ? { ...privateBoat, localOnly: true } : undefined) : boat);
       await (
         await trackingStore()
       ).updateTrip(startedId, { tripTitle: title.trim() || t("My sailing trip") });
       if (visibility !== "private")
         await setTripSharing(startedId, visibility, title);
       const auth = await trackingClient?.auth.getSession();
-      if (boat && !(visibility === "private" && privateBoat) && auth?.data.session)
+      if (boat && !(visibility === "private" && privateBoats.length) && auth?.data.session)
         await rememberTripBoat(boat.id).catch(() => {});
       if (visibility === "private") router.back();
       else
@@ -92,10 +98,26 @@ export default function StartTrip() {
           {t("Start a trip")}</Text>
         <Text style={{ color: c.textMuted }}>
           {t("Choose your boat and who can watch. Private trips stay on this device.")}</Text>
-        {visibility === "private" && privateBoat ? <>
-          <Text style={{ color: c.text }}>{t("Boat for this trip")}: {privateBoat.name}</Text>
-          <Pressable accessibilityRole="button" onPress={() => router.push("/my-boats")}><Text style={{ color: c.text }}>{t("My boats")} ›</Text></Pressable>
-        </> : <TripBoatPicker selected={boat?.id} onSelect={setBoat} />}
+        {visibility === "private" && privateBoats.length > 0 ? <View style={{ gap: 10 }}>
+          <Text style={{ color: c.text, fontWeight: "600" }}>{t("Boat for this trip")}</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel={t("Boat for this trip")}
+            accessibilityState={{ expanded: boatsExpanded, disabled: busy }} disabled={busy}
+            onPress={() => setBoatsExpanded(!boatsExpanded)}
+            style={{ padding: 14, minHeight: 48, borderRadius: 12, backgroundColor: c.buttonBg, flexDirection: "row", justifyContent: "space-between" }}>
+            <Text style={{ color: c.text }}>{privateBoat?.name ?? t("No boat selected")}</Text>
+            <Text style={{ color: c.text }} accessibilityElementsHidden>{boatsExpanded ? "▴" : "▾"}</Text>
+          </Pressable>
+          {boatsExpanded && <View style={{ borderWidth: 1, borderColor: c.border, borderRadius: 12, padding: 6 }}>
+            <ScrollView nestedScrollEnabled style={{ maxHeight: 240 }}>
+              {[undefined, ...privateBoats].map(option => <Pressable key={option?.id ?? "none"}
+                accessibilityRole="radio" accessibilityState={{ checked: privateBoat?.id === option?.id }} disabled={busy}
+                onPress={() => { setPrivateBoat(option); setBoatsExpanded(false); }}
+                style={{ padding: 14, minHeight: 48, borderRadius: 12, backgroundColor: c.buttonBg }}>
+                <Text style={{ color: c.text }}>{privateBoat?.id === option?.id ? "✓ " : ""}{option?.name ?? t("No boat selected")}</Text>
+              </Pressable>)}
+            </ScrollView>
+          </View>}
+        </View> : <TripBoatPicker selected={boat?.id} onSelect={setBoat} />}
         <TripOptions
           title={title}
           onTitle={setTitle}
