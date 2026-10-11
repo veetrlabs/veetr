@@ -1,5 +1,5 @@
 import React from "react";
-import { render, fireEvent } from "@testing-library/react-native";
+import { act, render, fireEvent } from "@testing-library/react-native";
 import RaceReplay from "../RaceReplay";
 import { useReplayTracks } from "../useReplayTracks";
 import type { Trip } from "../../tracking/trip";
@@ -66,9 +66,12 @@ test("own track is visible offline and seeking preserves gaps; competitors are r
     true,
   );
   expect(ui.getByTestId("fleet").props.positions[0].boatId).toBe("own");
-  fireEvent.press(ui.getByText("+1 min"));
-  fireEvent.press(ui.getByText("+1 min"));
-  fireEvent.press(ui.getByText("+1 min"));
+  expect(ui.queryByText("+1 min")).toBeNull();
+  expect(ui.queryByText("−1 min")).toBeNull();
+  expect(ui.queryByText("Play")).toBeNull();
+  expect(ui.queryByText("10×")).toBeNull();
+  expect(ui.queryByLabelText("Replay timeline")).toBeNull();
+  act(() => ui.getByTestId("trip-chart").props.onSelect(3));
   expect(ui.getByTestId("fleet").props.positions[0].trailSegments).toHaveLength(
     2,
   );
@@ -93,7 +96,7 @@ test("spectator selects a boat's shared chart and scrubs the fleet together", ()
   fireEvent.press(ui.getByText('b'));
   const chart = ui.getByTestId('trip-chart');
   expect(chart.props.points.every((p: any) => p.boatId === 'b')).toBe(true);
-  require('@testing-library/react-native').act(() => chart.props.onSelect(2));
+  act(() => chart.props.onSelect(2));
   expect(useReplayTracks).toHaveBeenLastCalledWith('series', 'event', undefined, start + 120000, true, true);
   ui.unmount();
 });

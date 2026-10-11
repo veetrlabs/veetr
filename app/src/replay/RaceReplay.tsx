@@ -25,16 +25,13 @@ export default function RaceReplay({
     c = themeColors[theme];
   const [competitors, setCompetitors] = useState(!own),
     [at, setAt] = useState(0);
-  const [heatId, setHeatId] = useState<string>(),
-    [playing, setPlaying] = useState(false),
-    [speed, setSpeed] = useState(10);
+  const [heatId, setHeatId] = useState<string>();
   const [hidden, setHidden] = useState<string[]>([]);
   const [selectedBoat, setSelectedBoat] = useState<string>();
   const [region, setRegion] = useState<MapRegion>();
   const [chartFollowsMap, setChartFollowsMap] = useState(true);
   const [fitRequest, setFitRequest] = useState(0);
   const [scrubbing, setScrubbing] = useState(false);
-  const [width, setWidth] = useState(1);
   const replay = useReplayTracks(seriesId, eventId, heatId, at, competitors, true);
   const heat = replay.meta?.heats.find((h) => h.id === heatId);
   const points = useMemo(
@@ -60,28 +57,6 @@ export default function RaceReplay({
   useEffect(() => {
     if (selected !== at) setAt(selected);
   }, [selected, at]);
-  useEffect(() => {
-    if (!playing || !start || (competitors && (replay.loading || replay.error)))
-      return;
-    if (selected >= end) {
-      setPlaying(false);
-      return;
-    }
-    const timer = setTimeout(
-      () => setAt(Math.min(end, selected + 200 * speed)),
-      200,
-    );
-    return () => clearTimeout(timer);
-  }, [
-    playing,
-    selected,
-    end,
-    speed,
-    competitors,
-    replay.loading,
-    replay.error,
-    start,
-  ]);
   const positions = useMemo(() => {
     const result: TrackingPosition[] = (
       competitors ? replay.positions : []
@@ -142,7 +117,6 @@ export default function RaceReplay({
         {own &&
           button(competitors ? t("Hide competitors") : t("Show competitors"), () => {
             setCompetitors(!competitors);
-            setPlaying(false);
             setHeatId(undefined);
           })}
         {competitors && (
@@ -152,7 +126,6 @@ export default function RaceReplay({
               () => {
                 setHeatId(undefined);
                 setAt(0);
-                setPlaying(false);
               },
               false,
               !heatId,
@@ -163,7 +136,6 @@ export default function RaceReplay({
                 () => {
                   setHeatId(h.id);
                   setAt(h.start ? Date.parse(h.start) : 0);
-                  setPlaying(false);
                 },
                 !h.start,
                 heatId === h.id,
@@ -175,84 +147,6 @@ export default function RaceReplay({
           <Text style={{ color: c.text }}>
             {new Date(selected).toLocaleString(locale())}
           </Text>
-        )}
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-          {button(
-            "−1 min",
-            () => {
-              setAt(Math.max(start, selected - 60000));
-              setPlaying(false);
-            },
-            !start,
-          )}
-          {button(
-            playing ? t("Pause") : t("Play"),
-            () => {
-              if (selected >= end) setAt(start);
-              setPlaying(!playing);
-            },
-            !start || start === end,
-          )}
-          {button(
-            "+1 min",
-            () => {
-              setAt(Math.min(end, selected + 60000));
-              setPlaying(false);
-            },
-            !start,
-          )}
-          {button(`${speed}×`, () =>
-            setSpeed(speed === 1 ? 10 : speed === 10 ? 30 : 1),
-          )}
-        </View>
-        {!!start && (
-          <View
-            accessible
-            accessibilityRole="adjustable"
-            accessibilityLabel={t("Replay timeline")}
-            accessibilityValue={{
-              min: start,
-              max: end,
-              now: selected,
-              text: new Date(selected).toLocaleTimeString(locale()),
-            }}
-            accessibilityActions={[
-              { name: "increment" },
-              { name: "decrement" },
-            ]}
-            onAccessibilityAction={(e) => {
-              setPlaying(false);
-              setAt(
-                Math.max(
-                  start,
-                  Math.min(
-                    end,
-                    selected +
-                      (e.nativeEvent.actionName === "increment"
-                        ? 10000
-                        : -10000),
-                  ),
-                ),
-              );
-            }}
-            onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
-            onStartShouldSetResponder={() => true}
-            onResponderGrant={(e) => seek(e.nativeEvent.locationX)}
-            onResponderMove={(e) => seek(e.nativeEvent.locationX)}
-            style={{ height: 40, justifyContent: "center" }}
-          >
-            <View
-              style={{ height: 6, borderRadius: 3, backgroundColor: c.border }}
-            >
-              <View
-                style={{
-                  height: 6,
-                  backgroundColor: "#008c80",
-                  width: `${(100 * (selected - start)) / Math.max(1, end - start)}%`,
-                }}
-              />
-            </View>
-          </View>
         )}
         {replay.loading && competitors && (
           <Text style={{ color: c.textMuted }}>{t("Loading competitors…")}</Text>
@@ -310,16 +204,10 @@ export default function RaceReplay({
         </View>
         {chartPoints.length > 0 && <TripChart points={chartPoints} index={chartIndex}
           region={chartFollowsMap ? region : undefined} resetKey={fitRequest}
-          onScrubbing={setScrubbing} onSelect={index => { setPlaying(false); setAt(Date.parse(chartPoints[index].recordedAt)); }} />}
+          onScrubbing={setScrubbing} onSelect={index => setAt(Date.parse(chartPoints[index].recordedAt))} />}
       </View>
       <Text style={{ color: c.textMuted, textAlign: "center", fontSize: 11 }}>
         {t("Seamarks © OpenSeaMap contributors · Competitors cached only while this view is open")}</Text>
     </ScrollView>
   );
-  function seek(x: number) {
-    setPlaying(false);
-    setAt(
-      start + Math.max(0, Math.min(1, x / Math.max(1, width))) * (end - start),
-    );
-  }
 }
