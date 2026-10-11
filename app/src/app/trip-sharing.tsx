@@ -1,6 +1,6 @@
-import { translateMessage, t, useLanguageRefresh } from '../i18n';
-import { useCallback, useState } from "react";
-import { Pressable, ScrollView, Share, Text } from "react-native";
+import { translateMessage, t, useLanguageRefresh } from "../i18n";
+import { useCallback, useRef, useState } from "react";
+import { Pressable, ScrollView, Share, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { trackingStore } from "../tracking/database";
@@ -25,6 +25,8 @@ export default function TripSharingPage() {
     [visibility, setVisibility] = useState<TripVisibility>("private"),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
+  const scroll = useRef<ScrollView>(null);
+  const boatY = useRef(0);
   const refresh = useCallback(async () => {
     const t = (await (await trackingStore()).localRecordings()).find(
       (t) => t.session.id === id,
@@ -75,7 +77,8 @@ export default function TripSharingPage() {
   }
   const sh = trip?.session.sharing,
     active = trip?.session.phase === "recording",
-    shared = sh && sh.visibility !== "private";
+    shared = sh && sh.visibility !== "private",
+    needsBoat = visibility !== "private" && !trip?.session.boatId;
   const button = {
     padding: 16,
     minHeight: 48,
@@ -84,7 +87,7 @@ export default function TripSharingPage() {
   };
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
-      <ScrollView contentContainerStyle={{ padding: 20, gap: 18 }}>
+      <ScrollView ref={scroll} contentContainerStyle={{ padding: 20, gap: 18 }}>
         <Pressable accessibilityRole="button" onPress={() => router.back()}>
           <Text style={{ color: c.text }}>{t("‹ Back to trip")}</Text>
         </Pressable>
@@ -94,18 +97,37 @@ export default function TripSharingPage() {
         {!trip ||
         (trip.session.mode !== "local" && trip.session.phase !== "stopping") ? (
           <Text style={{ color: c.text }}>
-            {t("Choose a personal trip to share.")}</Text>
+            {t("Choose a personal trip to share.")}
+          </Text>
         ) : (
           <>
             <Text style={{ color: c.textMuted }}>
-              {t("Share this trip’s route and recorded instruments. Anyone with the link can view it without signing in. Public trips also appear in Explore trips.")}</Text>
+              {t(
+                "Share this trip’s route and recorded instruments. Anyone with the link can view it without signing in. Public trips also appear in Explore trips.",
+              )}
+            </Text>
             {sh || trip.session.mode !== "local" ? (
               <Text style={{ color: c.text }}>{trip.session.boatName}</Text>
             ) : (
-              <TripBoatPicker
-                selected={trip.session.boatId}
-                onSelect={(b) => void run(() => selectTripBoat(id, b))}
-              />
+              <View
+                onLayout={(event) => {
+                  boatY.current = event.nativeEvent.layout.y;
+                }}
+                style={{ gap: 8 }}
+              >
+                <TripBoatPicker
+                  selected={trip.session.boatId}
+                  onSelect={(b) => void run(() => selectTripBoat(id, b))}
+                />
+                {needsBoat && (
+                  <Text
+                    accessibilityLiveRegion="polite"
+                    style={{ color: c.text }}
+                  >
+                    {t("Choose a boat before sharing.")}
+                  </Text>
+                )}
+              </View>
             )}
             <TripOptions
               title={title}
@@ -116,11 +138,20 @@ export default function TripSharingPage() {
             />
             <Pressable
               accessibilityRole="button"
-              disabled={
-                busy || (visibility !== "private" && !trip.session.boatId)
-              }
-              style={{ ...button, backgroundColor: "#006b62" }}
-              onPress={() =>
+              disabled={busy}
+              style={{
+                ...button,
+                backgroundColor: "#006b62",
+                opacity: busy ? 0.5 : 1,
+              }}
+              onPress={() => {
+                if (needsBoat) {
+                  scroll.current?.scrollTo({
+                    y: Math.max(0, boatY.current - 20),
+                    animated: true,
+                  });
+                  return;
+                }
                 void run(async () => {
                   await (
                     await trackingStore()
@@ -129,25 +160,29 @@ export default function TripSharingPage() {
                   });
                   if (visibility !== "private" || sh)
                     await setTripSharing(id, visibility, title);
-                })
-              }
+                });
+              }}
             >
               <Text style={{ color: "white" }}>
                 {busy
                   ? t("Working…")
-                  : visibility === "private"
-                    ? shared
-                      ? t("Stop sharing and disable link")
-                      : t("Save private trip")
-                    : active
-                      ? t("Start / update live sharing")
-                      : t("Publish trip")}
+                  : needsBoat
+                    ? t("Choose a boat first.")
+                    : visibility === "private"
+                      ? shared
+                        ? t("Stop sharing and disable link")
+                        : t("Save private trip")
+                      : active
+                        ? t("Start / update live sharing")
+                        : t("Publish trip")}
               </Text>
             </Pressable>
             {sh?.pendingVisibility && (
               <Text accessibilityLiveRegion="polite" style={{ color: c.text }}>
                 {sh.pendingVisibility === "private"
-                  ? t("Stopping sharing—waiting for server confirmation. The link may still be visible until connected.")
+                  ? t(
+                      "Stopping sharing—waiting for server confirmation. The link may still be visible until connected.",
+                    )
                   : !trip.points.length
                     ? t("Waiting for the first GPS position to start sharing…")
                     : t("Uploading trip before publishing…")}
@@ -185,7 +220,8 @@ export default function TripSharingPage() {
                 }
               >
                 <Text style={{ color: c.text }}>
-                  {t("Stop sharing and disable link")}</Text>
+                  {t("Stop sharing and disable link")}
+                </Text>
               </Pressable>
             )}
             {sh?.error && (
