@@ -86,6 +86,11 @@ export function useReplayTracks(
           }
           cache.put(chunk.start, chunk.version, points);
           trackChunks.set(chunk.start, points);
+          // Show downloaded positions while the remaining recording loads.
+          if (alive) {
+            setPositions(cache.frame(target));
+            if (includeFullTrack) setTracks(current.chunks.flatMap(chunk => trackChunks.get(chunk.start) ?? []).sort((a, b) => Date.parse(a.recordedAt) - Date.parse(b.recordedAt)));
+          }
         }
         if (alive) {
           setPositions(cache.frame(target));

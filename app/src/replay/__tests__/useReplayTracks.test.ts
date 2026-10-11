@@ -135,3 +135,23 @@ test("chart mode loads later chunks without moving the replay cursor", async () 
   expect(ui.result.current.positions[0].recordedAt).toBe(new Date(start).toISOString());
   ui.unmount();
 });
+
+test('shows the first loaded chunk while the rest of the recording is downloading', async () => {
+  const nextStart = start + 300000;
+  const fullMeta = { ...meta, end: new Date(nextStart + 10000).toISOString(), chunks: [...meta.chunks, { start: nextStart, count: 1, version: 'v2' }] };
+  let finish: (value: unknown) => void;
+  rpc.mockImplementation(async (_name, args) => {
+    if (!args.p_from) return fullMeta;
+    if (Date.parse(args.p_from) === start) return { ...fullMeta, points: [point(0), point(10)] };
+    return new Promise(resolve => { finish = resolve; });
+  });
+  const { result, unmount } = renderHook(() => useReplayTracks('series', 'event', undefined, start, true, true));
+  await settle();
+  expect(result.current.loading).toBe(true);
+  expect(result.current.positions[0].latitude).toBe(49);
+  expect(result.current.tracks).toHaveLength(2);
+  await act(async () => { finish!({ ...fullMeta, points: [point(300)] }); });
+  expect(result.current.loading).toBe(false);
+  expect(result.current.tracks).toHaveLength(3);
+  unmount();
+});

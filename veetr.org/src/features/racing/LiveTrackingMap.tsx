@@ -12,7 +12,11 @@ import {
   positionAge,
 } from "./tracking";
 
-export function LiveTrackingMap({ seriesId, eventId, heatId, boatIds, course }: { seriesId: string; eventId: string; heatId?: string; boatIds: string[]; course?: RaceCourse }) {
+type TrackingMapProps = { seriesId: string; eventId: string; heatId?: string; boatIds: string[]; course?: RaceCourse };
+export function LiveTrackingMap(props: TrackingMapProps) {
+  return <TrackingMap key={`${props.seriesId}:${props.eventId}:${props.heatId ?? ""}`} {...props} />;
+}
+function TrackingMap({ seriesId, eventId, heatId, boatIds, course }: TrackingMapProps) {
   const [boatColors, setBoatColors] = useState<Record<string, string>>({});
   useEffect(() => {
     let active = true;
@@ -26,6 +30,7 @@ export function LiveTrackingMap({ seriesId, eventId, heatId, boatIds, course }: 
   const positions = useMemo(() => positionsForHeat(replay.positions, boatIds), [replay.positions, boatIds]);
   const displayTime = replay.shownAt;
   const formatTime = (stamp: number) => new Date(stamp).toLocaleString(document.documentElement.lang || undefined);
+  const [located, setLocated] = useState(false);
   const [mapError, setMapError] = useState(false);
   const [mapReady, setMapReady] = useState(false),
     [seamarkError, setSeamarkError] = useState(false);
@@ -44,7 +49,7 @@ export function LiveTrackingMap({ seriesId, eventId, heatId, boatIds, course }: 
         const L = module.default ?? module;
         if (!alive || !element.current) return;
         leaflet.current = L;
-        map.current = L.map(element.current).setView([49.7, 14.2], 6);
+        map.current = L.map(element.current);
         L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
           maxZoom: 19,
           attribution:
@@ -81,11 +86,12 @@ export function LiveTrackingMap({ seriesId, eventId, heatId, boatIds, course }: 
     if (!mapReady || !leaflet.current || !map.current || !courseLayer.current) return;
     courseLayer.current.clearLayers();
     if (!course) return;
-    drawCourse(leaflet.current, map.current, courseLayer.current, course);
     if (!courseFitted.current && coursePoints(course).length) {
       fitCourse();
       courseFitted.current = true;
+      setLocated(true);
     }
+    drawCourse(leaflet.current, map.current, courseLayer.current, course);
   }, [course, mapReady, language]);
   const staleIds = positions
     .filter((p) => positionAge(p, displayTime) > 60)
@@ -127,6 +133,7 @@ export function LiveTrackingMap({ seriesId, eventId, heatId, boatIds, course }: 
         { padding: [45, 45], maxZoom: 15 },
       );
       fitted.current = true;
+      setLocated(true);
     }
     let animation = 0;
     const started = performance.now();
@@ -220,7 +227,9 @@ export function LiveTrackingMap({ seriesId, eventId, heatId, boatIds, course }: 
         <button onClick={fitFleet} disabled={!positions.length} aria-label={t("Fit fleet")} title={t("Fit fleet")}><LocateFixed size={22} aria-hidden="true" /></button>
         {fullscreen && <button onClick={exitFullscreen} aria-label={t("Exit full screen")} title={t("Exit full screen")}><Minimize2 size={22} aria-hidden="true" /></button>}
       </div>
+      {!located && <p role="status">{t(replay.loading ? "Loading replay…" : replay.error || "No recording is available for this selection.")}</p>}
       <div
+        style={{ visibility: located ? "visible" : "hidden" }}
         ref={element}
         className="tracking-map"
         role="region"
