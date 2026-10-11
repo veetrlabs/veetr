@@ -56,7 +56,7 @@ export function CourseMap({
         if (!alive || !element.current) return;
         const L = module.default ?? module;
         leaflet.current = L;
-        const m = L.map(element.current, { scrollWheelZoom: false }).setView(
+        const m = L.map(element.current, { scrollWheelZoom: true }).setView(
           [49.7, 14.2],
           6,
         );
