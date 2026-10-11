@@ -36,7 +36,7 @@ export default defineConfig({
           items: [
             {
               label: 'Get started', translations: {cs: 'Začínáme'},
-              items: ['docs', 'docs/mobile-apps', 'docs/share-your-trip'],
+              items: ['docs', 'docs/mobile-apps', 'docs/veetr-account', 'docs/share-your-trip'],
             },
             {
               label: 'Race management', translations: {cs: 'Správa závodů'},

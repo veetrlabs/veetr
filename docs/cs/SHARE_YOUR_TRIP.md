@@ -6,6 +6,8 @@ editUrl: https://github.com/veetrlabs/veetr/edit/main/docs/cs/SHARE_YOUR_TRIP.md
 
 Nechte přátele sledovat plavbu živě nebo zveřejněte trasu po návratu. Diváci otevřou odkaz bez přihlášení.
 
+Nevíte, zda se přihlásit? Přehled soukromého záznamu, závodních pozvánek a sdílení najdete v návodu [Potřebuji účet Veetr?](/cs/docs/veetr-account/).
+
 ## Než začnete
 
 Mobilní aplikace jsou v betě. Podle [Mobilní aplikace](/cs/docs/mobile-apps/) požádejte o pozvánku pro Android nebo iPhone a nainstalujte Veetr.

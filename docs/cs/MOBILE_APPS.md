@@ -6,6 +6,8 @@ editUrl: https://github.com/veetrlabs/veetr/edit/main/docs/cs/MOBILE_APPS.md
 
 Zaznamenávejte plavby, vracejte se k nim a připojujte se k závodům z telefonu. Připojte Veetr Vane, pokud chcete k GPS stopě také vítr a přístrojová data.
 
+Nevíte, zda se přihlásit? Přehled soukromého záznamu, závodních pozvánek a sdílení najdete v návodu [Potřebuji účet Veetr?](/cs/docs/veetr-account/).
+
 ## Prohlédněte si pět záložek
 
 Snímky anglické verze aplikace pro iPhone. Klepnutím je otevřete v plné velikosti. Data a Mapa ukazují aplikaci na vodě, ostatní snímky jsou příklady ze simulátoru.

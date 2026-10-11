@@ -27,6 +27,7 @@ export const collections = {
         'MOBILE_APPS.md',
         'NATIVE_APPS.md',
         'SHARE_YOUR_TRIP.md',
+        'VEETR_ACCOUNT.md',
         'RACE_GUIDE.md',
         'RACE_MANAGERS.md',
         'RACE_REFEREES.md',

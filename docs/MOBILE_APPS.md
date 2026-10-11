@@ -5,6 +5,8 @@ description: Record your sailing, review routes and instrument data, and join ra
 
 Record your sailing, revisit your trips, and join races from your phone. Connect Veetr Vane when you want wind and instrument data alongside your GPS track.
 
+Not sure whether to sign in? See [Do I need a Veetr account?](/docs/veetr-account/) for private recording, race invitations, and sharing.
+
 ## Explore the five tabs
 
 Screenshots from the iPhone app. Tap any image to see it full size. The Data and Map screens show the app on the water; the remaining screens use simulator examples.

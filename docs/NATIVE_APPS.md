@@ -8,6 +8,8 @@ The Veetr native apps bring sailing instruments, trip recording, and race course
 
 The apps are currently available through invitation-only beta testing. See **[screenshots and installation instructions](/docs/mobile-apps/)** to request access.
 
+Not sure whether to sign in? See [Do I need a Veetr account?](/docs/veetr-account/) for private recording, race invitations, and sharing.
+
 ## The five tabs
 
 | Tab | What it does |

@@ -8,6 +8,8 @@ Nativní aplikace Veetr přinášejí jachtařské přístroje, záznam plaveb a
 
 Aplikace jsou zatím dostupné v beta testování na pozvánku. O přístup požádejte podle **[ukázek a pokynů k instalaci](/cs/docs/mobile-apps/)**.
 
+Nevíte, zda se přihlásit? Přehled soukromého záznamu, závodních pozvánek a sdílení najdete v návodu [Potřebuji účet Veetr?](/cs/docs/veetr-account/).
+
 ## Pět záložek
 
 | Záložka | Funkce |

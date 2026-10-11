@@ -5,6 +5,8 @@ description: Record a sailing trip in Veetr and share it live or after you finis
 
 Let friends follow your sail live, or publish the route when you return. Viewers can open your link without signing in.
 
+Not sure whether to sign in? See [Do I need a Veetr account?](/docs/veetr-account/) for private recording, race invitations, and sharing.
+
 ## Before you start
 
 The mobile apps are currently in beta. Follow [Get the mobile app](/docs/mobile-apps/) to request an Android or iPhone invitation and install Veetr.
