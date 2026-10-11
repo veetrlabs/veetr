@@ -28,7 +28,16 @@ jest.mock('../../components/NativeMap', () => {
     return React.createElement('MapView', props);
   }), Marker: 'Marker', Circle: 'Circle' };
 });
-beforeEach(() => { Object.assign(Platform, { OS: 'ios', Version: '26.0' }); jest.clearAllMocks(); jest.useRealTimers(); mockSnapshot.settings.anchor = null; mockSnapshot.fix = { latitude: 43, longitude: 16, source: 'phone', accuracy: 5, timestamp: Date.now() }; });
+beforeEach(() => {
+  Object.assign(Platform, { OS: 'ios', Version: '26.0' });
+  jest.clearAllMocks();
+  jest.useRealTimers();
+  mockEdit.mockReset().mockResolvedValue(undefined);
+  mockSnapshot.settings = { ...defaults, anchor: null, chainM: 55, marginM: 12 };
+  mockSnapshot.ready = true;
+  mockSnapshot.error = '';
+  mockSnapshot.fix = { latitude: 43, longitude: 16, source: 'phone', accuracy: 5, timestamp: Date.now() };
+});
 it('shows persisted chain and margin and saves comma decimal input', async () => {
   const view = render(<AnchorSettings onBack={() => {}} />);
   expect(view.getByLabelText('Chain out (m)').props.value).toBe('55');
@@ -206,14 +215,23 @@ it('saves margin independently and keeps an invalid chain draft out of storage',
   expect(view.getByLabelText('Chain out (m)').props.value).toBe('');
 });
 it('shows a failed autosave beside the field and allows retry on blur', async () => {
-  mockEdit.mockRejectedValueOnce(new Error('Could not save'));
+  let rejectSave!: (error: Error) => void;
+  let finishRetry!: () => void;
+  const failedSave = new Promise<void>((_, reject) => { rejectSave = reject; });
+  const retriedSave = new Promise<void>(resolve => { finishRetry = resolve; });
+  mockEdit.mockReturnValueOnce(failedSave).mockReturnValueOnce(retriedSave);
   const view = render(<AnchorSettings onBack={() => {}} />);
   fireEvent.changeText(view.getByLabelText('Chain out (m)'), '60');
   fireEvent(view.getByLabelText('Chain out (m)'), 'blur');
-  await waitFor(() => expect(view.getByText('Could not save')).toBeTruthy());
+  expect(mockEdit).toHaveBeenNthCalledWith(1, { chainM: 60 });
+  await act(async () => { rejectSave(new Error('Could not save')); });
+  expect(view.getByText('Could not save')).toBeTruthy();
   expect(view.getByLabelText('Chain out (m)').props.value).toBe('60');
   fireEvent(view.getByLabelText('Chain out (m)'), 'blur');
-  await waitFor(() => expect(view.queryByText('Could not save')).toBeNull());
+  expect(mockEdit).toHaveBeenNthCalledWith(2, { chainM: 60 });
+  expect(view.getByText('Could not save')).toBeTruthy();
+  await act(async () => { finishRetry(); });
+  expect(view.queryByText('Could not save')).toBeNull();
   expect(mockEdit).toHaveBeenCalledTimes(2);
 });
 
