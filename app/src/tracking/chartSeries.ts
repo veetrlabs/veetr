@@ -9,13 +9,17 @@ export const chartMetrics: { key: Metric; label: string; color: string; dash?: s
   { key: "tws", label: "TWS", color: "#d68b27", dash: "2 4" },
 ];
 
+export function boatReadingAt(track: BoatTrack, at: number) {
+  const latest = track.points.findLast(point => Date.parse(point.recordedAt) <= at);
+  return latest && at - Date.parse(latest.recordedAt) <= TRACK_GAP_MS ? latest : undefined;
+}
+
 export function fleetChartSeries(tracks: BoatTrack[], bounds: TimeWindow, at: number) {
   const series = tracks.flatMap(track => {
     const entries = chartEntries(track.points, bounds);
     const points = entries.map(entry => entry.point);
     // Do not show future samples or carry stale readings through recording gaps.
-    const latest = track.points.findLast(point => Date.parse(point.recordedAt) <= at);
-    const point = latest && at - Date.parse(latest.recordedAt) <= TRACK_GAP_MS ? latest : undefined;
+    const point = boatReadingAt(track, at);
     return chartMetrics.filter(metric => metric.key === "sog" || track.points.some(p => metricValue(p, metric.key) !== null))
       .map(metric => ({
         id: track.id + ":" + metric.key,

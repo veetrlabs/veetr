@@ -1,4 +1,5 @@
-import { translateMessage, locale, t, useLanguageRefresh } from '../i18n';
+import { boatReadingAt, chartMetrics } from '../tracking/chartSeries';
+import { translateMessage, formatNumber, locale, t, useLanguageRefresh } from '../i18n';
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { useTheme } from "../context/ThemeContext";
@@ -6,7 +7,7 @@ import { themeColors } from "../constants/colors";
 import TripChart from "../tracking/TripChart";
 import FleetMap from "../regattas/FleetMap";
 import type { Trip } from "../tracking/trip";
-import { routeSegments } from "../tracking/trip";
+import { routeSegments, metricValue } from "../tracking/trip";
 import { useReplayTracks } from "./useReplayTracks";
 import { boatColor, type BoatTrack } from "./boatTracks";
 import type { TrackingPosition } from "../regattas/positions";
@@ -190,13 +191,23 @@ export default function RaceReplay({
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
           {boats.map(boat => {
             const visible = !hidden.includes(boat.id);
+            const reading = boatReadingAt(boat, selected);
+            const metrics = chartMetrics.filter(metric => metric.key === 'sog' || boat.points.some(point => metricValue(point, metric.key) !== null));
             return <Pressable key={boat.id} accessible accessibilityRole="checkbox"
               accessibilityLabel={boat.name} accessibilityState={{ checked: visible }}
               onPress={() => setHidden(ids => ids.includes(boat.id) ? ids.filter(id => id !== boat.id) : [...ids, boat.id])}
               style={{ flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 44, maxWidth: '100%',
                 paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, backgroundColor: c.buttonBg }}>
               <Text style={{ color: visible ? boat.color : c.textMuted, fontSize: 18 }}>{visible ? '●' : '○'}</Text>
-              <Text style={{ color: c.text, flexShrink: 1 }}>{boat.name}</Text>
+              <View style={{ flexShrink: 1, gap: 3 }}>
+                <Text style={{ color: c.text }}>{boat.name}</Text>
+                {visible && <Text style={{ color: c.textMuted, fontSize: 12, fontVariant: ['tabular-nums'] }}>
+                  {metrics.map(metric => {
+                    const value = reading ? metricValue(reading, metric.key) : null;
+                    return `${metric.label} ${value === null ? '—' : formatNumber(value, 1)}`;
+                  }).join(' · ')} kn
+                </Text>}
+              </View>
             </Pressable>;
           })}
         </View>

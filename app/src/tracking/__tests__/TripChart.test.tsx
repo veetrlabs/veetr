@@ -21,14 +21,16 @@ test("renders every visible boat and keeps the shared timeline adjustable", () =
     { id: "b", name: "Beta", color: "blue", points },
   ];
   const ui = render(<TripChart points={points} index={0} onSelect={onSelect} boatTracks={boats} />);
-  expect(ui.getByText("● Alpha · SOG")).toBeTruthy();
-  expect(ui.getByText("● Beta · SOG")).toBeTruthy();
+  expect(ui.queryByText(/Alpha/)).toBeNull();
+  expect(ui.queryByText(/Beta/)).toBeNull();
+  expect(ui.getByText("━ SOG")).toBeTruthy();
   expect(ui.getAllByTestId("chart-path").filter(p => p.props.d?.startsWith("M0.00")).map(p => p.props.stroke)).toEqual(["red", "blue"]);
   fireEvent(ui.getByRole("adjustable"), "accessibilityAction", { nativeEvent: { actionName: "increment" } });
   expect(onSelect).toHaveBeenCalledWith(1);
   ui.rerender(<TripChart points={points} index={1} onSelect={onSelect} boatTracks={[boats[1]]} />);
   expect(ui.queryByText("● Alpha · SOG")).toBeNull();
-  expect(ui.getByText("● Beta · SOG")).toBeTruthy();
+  expect(ui.queryByText(/Beta/)).toBeNull();
+  expect(ui.getByText("━ SOG")).toBeTruthy();
   ui.rerender(<TripChart points={points} index={1} onSelect={onSelect} boatTracks={[]} />);
   expect(ui.getByText("Turn on a boat to compare its instruments.")).toBeTruthy();
 });

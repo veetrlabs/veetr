@@ -108,7 +108,15 @@ export default function TripChart({
         <Text style={{ color: c.text, fontWeight: "600" }}>{t("Speed & wind")}</Text>
         <Text style={{ color: c.textMuted, fontSize: 12 }}>{"knots"}</Text>
       </View>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 22 }}>
+      {boatTracks ? (
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 16 }}>
+          {series.filter(metric => paths.some(path => path.key === metric.key)).map(metric => (
+            <Text key={metric.key} style={{ color: c.textMuted, fontSize: 12 }}>
+              {metric.dash ? metric.key === "aws" ? "┄" : "┈" : "━"} {metric.label}
+            </Text>
+          ))}
+        </View>
+      ) : <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 22 }}>
         {paths.map((s) => (
           <View key={s.id} style={{ gap: 4 }}>
             <Text style={{ color: s.color, fontSize: 12, fontWeight: "600" }}>
@@ -128,7 +136,7 @@ export default function TripChart({
             </Text>
           </View>
         ))}
-      </View>
+      </View>}
       <View
         ref={chartRef}
         onLayout={(e) => {
