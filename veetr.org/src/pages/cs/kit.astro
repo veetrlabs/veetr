@@ -1,0 +1,136 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+import MarkdownSection from '../../components/MarkdownSection.astro';
+import Newsletter from '../../components/Newsletter.astro';
+import hardware from '../../assets/veetr-hardware-kit-v7.png';
+import { frontmatter, Content } from '../../content/pages/cs/kit.md';
+
+const comparison = [
+  ['Doba přípravy', '10 minut', 'Dny'],
+  ['Shánění součástek', 'Hotovo', 'Měsíce'],
+  ['Nutné pájení', 'Ne', 'Ano'],
+  ['Nutná 3D tiskárna', 'Ne', 'Ano'],
+  ['Firmware', 'Nahraný a otestovaný', 'Nahrajete sami'],
+  ['Kontrola kvality', 'Otestovaný celek', 'Vlastní ladění a testování'],
+  ['Potřebné technické znalosti', 'Základní', 'Pokročilé'],
+  ['Podpora', 'Komunita a e-mail', 'Pouze komunita'],
+  ['Podpora vývoje', 'Boční vítr, 20 uzlů', 'Ostře proti větru, 6 uzlů'],
+];
+
+const parts = [
+  ['Mikrokontrolér', 'ESP32 DevKitC WROOM-32U s podporou externí BLE antény.', 'https://s.click.aliexpress.com/e/_c3ctWFj9'],
+  ['Devítiosý snímač', 'Akcelerometr, magnetometr a gyroskop BNO080/BNO085 s fúzí senzorů.', 'https://s.click.aliexpress.com/e/_okDR7nd'],
+  ['Snímač větru', 'Miniaturní ultrazvukový snímač RS485 pro rychlost větru a směr v rozsahu 360°.', 'https://s.click.aliexpress.com/e/_onkySgT'],
+  ['GPS modul', 'Přijímač více systémů GNSS z řady GY-NEO8MV2.', 'https://s.click.aliexpress.com/e/_onLOZmT'],
+  ['GPS anténa', 'Externí anténa s vysokým ziskem pro lepší příjem.', 'https://s.click.aliexpress.com/e/_oExx7iF'],
+  ['Převodník RS485', 'Rozhraní RS485–TTL mezi snímačem větru a ESP32.', 'https://www.aliexpress.com/item/32688467460.html'],
+  ['Pinové lišty', 'Lišty 1×3, 2×5, 2×10 a 2×20 s roztečí 2,54 mm.', 'https://s.click.aliexpress.com/e/_c3x0pywP'],
+  ['Zásuvka RJ45 do DPS', 'Zásuvka 8P8C do plošného spoje pro připojení snímače větru.', 'https://s.click.aliexpress.com/e/_c4r9khsR'],
+  ['Samořezné šrouby', 'Nerezové šrouby M2,6 × 6 mm pro upevnění desky a krabičky.', 'https://s.click.aliexpress.com/e/_c3I7nVix'],
+  ['Imbusové klíče', 'Imbusové klíče 2 mm a 2,5 mm pro montáž a údržbu.', 'https://s.click.aliexpress.com/e/_c3hkuLF9'],
+  ['Konektory RJ45', 'Pozlacené modulární konektory CAT5e/CAT6.', 'https://s.click.aliexpress.com/e/_c35xAcRp'],
+  ['Datový kabel', 'Stíněný kabel 22 AWG LSZH pro snímač větru.', 'https://s.click.aliexpress.com/e/_c4bYPjR9'],
+  ['Rezistor 330 Ω', 'Rezistor pro omezení proudu indikační LED a úpravu signálu.', 'https://s.click.aliexpress.com/e/_c3N5JNnH'],
+  ['Zelená LED', 'Zelená stavová LED 5 mm s roztečí vývodů 2,54 mm.', 'https://s.click.aliexpress.com/e/_c3EvUu2r'],
+  ['Nosná deska Veetr', 'Otevřená propojovací deska pro mikrokontrolér a moduly senzorů.', 'https://oshwlab.com/linhartescope/esp32-breakout-board'],
+  ['Krabička', 'Vlastní krabička z 3D tisku; původní stránka uváděla její zveřejnění jako připravované.', 'https://www.printables.com/'],
+];
+
+const benefits = [
+  ['Profesionální součástky', 'Dřívější nabídka popisovala ESP32, GPS a senzory jako profesionální součástky používané také v komerčních námořních přístrojích.'],
+  ['Výrazná úspora nákladů', 'Dřívější nabídka porovnávala cenu součástek pro vlastní stavbu s náklady na certifikaci zařízení ve výši 20 000–50 000 USD a více a uváděla obdobné funkce za 10–20 % komerční ceny.'],
+  ['Skutečné vlastnictví', 'Schémata, firmware, soubory plošných spojů a návrhy krabiček zůstávají otevřené, opravitelné a upravitelné.'],
+  ['Učte se a upravujte', 'Stavitelé mohou porozumět systému, přidávat funkce, připojit další vybavení a sdílet vylepšení.'],
+];
+
+const earlyAdopter = [
+  ['Ovlivněte podobu produktu', 'Jachtaři mohou testovat Veetr v reálných podmínkách a upřímnou zpětnou vazbou ovlivnit další verze.'],
+  ['Zvýhodněná cena', 'Dřívější nabídka uváděla zvýhodněnou cenu pro první uživatele s celosvětovou dopravou v ceně a bez skrytých poplatků.'],
+  ['Výroba na objednávku', 'Každá stavebnice se měla obstarávat a sestavovat jednotlivě s uváděnou lhůtou 6–12 týdnů.'],
+  ['Plná podpora', 'Nabídka zahrnovala e-mailový kontakt na vývojáře a komunitní fórum na GitHubu.'],
+];
+---
+
+<BaseLayout title={frontmatter.title} description={frontmatter.description} hero={frontmatter} image={hardware} imageAlt="Uzavřená modrá jednotka Veetr se snímačem větru a anténami Bluetooth a GPS">
+  <MarkdownSection Content={Content} />
+
+  <section class="section section-muted" id="pricing">
+    <div class="shell">
+      <div class="section-heading">
+        <p class="eyebrow">Dřívější ceny</p>
+        <h2>Kompletní stavebnice nebo vlastní stavba</h2>
+        <p>Obchod porovnával kompletní stavebnici za 600 € s vlastní stavbou přibližně za 300 €. Jde o historické ceny, nikoli aktuální nabídku.</p>
+      </div>
+      <div class="table-scroll" tabindex="0" aria-label="Dřívější porovnání stavebnice Veetr a vlastní stavby">
+        <table class="offer-table">
+          <thead><tr><th>Co získáte</th><th>Kompletní stavebnice · 600 €</th><th>Vlastní stavba · asi 300 €</th></tr></thead>
+          <tbody>{comparison.map(([item, kit, diy]) => <tr><th scope="row">{item}</th><td>{kit}</td><td>{diy}</td></tr>)}</tbody>
+        </table>
+      </div>
+      <div class="notice">
+        <strong>Objednávky jsou pozastavené</strong>
+        <p>Dřívější nabídka používala Stripe pro platby a e-mailové potvrzení podrobností dopravy. Hotovou stavebnici nyní přes tento web nelze objednat.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="shipping">
+    <div class="shell split-panel">
+      <div>
+        <p class="eyebrow">Dřívější podmínky dopravy</p>
+        <h2>Celosvětová doprava byla v ceně</h2>
+      </div>
+      <div class="prose">
+        <p>Počáteční nabídka zahrnovala bezplatnou celosvětovou dopravu pro jednoduché objednávání, i když to snižovalo marži projektu.</p>
+        <p>Uváděla dodání až za 12 týdnů, protože stavebnice vznikaly ručně bez skladových zásob nebo kapitálu pro sériovou výrobu. Část pro první uživatele uváděla stejný odhad jako 6–12 týdnů.</p>
+        <p>Tyto odhady zůstávají pro informaci a před případnou budoucí nabídkou bude nutné je znovu potvrdit.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-muted" id="parts">
+    <div class="shell">
+      <div class="section-heading">
+        <p class="eyebrow">Úplný dřívější seznam součástek</p>
+        <h2>Standardní součástky bez závislosti na výrobci</h2>
+        <p>Nabídky dodavatelů i varianty desek se mohou měnit. Před objednáním ověřte každý model, napětí, konektor a rozměr podle aktuální dokumentace.</p>
+      </div>
+      <div class="table-scroll" tabindex="0" aria-label="Součástky Veetr a odkazy na dodavatele">
+        <table class="parts-table">
+          <thead><tr><th>Součástka</th><th>Popis</th><th>Dřívější dodavatel</th></tr></thead>
+          <tbody>{parts.map(([part, description, href]) => <tr><th scope="row">{part}</th><td>{description}</td><td><a href={href}>Odkaz na dodavatele</a></td></tr>)}</tbody>
+        </table>
+      </div>
+      <p class="affiliate-note">Některé odkazy na dodavatele jsou partnerské a podporují vývoj Veetr beze změny ceny pro kupujícího. Dřívější obchod je popisoval jako osvědčené součástky s profesionálním výkonem bez příplatku za certifikaci celého zařízení.</p>
+    </div>
+  </section>
+
+  <section class="section" id="benefits">
+    <div class="shell">
+      <div class="section-heading"><p class="eyebrow">Proč stavebnice vznikla</p><h2>Produktem byla svoboda</h2></div>
+      <CardGrid>{benefits.map(([title, text]) => <Card title={title}><p>{text}</p></Card>)}</CardGrid>
+    </div>
+  </section>
+
+  <section class="section section-muted" id="early-adopters">
+    <div class="shell">
+      <div class="section-heading">
+        <p class="eyebrow">Program pro první uživatele</p>
+        <h2>Jachtaři jako partneři a přispěvatelé</h2>
+        <p>Dřívější nabídka zvala první uživatele k utváření mladého projektu místo nákupu hotového přístroje pro masový trh.</p>
+      </div>
+      <CardGrid>{earlyAdopter.map(([title, text]) => <Card title={title}><p>{text}</p></Card>)}</CardGrid>
+      <div class="resource-grid kit-links">
+        <LinkCard href="/cs/build/" title="Sestavit podle otevřeného návrhu" description="Využijte dostupný postup vlastní stavby" />
+        <LinkCard href="https://github.com/veetrlabs/veetr/discussions" title="Zapojit se do fóra" description="Ptejte se a sdílejte zkušenosti z praxe" />
+      </div>
+      <div class="business-details">
+        <strong>Provozovatel dřívějšího obchodu</strong>
+        <span>Jan Linhart (fyzická osoba) · IČO 75412551 · Praha · veetr@linhart.email</span>
+      </div>
+    </div>
+  </section>
+
+  <Newsletter id={3} title="Otázky k hardwaru Veetr?" text="Dřívější kontaktní formulář ke stavebnici zůstává dostupný pro dotazy. Novinky o projektu můžete odebírat na stránce Pořídit Veetr Vane." />
+</BaseLayout>

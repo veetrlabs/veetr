@@ -1,6 +1,7 @@
 import React, {useEffect,useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {initializeRoutes} from './routes';
+import {localizedAccountReturn} from '../../i18n/site';
 let App: typeof import('./main').default;
 function SiteApp(){
  const [waiting,setWaiting]=useState<ServiceWorker|null>(null);
@@ -20,6 +21,9 @@ function SiteApp(){
  }}/>;
 }
 async function start(){
+ const callback = localizedAccountReturn(new URL(window.location.href));
+ if(callback){window.location.replace(callback);return;}
+
  await initializeRoutes();
  App=(await import('./main')).default;
  createRoot(document.getElementById('root')!).render(<SiteApp/>);

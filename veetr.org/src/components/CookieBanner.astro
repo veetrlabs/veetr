@@ -1,8 +1,12 @@
-<div id="cookie-banner" class="cookie-banner" role="dialog" aria-live="polite" aria-label="Cookie consent" data-hidden>
-  <p>Analytics cookies help improve Veetr.</p>
+---
+import {siteLanguage} from '../i18n/site';
+const cs = siteLanguage(Astro.url.pathname) === 'cs';
+---
+<div id="cookie-banner" class="cookie-banner" role="dialog" aria-live="polite" aria-label={cs ? "Souhlas s cookies" : "Cookie consent"} data-hidden>
+  <p>{cs ? "Analytické cookies pomáhají zlepšovat Veetr." : "Analytics cookies help improve Veetr."}</p>
   <div class="cookie-actions">
-    <button type="button" class="button button-small" id="cookie-accept">Accept</button>
-    <button type="button" class="button button-small button-secondary" id="cookie-decline">Decline</button>
+    <button type="button" class="button button-small" id="cookie-accept">{cs ? "Přijmout" : "Accept"}</button>
+    <button type="button" class="button button-small button-secondary" id="cookie-decline">{cs ? "Odmítnout" : "Decline"}</button>
   </div>
 </div>
 

@@ -1,0 +1,102 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import hardwareKit from '../../assets/veetr-hardware-kit-v7.png';
+import appDashboard from '../../assets/veetr-tablet-phone-1024.png';
+import raceEditor from '../../assets/home-race-editor.jpg';
+import raceMap from '../../assets/home-race-map.jpg';
+import { Image } from 'astro:assets';
+import { frontmatter } from '../../content/pages/cs/home.md';
+
+const paths = [
+  {
+    id: 'sailing-app', title: 'Plachtěte s Veetrem',
+    text: 'Zaznamenejte den na vodě, připojte se k závodu a vraťte se ke svým plavbám v aplikaci.',
+    image: appDashboard, alt: 'Aplikace Veetr na tabletu a telefonu', caption: 'Webové přístroje na tabletu a telefonu',
+    href: '/cs/docs/mobile-apps/', action: 'Prohlédnout aplikaci', guide: '/cs/docs/race-skippers/', guideLabel: 'Závodění s Veetrem',
+    note: 'Nativní aplikace se testují na iPhonu a Androidu.',
+  },
+  {
+    id: 'run-a-race', title: 'Pořádejte závod',
+    text: 'Spojte flotilu. Nastavte trať, řiďte rozjížďky a zveřejňujte výsledky.',
+    image: raceEditor, alt: 'Editor tratě se startovní čárou a otočnými body', caption: 'Editor tratě · ukázková data',
+    href: '/cs/races/manage/', action: 'Spravovat závody', guide: '/cs/docs/race-referees/', guideLabel: 'Návod pro rozhodčí',
+  },
+  {
+    id: 'veetr-vane', title: 'Poznejte Veetr Vane',
+    text: 'Přidejte vítr, směr a náklon pomocí přenosného hardwaru navrženého pro vlastní stavbu a opravy.',
+    image: hardwareKit, alt: 'Veetr Vane se snímačem větru a anténami Bluetooth a GPS', caption: 'Veetr Vane a snímače',
+    href: '/cs/get-your-veetr/', action: 'Prohlédnout hardware', guide: '/cs/docs/hardware/', guideLabel: 'Návod k hardwaru',
+    note: 'Otevřený návrh je dostupný. Hotový hardware se zatím neprodává.',
+  },
+  {
+    id: 'follow-a-race', title: 'Sledujte závod',
+    text: 'Prohlédněte si trať, sledujte dostupné živé polohy a kontrolujte výsledky ze břehu.',
+    image: raceMap, alt: 'Mapa závodu se startovní čárou A–B a číslovanými značkami', caption: 'Mapa závodu · ilustrační lodě',
+    href: '/cs/races/', action: 'Prohlédnout závody', guide: '/cs/docs/race-spectators/', guideLabel: 'Návod pro diváky',
+  },
+];
+---
+
+<BaseLayout title="Veetr" description={frontmatter.description} hero={frontmatter} ecosystemActions>
+  <div class="home-paths">
+    {paths.map(path => (
+      <article class="home-path" id={path.id}>
+        <figure>
+          <div class="path-image">
+            {path.id === 'run-a-race' ? (
+              <div class="preview-tablet">
+                <Image src={path.image} width={960} format="webp" alt={path.alt} loading="lazy" />
+              </div>
+            ) : path.id === 'follow-a-race' ? (
+              <div class="preview-monitor">
+                <div class="preview-monitor-bezel">
+                  <div class="preview-monitor-screen">
+                    <div class="preview-race-scene">
+                    <Image src={path.image} width={960} format="webp" alt={path.alt} loading="lazy" />
+                    <svg class="preview-boats" viewBox="0 0 1000 481" role="img" aria-label="Tři ilustrační lodě plující od startu ke značce 1">
+                      <g transform="translate(471 346) rotate(-80) scale(.55)">
+                        <path d="M0 18 L0 38" stroke="#1682bb" stroke-width="4" stroke-dasharray="5 5" opacity=".7" />
+                        <path d="M0 -19 L10 11 Q0 23 -10 11 Z" fill="#147bc1" stroke="white" stroke-width="3" />
+                      </g>
+                      <g transform="translate(496 353) rotate(-77) scale(.55)">
+                        <path d="M0 18 L0 38" stroke="#c95b22" stroke-width="4" stroke-dasharray="5 5" opacity=".7" />
+                        <path d="M0 -19 L10 11 Q0 23 -10 11 Z" fill="#e87832" stroke="white" stroke-width="3" />
+                      </g>
+                      <g transform="translate(520 360) rotate(-76) scale(.55)">
+                        <path d="M0 18 L0 38" stroke="#7854bb" stroke-width="4" stroke-dasharray="5 5" opacity=".7" />
+                        <path d="M0 -19 L10 11 Q0 23 -10 11 Z" fill="#8858cf" stroke="white" stroke-width="3" />
+                      </g>
+                    </svg>
+                    </div>
+                    <span class="preview-map-credit">© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · <a href="https://www.openseamap.org/">OpenSeaMap</a></span>
+                  </div>
+                </div>
+                <div class="preview-monitor-stand" aria-hidden="true"></div>
+              </div>
+            ) : (
+              <Image src={path.image} width={960} format="webp" alt={path.alt} loading="lazy" />
+            )}
+          </div>
+          <figcaption>{path.caption}</figcaption>
+        </figure>
+        <div class="path-copy">
+          <h2>{path.title}</h2>
+          <p>{path.text}</p>
+          {path.note && <p class="path-note">{path.note}</p>}
+          <div class="path-links">
+            <a class="button button-secondary" href={path.href}>{path.action} →</a>
+            <a href={path.guide}>{path.guideLabel}</a>
+          </div>
+        </div>
+      </article>
+    ))}
+  </div>
+  <section class="section home-open" aria-labelledby="open-title">
+    <h2 id="open-title">Vyvíjeno otevřeně.</h2>
+    <p>Projděte návody, zjistěte, jak Veetr funguje, a pomozte rozhodnout, co bude dál.</p>
+    <div class="open-links">
+      <a href="/cs/docs/">Číst dokumentaci →</a>
+      <a href="https://github.com/veetrlabs/veetr">Prohlédnout zdrojový kód →</a>
+    </div>
+  </section>
+</BaseLayout>

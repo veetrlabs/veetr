@@ -51,10 +51,13 @@ export const collections = {
         'FIRMWARE.md',
         'PWA.md',
         'VERSION_MANAGEMENT.md',
+        'cs/*.md',
       ],
       generateId: ({ entry }) => {
-        if (entry.toLowerCase() === 'setup.md') return 'docs';
-        return `docs/${entry.replace(/\.md$/i, '').toLowerCase().replaceAll('_', '-')}`;
+        const locale = entry.startsWith('cs/') ? 'cs/' : '';
+        const name = entry.replace(/^cs\//, '');
+        if (name.toLowerCase() === 'setup.md') return `${locale}docs`;
+        return `${locale}docs/${name.replace(/\.md$/i, '').toLowerCase().replaceAll('_', '-')}`;
       },
     }),
     schema: docsSchema(),

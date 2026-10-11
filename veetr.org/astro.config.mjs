@@ -6,6 +6,11 @@ export default defineConfig({
   output: 'static',
   vite: {envPrefix: ['PUBLIC_', 'VITE_'], esbuild: {jsx: 'automatic'}},
   redirects: {
+    '/cs/contact/': '/cs/about/#contact',
+    '/cs/product/': '/cs/',
+    '/cs/docs/setup/': '/cs/docs/',
+    '/cs/terms.html': '/cs/legal/kit-terms/',
+    '/cs/privacy.html': '/cs/legal/kit-privacy/',
     '/contact/': '/about/#contact',
     '/product/': '/',
     '/docs/setup/': '/docs/',
@@ -17,6 +22,8 @@ export default defineConfig({
   integrations: [
     starlight({
       title: 'Veetr',
+      defaultLocale: 'root',
+      locales: {root: {label: 'English', lang: 'en'}, cs: {label: 'Čeština', lang: 'cs'}},
       logo: { src: './public/img/veetr-logo.svg', alt: '' },
       favicon: '/img/veetr-logo.svg',
       // Marketing routes use the splash layout; repository Markdown powers /docs/*.
@@ -25,20 +32,20 @@ export default defineConfig({
       pagination: true,
       sidebar: [
         {
-          label: 'Documentation',
+          label: 'Documentation', translations: {cs: 'Dokumentace'},
           items: [
             {
-              label: 'Get started',
+              label: 'Get started', translations: {cs: 'Začínáme'},
               items: ['docs', 'docs/mobile-apps', 'docs/share-your-trip'],
             },
             {
-              label: 'Race management',
+              label: 'Race management', translations: {cs: 'Správa závodů'},
               items: ['docs/race-guide', 'docs/race-managers', 'docs/race-referees', 'docs/race-skippers', 'docs/race-crew', 'docs/race-spectators', 'docs/race-administrators', 'docs/race-scoring'],
             },
             {
-              label: 'Hardware',
+              label: 'Hardware', translations: {cs: 'Hardware'},
               items: [
-                { label: 'Overview', slug: 'docs/hardware' },
+                { label: 'Overview', translations: {cs: 'Přehled'}, slug: 'docs/hardware' },
                 'docs/components',
                 'docs/pcb',
                 'docs/enclosure',
@@ -49,13 +56,13 @@ export default defineConfig({
               ],
             },
             {
-              label: 'Software',
+              label: 'Software', translations: {cs: 'Software'},
               items: [
-                { label: 'Overview', slug: 'docs/software' },
+                { label: 'Overview', translations: {cs: 'Přehled'}, slug: 'docs/software' },
                 {
-                  label: 'Firmware',
+                  label: 'Firmware', translations: {cs: 'Firmware'},
                   items: [
-                    { label: 'Overview', slug: 'docs/firmware' },
+                    { label: 'Overview', translations: {cs: 'Přehled'}, slug: 'docs/firmware' },
                     'docs/firmware-update',
                     'docs/firmware-testing',
                   ],

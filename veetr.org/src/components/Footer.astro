@@ -1,32 +1,36 @@
+---
+import {siteLanguage, localizedPath} from '../i18n/site';
+const cs = siteLanguage(Astro.url.pathname) === 'cs';
+---
 <footer class="site-footer" id="site-footer">
   <div class="shell footer-grid">
     <div class="footer-brand">
-      <a class="footer-brand-lockup" href="/" aria-label="Veetr home">
+      <a class="footer-brand-lockup" href={localizedPath("/", cs ? "cs" : "en")} aria-label={cs ? "Úvodní stránka Veetr" : "Veetr home"}>
         <img src="/img/veetr-logo.svg" alt="" width="64" height="66" />
         <span>Veetr</span>
       </a>
-      <p>Open source sailing instruments for portable, repairable wind and vessel data.</p>
+      <p>{cs ? "Otevřené jachtařské přístroje pro měření větru a údajů o lodi, které lze přenášet a opravovat." : "Open source sailing instruments for portable, repairable wind and vessel data."}</p>
     </div>
 
     <div>
-      <h2>Project</h2>
-      <a href="https://app.veetr.org/">Live App</a>
+      <h2>{cs ? "Projekt" : "Project"}</h2>
+      <a href="https://app.veetr.org/">{cs ? "Webová aplikace" : "Live App"}</a>
       <a href="https://github.com/veetrlabs/veetr">GitHub</a>
-      <a href="https://github.com/veetrlabs/veetr/discussions">GitHub Discussions</a>
-      <a href="https://github.com/veetrlabs/veetr/releases">Releases</a>
-      <a href="https://github.com/veetrlabs/veetr/issues">Issues</a>
+      <a href="https://github.com/veetrlabs/veetr/discussions">{cs ? "Diskuze na GitHubu" : "GitHub Discussions"}</a>
+      <a href="https://github.com/veetrlabs/veetr/releases">{cs ? "Vydání" : "Releases"}</a>
+      <a href="https://github.com/veetrlabs/veetr/issues">{cs ? "Hlášení problémů" : "Issues"}</a>
     </div>
 
     <div>
-      <h2>About</h2>
-      <a href="/about/">About &amp; contact</a>
-      <a href="/legal/privacy/">Privacy</a>
-      <a href="/legal/terms/">Terms</a>
+      <h2>{cs ? "O projektu" : "About"}</h2>
+      <a href={localizedPath("/about/", cs ? "cs" : "en")}>{cs ? "O projektu a kontakt" : "About & contact"}</a>
+      <a href={localizedPath("/legal/privacy/", cs ? "cs" : "en")}>{cs ? "Soukromí" : "Privacy"}</a>
+      <a href={localizedPath("/legal/terms/", cs ? "cs" : "en")}>{cs ? "Podmínky" : "Terms"}</a>
     </div>
   </div>
 
   <div class="shell footer-bottom">
     <slot name="preferences" />
-    <p>Copyright 2026 Veetr Project. Built in Prague and published in the open.</p>
+    <p>{cs ? "Copyright 2026 projekt Veetr. Vyvíjeno v Praze a zveřejněno otevřeně." : "Copyright 2026 Veetr Project. Built in Prague and published in the open."}</p>
   </div>
 </footer>

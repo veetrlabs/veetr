@@ -12,7 +12,6 @@ Veetr brings together **firmware inside Veetr Vane**, **native apps for iPhone a
 | --- | --- | --- |
 | **[Firmware](https://veetr.org/docs/firmware/)** | The ESP32 inside Veetr | Reads the wind, GPS, and motion sensors; calculates derived values; stores device settings; and publishes sailing data over BLE. |
 | **[Progressive Web App](https://veetr.org/docs/pwa/)** | A compatible web browser | Connects to Veetr, turns its data into sailing instruments, stores recent readings locally, shows the track map, and manages the device. |
-
 | **[Native apps](/docs/native-apps/)** | iPhone and Android | Display instruments, record trips, show race courses, and provide start-line and anchor tools. Phone GPS recording works without Veetr Vane. |
 | **[Race management](/docs/race-guide/)** | The Veetr website | Organizes series, invitations, courses, heats, tracking, and results for referees, sailors, and spectators. |
 

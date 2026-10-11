@@ -1,0 +1,23 @@
+---
+import {siteLanguage} from '../i18n/site';
+const language = siteLanguage(Astro.url.pathname);
+---
+<label class="site-language"><span class="sr-only">{language === 'cs' ? 'Jazyk webu' : 'Website language'}</span><select data-site-language aria-label={language === 'cs' ? 'Jazyk webu' : 'Website language'}><option value="en" selected={language === 'en'} lang="en">English</option><option value="cs" selected={language === 'cs'} lang="cs">Čeština</option></select></label>
+<style>
+.site-language select{max-width:7.5rem;padding:.5rem .3rem;border:1px solid var(--sl-color-hairline,#344451);border-radius:.5rem;background:var(--sl-color-bg-nav,#0b1722);color:var(--sl-color-white,#e9eff5);font:inherit;font-size:.85rem;min-height:2.75rem}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+</style>
+<script>
+import {localizedPath, siteLanguage} from '../i18n/site';
+// URLs are authoritative, including when opened from a shared link.
+try {localStorage.setItem('veetr.language', siteLanguage(location.pathname));} catch {}
+document.querySelectorAll<HTMLSelectElement>('[data-site-language]').forEach(select => {
+ select.addEventListener('change', () => {
+  const language = select.value === 'cs' ? 'cs' : 'en';
+  try {localStorage.setItem('veetr.language', language);} catch {}
+  const url = new URL(location.href);
+  url.pathname = localizedPath(url.pathname, language);
+  location.assign(url.href);
+ });
+});
+</script>

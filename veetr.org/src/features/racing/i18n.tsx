@@ -14,6 +14,7 @@ export function detectLanguage(
   return "en";
 }
 function initialLanguage(): Language {
+  if (typeof document !== "undefined" && (document.getElementById("veetr-racing") || document.getElementById("shared-trips"))) return location.pathname.startsWith("/cs/") ? "cs" : "en";
   try {
     return detectLanguage(
       navigator.languages,

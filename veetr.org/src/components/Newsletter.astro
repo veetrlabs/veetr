@@ -1,4 +1,6 @@
 ---
+import {siteLanguage} from '../i18n/site';
+const cs = siteLanguage(Astro.url.pathname) === 'cs';
 interface Props {
   id?: number;
   anchorId?: string;
@@ -10,9 +12,9 @@ interface Props {
 const {
   id = 1,
   anchorId,
-  eyebrow = 'Newsletter',
-  title = 'Follow the project',
-  text = 'Get build notes, certification updates, and community milestones in your inbox.',
+  eyebrow = cs ? 'Novinky' : 'Newsletter',
+  title = cs ? 'Sledujte projekt' : 'Follow the project',
+  text = cs ? 'Dostávejte zprávy o stavbě, certifikaci a pokrocích komunity do e-mailu.' : 'Get build notes, certification updates, and community milestones in your inbox.',
 } = Astro.props;
 ---
 
@@ -23,8 +25,13 @@ const {
       <h2>{title}</h2>
       <p>{text}</p>
     </div>
-    <div class="form-panel">
+    <div class="form-panel" data-form-language={cs ? "cs" : "en"}>
       <script type="text/javascript" src={`https://m.veetr.com/form/generate.js?id=${id}`}></script>
     </div>
   </div>
 </section>
+
+<script>
+  import { localizeForm } from '../i18n/forms';
+  document.querySelectorAll<HTMLElement>('[data-form-language="cs"]').forEach(localizeForm);
+</script>

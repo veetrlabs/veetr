@@ -2,3 +2,8 @@
 /boats/:slug /boats/ 200
 /join/:token/ /join/ 200
 /join/:token /join/ 200
+
+/cs/boats/:slug/ /cs/boats/ 200
+/cs/boats/:slug /cs/boats/ 200
+/cs/join/:token/ /cs/join/ 200
+/cs/join/:token /cs/join/ 200

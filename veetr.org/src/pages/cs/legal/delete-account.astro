@@ -1,0 +1,22 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+const subject = encodeURIComponent('Žádost o smazání účtu Veetr');
+const body = encodeURIComponent('Prosím o smazání mého účtu Veetr a souvisejících osobních údajů.\n\nE-mail mého účtu Veetr: \n');
+---
+<BaseLayout title="Smazat účet Veetr" description="Požádejte o smazání účtu Veetr a souvisejících osobních údajů.">
+  <section class="content-section"><div class="shell prose legal-prose">
+    <p><a href="/cs/account/">← Účet</a></p>
+    <p>O smazání můžete požádat bez opětovné instalace aplikace nebo přihlášení.</p>
+    <h2>Odeslání žádosti o smazání</h2>
+    <p>Napište na <a href={`mailto:veetr@linhart.email?subject=${subject}&body=${body}`}>veetr@linhart.email</a> s předmětem „Žádost o smazání účtu Veetr“. Uveďte e-mailovou adresu svého účtu Veetr a pokud možno zprávu odešlete z této adresy. Neposílejte heslo.</p>
+    <p>Před smazáním ověříme, že účet patří vám. Pokud už k e-mailu účtu nemáte přístup, dejte nám vědět a domluvíme jiný způsob ověření. Vyřízení žádosti potvrdíme.</p>
+    <h2>Co se smaže</h2>
+    <p>Žádost zahrnuje přihlašovací účet Veetr, profil, přístupová členství u lodí a závodů a osobní údaje spojené s účtem včetně nahraných plaveb a záznamů polohy propojených s účtem. Sdílené odkazy na smazané plavby přestanou fungovat.</p>
+    <p>Závodní záznamy zahrnující další účastníky může být nutné anonymizovat místo smazání. Údaje potřebné pro právní povinnosti nebo vyřízení žádosti mohou být pro tyto účely uchovány; případné výjimky vysvětlíme v odpovědi. Kopie dříve stažené jinými lidmi nemáme pod kontrolou.</p>
+    <h2>Záznamy v telefonu a diagnostické zprávy</h2>
+    <p>Smazání online účtu na dálku neodstraní místní záznamy v telefonu. Smažte je v aplikaci nebo vymažte její uložená data. Záznamy, které chcete zachovat, nejprve exportujte.</p>
+    <p>Volitelné diagnostické zprávy používají identifikátory oddělené od účtu a z aktivní diagnostické databáze se odstraňují po 30 dnech. Pokud chcete smazat konkrétní zprávu, přiložte diagnostický identifikátor nebo ID zprávy, abychom ji mohli dohledat.</p>
+    <p>E-mailem můžete také požádat o smazání konkrétní nahrané plavby nebo jiných dat bez smazání účtu.</p>
+    <p>Veetr provozuje Jan Linhart. Více informací najdete v <a href="/cs/legal/privacy/">zásadách ochrany osobních údajů</a>.</p>
+  </div></section>
+</BaseLayout>

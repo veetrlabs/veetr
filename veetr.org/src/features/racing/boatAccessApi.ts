@@ -1,5 +1,5 @@
 import { supabase } from "./api";
-import { integrated } from "./routes";
+import { integrated, localHref } from "./routes";
 export interface Invitation {
   id: string;
   boatId: string;
@@ -70,7 +70,7 @@ export async function emailInvitation(invitationId: string) {
   }
 }
 export function invitationHref(token: string) {
-  return `${window.location.origin}${integrated ? "/account/?" : "/?account&"}invite=${encodeURIComponent(token)}`;
+  return `${window.location.origin}${integrated ? localHref("/account/?") : "/?account&"}invite=${encodeURIComponent(token)}`;
 }
 export async function revokeInvitation(sid: string, invitation_id: string) {
   const { error } = await client().rpc("revoke_boat_access", {

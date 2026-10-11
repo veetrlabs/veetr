@@ -1,0 +1,54 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import pcb from '../../assets/3d-veetr-pcb-transparent.png';
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+import MarkdownSection from '../../components/MarkdownSection.astro';
+import Newsletter from '../../components/Newsletter.astro';
+import { frontmatter, Content } from '../../content/pages/cs/build.md';
+
+const parts = [
+  ['Mikrokontrolér', 'Dvoujádrová vývojová deska ESP32 s Wi-Fi, BLE a podporou externí antény.'],
+  ['Devítiosý snímač', 'IMU BNO080/BNO085 pro směr, náklon a pohyb.'],
+  ['Snímač větru', 'Ultrazvukový snímač RS485 pro rychlost a směr zdánlivého větru.'],
+  ['GPS modul', 'Vícesystémový GNSS přijímač polohy a rychlosti vůči zemi.'],
+  ['Rozhraní RS485', 'TTL převodník pro připojení snímače větru k ESP32.'],
+  ['Vlastní PCB', 'Otevřená nosná deska pro spolehlivé zapojení a sestavení.'],
+  ['Krabička', 'Krabička k tisku nebo úpravě pro skutečné zkoušky.'],
+  ['Kabely a montážní díly', 'Konektory, stíněný kabel, šrouby, LED a základní montážní díly.'],
+];
+---
+
+<BaseLayout title={frontmatter.title} description={frontmatter.description} hero={frontmatter} image={pcb} imageAlt="Model vlastní PCB Veetr" imageCutout>
+
+  <MarkdownSection Content={Content} />
+
+  <section class="section">
+    <div class="shell">
+      <div class="section-heading">
+        <p class="eyebrow">Hardware</p>
+        <h2>Hlavní součástky</h2>
+      </div>
+      <CardGrid>
+        {parts.map(([name, text]) => (
+          <Card title={name}>
+            <p>{text}</p>
+          </Card>
+        ))}
+      </CardGrid>
+      <div class="notice">
+        <strong>Odpovědnost stavitele</strong>
+        <p>Otevřený hardware dává svobodu, ale za sestavené zařízení odpovídáte vy. Čtěte dokumentaci, vybírejte správné díly a před použitím na vodě ověřte bezpečnost.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-muted">
+    <div class="shell resource-grid">
+      <LinkCard href="/cs/docs/enclosure/" title="Krabička z 3D tisku" description="Model ke stažení, odnímatelný držák a návod k sestavení" />
+      <LinkCard href="/cs/docs/pcb/" title="PCB a Gerber soubory" description="Návrh, výrobní podklady a kontrola objednávky" />
+      <LinkCard href="/cs/docs/firmware-update/" title="Aktualizace firmwaru" description="Nahrání a aktualizace firmwaru" />
+    </div>
+  </section>
+
+  <Newsletter title="Stavte s komunitou" text="Sledujte změny návrhu, zdroje součástek a výsledky testování." />
+</BaseLayout>

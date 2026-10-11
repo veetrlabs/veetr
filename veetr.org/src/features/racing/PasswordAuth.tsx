@@ -1,3 +1,4 @@
+import { accountCallbackPath, siteLanguage } from "../../i18n/site";
 import { useState } from 'react';
 import { supabase } from './api';
 import { integrated } from './routes';
@@ -23,7 +24,7 @@ export function PasswordAuth({ recovery = false, onRecovered }: { recovery?: boo
       setBusy(true); setMessage('');
       let invite = new URLSearchParams(location.search).get('invite');
       try { invite ||= sessionStorage.getItem('veetr.boat-invite'); } catch {}
-      const redirectTo = location.origin + (integrated ? '/account/' : '/?account') + (invite ? `${integrated ? '?' : '&'}invite=${encodeURIComponent(invite)}` : '');
+      const redirectTo = location.origin + (integrated ? accountCallbackPath(siteLanguage(location.pathname), invite) : '/?account' + (invite ? `&invite=${encodeURIComponent(invite)}` : ''));
       try {
         if (recovery) {
           const { error } = await supabase.auth.updateUser({ password });

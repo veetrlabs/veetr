@@ -368,3 +368,46 @@ test('race management is mounted in the shared website shell', async () => {
   assert.equal(manifest.start_url, '/races/');
   await stat(new URL('veetr-app-sw.js', dist));
 });
+
+const translatedRoutes = [...new Set([...allRoutes, 'docs/mobile-apps/', 'docs/share-your-trip/', ...['guide','managers','referees','skippers','crew','spectators','administrators','scoring'].map(role => `docs/race-${role}/`), 'legal/delete-account/', 'races/', 'races/manage/', 'races/new/', 'account/', 'boats/', 'trips/'])];
+test('every public page and guide has Czech content, navigation, language choice and canonical URL', async () => {
+ for (const route of translatedRoutes) {
+  const html=await readPage(`cs/${route}`);
+  assert.match(html, /<html lang="cs"/,route);
+  assert.match(html, /aria-label="Jazyk webu"/,route);
+  assert.match(html, /<option value="cs" selected/,route);
+  assert.match(html, /hreflang="en"/,route);
+  assert.ok(html.includes(`rel="canonical" href="https://veetr.org/cs/${route}"`),route);
+  assert.doesNotMatch(html, /href="\/(?:docs|about|build|races|account|trips|legal|get-your-veetr)\//,route);
+  assert.doesNotMatch(html,/This content is not available|This page is not available/,route);
+  if(route.startsWith('docs/')) {
+   assert.match(html,/docs\/cs\/[A-Z_]+\.md/,route);
+   assert.match(html,/Na této stránce/,route);
+  }
+ }
+});
+test('Czech local links and image references resolve', async () => {
+ for(const route of translatedRoutes) {
+  const html=await readPage(`cs/${route}`);
+  for(const [,value] of html.matchAll(/(?:href|src)="(\/[^"?#]*)[^\"]*"/g)) {
+   if(value.startsWith('//'))continue;
+   const path=decodeURIComponent(value).replace(/^\//,'');
+   const target=new URL(path,dist);
+   const info=await stat(target);
+   if(info.isDirectory())assert.ok((await stat(new URL(`${path.replace(/\/$/,'')}/index.html`,dist))).isFile(),value);
+   else assert.ok(info.isFile(),value);
+  }
+ }
+});
+test('Czech installation, invitation and legacy routes retain their language', async()=>{
+ const manifest=JSON.parse(await readFile(new URL('veetr-app-cs.webmanifest',dist),'utf8'));
+ assert.equal(manifest.start_url,'/cs/races/');
+ assert.equal(manifest.lang,'cs');
+ assert.match(await readPage('cs/join/'), /lang="cs"/);
+ assert.match(await readPage('cs/join/'), /Jazyk webu/);
+ assert.match(await readPage('cs/docs/setup/'), /url=\/cs\/docs\//);
+ assert.match(await readPage('cs/contact/'), /url=\/cs\/about\/#contact/);
+ const redirects=await readFile(new URL('_redirects',dist),'utf8');
+ assert.match(redirects,/\/cs\/join\/:token\s+\/cs\/join\/\s+200/);
+ assert.match(redirects,/\/cs\/boats\/:slug\s+\/cs\/boats\/\s+200/);
+});

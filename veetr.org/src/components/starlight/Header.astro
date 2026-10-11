@@ -1,60 +1,65 @@
 ---
+import LanguageSelect from '../LanguageSelect.astro';
+import {siteLanguage, localizedPath, unlocalizedPath} from '../../i18n/site';
+const cs = siteLanguage(Astro.url.pathname) === 'cs';
+const hrefFor = (path: string) => localizedPath(path, cs ? 'cs' : 'en');
 import SiteTitle from '@astrojs/starlight/components/SiteTitle.astro';
 import Search from '@astrojs/starlight/components/Search.astro';
 import { Icon } from '@astrojs/starlight/components';
 
 const hardwareLinks = [
-  { href: '/get-your-veetr/', label: 'Get your Veetr Vane' },
-  { href: '/build/', label: 'Build your own' },
-  { href: '/docs/', label: 'Docs' },
+  { href: '/get-your-veetr/', label: cs ? 'Pořídit Veetr Vane' : 'Get your Veetr Vane' },
+  { href: '/build/', label: cs ? 'Sestavit vlastní' : 'Build your own' },
+  { href: '/docs/', label: cs ? 'Dokumentace' : 'Docs' },
 ];
 const navigationGroups = [
   { label: 'Vane', links: hardwareLinks },
 ];
-const pathname = Astro.url.pathname;
+const pathname = unlocalizedPath(Astro.url.pathname);
 const isCurrent = (href: string) => pathname === href || (['/docs/', '/races/'].includes(href) && pathname.startsWith(href));
 ---
 
 <div class="veetr-header">
   <SiteTitle />
-  <nav class="desktop-links" aria-label="Main navigation">
+  <nav class="desktop-links" aria-label={cs ? "Hlavní navigace" : "Main navigation"}>
     {navigationGroups.map((group) => (
       <details class:list={['nav-group', { active: group.links.some(({ href }) => pathname.startsWith(href)) }]}>
         <summary>{group.label} <span class="chevron" aria-hidden="true">⌄</span></summary>
         <div class="group-links">
           {group.links.map(({ href, label }) => (
-            <a href={href} aria-current={isCurrent(href) ? 'page' : undefined}>{label}</a>
+            <a href={hrefFor(href)} aria-current={isCurrent(href) ? 'page' : undefined}>{label}</a>
           ))}
         </div>
       </details>
     ))}
-    <a href="/races/" aria-current={isCurrent('/races/') ? 'page' : undefined}>Race management</a>
-    <a href="/trips/" aria-current={isCurrent('/trips/') ? 'page' : undefined}>Explore trips</a>
-    <a href="/about/" aria-current={isCurrent('/about/') ? 'page' : undefined}>About</a>
-    <div id="veetr-account-controls" class="account-menu-item"><a href="/account/" aria-current={isCurrent('/account/') ? 'page' : undefined}>Account</a></div>
+    <a href={hrefFor("/races/")} aria-current={isCurrent('/races/') ? 'page' : undefined}>{cs ? "Správa závodů" : "Race management"}</a>
+    <a href={hrefFor("/trips/")} aria-current={isCurrent('/trips/') ? 'page' : undefined}>{cs ? "Plavby" : "Explore trips"}</a>
+    <a href={hrefFor("/about/")} aria-current={isCurrent('/about/') ? 'page' : undefined}>{cs ? "O projektu" : "About"}</a>
+    <div id="veetr-account-controls" class="account-menu-item"><a href={hrefFor("/account/")} aria-current={isCurrent('/account/') ? 'page' : undefined}>{cs ? "Účet" : "Account"}</a></div>
   </nav>
   <div class="header-controls">
+    <LanguageSelect />
     <Search />
     <details class="mobile-menu">
-      <summary aria-label="Site navigation">
+      <summary aria-label={cs ? "Navigace webu" : "Site navigation"}>
         <Icon class="menu-icon" name="list-format" size="1.25rem" />
         <Icon class="close-icon" name="close" size="1.25rem" />
       </summary>
-      <nav aria-label="Mobile navigation">
+      <nav aria-label={cs ? "Mobilní navigace" : "Mobile navigation"}>
         {navigationGroups.map((group) => (
           <details class:list={['nav-group', { active: group.links.some(({ href }) => pathname.startsWith(href)) }]}>
             <summary>{group.label} <span class="chevron" aria-hidden="true">⌄</span></summary>
             <div class="group-links">
               {group.links.map(({ href, label }) => (
-                <a href={href} aria-current={isCurrent(href) ? 'page' : undefined}>{label}</a>
+                <a href={hrefFor(href)} aria-current={isCurrent(href) ? 'page' : undefined}>{label}</a>
               ))}
             </div>
           </details>
         ))}
-        <a href="/races/" aria-current={isCurrent('/races/') ? 'page' : undefined}>Race management</a>
-        <a href="/trips/" aria-current={isCurrent('/trips/') ? 'page' : undefined}>Explore trips</a>
-    <a href="/about/" aria-current={isCurrent('/about/') ? 'page' : undefined}>About</a>
-        <div id="veetr-mobile-account-controls" class="account-menu-item"><a href="/account/" aria-current={isCurrent('/account/') ? 'page' : undefined}>Account</a></div>
+        <a href={hrefFor("/races/")} aria-current={isCurrent('/races/') ? 'page' : undefined}>{cs ? "Správa závodů" : "Race management"}</a>
+        <a href={hrefFor("/trips/")} aria-current={isCurrent('/trips/') ? 'page' : undefined}>{cs ? "Plavby" : "Explore trips"}</a>
+    <a href={hrefFor("/about/")} aria-current={isCurrent('/about/') ? 'page' : undefined}>{cs ? "O projektu" : "About"}</a>
+        <div id="veetr-mobile-account-controls" class="account-menu-item"><a href={hrefFor("/account/")} aria-current={isCurrent('/account/') ? 'page' : undefined}>{cs ? "Účet" : "Account"}</a></div>
       </nav>
     </details>
   </div>

@@ -1,4 +1,6 @@
 ---
+import {siteLanguage, localizedPath} from '../i18n/site';
+const cs = siteLanguage(Astro.url.pathname) === 'cs';
 import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 import { getImage, type ImageMetadata } from 'astro:assets';
 
@@ -42,11 +44,11 @@ const heroImage = optimizedImage
       html: imageCutout ? `<div class="hero-product-surface">${heroImage}</div>` : heroImage,
     } : undefined,
     actions: ecosystemActions ? [
-      { text: 'Explore races', link: '/races/', icon: 'right-arrow', variant: 'primary' },
-      { text: 'Try the sailing app', link: '/docs/mobile-apps/', variant: 'secondary' },
+      { text: cs ? 'Prohlédnout závody' : 'Explore races', link: localizedPath('/races/', cs ? 'cs' : 'en'), icon: 'right-arrow', variant: 'primary' },
+      { text: cs ? 'Vyzkoušet aplikaci' : 'Try the sailing app', link: localizedPath('/docs/mobile-apps/', cs ? 'cs' : 'en'), variant: 'secondary' },
     ] : heroActions ? [
-      { text: 'Open Live App', link: 'https://app.veetr.org/', icon: 'right-arrow', variant: 'primary' },
-      { text: 'Get your Veetr Vane', link: '/get-your-veetr/', variant: 'secondary' },
+      { text: cs ? 'Otevřít webovou aplikaci' : 'Open Live App', link: 'https://app.veetr.org/', icon: 'right-arrow', variant: 'primary' },
+      { text: cs ? 'Pořídit Veetr Vane' : 'Get your Veetr Vane', link: localizedPath('/get-your-veetr/', cs ? 'cs' : 'en'), variant: 'secondary' },
     ] : undefined,
   },
 }}>

@@ -46,7 +46,7 @@ import {
   type LocalRecord,
 } from "./storage";
 import { listRemote, publicSeries, pushRemote, supabase, passwordRecoveryRequested, deleteRaceEntity } from "./api";
-import { appHref, integrated, entityId, boatRouteValue } from "./routes";
+import { appHref, integrated, entityId, boatRouteValue, routePath, localHref } from "./routes";
 
 const boatId = entityId("boats", boatRouteValue(window.location.pathname, window.location.search));
 const boatsPage =
@@ -63,7 +63,7 @@ function download(series: Series) {
   URL.revokeObjectURL(url);
 }
 function isNewSeriesPage() {
-  return window.location.pathname === "/races/new/" || new URLSearchParams(window.location.search).has("new-series");
+  return routePath() === "/races/new/" || new URLSearchParams(window.location.search).has("new-series");
 }
 function readRoute(): Location {
   const params = new URLSearchParams(window.location.search);
@@ -115,7 +115,7 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
   }, []);
   const [authReady, setAuthReady] = useState(!supabase);
   const [passwordRecovery, setPasswordRecovery] = useState(passwordRecoveryRequested);
-  const [accountPage, setAccountPage] = useState(passwordRecoveryRequested || new URLSearchParams(window.location.search).has("invite") || new URLSearchParams(window.location.search).has("account") || (integrated && window.location.pathname === "/account/"));
+  const [accountPage, setAccountPage] = useState(passwordRecoveryRequested || new URLSearchParams(window.location.search).has("invite") || new URLSearchParams(window.location.search).has("account") || (integrated && routePath() === "/account/"));
   const [entityEditing, setEntityEditing] = useState(Boolean(readRoute().editRace));
   useEffect(() => setEntityEditing(Boolean(location.editRace)), [location.seriesId, location.eventId, location.heatId, location.editRace]);
   const [editingResults, setEditingResults] = useState(false);
@@ -396,7 +396,7 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
     event.preventDefault();
     return new FormData(event.currentTarget);
   };
-  const accountHref = (integrated ? "/account/" : "/?account") + (location.seriesId ? `${integrated ? "?" : "&"}series=${encodeURIComponent(location.seriesId)}` : "");
+  const accountHref = (integrated ? localHref("/account/") : "/?account") + (location.seriesId ? `${integrated ? "?" : "&"}series=${encodeURIComponent(location.seriesId)}` : "");
   return (
     <>
       {integrated && ["veetr-account-controls", "veetr-mobile-account-controls"].map((id) => {

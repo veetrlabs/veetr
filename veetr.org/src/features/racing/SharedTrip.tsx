@@ -1,3 +1,9 @@
+import { t as tr } from "./i18n";
+import { localizedPath, siteLanguage } from "../../i18n/site";
+const language = siteLanguage(location.pathname);
+const locale = language === "cs" ? "cs-CZ" : "en";
+const href = (path: string) => localizedPath(path, language);
+import { countryLabel } from "./tripCountryLabels";
 import { startCountry } from "./tripCountry";
 import { sharedDistance, tripPlot, boatOrientation, tripIndexAtFraction } from "./sharedTripData";
 import React, { useEffect, useRef, useState } from "react";
@@ -35,7 +41,7 @@ type Shared = {
 };
 type Listing = { token: string; title: string; boat: string; live: boolean; startedAt: string; stoppedAt: string | null; color: string; distanceNm: number; startLatitude: number | null; startLongitude: number | null };
 async function rpc<T>(name: string, args: Record<string, unknown> = {}) {
-  if (!supabase) throw new Error("Trip sharing is not configured.");
+  if (!supabase) throw new Error(tr("Trip sharing is not configured."));
   const { data, error } = await supabase.rpc(name as never, args as never);
   if (error) throw new Error(error.message);
   return data as T;
@@ -63,7 +69,8 @@ function Map({
         if (!alive || !element.current) return;
         const L = mod.default ?? mod;
         leaflet.current = L;
-        map.current = L.map(element.current).setView([49.7, 14.2], 6);
+        map.current = L.map(element.current, {zoomControl:false}).setView([49.7, 14.2], 6);
+        L.control.zoom({zoomInTitle:tr("Zoom in"),zoomOutTitle:tr("Zoom out")}).addTo(map.current);
         L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
           attribution:
             '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
@@ -74,7 +81,7 @@ function Map({
       })
       .catch((error) => {
         console.error("Shared trip map initialization failed", error);
-        setError("Map unavailable. Trip data remains available below.");
+        setError(tr("Map unavailable. Trip data remains available below."));
       });
     return () => {
       alive = false;
@@ -119,8 +126,8 @@ function Map({
         }),
         title:
           heading === null
-            ? "Boat · heading unavailable"
-            : `${courseOnly ? "Course over ground" : "Heading"}: ${heading.toFixed(0)}°${windFrom === null ? "" : ` · TWA ${selected.instruments!.twa}°`}`,
+            ? tr("Boat · heading unavailable")
+            : `${courseOnly ? tr("Course over ground") : tr("Heading")}: ${heading.toFixed(0)}°${windFrom === null ? "" : ` · TWA ${selected.instruments!.twa}°`}`,
       }).addTo(g);
     }
     if (!fitted.current && points.length) {
@@ -133,7 +140,7 @@ function Map({
   }, [points, color, selected, ready]);
   return (
     <>
-      <div ref={element} className="trip-map" aria-label="Trip route map" />
+      <div ref={element} className="trip-map" aria-label={tr("Trip route map")} />
       {error && <p role="alert">{error}</p>}
       <button
         onClick={() => {
@@ -146,7 +153,7 @@ function Map({
             );
         }}
       >
-        Fit route
+        {tr("Fit route")}
       </button>
     </>
   );
@@ -206,7 +213,7 @@ export default function SharedTrips() {
             points = [];
             setTrip(null);
             throw new Error(
-              "This trip is private or its sharing link has been disabled.",
+              tr("This trip is private or its sharing link has been disabled."),
             );
           }
           points = [...points, ...result.points];
@@ -250,7 +257,7 @@ export default function SharedTrips() {
     ? [
         ["SOG", format(p.sogMps == null ? null : p.sogMps * 1.94384449, "kn")],
         ["COG", format(p.cogDeg, "°")],
-        ["Heading", format(p.instruments?.heading, "°")],
+        [tr("Heading"), format(p.instruments?.heading, "°")],
         ["TWA", format(p.instruments?.twa, "°")],
         ["AWA", format(p.instruments?.awa, "°")],
         ["TWS", format(p.instruments?.tws, "kn")],
@@ -258,9 +265,9 @@ export default function SharedTrips() {
       ]
     : [];
   const speedSeries = [
-    { key: "sog", label: "Boat speed · SOG", color: "#38bdf8" },
-    { key: "tws", label: "True wind · TWS", color: "#f59e0b" },
-    { key: "aws", label: "Apparent wind · AWS", color: "#c084fc" },
+    { key: "sog", label: tr("Boat speed · SOG"), color: "#38bdf8" },
+    { key: "tws", label: tr("True wind · TWS"), color: "#f59e0b" },
+    { key: "aws", label: tr("Apparent wind · AWS"), color: "#c084fc" },
   ] as const;
   const speedMax = trip
     ? Math.ceil(1.1 * Math.max(1, ...speedSeries.map((s) => tripPlot(trip.points, s.key).max)))
@@ -282,23 +289,23 @@ export default function SharedTrips() {
   return (
     <main id="trip-content" className="shared-trip">
 
-      {token ? <a href="/trips/">Explore trips</a> : null}
-      <h1>{trip?.title ?? "Sailing adventures"}</h1>
-      {loading && <p role="status">Loading trip…</p>}
+      {token ? <a href={href("/trips/")}>{tr("Explore trips")}</a> : null}
+      <h1>{trip?.title ?? tr("Sailing adventures")}</h1>
+      {loading && <p role="status">{tr("Loading trip\u2026")}</p>}
       {error && <p role="alert">{error}</p>}
       {!token && (
         <>
-          <p className="trip-directory-intro">Follow a voyage live or explore where others have sailed. <a href="/docs/share-your-trip/">How to share your trip →</a></p>
+          <p className="trip-directory-intro">{tr("Follow a voyage live or explore where others have sailed.")} <a href={href("/docs/share-your-trip/")}>{tr("How to share your trip \u2192")}</a></p>
           <div className="trip-directory-tools">
-            <div className="trip-filters" role="group" aria-label="Filter trips">
-              {[["all", "All trips"], ["active", "Active"], ["past", "Past"]].map(([value, label]) =>
+            <div className="trip-filters" role="group" aria-label={tr("Filter trips")}>
+              {[["all", tr("All trips")], ["active", tr("Active")], ["past", tr("Past")]].map(([value, label]) =>
                 <button key={value} aria-pressed={status === value} onClick={() => { setStatus(value); setOffset(0); }}>{label}</button>
               )}
             </div>
-            <label className="trip-sort">Date
-              <select aria-label="Sort trips by date" value={order} onChange={e => { setOrder(e.target.value); setOffset(0); }}>
-                <option value="newest">Newest first</option>
-                <option value="oldest">Oldest first</option>
+            <label className="trip-sort">{tr("Date")}
+              <select aria-label={tr("Sort trips by date")} value={order} onChange={e => { setOrder(e.target.value); setOffset(0); }}>
+                <option value="newest">{tr("Newest first")}</option>
+                <option value="oldest">{tr("Oldest first")}</option>
               </select>
             </label>
           </div>
@@ -306,18 +313,18 @@ export default function SharedTrips() {
             <ul className="trip-cards">
               {list.map(t => <li key={t.token}>
                 <a className="trip-card" href={`#trip=${t.token}`}>
-                  <span className={`trip-badge ${t.live ? "is-live" : ""}`}>{t.live ? "● Active · Live" : "Past trip"}</span>
+                  <span className={`trip-badge ${t.live ? "is-live" : ""}`}>{t.live ? tr("● Active · Live") : tr("Past trip")}</span>
                   <h2>{t.title}</h2>
                   <p className="trip-card-boat">{t.boat}</p>
-                  <time dateTime={t.startedAt}>{new Date(t.startedAt).toLocaleDateString(undefined, {day:"numeric",month:"short",year:"numeric"})} · {new Date(t.startedAt).toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"})}</time>
-                  <p className="trip-card-details"><span title="Approximate country at the first recorded position">Start: {countries[t.token] ?? "Locating…"}</span><span>{t.distanceNm.toFixed(2)} nm recorded</span></p>
+                  <time dateTime={t.startedAt}>{new Date(t.startedAt).toLocaleDateString(locale, {day:"numeric",month:"short",year:"numeric"})} · {new Date(t.startedAt).toLocaleTimeString(locale,{hour:"2-digit",minute:"2-digit"})}</time>
+                  <p className="trip-card-details"><span title={tr("Approximate country at the first recorded position")}>{tr("Start: {country}", {country: countryLabel(countries[t.token])})}</span><span>{tr("{distance} nm recorded", {distance: t.distanceNm.toLocaleString(locale, {minimumFractionDigits:2,maximumFractionDigits:2})})}</span></p>
                 </a>
               </li>)}
             </ul>
-            {!list.length && <p className="trip-empty">{status === "active" ? "No public trips are active right now." : status === "past" ? "No past public trips yet." : "No public trips yet."}</p>}
-            {(offset > 0 || hasNext) && <nav aria-label="Trip pages"><span>Page {Math.floor(offset / 20) + 1} · 20 trips per page</span>
-              <button disabled={!offset} onClick={() => setOffset(Math.max(0, offset - 20))}>Previous</button>
-              <button disabled={!hasNext} onClick={() => setOffset(offset + 20)}>Next</button>
+            {!list.length && <p className="trip-empty">{status === "active" ? tr("No public trips are active right now.") : status === "past" ? tr("No past public trips yet.") : tr("No public trips yet.")}</p>}
+            {(offset > 0 || hasNext) && <nav aria-label={tr("Trip pages")}><span>{tr("Page {page} · 20 trips per page", {page: Math.floor(offset / 20) + 1})}</span>
+              <button disabled={!offset} onClick={() => setOffset(Math.max(0, offset - 20))}>{tr("Previous")}</button>
+              <button disabled={!hasNext} onClick={() => setOffset(offset + 20)}>{tr("Next")}</button>
             </nav>}
           </>}
         </>
@@ -325,16 +332,16 @@ export default function SharedTrips() {
       {trip && (
         <>
           <p>
-            {trip.boatSlug ? <a href={`/boats/${encodeURIComponent(trip.boatSlug)}/`}>{trip.boat}</a> : trip.boat} · {new Date(trip.startedAt).toLocaleString()}
+            {trip.boatSlug ? <a href={href(`/boats/${encodeURIComponent(trip.boatSlug)}/`)}>{trip.boat}</a> : trip.boat} · {new Date(trip.startedAt).toLocaleString(locale)}
           </p>
           <p role="status">
             {trip.live
               ? age === null
-                ? "Live · waiting for a position"
+                ? tr("Live · waiting for a position")
                 : age > 60
-                  ? `Signal delayed · last position ${age}s ago`
-                  : `● Live · last position ${age}s ago`
-              : "Finished trip"}
+                  ? tr("Signal delayed · last position {seconds}s ago", {seconds:age})
+                  : tr("● Live · last position {seconds}s ago", {seconds:age})
+              : tr("Finished trip")}
           </p>
           <p>
             {sharedDistance(trip.points).toFixed(2)} nm ·{" "}
@@ -352,13 +359,11 @@ export default function SharedTrips() {
           </p>
           <Map points={trip.points} color={trip.color} selected={p} />
           <p className="trip-map-key">
-            Boat points along heading; amber arrow shows true wind blowing
-            toward it. Without heading, the boat uses COG and the wind arrow is
-            hidden. Heading is magnetic; COG is true.
+            {tr("Boat points along heading; amber arrow shows true wind blowing toward it. Without heading, the boat uses COG and the wind arrow is hidden. Heading is magnetic; COG is true.")}
           </p>
           {trip.points.length > 0 && (
             <figure className="trip-chart">
-              <figcaption>Speed · knots</figcaption>
+              <figcaption>{tr("Speed \u00b7 knots")}</figcaption>
               <div className="trip-chart-legend">
                 {plots.map((s) => (
                   <span key={s.key}>
@@ -375,11 +380,11 @@ export default function SharedTrips() {
                 viewBox="0 0 600 140"
                 role="slider"
                 tabIndex={0}
-                aria-label="Explore trip timeline"
+                aria-label={tr("Explore trip timeline")}
                 aria-valuemin={0}
                 aria-valuemax={trip.points.length - 1}
                 aria-valuenow={index ?? trip.points.length - 1}
-                aria-valuetext={p ? new Date(p.recordedAt).toLocaleString() : ""}
+                aria-valuetext={p ? new Date(p.recordedAt).toLocaleString(locale) : ""}
                 aria-describedby="trip-chart-help"
                 onPointerDown={e => {
                   if (e.button !== 0) return;
@@ -439,22 +444,22 @@ export default function SharedTrips() {
               <circle cx={Math.max(5, Math.min(595, cursor))} cy="132" r="5" fill="currentColor" />
               </svg>
               <div className="trip-chart-times">
-                <span>{new Date(startTime).toLocaleTimeString()}</span>
+                <span>{new Date(startTime).toLocaleTimeString(locale)}</span>
                 <span>
-                  {new Date(startTime + duration).toLocaleTimeString()}
+                  {new Date(startTime + duration).toLocaleTimeString(locale)}
                 </span>
               </div>
               {!plots.some((s) => s.plot.d) && (
-                <p>No speed readings recorded.</p>
+                <p>{tr("No speed readings recorded.")}</p>
               )}
             </figure>
           )}
           {trip.points.length > 0 && (
             <>
-              <p id="trip-chart-help" className="trip-map-key">Drag across the chart to explore the route. Use arrow keys when focused.</p>
-              <p className="trip-selected-time">{p ? new Date(p.recordedAt).toLocaleString() : ""}</p>
+              <p id="trip-chart-help" className="trip-map-key">{tr("Drag across the chart to explore the route. Use arrow keys when focused.")}</p>
+              <p className="trip-selected-time">{p ? new Date(p.recordedAt).toLocaleString(locale) : ""}</p>
               {trip.live && index !== null && (
-                <button onClick={() => setIndex(null)}>Back to live</button>
+                <button onClick={() => setIndex(null)}>{tr("Back to live")}</button>
               )}
               <dl className="trip-instruments">
                 {metrics.map(([label, value]) => (
@@ -465,8 +470,7 @@ export default function SharedTrips() {
                 ))}
               </dl>
               <p>
-                Wind angles are signed: port is negative, starboard is positive.
-                Missing readings are shown as —.
+                {tr("Wind angles are signed: port is negative, starboard is positive. Missing readings are shown as \u2014.")}
               </p>
             </>
           )}

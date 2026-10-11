@@ -1,15 +1,17 @@
 ---
+import {siteLanguage} from '../i18n/site';
+const cs = siteLanguage(Astro.url.pathname) === 'cs';
 import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 import {racingStyles} from '../lib/racing-styles';
 import '../styles/racing-portal.css';
 interface Props {title:string;description:string;}
 const {title,description}=Astro.props;
 ---
-<StarlightPage frontmatter={{title,description,template:'splash',head:[{tag:'meta',attrs:{name:'referrer',content:'strict-origin-when-cross-origin'}},{tag:'link',attrs:{rel:'manifest',href:'/veetr-app.webmanifest'}}]}}>
+<StarlightPage frontmatter={{title,description,template:'splash',head:[{tag:'meta',attrs:{name:'referrer',content:'strict-origin-when-cross-origin'}},{tag:'link',attrs:{rel:'manifest',href:cs ? '/veetr-app-cs.webmanifest' : '/veetr-app.webmanifest'}}]}}>
   <style is:inline set:html={racingStyles()} />
   <div id="veetr-racing" class="race-app not-content">
-    <div id="root"><p role="status">Loading… / Načítání…</p></div>
-    <noscript>Enable JavaScript for live updates and race management.</noscript>
+    <div id="root"><p role="status">{cs ? 'Načítání…' : 'Loading…'}</p></div>
+    <noscript>{cs ? 'Pro živé aktualizace a správu závodů povolte JavaScript.' : 'Enable JavaScript for live updates and race management.'}</noscript>
   </div>
 </StarlightPage>
 <script>

@@ -1,8 +1,11 @@
+import {localizedPath, unlocalizedPath, siteLanguage} from '../../i18n/site';
+export const routePath = () => unlocalizedPath(location.pathname);
+export const localHref = (path: string) => localizedPath(path, siteLanguage(location.pathname));
 export const integrated = typeof document !== "undefined" && Boolean(document.getElementById("veetr-racing"));
 type Routes = {series:Record<string,string>;boats:Record<string,string>};
 let routes:Routes={series:{},boats:{}};
 export function boatRouteValue(pathname:string, search:string):string|null {
- const match=pathname.match(/^\/boats\/([^/]+)\/?$/);
+ const match=unlocalizedPath(pathname).match(/^\/boats\/([^/]+)\/?$/);
  if(match)try{return decodeURIComponent(match[1]);}catch{return match[1];}
  return new URLSearchParams(search).get('boat');
 }
@@ -12,8 +15,8 @@ export function entityId(kind:keyof Routes,value:string|null):string|null {
 }
 export async function initializeRoutes() {
  // The all-boats directory is retired; boat profile URLs still use this shell.
- if ((location.pathname === '/boats/' || location.pathname === '/boats') && !new URLSearchParams(location.search).has('boat')) {
-  location.replace('/races/');
+ if ((routePath() === '/boats/' || routePath() === '/boats') && !new URLSearchParams(location.search).has('boat')) {
+  location.replace(localHref('/races/'));
   return;
  }
  try {const cached=localStorage.getItem('veetr.public-routes');if(cached)routes=JSON.parse(cached);}catch{}
@@ -23,17 +26,21 @@ export async function initializeRoutes() {
   if(response.ok){routes=await response.json();try{localStorage.setItem('veetr.public-routes',JSON.stringify(routes));}catch{}}
  }catch{/* Cached public URLs remain usable offline. */}
  const params=new URLSearchParams(location.search);
- if(location.pathname==='/races/manage/' && !params.has('public') && !params.has('series')) history.replaceState(null,'','/races/'+location.search+location.hash);
- if((location.pathname==='/races/' || location.pathname==='/races/manage/') && (params.has('public') || params.has('series'))){
+ if(routePath()==='/races/manage/' && !params.has('public') && !params.has('series')) history.replaceState(null,'',localHref('/races/')+location.search+location.hash);
+ if((routePath()==='/races/' || routePath()==='/races/manage/') && (params.has('public') || params.has('series'))){
   const id=entityId('series',params.get('public') || params.get('series'))!;
   history.replaceState(null,'',appHref(`?public=${id}${["event","heat","new-race","new-heat","edit-course","edit-race"].filter(k=>params.has(k)).map(k=>`&${k}=${encodeURIComponent(params.get(k)!)}`).join("")}`)+location.hash);
  }
- if(location.pathname==='/boats/' && params.has('boat')){
+ if(routePath()==='/boats/' && params.has('boat')){
   const id=entityId('boats',params.get('boat'))!;
   history.replaceState(null,'',appHref(`?boat=${encodeURIComponent(id)}`)+location.hash);
  }
 }
 export function appHref(query:string):string {
+ const href = baseAppHref(query);
+ return integrated ? localHref(href) : href;
+}
+function baseAppHref(query:string):string {
  if(!integrated)return query;
  if(query==='/')return '/races/';
  const params=new URLSearchParams(query.replace(/^\?/,''));

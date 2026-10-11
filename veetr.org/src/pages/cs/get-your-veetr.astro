@@ -1,0 +1,135 @@
+---
+import { Image } from 'astro:assets';
+import OtaDiagram from '../../components/OtaDiagram.astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Newsletter from '../../components/Newsletter.astro';
+import { frontmatter, Content } from '../../content/pages/cs/get-your-veetr.md';
+import { frontmatter as options, Content as OptionsIntro } from '../../content/pages/cs/get-your-veetr-options.md';
+import { milestones, stateLabels } from '../../data/roadmap-cs';
+const certificationStep = milestones.findIndex(milestone => milestone.salesBlocker) + 1;
+---
+
+<BaseLayout title={frontmatter.title} description={frontmatter.description} hero={{
+  heroTitle: 'Mohu si pořídit Veetr Vane?',
+  heroLead: 'Narazili jsme na certifikaci hardwaru. Než bude možné zařízení distribuovat, musí splnit příslušné regulační požadavky.',
+  eyebrow: 'Pořídit Veetr Vane · Plán vývoje',
+  heroSupport: 'Vyvíjeno otevřeně. Zkoušeno na vodě.',
+}}>
+  <section slot="before-intro" class="available-now" aria-labelledby="available-now-title">
+    <p class="eyebrow">{options.eyebrow}</p>
+    <h2 id="available-now-title">{options.title}</h2>
+    <div class="options-intro"><OptionsIntro /></div>
+    <div class="options-grid">
+      {options.options.map((option) => (
+        <article class="option-card">
+          <h3>{option.title}</h3>
+          <p>{option.text}</p>
+          <a href={option.href}>{option.linkText} <span aria-hidden="true">→</span></a>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <aside class="certification-note" aria-labelledby="blocker-title">
+    <div><p class="eyebrow">Proč zatím nejde koupit</p><h2 id="blocker-title">Prodej blokuje certifikace.</h2><a href={`#milestone-${certificationStep}`}>Zobrazit milník {certificationStep} <span aria-hidden="true">↓</span></a></div>
+    <div class="blocker-copy"><Content /><a href="https://single-market-economy.ec.europa.eu/single-market/goods/building-blocks/conformity-assessment_en">O posuzování shody v EU ↗</a></div>
+  </aside>
+
+  <section class="roadmap-section" aria-labelledby="roadmap-title">
+    <div class="roadmap-heading">
+      <div><p class="eyebrow">Vyvíjeno otevřeně</p><h2 id="roadmap-title">Cesta k první sérii</h2><p>{milestones.length} milníků. Bez slíbených termínů. Část prací probíhá souběžně.</p></div>
+    </div>
+    <ol class="roadmap" role="list">
+      {milestones.map((milestone, index) => (
+        <li class:list={['milestone', milestone.state]} id={`milestone-${index + 1}`}>
+          <span class="step" aria-label={`Krok ${index + 1}`}>{index + 1}</span>
+          <article class:list={['bubble', { 'certification-bubble': milestone.salesBlocker }]} aria-labelledby={`title-${index + 1}`}>
+            <div class="bubble-heading">
+              <h3 id={`title-${index + 1}`}>{milestone.title}</h3>
+              <span class:list={['state', milestone.state]}>{stateLabels[milestone.state]}</span>
+            </div>
+            {milestone.salesBlocker && <p class="sales-gate">Překážka prodeje</p>}
+            <p>{milestone.text}</p>
+            {milestone.image && <figure class="milestone-photo">
+              <a href={milestone.image.href ?? milestone.image.src.src} aria-label={milestone.image.href ? 'Otevřít webovou aplikaci Veetr' : `Zobrazit celý obrázek: ${milestone.image.caption}`}>
+                <Image src={milestone.image.src} alt={milestone.image.alt} widths={[400, 800, 1200]} sizes="(max-width: 45rem) calc(100vw - 8rem), 480px" width={1200} format="webp" quality={85} loading="lazy" />
+              </a>
+              <figcaption>{milestone.image.caption}{milestone.image.href && <> · <a href={milestone.image.href}>Otevřít aplikaci ↗</a></>}</figcaption>
+            </figure>}
+            {milestone.ota && <OtaDiagram />}
+            {milestone.note && <p class="milestone-note">{milestone.note}</p>}
+          </article>
+        </li>
+      ))}
+    </ol>
+  </section>
+  <section class="next-step"><p class="eyebrow">Pomozte určit další směr</p><h2>Zkušenosti z praxe nás posouvají dál.</h2><p>Jachtař, pořadatel závodů nebo stavitel? Napište, co dnes používáte, co vám překáží a co by měl Veetr prokázat.</p><div><a class="button" href="/cs/about/#contact">Podělit se o zkušenost</a><a href="/cs/build/">Jak si Veetr sestavit →</a></div></section>
+  <Newsletter id={4} anchorId="follow" title="Sledujte cestu k první sérii" text="Dostávejte zprávy o stavbě, výsledcích testů a certifikaci na cestě k hotovému hardwaru." />
+</BaseLayout>
+
+<style>
+  .available-now { padding-block: 0 3rem; }
+  .available-now h2 { margin-bottom: .75rem; }
+  .options-intro { max-width: 44rem; margin-bottom: 1.75rem; }
+  .options-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+  .option-card { display: flex; flex-direction: column; padding: 1.5rem; border: 1px solid var(--sl-color-hairline); border-radius: .85rem; background: var(--veetr-surface); }
+  .option-card h3 { font-size: 1.2rem; }
+  .option-card p { font-size: .95rem; }
+  .option-card > a { margin-top: auto; padding-top: .25rem; font-weight: 600; color: var(--sl-color-text-accent); }
+  @media (max-width: 40rem) { .options-grid { grid-template-columns: 1fr; } }
+  .certification-note { display: grid; grid-template-columns: 1fr 1.6fr; gap: 2.5rem; padding: clamp(1.4rem, 3vw, 2.5rem); border: 1px solid var(--sl-color-hairline); border-left: 4px solid #48b3f6; border-radius: .8rem; background: var(--sl-color-accent-low); }
+  .certification-note h2 { font-size: 1.6rem; }
+  .blocker-copy { font-size: .95rem; }
+  .blocker-copy :global(p) { margin-bottom: 1rem; }
+  .roadmap-section { padding-top: 4rem; }
+  .roadmap-heading { display: flex; align-items: end; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem; margin-bottom: 3rem; }
+  .roadmap-heading h2 { margin-bottom: .75rem; }
+  .state { display: inline-flex; align-items: center; gap: .45rem; font-size: .75rem; line-height: 1.5; font-weight: 650; padding: .25rem .6rem; border: 1px solid var(--sl-color-hairline); border-radius: 100px; color: var(--sl-color-gray-2); }
+  .state::before { content: ''; width: .45rem; height: .45rem; border-radius: 50%; background: var(--sl-color-gray-3); }
+  .state.done { color: var(--sl-color-green-high); background: var(--sl-color-green-low); }
+  .state.done::before { background: currentColor; }
+  .state.in-progress { color: var(--sl-color-text-accent); background: var(--sl-color-accent-low); }
+  .state.in-progress::before { background: #48b3f6; }
+  .roadmap { position: relative; list-style: none; padding: 0; margin: 0; }
+  .roadmap::before { content: ''; position: absolute; left: 50%; top: 1.4rem; bottom: 0; width: 2px; transform: translateX(-50%); background: var(--sl-color-gray-5); }
+  .milestone { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 5rem minmax(0, 1fr); padding-bottom: 2rem; margin: 0; scroll-margin-top: 6rem; }
+  .step { grid-column: 2; grid-row: 1; justify-self: center; z-index: 1; width: 2.8rem; height: 2.8rem; display: grid; place-items: center; border-radius: 50%; border: 2px solid var(--sl-color-gray-4); background: var(--sl-color-bg); color: var(--sl-color-white); font-weight: 650; }
+  .done .step { border-color: var(--sl-color-text-accent); background: var(--sl-color-accent-low); }
+  .in-progress .step { border-color: #48b3f6; box-shadow: 0 0 0 5px var(--sl-color-accent-low); }
+  .bubble { grid-column: 1; grid-row: 1; position: relative; padding: 1.5rem; border: 1px solid var(--sl-color-hairline); border-radius: 1rem; background: var(--veetr-surface); }
+  .bubble::before { content: ''; position: absolute; top: 1.35rem; left: 100%; width: 2.5rem; height: 2px; background: var(--sl-color-gray-5); }
+  .milestone:nth-child(even) .bubble { grid-column: 3; }
+  .milestone:nth-child(even) .bubble::before { left: auto; right: 100%; }
+  .bubble-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; margin-bottom: .85rem; }
+  .bubble-heading .state { flex: 0 0 auto; white-space: nowrap; margin-top: .1rem; }
+  .bubble-heading h3 { font-size: 1.35rem; margin: 0; min-width: 0; }
+  .bubble .sales-gate { margin-bottom: .85rem; }
+  .bubble p { font-size: .95rem; line-height: 1.7; }
+  .bubble .milestone-note { padding-top: 1rem; border-top: 1px solid var(--sl-color-hairline); color: var(--sl-color-gray-2); font-size: .875rem; }
+  .certification-bubble { border-color: #48b3f6; background: var(--sl-color-accent-low); }
+  .sales-gate { font-size: .72rem; font-weight: 650; color: var(--sl-color-text-accent); text-transform: uppercase; letter-spacing: .07em; }
+  .milestone-photo { margin: 1.25rem 0 0; }
+  .milestone-photo > a { display: block; overflow: hidden; border-radius: .65rem; background: var(--sl-color-bg); border: 1px solid var(--sl-color-hairline); }
+  .milestone-photo :global(img) { display: block; width: 100%; height: auto; max-height: 22rem; object-fit: contain; }
+  .milestone-photo figcaption { margin-top: .6rem; font-size: .75rem; color: var(--sl-color-gray-2); }
+  .bubble .milestone-note { margin-top: 1.25rem; }
+  .next-step { margin-top: 2rem; border-top: 1px solid var(--sl-color-hairline); padding-top: 3rem; }
+  .next-step p { max-width: 42rem; }
+  .next-step > div { display: flex; align-items: center; flex-wrap: wrap; gap: 1.5rem; }
+  @media (min-width: 45.001rem) {
+    /* Share a row per pair so opposite-side cards use the same vertical space. */
+    .roadmap { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2rem 5rem; align-items: start; }
+    .milestone { display: block; padding-bottom: 0; min-width: 0; }
+    .milestone:nth-child(even) { margin-top: 4rem; }
+    .step { position: absolute; top: 0; right: -3.9rem; }
+    .milestone:nth-child(even) .step { right: auto; left: -3.9rem; }
+  }
+  @media (max-width: 45rem) {
+    .certification-note { grid-template-columns: 1fr; gap: 1.5rem; }
+    .roadmap::before { left: 1.4rem; }
+    .milestone { grid-template-columns: 3.8rem minmax(0, 1fr); padding-bottom: 1.5rem; }
+    .step { grid-column: 1; justify-self: start; }
+    .bubble, .milestone:nth-child(even) .bubble { grid-column: 2; padding: 1.2rem; }
+    .bubble::before, .milestone:nth-child(even) .bubble::before { left: auto; right: 100%; width: 1.2rem; }
+  }
+</style>
