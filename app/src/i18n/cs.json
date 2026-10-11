@@ -907,5 +907,9 @@
   "Leave to port (left)": "Minout levobokem (vlevo)",
   "Leave to starboard (right)": "Minout pravobokem (vpravo)",
   "Using the start line from your joined race. The referee manages its position.": "Používá se startovní čára připojeného závodu. Její polohu spravuje rozhodčí.",
-  "Turn on a boat to compare its instruments.": "Zapněte loď pro porovnání jejích přístrojů."
+  "Turn on a boat to compare its instruments.": "Zapněte loď pro porovnání jejích přístrojů.",
+  "Choose a race below, then press Ready to race to join.": "Vyberte závod níže a připojte se tlačítkem Připravit na závod.",
+  "Join {{v0}}": "Připojit se k závodu {{v0}}",
+  "Join race": "Připojit se k závodu",
+  "My boat": "Moje loď"
 }

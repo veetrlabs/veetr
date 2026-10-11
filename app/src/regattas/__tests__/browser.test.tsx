@@ -1,7 +1,9 @@
 import React from "react";
 import { router } from "expo-router";
-jest.mock("expo-router", () => ({ router: { push: jest.fn() } }));
+jest.mock("expo-router", () => ({ router: { push: jest.fn() }, useFocusEffect: (fn: any) => require("react").useEffect(fn, [fn]) }));
 import { act, render, fireEvent, waitFor } from "@testing-library/react-native";
+import { savedSeriesPhone, seriesPhoneStatus } from "../../tracking/seriesPhone";
+jest.mock("../../tracking/seriesPhone", () => ({ savedSeriesPhone: jest.fn(), seriesPhoneStatus: jest.fn() }));
 import RegattaBrowser from "../RegattaBrowser";
 import { trackingClient, trackingRpc } from "../../tracking/client";
 jest.mock("../../context/ThemeContext", () => ({
@@ -18,7 +20,7 @@ jest.mock("react-native", () => ({
   RefreshControl: "RefreshControl",
   Pressable: "View",
   Modal: "Modal",
-  AppState: { currentState: "active" },
+  AppState: { currentState: "active", addEventListener: jest.fn(() => ({ remove: jest.fn() })) },
   Linking: { openURL: jest.fn() },
   StyleSheet: { flatten: (s: unknown) => s },
 }));
@@ -48,6 +50,7 @@ const makeSeries = (events = [{id:"event",name:"Sunday race",order:1,weight:1,co
 });
 beforeEach(() => {
   jest.clearAllMocks();
+  (savedSeriesPhone as jest.Mock).mockResolvedValue(null);
   (trackingClient!.rpc as jest.Mock).mockResolvedValue({data:[row],error:null});
   (trackingRpc as jest.Mock).mockImplementation((name: string) => Promise.resolve(name === "public_standings" ? makeSeries() : name === "public_replay_tracks" ? { start: row.replayStart, end: row.replayEnd, chunks: [], heats: [], points: [] } : []));
 });
@@ -221,4 +224,30 @@ test('Czech labels preserve filter values, live tabs and replay navigation', asy
     view.unmount();
     await i18n.changeLanguage('en');
   }
+});
+
+
+test("accepted series races appear above the public filters with a specific join route", async () => {
+  const joined = { linkId: "link", seriesName: "My series", boatName: "My boat", valid: true,
+    races: [{ eventId: "my-race", raceName: "Invited race", scheduledStart: "2026-10-11T12:00:00Z" }] };
+  (savedSeriesPhone as jest.Mock).mockResolvedValue(joined);
+  (seriesPhoneStatus as jest.Mock).mockResolvedValue(joined);
+  const ui = render(<RegattaBrowser />);
+  await waitFor(() => expect(ui.getByLabelText("Join Invited race")).toBeTruthy());
+  fireEvent.press(ui.getByText("Past"));
+  expect(ui.getByLabelText("Join Invited race")).toBeTruthy();
+  fireEvent.press(ui.getByLabelText("Join Invited race"));
+  expect(router.push).toHaveBeenCalledWith({ pathname: "/race-phone", params: { eventId: "my-race" } });
+  expect(seriesPhoneStatus).toHaveBeenCalledWith("link");
+  ui.unmount();
+});
+
+test("returning from background refreshes newly created races", async () => {
+  const ui = render(<RegattaBrowser />);
+  await waitFor(() => expect(ui.getByLabelText("View Sunday race")).toBeTruthy());
+  const calls = (trackingClient!.rpc as jest.Mock).mock.calls.length;
+  const { AppState } = require("react-native");
+  act(() => AppState.addEventListener.mock.calls[0][1]("active"));
+  await waitFor(() => expect((trackingClient!.rpc as jest.Mock).mock.calls.length).toBeGreaterThan(calls));
+  ui.unmount();
 });

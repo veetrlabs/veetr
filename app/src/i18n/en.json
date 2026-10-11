@@ -897,5 +897,9 @@
   "Leave to port (left)": "Leave to port (left)",
   "Leave to starboard (right)": "Leave to starboard (right)",
   "Using the start line from your joined race. The referee manages its position.": "Using the start line from your joined race. The referee manages its position.",
-  "Turn on a boat to compare its instruments.": "Turn on a boat to compare its instruments."
+  "Turn on a boat to compare its instruments.": "Turn on a boat to compare its instruments.",
+  "Choose a race below, then press Ready to race to join.": "Choose a race below, then press Ready to race to join.",
+  "Join {{v0}}": "Join {{v0}}",
+  "Join race": "Join race",
+  "My boat": "My boat"
 }

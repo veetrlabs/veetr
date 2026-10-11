@@ -28,7 +28,7 @@ import { savedSeriesPhone, seriesPhoneStatus, type SeriesPhone } from "./seriesP
 import TripMap from "./TripMap";
 import SeriesPhonePanel from "./SeriesPhonePanel";
 import type { TrackingSession } from "./model";
-export default function RacePhoneScreen({ token, raceLinkId }: { token?: string; raceLinkId?: string }) {
+export default function RacePhoneScreen({ token, raceLinkId, eventId }: { token?: string; raceLinkId?: string; eventId?: string }) {
   useLanguageRefresh();
   const { theme } = useTheme(),
     c = themeColors[theme];
@@ -130,7 +130,7 @@ export default function RacePhoneScreen({ token, raceLinkId }: { token?: string;
     </Pressable>
   );
   if (seriesPhone && session?.mode === "race") return <RacePhoneScreen raceLinkId={session.raceLinkId} />;
-  if (seriesPhone) return <SeriesPhonePanel key={seriesPhone.linkId} phone={seriesPhone} token={token} session={session} />;
+  if (seriesPhone) return <SeriesPhonePanel key={seriesPhone.linkId} phone={seriesPhone} token={token} session={session} eventId={eventId} />;
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
       <ScrollView contentContainerStyle={{ padding: 20, gap: 18 }}>

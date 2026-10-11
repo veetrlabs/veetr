@@ -18,9 +18,11 @@ export default function SeriesPhonePanel({
   phone,
   token,
   session,
+  eventId,
 }: {
   phone: SeriesPhone;
   token?: string;
+  eventId?: string;
   session: TrackingSession | null;
 }) {
   useLanguageRefresh();
@@ -134,7 +136,7 @@ export default function SeriesPhonePanel({
                 )}
               </>
             ) : (
-              phone.races.map((race) => (
+              [...phone.races].sort((a, b) => Number(b.eventId === eventId) - Number(a.eventId === eventId)).map((race) => (
                 <Pressable
                   key={race.eventId}
                   accessibilityRole="button"

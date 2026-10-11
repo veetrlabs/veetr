@@ -1,7 +1,7 @@
 import { raceReplayBounds } from './replayAvailability';
-import { formatNumber, translateMessage, t, useLanguageRefresh } from '../i18n';
-import { router } from 'expo-router';
-import { useEffect, useState } from "react";
+import { formatNumber, locale, translateMessage, t, useLanguageRefresh } from '../i18n';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useState } from "react";
 import {
   AppState,
   Linking,
@@ -26,6 +26,7 @@ import {
 import { parseTrackingPositions, type TrackingPosition } from "./positions";
 import FleetMap from "./FleetMap";
 import { retryRegattaRead, regattaReadError } from "./read";
+import { savedSeriesPhone, seriesPhoneStatus, type SeriesPhone } from "../tracking/seriesPhone";
 import SeriesDetail from "./SeriesDetail";
 import RegattaResults from "./RegattaResults";
 import type { Series } from "../../../veetr.org/src/features/racing/domain";
@@ -40,10 +41,29 @@ export default function RegattaBrowser({ onShare }: { onShare?: () => void } = {
   const [filter, setFilter] = useState<RegattaFilter>("All"),
     [selected, setSelected] = useState<RaceRegatta | null>(null);
   const [revision, setRevision] = useState(0);
-  useEffect(() => {
+  const [joined, setJoined] = useState<SeriesPhone | null>(null);
+  const [joinedError, setJoinedError] = useState("");
+  useFocusEffect(useCallback(() => {
     let alive = true;
     setLoading(true);
     setError("");
+    setJoinedError("");
+    void (async () => {
+      try {
+        const saved = await savedSeriesPhone();
+        if (!alive) return;
+        setJoined(saved);
+        if (saved) {
+          const status = await seriesPhoneStatus(saved.linkId);
+          if (alive) setJoined(status);
+        }
+      } catch (e) {
+        if (alive) setJoinedError(regattaReadError(e));
+      }
+    })();
+    const subscription = AppState.addEventListener("change", state => {
+      if (state === "active") setRevision(value => value + 1);
+    });
     async function load() {
       if (!trackingClient)
         throw new Error(
@@ -79,8 +99,9 @@ export default function RegattaBrowser({ onShare }: { onShare?: () => void } = {
       });
     return () => {
       alive = false;
+      subscription.remove();
     };
-  }, [revision]);
+  }, [revision]));
   const button = (title: string, onPress: () => void, chosen = false) => (
     <Pressable
       key={title}
@@ -110,7 +131,24 @@ export default function RegattaBrowser({ onShare }: { onShare?: () => void } = {
       />}
     >
       <Text style={{ color: c.text, fontSize: 28, fontWeight: "700" }}>{t("Races")}</Text>
-      {onShare && button(t("My boat · join with invitation"), onShare)}
+      {joined && <View style={{ gap: 12 }}>
+        <Text style={{ color: c.text, fontSize: 20, fontWeight: "700" }}>{t("Your boat")}: {joined.boatName}</Text>
+        <Text style={{ color: c.textMuted }}>{joined.seriesName}</Text>
+        {joined.valid ? <>
+          <Text style={{ color: c.text }}>{t("Choose a race below, then press Ready to race to join.")}</Text>
+          {joined.races.map(race => <Pressable key={race.eventId} accessibilityRole="button"
+            accessibilityLabel={t("Join {{v0}}", { v0: race.raceName })}
+            onPress={() => router.push({ pathname: "/race-phone", params: { eventId: race.eventId } })}
+            style={{ padding: 16, borderRadius: 12, borderWidth: 1, borderColor: "#009688", gap: 6 }}>
+            <Text style={{ color: c.text, fontSize: 18, fontWeight: "600" }}>{race.raceName}</Text>
+            <Text style={{ color: c.textMuted }}>{new Date(race.scheduledStart).toLocaleString(locale())}</Text>
+            <Text style={{ color: c.text, fontWeight: "600" }}>{t("Join race")}</Text>
+          </Pressable>)}
+          {!joined.races.length && <Text style={{ color: c.textMuted }}>{t("No upcoming published races for your boat yet. Your series invitation remains available.")}</Text>}
+        </> : <Text style={{ color: c.text }}>{t("This invitation has expired or been revoked. Ask the referee for a new link.")}</Text>}
+      </View>}
+      {!!joinedError && <Text accessibilityRole="alert" style={{ color: c.text }}>{translateMessage(joinedError)}</Text>}
+      {onShare && button(joined ? t("My boat") : t("My boat · join with invitation"), onShare)}
       <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
         {(["All", "Live", "Upcoming", "Past"] as RegattaFilter[]).map((f) =>
           button(t(f), () => setFilter(f), filter === f),
