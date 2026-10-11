@@ -1,3 +1,4 @@
+import BackButton from '../components/BackButton';
 import { translateMessage, t, useLanguageRefresh } from '../i18n';
 import { useCallback, useState } from "react";
 import { Modal, Platform, Pressable, ScrollView, Text, View } from "react-native";
@@ -91,9 +92,7 @@ export default function StartTrip() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
       <ScrollView contentContainerStyle={{ padding: 20, gap: 20 }}>
-        <Pressable accessibilityRole="button" onPress={() => router.back()}>
-          <Text style={{ color: c.text }}>{t("‹ Trips")}</Text>
-        </Pressable>
+        <BackButton onPress={() => router.back()} />
         <Text style={{ color: c.text, fontSize: 28, fontWeight: "700" }}>
           {t("Start a trip")}</Text>
         <Text style={{ color: c.textMuted }}>

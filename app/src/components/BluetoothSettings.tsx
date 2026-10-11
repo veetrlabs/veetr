@@ -1,3 +1,4 @@
+import BackButton from './BackButton';
 import BluetoothDetails from './BluetoothDetails';
 import VaneDiagnostics from '../diagnostics/VaneDiagnostics';
 import { FirmwareUpdateCard } from './cards/FirmwareUpdateCard';
@@ -17,9 +18,7 @@ export default function BluetoothSettings({ onBack }: { onBack: () => void }) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg, paddingTop: insets.top + 8 }]}>
-      <TouchableOpacity accessibilityRole="button" accessibilityLabel={t("Back")} onPress={onBack} style={{ paddingVertical: 8 }}>
-        <Text style={{ color: colors.text, fontSize: 16 }}>{t("Back")}</Text>
-      </TouchableOpacity>
+      <BackButton onPress={onBack} />
       <Text style={[styles.title, { color: colors.text }]}>{t("Bluetooth settings")}</Text>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>

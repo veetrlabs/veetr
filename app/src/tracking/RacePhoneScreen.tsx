@@ -1,3 +1,4 @@
+import BackButton from '../components/BackButton';
 import { locale, translateMessage, t, useLanguageRefresh } from '../i18n';
 import { useEffect, useState } from "react";
 import {
@@ -134,9 +135,7 @@ export default function RacePhoneScreen({ token, raceLinkId, eventId }: { token?
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
       <ScrollView contentContainerStyle={{ padding: 20, gap: 18 }}>
-        {button(t("Back"), () =>
-          router.canGoBack() ? router.back() : router.replace("/regattas"),
-        )}
+        <BackButton onPress={() => router.canGoBack() ? router.back() : router.replace("/regattas")} />
         {!loaded ? (
           <Text style={{ color: c.text }}>{t("Opening your invitation…")}</Text>
         ) : !phone ? (

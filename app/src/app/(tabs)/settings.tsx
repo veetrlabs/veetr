@@ -1,3 +1,4 @@
+import BackButton from '../../components/BackButton';
 import { requestNorthAlignment, northResultMessage } from '../../utils/northAlignment';
 import { t, useLanguageRefresh } from '../../i18n';
 import AnchorSettings from "../../anchor/AnchorSettings";
@@ -183,9 +184,7 @@ export default function SettingsTab() {
   const renderCalibration = () => (
     <>
       <View style={styles.headerRow}>
-        <TouchableOpacity onPress={() => navigateTo("main")}>
-          <Text style={styles.back}>{t("‹ Back")}</Text>
-        </TouchableOpacity>
+        <BackButton onPress={() => navigateTo("main")} />
         <Text style={[styles.pageTitle, { color: colors.text }]}>
           {t("Calibration")}</Text>
         <View style={{ width: 50 }} />
@@ -224,12 +223,7 @@ export default function SettingsTab() {
       <ScrollView key={currentView} contentContainerStyle={styles.scrollContent}>
         {currentView === "preferences" && (
           <>
-            <TouchableOpacity
-              accessibilityRole="button"
-              onPress={() => navigateTo("main")}
-            >
-              <Text style={styles.back}>{t("‹ Settings")}</Text>
-            </TouchableOpacity>
+            <BackButton onPress={() => navigateTo("main")} />
             <Text accessibilityRole="header" style={[styles.pageTitle, { color: colors.text }]}>
               {t("Preferences")}
             </Text>
@@ -238,12 +232,7 @@ export default function SettingsTab() {
         )}
         {currentView === "location" && (
           <>
-            <TouchableOpacity
-              accessibilityRole="button"
-              onPress={() => navigateTo("main")}
-            >
-              <Text style={styles.back}>{t("‹ Settings")}</Text>
-            </TouchableOpacity>
+            <BackButton onPress={() => navigateTo("main")} />
             <LocationSettings />
 
           </>
@@ -269,12 +258,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 16,
-  },
-  back: {
-    fontSize: 16,
-    color: "#3182ce",
-    fontWeight: "600",
-    paddingVertical: 8,
   },
   menuItem: {
     flexDirection: "row",

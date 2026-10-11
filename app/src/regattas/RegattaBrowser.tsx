@@ -1,3 +1,4 @@
+import BackButton from '../components/BackButton';
 import { raceReplayBounds } from './replayAvailability';
 import { formatNumber, locale, translateMessage, t, useLanguageRefresh } from '../i18n';
 import { router, useFocusEffect } from 'expo-router';
@@ -302,7 +303,7 @@ function Spectator({
       <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
         <View style={{ padding: 16, gap: 10 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            {action(pages.length > 1 ? t("Back") : t("Close"), pages.length > 1 ? () => { setPages(history=>history.slice(0,-1)); setTab("Results"); } : close)}
+            {pages.length > 1 ? <BackButton onPress={() => { setPages(history=>history.slice(0,-1)); setTab("Results"); }} /> : action(t("Close"), close)}
             <Text
               style={{
                 flex: 1,

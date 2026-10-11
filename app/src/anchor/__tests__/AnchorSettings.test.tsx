@@ -9,7 +9,7 @@ const mockEdit = jest.fn().mockResolvedValue(undefined);
 const mockSnapshot = { settings: { ...defaults, anchor: null as Coordinate | null, chainM: 55, marginM: 12 },
   fix: { latitude: 43, longitude: 16, source: 'phone', accuracy: 5, timestamp: Date.now() } as AnchorFix | null, ready: true, error: '' };
 jest.mock('react-native', () => ({
-  View: 'View', Text: 'Text', ScrollView: 'ScrollView', TextInput: 'TextInput', TouchableOpacity: 'TouchableOpacity',
+  Pressable: 'Pressable', View: 'View', Text: 'Text', ScrollView: 'ScrollView', TextInput: 'TextInput', TouchableOpacity: 'TouchableOpacity',
   Platform: { OS: 'ios', Version: '26.0' }, Alert: { alert: jest.fn() },
   StyleSheet: { absoluteFillObject: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 }, create: (s: unknown) => s, flatten: (s: unknown) => s },
 }));

@@ -1,3 +1,4 @@
+import BackButton from '../components/BackButton';
 import { locale, translateMessage, t, useLanguageRefresh } from '../i18n';
 import AccountSignIn from "../components/AccountSignIn";
 import { router, type Href } from "expo-router";
@@ -140,7 +141,7 @@ export default function RegattaSharingScreen() {
         contentContainerStyle={styles.page}
         keyboardShouldPersistTaps="handled"
       >
-        {button(t("Back"), () => router.back())}
+        <BackButton onPress={() => router.back()} />
         <Text style={[styles.title, text]}>{t("Share boat location")}</Text>
         {!ownSession && (
           <Text style={{ color: colors.textSecondary }}>

@@ -1,3 +1,4 @@
+import BackButton from '../components/BackButton';
 import { useCallback, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -56,7 +57,7 @@ export default function MyBoats() {
     } }],
   );
   return <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 20, gap: 16 }}>
-    {button(t("Back"), () => edit ? setEdit(undefined) : router.back())}
+    <BackButton onPress={() => edit ? setEdit(undefined) : router.back()} />
     <Text accessibilityRole="header" style={{ color: c.text, fontSize: 28, fontWeight: "700" }}>{edit ? t("Boat details") : t("My boats")}</Text>
     {edit ? <>
       <Text style={{ color: c.textMuted }}>{t("Private · saved only on this device. Nothing is published.")}</Text>

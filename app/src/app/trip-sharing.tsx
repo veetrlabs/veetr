@@ -1,3 +1,4 @@
+import BackButton from '../components/BackButton';
 import { translateMessage, t, useLanguageRefresh } from "../i18n";
 import { useCallback, useRef, useState } from "react";
 import { Pressable, ScrollView, Share, Text, View } from "react-native";
@@ -88,9 +89,7 @@ export default function TripSharingPage() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
       <ScrollView ref={scroll} contentContainerStyle={{ padding: 20, gap: 18 }}>
-        <Pressable accessibilityRole="button" onPress={() => router.back()}>
-          <Text style={{ color: c.text }}>{t("‹ Back to trip")}</Text>
-        </Pressable>
+        <BackButton onPress={() => router.back()} />
         <Text style={{ color: c.text, fontSize: 28, fontWeight: "700" }}>
           {active ? t("Share live") : t("Share trip")}
         </Text>

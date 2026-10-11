@@ -1,3 +1,4 @@
+import BackButton from './BackButton';
 import { formatNumber, translateMessage, t, useLanguageRefresh } from '../i18n';
 import { canCapturePhone, capturePhoneMark, shouldUseDeviceStartLine } from '../navigation/phoneStartLine'
 import { useEffect, useState } from 'react'
@@ -58,7 +59,7 @@ export default function RegattaSettings({ onBack, onBluetooth }: { onBack: () =>
   }
   return (
     <ScrollView style={{ flex: 1, backgroundColor: c.bg }} contentContainerStyle={[styles.content, { paddingTop: insets.top + 8 }]}>
-      <Pressable accessibilityRole="button" accessibilityLabel={t("Back to Settings")} onPress={onBack} style={styles.back}><Text style={{ color: c.textSecondary }}>{t("‹ Settings")}</Text></Pressable>
+      <BackButton onPress={onBack} />
       <Text style={[styles.eyebrow, { color: c.textMuted }]}>{t("REGATTA")}</Text>
       <Text accessibilityRole="header" style={[styles.title, { color: c.text }]}>{t("Set your start line")}</Text>
       <Text style={[styles.body, { color: c.textSecondary }]}>{phoneStartLine.fromRace ? t("Using the start line from your joined race. The referee manages its position.") : t("Sail to each end, then capture its position using {{source}}. You can set either end first.", { source })}</Text>
@@ -100,7 +101,6 @@ export default function RegattaSettings({ onBack, onBluetooth }: { onBack: () =>
 }
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 20, paddingBottom: 32, gap: 16, width: '100%', maxWidth: 640, alignSelf: 'center' },
-  back: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
   eyebrow: { fontSize: 12, fontWeight: '700', letterSpacing: 2 },
   title: { fontSize: 30, fontWeight: '700', letterSpacing: -0.6 },
   body: { fontSize: 15, lineHeight: 22 },

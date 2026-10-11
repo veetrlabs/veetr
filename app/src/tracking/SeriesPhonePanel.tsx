@@ -1,3 +1,4 @@
+import BackButton from '../components/BackButton';
 import { useState } from "react";
 import { Alert, Pressable, ScrollView, Text, TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -77,9 +78,7 @@ export default function SeriesPhonePanel({
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
       <ScrollView contentContainerStyle={{ padding: 20, gap: 18 }}>
-        {button(t("Back"), () =>
-          router.canGoBack() ? router.back() : router.replace("/regattas"),
-        )}
+        <BackButton onPress={() => router.canGoBack() ? router.back() : router.replace("/regattas")} />
         <Text style={{ color: c.text, fontSize: 32, fontWeight: "700" }}>
           {phone.boatName}
         </Text>

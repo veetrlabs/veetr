@@ -1,3 +1,4 @@
+import BackButton from './BackButton';
 import { t, useLanguageRefresh } from '../i18n';
 import { useState } from "react";
 import { View, Text, Pressable, ScrollView } from "react-native";
@@ -62,14 +63,7 @@ export default function QuickGuide({ onBack }: { onBack: () => void }) {
         alignSelf: "center",
       }}
     >
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t("Back to Settings")}
-        onPress={onBack}
-        style={{ minHeight: 44, justifyContent: "center" }}
-      >
-        <Text style={{ color: c.textSecondary }}>{t("‹ Settings")}</Text>
-      </Pressable>
+      <BackButton onPress={onBack} />
       <Text
         accessibilityRole="header"
         style={{ color: c.text, fontSize: 28, fontWeight: "700" }}

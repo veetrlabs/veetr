@@ -1,3 +1,4 @@
+import BackButton from '../components/BackButton';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Alert, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -151,7 +152,7 @@ export default function AnchorSettings({ onBack }: { onBack: () => void }) {
     </TouchableOpacity>
   );
   return <ScrollView style={{ flex: 1, backgroundColor: c.bg }} contentContainerStyle={{ padding: 16, paddingTop: insets.top + 8, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
-    <TouchableOpacity accessibilityRole="button" onPress={onBack}><Text style={styles.back}>{t('‹ Settings')}</Text></TouchableOpacity>
+    <BackButton onPress={onBack} />
     <Text accessibilityRole="header" style={[styles.title, { color: c.text }]}>{t('Anchor alarm')}</Text>
     <View style={[styles.status, { backgroundColor: c.cardBg }]}>
       <Text accessibilityRole={s.alarm ? 'alert' : undefined} style={[styles.statusText, { color: s.alarm ? '#ef4444' : c.text }]}>
@@ -259,7 +260,7 @@ export default function AnchorSettings({ onBack }: { onBack: () => void }) {
   </ScrollView>;
 }
 const styles = StyleSheet.create({
-  back: { color: '#3182ce', paddingVertical: 10, fontSize: 16 }, title: { fontSize: 24, fontWeight: '700', marginVertical: 12 },
+  title: { fontSize: 24, fontWeight: '700', marginVertical: 12 },
   status: { padding: 16, borderRadius: 12, gap: 6 }, statusText: { fontSize: 18, fontWeight: '700' },
   button: { padding: 14, borderRadius: 10, alignItems: 'center', marginVertical: 6 }, buttonText: { color: '#fff', fontWeight: '600' },
   map: { height: 300, borderRadius: 12, overflow: 'hidden', marginVertical: 8 },

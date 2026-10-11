@@ -1,3 +1,4 @@
+import BackButton from '../../components/BackButton';
 import { formatNumber, locale, translateMessage, t, useLanguageRefresh } from '../../i18n';
 import { errorOccurredAt } from "../../tracking/errorHistory";
 import { useCallback, useMemo, useState } from "react";
@@ -145,13 +146,7 @@ export default function TripDetail() {
           gap: 16,
         }}
       >
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => router.back()}
-          style={{ paddingVertical: 10, paddingRight: 10 }}
-        >
-          <Text style={{ color: "#008c80", fontSize: 16 }}>{t("‹ Trips")}</Text>
-        </Pressable>
+        <BackButton onPress={() => router.back()} />
         <View style={{ flex: 1 }}>
           <Text style={{ color: c.text, fontWeight: "600", fontSize: 16 }}>
             {trip

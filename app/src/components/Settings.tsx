@@ -1,3 +1,4 @@
+import BackButton from './BackButton';
 import { requestNorthAlignment, northResultMessage } from '../utils/northAlignment';
 import { translateMessage, t, useLanguageRefresh } from '../i18n';
 import PreferencesSettings from "./PreferencesSettings";
@@ -127,7 +128,7 @@ export default function Settings() {
   const renderBluetooth = () => (
     <>
       <View style={[styles.menuHeader, { borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => navigateTo('main')}><Text style={styles.back}>{t("‹ Back")}</Text></TouchableOpacity>
+        <BackButton onPress={() => navigateTo('main')} />
         <Text style={[styles.menuTitle, { color: colors.text }]}>Bluetooth</Text>
         <TouchableOpacity onPress={closeMenu}><Text style={[styles.close, { color: colors.textMuted }]}>✕</Text></TouchableOpacity>
       </View>
@@ -176,7 +177,7 @@ export default function Settings() {
   const renderCalibration = () => (
     <>
       <View style={[styles.menuHeader, { borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => navigateTo('main')}><Text style={styles.back}>{t("‹ Back")}</Text></TouchableOpacity>
+        <BackButton onPress={() => navigateTo('main')} />
         <Text style={[styles.menuTitle, { color: colors.text }]}>{t("Calibration")}</Text>
         <TouchableOpacity onPress={closeMenu}><Text style={[styles.close, { color: colors.textMuted }]}>✕</Text></TouchableOpacity>
       </View>
@@ -188,7 +189,7 @@ export default function Settings() {
   const renderRegatta = () => (
     <>
       <View style={[styles.menuHeader, { borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => navigateTo('main')}><Text style={styles.back}>{t("‹ Back")}</Text></TouchableOpacity>
+        <BackButton onPress={() => navigateTo('main')} />
         <Text style={[styles.menuTitle, { color: colors.text }]}>{t("Race Start Line")}</Text>
         <TouchableOpacity onPress={closeMenu}><Text style={[styles.close, { color: colors.textMuted }]}>✕</Text></TouchableOpacity>
       </View>
@@ -221,9 +222,7 @@ export default function Settings() {
             <ScrollView key={currentView}>
               {currentView === 'preferences' && (
                 <>
-                  <TouchableOpacity accessibilityRole="button" onPress={() => navigateTo('main')}>
-                    <Text style={[styles.back, { paddingVertical: 12 }]}>{t("‹ Settings")}</Text>
-                  </TouchableOpacity>
+                  <BackButton onPress={() => navigateTo('main')} />
                   <Text accessibilityRole="header" style={[styles.menuTitle, { color: colors.text, marginBottom: 16 }]}>{t("Preferences")}</Text>
                   <PreferencesSettings />
                 </>
@@ -283,7 +282,6 @@ const styles = StyleSheet.create({
   },
   menuTitle: { fontSize: 20, fontWeight: '700' },
   close: { fontSize: 22, padding: 4 },
-  back: { fontSize: 16, color: '#3182ce', fontWeight: '600' },
   arrow: { fontSize: 22 },
   menuItem: {
     flexDirection: 'row',

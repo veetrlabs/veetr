@@ -1,6 +1,7 @@
+import BackButton from '../components/BackButton';
 import { translateMessage, t, useLanguageRefresh } from '../i18n';
 import { useEffect, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
 import { useTheme } from "../context/ThemeContext";
@@ -51,9 +52,7 @@ export default function RaceReplayPage() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
       <View style={{ padding: 16 }}>
-        <Pressable accessibilityRole="button" onPress={() => router.back()}>
-          <Text style={{ color: c.text, paddingVertical: 8 }}>{t("‹ Back")}</Text>
-        </Pressable>
+        <BackButton onPress={() => router.back()} />
       </View>
       {loading ? (
         <Text style={{ color: c.text }}>{t("Loading your recording…")}</Text>

@@ -1,3 +1,4 @@
+import BackButton from '../components/BackButton';
 import CourseLayer, { courseCoordinates } from "../maps/CourseLayer";
 import { shouldUseDeviceStartLine } from '../navigation/phoneStartLine';
 import { useFollowCamera } from '../maps/useFollowCamera';
@@ -564,13 +565,7 @@ export default function Map({ onBack }: { onBack?: () => void }) {
           </Pressable>
         </View>
         {onBack && (
-          <Pressable
-            accessibilityRole="button"
-            onPress={onBack}
-            style={{ padding: 12, backgroundColor: colors.panelBg }}
-          >
-            <Text style={{ color: colors.text }}>{t("Back")}</Text>
-          </Pressable>
+          <BackButton onPress={onBack} />
         )}
       </View>
       {seamarks && (
