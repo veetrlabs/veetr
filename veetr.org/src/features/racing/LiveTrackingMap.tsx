@@ -80,7 +80,7 @@ function TrackingMap({ seriesId, eventId, heatId, boatIds, course }: TrackingMap
   function fitCourse(startOnly = false) {
     if (!course || !map.current || !leaflet.current) return;
     const points = startOnly ? startGeometry(course) : coursePoints(course);
-    if (points.length) map.current.fitBounds(leaflet.current.latLngBounds(points.map(p => coordinates(p, points[0].longitude))), {padding: [65, 65], maxZoom: startOnly ? 18 : 16});
+    if (points.length) map.current.fitBounds(leaflet.current.latLngBounds(points.map(p => coordinates(p, points[0].longitude))), {padding: [65, 65], maxZoom: 19});
   }
   useEffect(() => {
     if (!mapReady || !leaflet.current || !map.current || !courseLayer.current) return;
@@ -130,7 +130,7 @@ function TrackingMap({ seriesId, eventId, heatId, boatIds, course }: TrackingMap
     if (positions.length && !fitted.current) {
       m.fitBounds(
         L.latLngBounds([...positions, ...(course ? coursePoints(course) : [])].map((p) => coordinates(p, positions[0].longitude))),
-        { padding: [45, 45], maxZoom: 15 },
+        { padding: [45, 45], maxZoom: 19 },
       );
       fitted.current = true;
       setLocated(true);
@@ -191,7 +191,7 @@ function TrackingMap({ seriesId, eventId, heatId, boatIds, course }: TrackingMap
         leaflet.current.latLngBounds(
           positions.map((p) => [p.latitude, p.longitude]),
         ),
-        { padding: [45, 45], maxZoom: 15 },
+        { padding: [45, 45], maxZoom: 19 },
       );
   }
   return (
