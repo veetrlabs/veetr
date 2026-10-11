@@ -60,7 +60,10 @@ export default function Map({ onBack }: { onBack?: () => void }) {
       ? race.session.raceLinkId
       : race.phone?.linkId;
   const fleet = useJoinedFleet(savedLinkId);
-  const linkId = fleet.finished ? undefined : savedLinkId;
+  const raceEnded = race.finished || fleet.finished ||
+    (race.session?.mode === "race" && race.session.phase === "stopping") ||
+    (race.phone && race.phone.linkId === savedLinkId && (!race.phone.valid || Date.parse(race.phone.expiresAt) <= race.now));
+  const linkId = raceEnded ? undefined : savedLinkId;
   const raceCourse = linkId ? (race.phone?.course !== undefined ? race.phone.course : race.session?.course) : undefined;
   const coursePoints = courseCoordinates(raceCourse);
   const fittedRace = useRef<string | undefined>(undefined);
@@ -93,9 +96,10 @@ export default function Map({ onBack }: { onBack?: () => void }) {
   const raceStatus = raceTrackingStatus(race.session, race.now);
   const localRaceFix =
     linkId && race.session?.mode === "race" ? race.session.recentPoints?.at(-1) : null;
-  const publicOwn = fleet.positions.find((p) => p.boatId === ownBoatId);
+  const fleetPositions = linkId ? fleet.positions : [];
+  const publicOwn = fleetPositions.find((p) => p.boatId === ownBoatId);
   const fix = nav.fix;
-  const trail = nav.trail;
+  const trail = raceEnded && race.session?.mode === "race" ? [] : nav.trail;
   const last = trail.at(-1);
   const position =
     fix ??
@@ -124,6 +128,7 @@ export default function Map({ onBack }: { onBack?: () => void }) {
     Math.abs(lat) <= 90 &&
     Math.abs(lon) <= 180;
   const line =
+    !(nav.phoneStartLine.fromRace && raceEnded) &&
     coordinate(d.portLat, d.portLon) &&
     coordinate(d.starboardLat, d.starboardLon);
   const lineKey = line
@@ -176,7 +181,7 @@ export default function Map({ onBack }: { onBack?: () => void }) {
               zIndex={0}
             />
           )}
-          {fleet.positions
+          {fleetPositions
             .filter((p) => p.boatId !== ownBoatId)
             .map((p) => (
               <BoatMarker mapBearing={mapBearing} region={mapRegion ?? initialRegion}
@@ -193,7 +198,7 @@ export default function Map({ onBack }: { onBack?: () => void }) {
                 }
               />
             ))}
-          {fleet.positions.flatMap((p) =>
+          {fleetPositions.flatMap((p) =>
             (p.trailSegments ?? [p.trail]).map((segment, index) => (
               <Polyline
                 key={`trail-${p.boatId}-${index}`}

@@ -63,7 +63,22 @@ export async function racePhoneRpc<T>(
   const secret = await AsyncStorage.getItem(prefix + linkId);
   if (!secret)
     throw new Error("Open your race invitation on this phone again.");
-  return trackingRpc<T>(name, { lid: linkId, device_secret: secret, ...args });
+  const result = await trackingRpc<T>(name, { lid: linkId, device_secret: secret, ...args });
+  if (name === "race_phone_status") {
+    // Navigation reads this snapshot even after recording has stopped. Keep
+    // completion/revocation and course changes, without replacing a newer join.
+    try {
+      const saved = await savedRacePhone();
+      if (saved?.linkId === linkId) {
+        await AsyncStorage.setItem(prefix + "last", JSON.stringify({
+          ...saved, ...result, linkId,
+        }));
+      }
+    } catch {
+      // A cache failure must not hide a server pause/revocation from the recorder.
+    }
+  }
+  return result;
 }
 export function raceIsSharing(info: RacePhone) {
   return info.valid && info.active && info.eligible && info.ready !== false;

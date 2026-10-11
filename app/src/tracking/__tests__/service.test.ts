@@ -3,7 +3,7 @@ jest.mock('../../diagnostics/native', () => ({ markTrackingDiagnostic: jest.fn(a
 jest.mock('../../diagnostics/service', () => ({ reportDiagnostic: jest.fn() }));
 jest.mock('../locationDisclosure', () => ({ confirmTrackingLocationUse: jest.fn(async () => {}) }));
 jest.mock("@react-native-async-storage/async-storage", () => ({
-  getItem: jest.fn(async () => "device-secret"),
+  getItem: jest.fn(async (key: string) => key.endsWith(":last") ? null : "device-secret"),
   setItem: jest.fn(),
 }));
 import { AppState } from "react-native";
