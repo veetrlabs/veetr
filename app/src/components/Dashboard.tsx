@@ -60,7 +60,7 @@ export default function Dashboard() {
   ]
   const vaneFont = Math.max(12, Math.min(panelHeight / 4 * 0.68, panelWidth / 2 * 0.29, 120))
   return <View style={[styles.screen, { paddingTop: insets.top + 4, paddingLeft: Math.max(12, insets.left), paddingRight: Math.max(12, insets.right) }]}>
-    {performance.polar && <Pressable accessibilityRole="link" onPress={() => router.push('/polar')} style={{ padding: 8 }}>
+    {performance.polar && <Pressable accessibilityRole="link" onPress={() => router.push({ pathname: "/my-boats", params: { boatId: performance.boatId, boatName: nav.session?.boatName ?? "" } })} style={{ padding: 8 }}>
       <Text style={{ color: colors.text, textAlign: 'center', fontWeight: '700' }}>{t('Performance')} {performance.result ? `${number(performance.result.performancePercent)}% · ${t('Target')} ${number(performance.result.targetSpeed, 1)} kn` : '—'} ›</Text>
     </Pressable>}
     <View style={styles.instrumentArea} onLayout={e => setSpace(e.nativeEvent.layout)}>

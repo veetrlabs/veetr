@@ -1,8 +1,10 @@
+import BoatPolarDetails from '../polar/BoatPolarDetails';
+import { restorePolars } from '../polar/sync';
 import BackButton from '../components/BackButton';
 import { useCallback, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router, useFocusEffect } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { t, translateMessage, useLanguageRefresh } from "../i18n";
 import { useTheme } from "../context/ThemeContext";
 import { themeColors } from "../constants/colors";
@@ -11,6 +13,8 @@ import { savedSeriesPhone, seriesPhoneStatus, type SeriesPhone } from "../tracki
 
 export default function MyBoats() {
   useLanguageRefresh();
+  const params = useLocalSearchParams<{ boatId?: string; boatName?: string }>();
+  const [externalBoat, setExternalBoat] = useState<{id:string;name:string}>();
   const c = themeColors[useTheme().theme];
   const [fleet, setFleet] = useState<Awaited<ReturnType<typeof privateFleet>>>({ boats: [] });
   const [invited, setInvited] = useState<SeriesPhone | null>(null);
@@ -19,7 +23,14 @@ export default function MyBoats() {
   const [busy, setBusy] = useState(false);
   useFocusEffect(useCallback(() => {
     let alive = true;
-    void privateFleet().then(value => { if (alive) setFleet(value); }).catch(e => { if (alive) setError(e.message); });
+    void privateFleet().then(value => { if (alive) {
+      setFleet(value);
+      if (params.boatId) {
+        const boat = value.boats.find(b => b.id === params.boatId);
+        setEdit(boat);
+        setExternalBoat(boat ? undefined : { id: params.boatId, name: params.boatName || t('Boat') });
+      }
+    } }).catch(e => { if (alive) setError(e.message); });
     void (async () => {
       const saved = await savedSeriesPhone();
       if (alive) setInvited(saved);
@@ -29,7 +40,7 @@ export default function MyBoats() {
       }
     })().catch(e => { if (alive) setError(e.message); });
     return () => { alive = false; };
-  }, []));
+  }, [params.boatId, params.boatName]));
   const style = { padding: 16, borderRadius: 12, backgroundColor: c.buttonBg, minHeight: 48 };
   const button = (label: string, action: () => void) => <Pressable accessibilityRole="button" disabled={busy} onPress={action} style={style}><Text style={{ color: c.text }}>{label}</Text></Pressable>;
   const persist = async (boat: PrivateBoat) => {
@@ -57,9 +68,12 @@ export default function MyBoats() {
     } }],
   );
   return <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 20, gap: 16 }}>
-    <BackButton onPress={() => edit ? setEdit(undefined) : router.back()} />
-    <Text accessibilityRole="header" style={{ color: c.text, fontSize: 28, fontWeight: "700" }}>{edit ? t("Boat details") : t("My boats")}</Text>
-    {edit ? <>
+    <BackButton onPress={() => edit ? setEdit(undefined) : externalBoat ? setExternalBoat(undefined) : router.back()} />
+    <Text accessibilityRole="header" style={{ color: c.text, fontSize: 28, fontWeight: "700" }}>{edit || externalBoat ? t("Boat details") : t("My boats")}</Text>
+    {externalBoat ? <>
+      <Text style={{color:c.text,fontSize:22,fontWeight:'600'}}>{externalBoat.name}</Text>
+      <BoatPolarDetails key={externalBoat.id} boatId={externalBoat.id} />
+    </> : edit ? <>
       <Text style={{ color: c.textMuted }}>{t("Private · saved only on this device. Nothing is published.")}</Text>
       {(["name", "className", "sailNumber", "manufacturer", "model", "variant"] as const).map((field, i) => <View key={field} style={{ gap: 6 }}>
         <Text style={{ color: c.text }}>{t(["Boat name", "Boat class", "Sail number", "Manufacturer", "Model", "Variant / year"][i])}</Text>
@@ -80,6 +94,7 @@ export default function MyBoats() {
         {fleet.activeId === edit.id
           ? <Text style={{ color: c.textMuted }}>{t("Active for private trips")}</Text>
           : button(t("Use for private trips"), () => void useBoat(edit.id))}
+        <BoatPolarDetails key={edit.id} boatId={edit.id} />
         {button(t("Delete boat"), () => confirmDelete(edit))}
       </>}
     </> : <>
@@ -89,6 +104,10 @@ export default function MyBoats() {
         {fleet.activeId === boat.id && <Text style={{ color: c.textMuted }}>{t("Active for private trips")}</Text>}
       </Pressable>)}
       {button(t("Create private boat"), () => setEdit({ id: "", name: "", className: "", sailNumber: "" }))}
+      {button(t('Restore polars from my account'), () => {
+        setBusy(true); setError('');
+        void restorePolars().then(setFleet).catch(e => setError(e.message)).finally(() => setBusy(false));
+      })}
       <Text style={{ color: c.text, fontSize: 22, fontWeight: "600" }}>{t("Invited races")}</Text>
       {invited ? <View style={{ padding: 16, borderWidth: 1, borderColor: c.border, borderRadius: 12, gap: 12 }}>
         <Text style={{ color: c.text, fontWeight: "700", fontSize: 20 }}>{invited.boatName}</Text>
