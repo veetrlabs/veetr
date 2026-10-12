@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Crypto from "expo-crypto";
-export type PrivateBoat = { id: string; name: string; className: string; sailNumber: string };
+export type PrivateBoat = { id: string; name: string; className: string; sailNumber: string; manufacturer?: string; model?: string; variant?: string; lengthM?: number };
 type Fleet = { boats: PrivateBoat[]; activeId?: string };
 const key = "veetr-private-boats:v1";
 let pending: Promise<unknown> = Promise.resolve();
@@ -19,6 +19,7 @@ function update(change: (fleet: Fleet) => Fleet) {
 }
 export function savePrivateBoat(boat: PrivateBoat) {
   const name = boat.name.trim();
+  if (boat.lengthM !== undefined && (!Number.isFinite(boat.lengthM) || boat.lengthM <= 0 || boat.lengthM > 200)) return Promise.reject(new Error('Enter a valid boat length.'));
   if (!name || name.length > 120) return Promise.reject(new Error("Enter a boat name (up to 120 characters)."));
   return update(fleet => {
     const saved = { ...boat, id: boat.id || Crypto.randomUUID(), name, className: boat.className.trim(), sailNumber: boat.sailNumber.trim() };

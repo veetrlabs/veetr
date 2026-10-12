@@ -92,6 +92,10 @@ export default function SettingsTab() {
     <>
       <Text style={[styles.pageTitle, { color: colors.text }]}>{t("Settings")}</Text>
 
+      <TouchableOpacity accessibilityRole="link" accessibilityLabel={t('Polar performance')} style={[styles.menuItem, { borderBottomColor: colors.border }]} onPress={() => router.push('/polar')}>
+        <Text style={[styles.menuItemText, { color: colors.text }]}>{t('Polar performance')}</Text>
+        <Text style={{ color: colors.text }}>›</Text>
+      </TouchableOpacity>
       <TouchableOpacity accessibilityRole="button" style={[styles.menuItem, { borderBottomColor: colors.border }]} onPress={() => router.push("/my-boats")}>
         <Text style={[styles.menuItemText, { color: colors.text }]}>{t("My boats")}</Text>
       </TouchableOpacity>

@@ -210,3 +210,16 @@
   text-align: right;
   flex: 1;
 }
+
+.polar-performance { flex-shrink: 0; margin: 4px 64px 4px 8px; padding: 4px; border: 1px solid #718096; border-radius: 12px; }
+.polar-performance summary { cursor: pointer; padding: 8px; font-weight: 600; }
+.polar-content { display: flex; flex-direction: column; gap: 12px; max-width: 640px; margin: auto; }
+.polar-content label { display: flex; flex-direction: column; gap: 6px; }
+.polar-content input, .polar-content select, .polar-content textarea, .polar-content button { font: inherit; padding: 12px; border-radius: 8px; border: 1px solid #718096; color: inherit; background: transparent; min-height: 44px; }
+.polar-content button { background: #0f766e; color: white; cursor: pointer; }
+.polar-content button:disabled { opacity: .5; cursor: default; }
+.polar-content button:active { opacity: .7; }
+.dashboard { display: flex; flex-direction: column; }
+.dashboard-layout { flex: 1; min-height: 0; height: auto; }
+.polar-performance[open] { flex: 1; min-height: 0; overflow-y: auto; margin: 4px 12px; padding: 12px; }
+.polar-performance[open] ~ .dashboard-layout { display: none; }

@@ -61,13 +61,20 @@ export default function MyBoats() {
     <Text accessibilityRole="header" style={{ color: c.text, fontSize: 28, fontWeight: "700" }}>{edit ? t("Boat details") : t("My boats")}</Text>
     {edit ? <>
       <Text style={{ color: c.textMuted }}>{t("Private · saved only on this device. Nothing is published.")}</Text>
-      {(["name", "className", "sailNumber"] as const).map((field, i) => <View key={field} style={{ gap: 6 }}>
-        <Text style={{ color: c.text }}>{t(["Boat name", "Boat class", "Sail number"][i])}</Text>
-        <TextInput accessibilityLabel={t(["Boat name", "Boat class", "Sail number"][i])} value={edit[field]} maxLength={120}
+      {(["name", "className", "sailNumber", "manufacturer", "model", "variant"] as const).map((field, i) => <View key={field} style={{ gap: 6 }}>
+        <Text style={{ color: c.text }}>{t(["Boat name", "Boat class", "Sail number", "Manufacturer", "Model", "Variant / year"][i])}</Text>
+        <TextInput accessibilityLabel={t(["Boat name", "Boat class", "Sail number", "Manufacturer", "Model", "Variant / year"][i])} value={edit[field]} maxLength={120}
           onChangeText={value => setEdit({ ...edit, [field]: value })}
           onBlur={() => { if (edit.id) void persist(edit); }}
           style={{ ...style, color: c.text, borderColor: c.border, borderWidth: 1 }} />
       </View>)}
+      <Text style={{ color: c.text }}>{t('Length (m)')}</Text>
+      <TextInput accessibilityLabel={t('Length (m)')} keyboardType="decimal-pad" defaultValue={edit.lengthM?.toString() ?? ''} onEndEditing={event => {
+        const value = event.nativeEvent.text.trim().replace(',', '.');
+        const lengthM = value ? Number(value) : undefined;
+        if (lengthM !== undefined && (!Number.isFinite(lengthM) || lengthM <= 0 || lengthM > 200)) { setError('Enter a valid boat length.'); return; }
+        const next = {...edit, lengthM}; setEdit(next); if (edit.id) void persist(next);
+      }} style={{ ...style, color: c.text }} />
       {!edit.id && button(t("Create private boat"), () => void persist(edit))}
       {!!edit.id && <>
         {fleet.activeId === edit.id

@@ -2,6 +2,9 @@ import { formatNumber, t, useLanguageRefresh } from '../i18n';
 import { shouldUseDeviceStartLine } from '../navigation/phoneStartLine'
 import { phoneStartLineDistance, startLineDistanceAtPosition } from '../navigation/startLineDistance'
 import { useState } from 'react'
+import { router } from 'expo-router'
+import { Pressable } from 'react-native'
+import { usePerformance } from '../polar/usePerformance'
 import { View, Text, StyleSheet } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useNavigation } from '../navigation/NavigationContext'
@@ -17,6 +20,7 @@ const angle = (value: number | null | undefined) => value == null || !Number.isF
 
 export default function Dashboard() {
   useLanguageRefresh();
+  const performance = usePerformance();
   const nav = useNavigation(), { state } = useBLE(), { theme } = useTheme()
   const colors = themeColors[theme], insets = useSafeAreaInsets(), d = state.sailingData
   const [space, setSpace] = useState({ width: 0, height: 0 })
@@ -56,6 +60,9 @@ export default function Dashboard() {
   ]
   const vaneFont = Math.max(12, Math.min(panelHeight / 4 * 0.68, panelWidth / 2 * 0.29, 120))
   return <View style={[styles.screen, { paddingTop: insets.top + 4, paddingLeft: Math.max(12, insets.left), paddingRight: Math.max(12, insets.right) }]}>
+    {performance.polar && <Pressable accessibilityRole="link" onPress={() => router.push('/polar')} style={{ padding: 8 }}>
+      <Text style={{ color: colors.text, textAlign: 'center', fontWeight: '700' }}>{t('Performance')} {performance.result ? `${number(performance.result.performancePercent)}% · ${t('Target')} ${number(performance.result.targetSpeed, 1)} kn` : '—'} ›</Text>
+    </Pressable>}
     <View style={styles.instrumentArea} onLayout={e => setSpace(e.nativeEvent.layout)}>
       <View style={[styles.layout, { flexDirection: landscape ? 'row' : 'column' }]}>
         <View style={{ width: compassSize, height: compassSize, alignSelf: 'center' }}>

@@ -14,3 +14,10 @@ export { DEFAULT_BLE_CONFIG, convertToSailingAngle, getSignalQuality } from './u
 export { isValidCoordinates, hasValidGPSFix, hasGPSCoordinates } from './utils/gpsValidation'
 export { getLatestRelease, getFirmwareAsset, compareVersions } from './utils/githubApi'
 export { FIRMWARE_COMMANDS, formatTime } from './utils/firmware'
+
+export * from './polar/model'
+export * from './polar/engine'
+export * from './polar/import'
+export * from './polar/learning'
+export * from './polar/repository'
+export * from './polar/diagram'

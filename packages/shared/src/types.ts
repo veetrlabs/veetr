@@ -1,4 +1,5 @@
 export interface SailingData {
+  polarReadingValid?: boolean
   speed: number
   speedMax: number
   speedAvg: number

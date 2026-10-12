@@ -11,6 +11,7 @@ import CompactConnectionButton from './CompactConnectionButton'
 import SatelliteButton from './SatelliteButton'
 import BluetoothButton from './BluetoothButton'
 import './Dashboard.css'
+import PolarPerformance from './PolarPerformance'
 
 export default function Dashboard() {
   const { state } = useBLE()
@@ -18,6 +19,7 @@ export default function Dashboard() {
 
   return (
     <div className="dashboard">
+      <PolarPerformance />
       <CompactConnectionButton />
       <SatelliteButton />
       <BluetoothButton />
