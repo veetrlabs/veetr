@@ -1,3 +1,4 @@
+import { cacheRaceBoat } from "../boats/cloudBoats";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Crypto from "expo-crypto";
 import { trackingRpc } from "./client";
@@ -45,6 +46,8 @@ export async function claimRacePhone(token: string): Promise<RacePhone> {
 export async function rememberRacePhone(phone: RacePhone, secret: string) {
   await AsyncStorage.setItem(prefix + phone.linkId, secret);
   await AsyncStorage.setItem(prefix + "last", JSON.stringify(phone));
+  // Pairing is already saved; a failed optional download can be retried on preview.
+  void cacheRaceBoat(phone.boatId).catch(() => {});
 }
 export async function savedRacePhone(): Promise<RacePhone | null> {
   const value = await AsyncStorage.getItem(prefix + "last");

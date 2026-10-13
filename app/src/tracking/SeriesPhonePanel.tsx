@@ -1,4 +1,4 @@
-import RaceBoatLink from "../boats/RaceBoatLink";
+import RaceBoatPreview from "../boats/RaceBoatPreview";
 import BackButton from '../components/BackButton';
 import { useState } from "react";
 import { Alert, Pressable, ScrollView, Text, TextInput } from "react-native";
@@ -80,16 +80,13 @@ export default function SeriesPhonePanel({
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
       <ScrollView contentContainerStyle={{ padding: 20, gap: 18 }}>
         <BackButton onPress={() => router.canGoBack() ? router.back() : router.replace("/regattas")} />
-        <Text style={{ color: c.text, fontSize: 32, fontWeight: "700" }}>
-          {phone.boatName}
-        </Text>
+        <RaceBoatPreview boatId={phone.boatId} boatName={phone.boatName} />
         <Text style={{ color: c.text, fontSize: 22 }}>{phone.seriesName}</Text>
         <Text style={{ color: c.textSecondary }}>
           {t(
             "One invitation for this series. Your phone stays paired between races. Choose a race below when you are ready.",
           )}
         </Text>
-        {phone.valid && <RaceBoatLink key={phone.boatId} boatId={phone.boatId} boatName={phone.boatName} />}
         {!phone.valid ? (
           <Text style={{ color: c.text }}>
             {t(

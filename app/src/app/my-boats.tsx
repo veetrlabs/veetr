@@ -1,7 +1,7 @@
 import BoatPublishing from "../boats/BoatPublishing";
-import { canEditDownloadedBoat, refreshOwnedBoats } from "../boats/cloudBoats";
+import { cacheRaceBoat, canEditDownloadedBoat, refreshOwnedBoats } from "../boats/cloudBoats";
 import { trackingClient } from "../tracking/client";
-import RaceBoatLink from "../boats/RaceBoatLink";
+import RaceBoatPreview from "../boats/RaceBoatPreview";
 import * as Crypto from "expo-crypto";
 import BoatModelLookup from "../boats/BoatModelLookup";
 import { applyCatalogBoat } from "../boats/catalog";
@@ -14,12 +14,12 @@ import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { t, translateMessage, useLanguageRefresh } from "../i18n";
 import { useTheme } from "../context/ThemeContext";
 import { themeColors } from "../constants/colors";
-import { privateFleet, linkedRaceBoat, savePrivateBoat, selectPrivateBoat, deletePrivateBoat, type PrivateBoat } from "../boats/privateBoats";
+import { privateFleet, savePrivateBoat, selectPrivateBoat, deletePrivateBoat, type PrivateBoat } from "../boats/privateBoats";
 import { savedSeriesPhone, seriesPhoneStatus, type SeriesPhone } from "../tracking/seriesPhone";
 
 export default function MyBoats() {
   useLanguageRefresh();
-  const params = useLocalSearchParams<{ boatId?: string; boatName?: string }>();
+  const params = useLocalSearchParams<{ boatId?: string; raceBoatId?: string; boatName?: string }>();
   const [externalBoat, setExternalBoat] = useState<{id:string;name:string}>();
   const c = themeColors[useTheme().theme];
   const [fleet, setFleet] = useState<Awaited<ReturnType<typeof privateFleet>>>({ boats: [] });
@@ -52,10 +52,10 @@ export default function MyBoats() {
     let alive = true;
     void privateFleet().then(value => { if (alive) {
       setFleet(value);
-      if (params.boatId) {
-        const boat = value.boats.find(b => b.id === params.boatId) ?? linkedRaceBoat(value, params.boatId);
+      if (params.boatId || params.raceBoatId) {
+        const boat = params.raceBoatId ? value.boats.find(b => b.racePreview && b.downloadedFrom?.boatId === params.raceBoatId && b.downloadedFrom?.server === (process.env.EXPO_PUBLIC_SUPABASE_URL ?? "")) : value.boats.find(b => b.id === params.boatId);
         setEdit(boat);
-        setExternalBoat(boat ? undefined : { id: params.boatId, name: params.boatName || t('Boat') });
+        setExternalBoat(boat ? undefined : { id: (params.raceBoatId ?? params.boatId)!, name: params.boatName || t('Boat') });
       }
     } }).catch(e => { if (alive) setError(e.message); });
     void (async () => { const before = await privateFleet(); const value = await refreshOwnedBoats(); if (alive) { setFleet(value); setEdit(current => current?.downloadedFrom && JSON.stringify(current) === JSON.stringify(before.boats.find(b => b.id === current.id)) ? value.boats.find(b => b.id === current.id) ?? current : current); setRefreshVersion(v => v + 1); } })().catch(e => { if (alive) setError(e.message); });
@@ -63,17 +63,35 @@ export default function MyBoats() {
       const saved = await savedSeriesPhone();
       if (alive) setInvited(saved);
       if (saved) {
+        void cacheRaceBoat(saved.boatId).then(value => { if (alive) setFleet(value); }).catch(() => {});
         const fresh = await seriesPhoneStatus(saved.linkId);
         if (alive) setInvited(fresh);
       }
     })().catch(e => { if (alive) setError(e.message); });
     return () => { alive = false; };
-  }, [params.boatId, params.boatName]));
+  }, [params.boatId, params.raceBoatId, params.boatName]));
+  useFocusEffect(useCallback(() => {
+    if (!externalBoat) return;
+    let alive = true;
+    void cacheRaceBoat(externalBoat.id).then(next => {
+      if (!alive) return;
+      setFleet(next);
+      setEdit(next.boats.find(b => b.racePreview && b.downloadedFrom?.boatId === externalBoat.id));
+      setExternalBoat(undefined);
+    }).catch(e => { if (alive) setError(e.message); });
+    return () => { alive = false; };
+  }, [externalBoat?.id]));
   const refresh = async () => {
     if (refreshInFlight.current || busy || polarInteracting) return;
     refreshInFlight.current = true;
     setRefreshing(true); setError("");
     try {
+      if (externalBoat) {
+        const cached = await cacheRaceBoat(externalBoat.id);
+        setFleet(cached);
+        setEdit(cached.boats.find(b => b.racePreview && b.downloadedFrom?.boatId === externalBoat.id));
+        setExternalBoat(undefined);
+      }
       const before = await privateFleet();
       const next = await refreshOwnedBoats();
       setFleet(next);
@@ -127,12 +145,7 @@ export default function MyBoats() {
     <Text accessibilityRole="header" style={{ color: c.text, fontSize: 28, fontWeight: "700" }}>{edit || externalBoat ? t("Boat details") : t("My boats")}</Text>
     {externalBoat ? <>
       <Text style={{color:c.text,fontSize:22,fontWeight:'600'}}>{externalBoat.name}</Text>
-      <RaceBoatLink key={`link:${externalBoat.id}`} boatId={externalBoat.id} boatName={externalBoat.name} onChange={next => {
-        setFleet(next);
-        const boat = linkedRaceBoat(next, externalBoat.id);
-        if (boat) { setEdit(boat); setExternalBoat(undefined); }
-      }} />
-      <BoatPolarDetails readOnly onInteractionChange={setPolarInteracting} key={externalBoat.id} boatId={externalBoat.id} />
+      <Text style={{color:c.textMuted}}>{t(error ? "Boat details unavailable. Pull down to try again." : "Loading boat details…")}</Text>
     </> : edit ? <>
       <Text style={{ color: c.textMuted }}>{t(readOnly ? "Downloaded public boat. Details refresh when you open My boats or pull down. Only the owner can edit; saved details remain available offline." : "Edits are saved on this device. Upload below to save the boat to your account or publish it.")}</Text>
       {!readOnly && <BoatModelLookup label={edit.catalogLabel} selectedId={edit.catalogId} selectedRevision={edit.catalogRevision} disabled={busy} onSelect={async entry=> {
@@ -172,26 +185,25 @@ export default function MyBoats() {
       </View>)}
       {!edit.id && button(t("Create private boat"), () => {if(!Object.values(dimensionErrors).some(Boolean)) void persist(edit);})}
       {!!edit.id && <>
-        {fleet.activeId === edit.id
+        {!edit.racePreview && (fleet.activeId === edit.id
           ? <Text style={{ color: c.textMuted }}>{t("Active for private trips")}</Text>
-          : button(t("Use for private trips"), () => void useBoat(edit.id))}
+          : button(t("Use for private trips"), () => void useBoat(edit.id)))}
         <BoatPolarDetails readOnly={readOnly} onInteractionChange={setPolarInteracting} key={`${edit.id}:${edit.catalogPolar?.id??""}:${refreshVersion}`} boatId={edit.id} />
         {!readOnly && <BoatPublishing key={edit.id} boatId={edit.id} refreshVersion={refreshVersion} disabled={busy || refreshing || Object.values(dimensionErrors).some(Boolean)} onRefresh={() => {void refreshOwnedBoats().then(setFleet).catch(e=>setError(e.message));}} />}
-        {button(t("Delete boat"), () => confirmDelete(edit))}
+        {!edit.racePreview && button(t("Delete boat"), () => confirmDelete(edit))}
       </>}
     </> : <>
       <Text style={{ color: c.textMuted }}>{t("Upload a boat to use it on your other devices. New boats stay private unless you choose a public upload. Race invitations grant tracking access, not ownership.")}</Text>
-      {fleet.boats.map(boat => <Pressable key={boat.id} accessibilityRole="button" disabled={busy} onPress={() => {setDimensionErrors({});setEdit(boat);}} style={style}>
+      {fleet.boats.filter(boat => !boat.racePreview).map(boat => <Pressable key={boat.id} accessibilityRole="button" disabled={busy} onPress={() => {setDimensionErrors({});setEdit(boat);}} style={style}>
         <Text style={{ color: c.text }}>{boat.name} ›</Text>
         {fleet.activeId === boat.id && <Text style={{ color: c.textMuted }}>{t("Active for private trips")}</Text>}
       </Pressable>)}
       {button(t("Create private boat"), () => {setDimensionErrors({});setEdit({ id: "", name: "", className: "", sailNumber: "" });})}
       <Text style={{ color: c.text, fontSize: 22, fontWeight: "600" }}>{t("Invited races")}</Text>
       {invited ? <View style={{ padding: 16, borderWidth: 1, borderColor: c.border, borderRadius: 12, gap: 12 }}>
-        <Text style={{ color: c.text, fontWeight: "700", fontSize: 20 }}>{invited.boatName}</Text>
+        <RaceBoatPreview boatId={invited.boatId} boatName={invited.boatName} />
         <Text style={{ color: c.text }}>{invited.seriesName}</Text>
         <Text style={{ color: c.textMuted }}>{t("Race access only. Boat names, results and shared race tracks are visible to spectators. Private trips remain private.")}</Text>
-        {invited.valid && <RaceBoatLink key={invited.boatId} boatId={invited.boatId} boatName={invited.boatName} onChange={setFleet} />}
         {invited.valid ? invited.races.map(race => <View key={race.eventId}>{button(t("Join {{v0}}", { v0: race.raceName }), () => router.push({ pathname: "/race-phone", params: { eventId: race.eventId } }))}</View>)
           : <Text style={{ color: c.text }}>{t("This invitation has expired or been revoked. Ask the referee for a new link.")}</Text>}
         {invited.valid && !invited.races.length && <Text style={{ color: c.text }}>{t("No upcoming published races for your boat yet. Your series invitation remains available.")}</Text>}

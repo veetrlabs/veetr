@@ -52,7 +52,11 @@ export async function refreshOwnedBoats() {
           boat.downloadedFrom?.server ===
           (process.env.EXPO_PUBLIC_SUPABASE_URL ?? ""),
       )
-      .map((boat) => downloadRaceBoat(boat.downloadedFrom!.boatId, false)),
+      .map((boat) =>
+        boat.racePreview
+          ? cacheRaceBoat(boat.downloadedFrom!.boatId)
+          : downloadRaceBoat(boat.downloadedFrom!.boatId, false),
+      ),
   );
   const failed = downloads.find((result) => result.status === "rejected");
   const user = await boatAccount();
@@ -174,4 +178,21 @@ export async function canEditDownloadedBoat(boat: PrivateBoat) {
   if (!user) return false;
   const profile = await downloadedBoatProfile(boat.downloadedFrom.boatId);
   return profile.isOwner && (await boatAccount())?.id === user.id;
+}
+
+/** Invitation cache: never links, replaces or selects a private boat. */
+export async function cacheRaceBoat(boatId: string) {
+  const { id, updatedAt, isOwner, polar, ...details } =
+    await downloadedBoatProfile(boatId);
+  return storeDownloadedBoat(
+    {
+      ...details,
+      className: details.className ?? "",
+      sailNumber: details.sailNumber ?? "",
+      catalogPolar: polar,
+    },
+    boatId,
+    false,
+    true,
+  );
 }

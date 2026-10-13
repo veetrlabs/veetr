@@ -39,7 +39,7 @@ test("dashboard boat links open that boat's details and polar", async () => {
 test("shows invitation access separately and opens the selected race without starting tracking", async () => {
   (privateFleet as jest.Mock).mockResolvedValue({ boats: [] });
   const ui = render(<MyBoats />);
-  await waitFor(() => expect(ui.getByText("Luna")).toBeTruthy());
+  await waitFor(() => expect(ui.getByText("Luna ›")).toBeTruthy());
   fireEvent.press(ui.getByText("Join Sunday"));
   expect(router.push).toHaveBeenCalledWith({ pathname: "/race-phone", params: { eventId: "race" } });
   ui.unmount();
@@ -62,7 +62,7 @@ test("creating a boat returns to the list only after saving succeeds", async () 
   (privateFleet as jest.Mock).mockResolvedValue({ boats: [] });
   (savePrivateBoat as jest.Mock).mockRejectedValueOnce(new Error("Could not save"));
   const ui = render(<MyBoats />);
-  await waitFor(() => expect(ui.getByText("Luna")).toBeTruthy());
+  await waitFor(() => expect(ui.getByText("Luna ›")).toBeTruthy());
   fireEvent.press(ui.getByText("Create private boat"));
   fireEvent.changeText(ui.getByLabelText("Boat name"), "Boat A");
   fireEvent.press(ui.getByText("Create private boat"));
@@ -120,13 +120,13 @@ test("boat details let users activate a boat and require confirmation before del
   ui.unmount();
  });
 
- test("race boat links open the linked local boat without a second polar editor", async () => {
-  (useLocalSearchParams as jest.Mock).mockReturnValue({boatId:"race-boat"});
-  (privateFleet as jest.Mock).mockResolvedValue({boats:[{id:"local",name:"Mine",className:"",sailNumber:""}],raceLinks:[{server:process.env.EXPO_PUBLIC_SUPABASE_URL ?? "",raceBoatId:"race-boat",localBoatId:"local"}]});
+ test("race preview opens the cached public boat instead of a previously linked private boat", async () => {
+  (useLocalSearchParams as jest.Mock).mockReturnValue({raceBoatId:"race-boat"});
+  (privateFleet as jest.Mock).mockResolvedValue({boats:[{id:"local",name:"Mine",className:"",sailNumber:""}, {id:"cached",name:"Luna",className:"",sailNumber:"",racePreview:true,downloadedFrom:{server:process.env.EXPO_PUBLIC_SUPABASE_URL ?? "",boatId:"race-boat",baseline:""}}],raceLinks:[{server:process.env.EXPO_PUBLIC_SUPABASE_URL ?? "",raceBoatId:"race-boat",localBoatId:"local"}]});
   const ui=render(<MyBoats/>);
-  await waitFor(()=>expect(ui.getByText("Polar for local")).toBeTruthy());
+  await waitFor(()=>expect(ui.getByText("Polar for cached")).toBeTruthy());
   expect(ui.queryByText("Polar for race-boat")).toBeNull();
-  expect(ui.getByLabelText("Boat name").props.value).toBe("Mine");
+  expect(ui.getByLabelText("Boat name").props.value).toBe("Luna");
   ui.unmount();
  });
 

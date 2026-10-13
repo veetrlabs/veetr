@@ -1,4 +1,4 @@
-jest.mock("../../boats/RaceBoatLink", () => ({ __esModule: true, default: ({boatId}: {boatId:string}) => require("react").createElement("Text", null, `Local boat link: ${boatId}`) }));
+jest.mock("../../boats/RaceBoatPreview", () => ({ __esModule: true, default: ({boatId}: {boatId:string}) => require("react").createElement("Text", null, `Race boat preview: ${boatId}`) }));
 import React from "react";
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
 import { Alert } from "react-native";
@@ -63,7 +63,7 @@ beforeEach(() => {
 });
 test("opening an invitation never pairs or starts GPS without the Ready action and consent", async () => {
   const ui = render(<RacePhoneScreen token="invitation" />);
-  expect(await ui.findByText("Luna")).toBeTruthy();
+  expect(await ui.findByText("Race boat preview: boat")).toBeTruthy();
   expect(claimRacePhone).not.toHaveBeenCalled();
   expect(readyForRace).not.toHaveBeenCalled();
   fireEvent.press(ui.getByText("Ready to race"));

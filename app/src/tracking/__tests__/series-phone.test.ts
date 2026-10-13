@@ -1,3 +1,4 @@
+jest.mock("../../boats/cloudBoats", () => ({cacheRaceBoat:jest.fn().mockResolvedValue({boats:[]})}));
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { trackingRpc } from "../client";
 import {

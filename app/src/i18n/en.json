@@ -1083,5 +1083,7 @@
   "This boat is no longer available. The saved copy is still on this device.": "This boat is no longer available. The saved copy is still on this device.",
   "Only the boat owner can edit or upload this downloaded boat.": "Only the boat owner can edit or upload this downloaded boat.",
   "Replace saved boat details": "Replace saved boat details",
-  "Replace {{v0}}’s details and reference polar with {{v1}}’s public profile? Trips and measurements will be kept. The downloaded profile is editable only by its owner.": "Replace {{v0}}’s details and reference polar with {{v1}}’s public profile? Trips and measurements will be kept. The downloaded profile is editable only by its owner."
+  "Replace {{v0}}’s details and reference polar with {{v1}}’s public profile? Trips and measurements will be kept. The downloaded profile is editable only by its owner.": "Replace {{v0}}’s details and reference polar with {{v1}}’s public profile? Trips and measurements will be kept. The downloaded profile is editable only by its owner.",
+  "Loading boat details…": "Loading boat details…",
+  "Boat details unavailable. Pull down to try again.": "Boat details unavailable. Pull down to try again."
 }

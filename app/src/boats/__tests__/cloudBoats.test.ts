@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { trackingClient, trackingRpc } from "../../tracking/client";
 import { privateFleet, savePrivateBoat, linkRaceBoat } from "../privateBoats";
 import {
+  cacheRaceBoat,
   publishBoat,
   refreshOwnedBoats,
   publicBoatProfile,
@@ -265,4 +266,21 @@ test("explicit download replaces linked details, keeps measurements, and backgro
   rpc.mockResolvedValue({id:"race",name:"Luna",isOwner:false});
   expect(await canEditDownloadedBoat(fleet.boats[0])).toBe(false);
   await expect(uploadBoat(boat.id,true)).rejects.toThrow("Only the boat owner");
+});
+
+test("invitation caching keeps race boats separate from private boats and needs no link", async () => {
+  await savePrivateBoat(boat);
+  await linkRaceBoat({boatId:"race",boatName:"Luna"},boat.id);
+  const before = await privateFleet();
+  rpc.mockResolvedValue({id:"race",name:"Luna",className:"",polar,isOwner:false});
+  const cached = await cacheRaceBoat("race");
+  expect(cached.boats.find(b => b.id === boat.id)).toEqual(before.boats[0]);
+  expect(cached.raceLinks).toEqual(before.raceLinks);
+  expect(cached.activeId).toBe(before.activeId);
+  expect(cached.boats.filter(b => !b.racePreview)).toEqual(before.boats);
+  expect(cached.boats.find(b => b.racePreview)).toMatchObject({name:"Luna",downloadedFrom:{boatId:"race"}});
+  rpc.mockResolvedValue({id:"race",name:"Luna II",className:"",polar,isOwner:false});
+  const refreshed = await cacheRaceBoat("race");
+  expect(refreshed.boats.filter(b => b.racePreview)).toHaveLength(1);
+  expect(refreshed.boats.find(b => b.racePreview)?.name).toBe("Luna II");
 });

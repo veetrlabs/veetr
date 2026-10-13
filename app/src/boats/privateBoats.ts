@@ -25,6 +25,7 @@ export type PrivateBoat = {
   catalogRevision?: string;
   catalogLabel?: string;
   catalogPolar?: Polar;
+  racePreview?: boolean;
   downloadedFrom?: { server: string; boatId: string; baseline: string };
 };
 export type Fleet = {
@@ -126,7 +127,9 @@ export function savePrivateBoat(boat: PrivateBoat) {
       return {
         ...fleet,
         boats: [...fleet.boats.filter((b) => b.id !== saved.id), saved],
-        activeId: fleet.activeId ?? saved.id,
+        activeId: saved.racePreview
+          ? fleet.activeId
+          : (fleet.activeId ?? saved.id),
       };
     },
     async () => {
@@ -171,7 +174,17 @@ export function linkedRaceBoat(fleet: Fleet, raceBoatId: string) {
   return fleet.boats.find((boat) => boat.id === link?.localBoatId);
 }
 export async function localBoatIdForRace(raceBoatId: string) {
-  return linkedRaceBoat(await privateFleet(), raceBoatId)?.id ?? raceBoatId;
+  const fleet = await privateFleet();
+  return (
+    fleet.boats.find(
+      (b) =>
+        b.racePreview &&
+        b.downloadedFrom?.server === raceServer() &&
+        b.downloadedFrom.boatId === raceBoatId,
+    )?.id ??
+    linkedRaceBoat(fleet, raceBoatId)?.id ??
+    raceBoatId
+  );
 }
 /** Undefined unlinks; null adds a new local boat. Existing links are reused on retries. */
 export function linkRaceBoat(
@@ -213,6 +226,13 @@ export function linkRaceBoat(
 }
 
 export function raceBoatIdForLocal(fleet: Fleet, localBoatId: string) {
+  const cached = fleet.boats.find(
+    (b) =>
+      b.id === localBoatId &&
+      b.racePreview &&
+      b.downloadedFrom?.server === raceServer(),
+  );
+  if (cached) return cached.downloadedFrom!.boatId;
   return fleet.raceLinks?.find(
     (link) => link.server === raceServer() && link.localBoatId === localBoatId,
   )?.raceBoatId;
@@ -253,7 +273,9 @@ export function importOwnedBoat(
       return {
         ...fleet,
         boats: [...fleet.boats, saved],
-        activeId: fleet.activeId ?? saved.id,
+        activeId: saved.racePreview
+          ? fleet.activeId
+          : (fleet.activeId ?? saved.id),
         raceLinks: [
           ...(fleet.raceLinks ?? []),
           { server: raceServer(), raceBoatId, localBoatId: saved.id },
@@ -305,7 +327,13 @@ export function syncAccountBoat(
   let undo: (() => Promise<void>) | undefined;
   return update(
     async (fleet) => {
-      const existing = linkedRaceBoat(fleet, cloudId);
+      const existing =
+        fleet.boats.find(
+          (b) =>
+            b.racePreview &&
+            b.downloadedFrom?.server === raceServer() &&
+            b.downloadedFrom.boatId === cloudId,
+        ) ?? linkedRaceBoat(fleet, cloudId);
       const id = existing?.id ?? Crypto.randomUUID();
       const previous = await polarRepository.read(id);
       if (existing) {
@@ -327,6 +355,7 @@ export function syncAccountBoat(
       const saved = {
         ...boat,
         id,
+        ...(existing?.racePreview ? { racePreview: true } : {}),
         ...(existing?.downloadedFrom
           ? { downloadedFrom: existing.downloadedFrom }
           : {}),
@@ -348,7 +377,7 @@ export function syncAccountBoat(
         {
           ...fleet,
           boats: [...fleet.boats.filter((b) => b.id !== id), saved],
-          activeId: fleet.activeId ?? id,
+          activeId: saved.racePreview ? fleet.activeId : fleet.activeId ?? id,
           raceLinks: existing
             ? fleet.raceLinks
             : [
@@ -372,14 +401,23 @@ export function storeDownloadedBoat(
   boat: Omit<PrivateBoat, "id">,
   cloudId: string,
   replace = false,
+  racePreview = false,
 ) {
   let undo: (() => Promise<void>) | undefined;
   return update(
     async (fleet) => {
-      const existing = linkedRaceBoat(fleet, cloudId);
+      const existing = racePreview
+        ? fleet.boats.find(
+            (b) =>
+              b.racePreview &&
+              b.downloadedFrom?.server === raceServer() &&
+              b.downloadedFrom.boatId === cloudId,
+          )
+        : linkedRaceBoat(fleet, cloudId);
       // Background refresh cannot recreate a removed copy or replace a private boat.
       if (
         !replace &&
+        !racePreview &&
         (!existing?.downloadedFrom ||
           existing.downloadedFrom.boatId !== cloudId)
       )
@@ -398,6 +436,7 @@ export function storeDownloadedBoat(
       const saved: PrivateBoat = {
         ...boat,
         id,
+        ...(racePreview ? { racePreview: true } : {}),
         downloadedFrom: {
           server: raceServer(),
           boatId: cloudId,
@@ -417,13 +456,15 @@ export function storeDownloadedBoat(
       return {
         ...fleet,
         boats: [...fleet.boats.filter((b) => b.id !== id), saved],
-        activeId: fleet.activeId ?? id,
-        raceLinks: [
-          ...(fleet.raceLinks ?? []).filter(
-            (l) => l.server !== raceServer() || l.raceBoatId !== cloudId,
-          ),
-          { server: raceServer(), raceBoatId: cloudId, localBoatId: id },
-        ],
+        activeId: racePreview ? fleet.activeId : (fleet.activeId ?? id),
+        raceLinks: racePreview
+          ? fleet.raceLinks
+          : [
+              ...(fleet.raceLinks ?? []).filter(
+                (l) => l.server !== raceServer() || l.raceBoatId !== cloudId,
+              ),
+              { server: raceServer(), raceBoatId: cloudId, localBoatId: id },
+            ],
       };
     },
     async () => {
