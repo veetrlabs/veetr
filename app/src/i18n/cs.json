@@ -1054,5 +1054,20 @@
   "Add to My boats": "Přidat do mých lodí",
   "Link to a boat already in My boats, or add it. Linking stays on this device: no boat details, polars or private trips are uploaded, and it does not grant boat management access.": "Propojte s lodí v seznamu Moje lodě, nebo ji přidejte. Propojení zůstává v tomto zařízení: údaje o lodi, poláry ani soukromé plavby se nenahrávají a nezískáte tím přístup ke správě lodi.",
   "Weight (kg)": "Hmotnost (kg)",
-  "Enter a valid boat weight.": "Zadejte platnou hmotnost lodi."
+  "Enter a valid boat weight.": "Zadejte platnou hmotnost lodi.",
+  "Public boat profile": "Veřejný profil lodi",
+  "Publishing shares your boat details and reference polar publicly. Private trips and measured sailing data are not uploaded. Later edits stay on this device until you publish updates.": "Zveřejněním sdílíte údaje o lodi a referenční poláru. Soukromé plavby ani naměřená data se nenahrávají. Další úpravy zůstávají v zařízení, dokud nezveřejníte aktualizaci.",
+  "If this is a race boat, accept its ownership invitation with this account before publishing. Tracking access alone cannot change its public profile.": "Pokud jde o závodní loď, nejprve tímto účtem přijměte pozvánku k její správě. Přístup ke sledování závodu neumožňuje měnit veřejný profil.",
+  "Publish updates": "Zveřejnit aktualizaci",
+  "Publish boat": "Zveřejnit loď",
+  "Boat published.": "Loď byla zveřejněna.",
+  "View public boat": "Zobrazit veřejný profil",
+  "Refresh boats": "Obnovit seznam lodí",
+  "Edits are saved on this device. Use Publish below to share your boat details publicly.": "Úpravy se ukládají v tomto zařízení. Údaje o lodi můžete zveřejnit tlačítkem níže.",
+  "Private boats stay on this device until you publish them. Boats owned by your account also appear here. Race invitations grant tracking access, not ownership.": "Soukromé lodě zůstávají v tomto zařízení, dokud je nezveřejníte. Zde najdete i lodě spravované vaším účtem. Závodní pozvánka umožňuje sledování, nikoli správu lodi.",
+  "Sign in to publish or refresh your boats.": "Pro zveřejnění nebo načtení lodí se přihlaste.",
+  "Verify your email before publishing a boat.": "Před zveřejněním lodi ověřte svůj e-mail.",
+  "This race boat belongs to another account. Accept its ownership invitation before publishing changes.": "Tuto závodní loď spravuje jiný účet. Před zveřejněním změn přijměte pozvánku k její správě.",
+  "Boat changed elsewhere. Refresh your boats before publishing again.": "Loď byla změněna jinde. Před dalším zveřejněním obnovte seznam lodí.",
+  "Boat no longer available. Refresh your boats.": "Loď již není dostupná. Obnovte seznam lodí."
 }

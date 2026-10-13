@@ -195,3 +195,57 @@ export function linkRaceBoat(
     };
   });
 }
+
+export function raceBoatIdForLocal(fleet: Fleet, localBoatId: string) {
+  return fleet.raceLinks?.find(
+    (link) => link.server === raceServer() && link.localBoatId === localBoatId,
+  )?.raceBoatId;
+}
+/** Persist the publication identity before networking, so retries cannot create duplicates. */
+export async function reservePublicBoatId(localBoatId: string) {
+  let id = "";
+  await update((fleet) => {
+    if (!fleet.boats.some((b) => b.id === localBoatId))
+      throw new Error("No boats found");
+    id = raceBoatIdForLocal(fleet, localBoatId) ?? Crypto.randomUUID();
+    if (raceBoatIdForLocal(fleet, localBoatId)) return fleet;
+    return {
+      ...fleet,
+      raceLinks: [
+        ...(fleet.raceLinks ?? []),
+        { server: raceServer(), raceBoatId: id, localBoatId },
+      ],
+    };
+  });
+  return id;
+}
+/** Add an owned cloud boat once, preserving any existing local link, edits and trips. */
+export function importOwnedBoat(
+  boat: Omit<PrivateBoat, "id">,
+  raceBoatId: string,
+) {
+  let undo: (() => Promise<void>) | undefined;
+  return update(
+    async (fleet) => {
+      if (linkedRaceBoat(fleet, raceBoatId)) return fleet;
+      const saved = { ...boat, id: Crypto.randomUUID() };
+      if (saved.catalogPolar) {
+        const previous = await polarRepository.read(saved.id);
+        undo = () => polarRepository.restore(saved.id, previous).then(() => {});
+        await polarRepository.setPolar(saved.id, saved.catalogPolar);
+      }
+      return {
+        ...fleet,
+        boats: [...fleet.boats, saved],
+        activeId: fleet.activeId ?? saved.id,
+        raceLinks: [
+          ...(fleet.raceLinks ?? []),
+          { server: raceServer(), raceBoatId, localBoatId: saved.id },
+        ],
+      };
+    },
+    async () => {
+      await undo?.();
+    },
+  );
+}

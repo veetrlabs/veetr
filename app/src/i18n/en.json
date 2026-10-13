@@ -1044,5 +1044,20 @@
   "Add to My boats": "Add to My boats",
   "Link to a boat already in My boats, or add it. Linking stays on this device: no boat details, polars or private trips are uploaded, and it does not grant boat management access.": "Link to a boat already in My boats, or add it. Linking stays on this device: no boat details, polars or private trips are uploaded, and it does not grant boat management access.",
   "Weight (kg)": "Weight (kg)",
-  "Enter a valid boat weight.": "Enter a valid boat weight."
+  "Enter a valid boat weight.": "Enter a valid boat weight.",
+  "Public boat profile": "Public boat profile",
+  "Publishing shares your boat details and reference polar publicly. Private trips and measured sailing data are not uploaded. Later edits stay on this device until you publish updates.": "Publishing shares your boat details and reference polar publicly. Private trips and measured sailing data are not uploaded. Later edits stay on this device until you publish updates.",
+  "If this is a race boat, accept its ownership invitation with this account before publishing. Tracking access alone cannot change its public profile.": "If this is a race boat, accept its ownership invitation with this account before publishing. Tracking access alone cannot change its public profile.",
+  "Publish updates": "Publish updates",
+  "Publish boat": "Publish boat",
+  "Boat published.": "Boat published.",
+  "View public boat": "View public boat",
+  "Refresh boats": "Refresh boats",
+  "Edits are saved on this device. Use Publish below to share your boat details publicly.": "Edits are saved on this device. Use Publish below to share your boat details publicly.",
+  "Private boats stay on this device until you publish them. Boats owned by your account also appear here. Race invitations grant tracking access, not ownership.": "Private boats stay on this device until you publish them. Boats owned by your account also appear here. Race invitations grant tracking access, not ownership.",
+  "Sign in to publish or refresh your boats.": "Sign in to publish or refresh your boats.",
+  "Verify your email before publishing a boat.": "Verify your email before publishing a boat.",
+  "This race boat belongs to another account. Accept its ownership invitation before publishing changes.": "This race boat belongs to another account. Accept its ownership invitation before publishing changes.",
+  "Boat changed elsewhere. Refresh your boats before publishing again.": "Boat changed elsewhere. Refresh your boats before publishing again.",
+  "Boat no longer available. Refresh your boats.": "Boat no longer available. Refresh your boats."
 }

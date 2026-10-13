@@ -47,6 +47,7 @@ export function AccountPanel({
   ];
   const activeTab = tabs.some(item => item.id === tab) ? tab : "series";
   const selectTab = (id: AccountTab) => {setTab(id); window.location.hash = id;};
+  const [authMode, setAuthMode] = useState<{mode:"signin" | "signup";request:number}>({mode:"signin",request:0});
   const [boatRefresh, setBoatRefresh] = useState(0);
   const [email, setEmail] = useState(""),
     [busy, setBusy] = useState(false),
@@ -105,7 +106,8 @@ export function AccountPanel({
         <InvitationAcceptance
           key={userId}
           userId={userId}
-          onAccepted={() => setBoatRefresh((n) => n + 1)}
+          onAccepted={() => { setBoatRefresh((n) => n + 1); selectTab("boats"); }}
+          onAuthenticate={mode => { setAuthMode(previous => ({mode,request:previous.request+1})); document.getElementById("account-auth")?.scrollIntoView({behavior:"smooth",block:"start"}); }}
         />
       )}
       {!supabase ? (
@@ -115,7 +117,7 @@ export function AccountPanel({
           )}
         </p>
       ) : !userId || recovery ? (
-        <PasswordAuth recovery={recovery} onRecovered={onRecovered} />
+        <div id="account-auth"><PasswordAuth key={authMode.request} initialMode={authMode.mode} recovery={recovery} onRecovered={onRecovered} /></div>
       ) : editUserId ? (
         <UserManagement key={`edit-${userId}-${editUserId}`} editUserId={editUserId} />
       ) : (

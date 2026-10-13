@@ -9,6 +9,7 @@ import { listRemote } from "./api";
 import {
   acceptInvitation,
   getMyBoats,
+  getAccountBoats,
   getTrackingWindow,
   previewInvitation,
   setTrackingWindow,
@@ -134,9 +135,11 @@ export function BoatInvitations({ series, fleet }: {
 export function InvitationAcceptance({
   userId,
   onAccepted,
+  onAuthenticate,
 }: {
   userId: string;
   onAccepted: () => void;
+  onAuthenticate?: (mode: "signin" | "signup") => void;
 }) {
   const [token] = useState(() => {
     const value = new URLSearchParams(window.location.search).get("invite");
@@ -191,6 +194,7 @@ export function InvitationAcceptance({
               series: preview.series,
             }) : t("You have been invited as {role} for {boat}.", {boat: preview.boat, role: t(preview.role === "manager" ? "Skipper" : "Crew")})}
           </p>
+          {preview.boatId && <p><a href={appHref(`?boat=${preview.boatId}`)} target="_blank" rel="noopener noreferrer">{t("View boat details")}</a></p>}
           {preview.status === "pending" || preview.status === "accepted" ? (
             <>
               <p>
@@ -198,6 +202,10 @@ export function InvitationAcceptance({
                   "Sign in or create an account with the invited email address, verify your email, then accept the access shown above.",
                 )}
               </p>
+              {!userId && onAuthenticate && <div className="actions">
+                <button onClick={() => onAuthenticate("signin")}>{t("Sign in")}</button>
+                <button onClick={() => onAuthenticate("signup")}>{t("Create account")}</button>
+              </div>}
               {userId && (
                 <button
                   disabled={busy}
@@ -239,13 +247,13 @@ export function InvitationAcceptance({
   );
 }
 export function MyBoats({ refreshKey = 0 }: { refreshKey?: number }) {
-  const [boats, setBoats] = useState<MyBoat[]>([]),
+  const [boats, setBoats] = useState<Pick<MyBoat, "boatId" | "boat">[]>([]),
     [error, setError] = useState(""),
     [loading, setLoading] = useState(true);
   useEffect(() => {
     let live = true;
     const load = () =>
-      getMyBoats()
+      getAccountBoats()
         .then((b) => {
           if (live) {
             setBoats(b);

@@ -1,3 +1,4 @@
+jest.mock("../BoatPublishing", () => ({__esModule:true,default:()=>null}));
 jest.mock("@react-native-async-storage/async-storage", () => require("@react-native-async-storage/async-storage/jest/async-storage-mock"));
 jest.mock("../../tracking/client", () => ({trackingRpc:jest.fn()}));
 jest.mock("../BoatModelLookup", () => ({__esModule:true,default:()=>null}));

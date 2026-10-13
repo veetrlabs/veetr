@@ -1,4 +1,5 @@
 export const cs: Record<string, string> = {
+  "View boat details": "Zobrazit údaje o lodi",
   "Changes save automatically.": "Změny se ukládají automaticky.",
   "Manufacturer": "Výrobce",
   "Model": "Model",

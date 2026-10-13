@@ -1,11 +1,12 @@
 import { accountCallbackPath, siteLanguage } from "../../i18n/site";
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from './api';
 import { integrated } from './routes';
 import { t } from './i18n';
 
-export function PasswordAuth({ recovery = false, onRecovered }: { recovery?: boolean; onRecovered: () => void }) {
-  const [mode, setMode] = useState<'signin' | 'signup' | 'reset'>('signin');
+export function PasswordAuth({ recovery = false, onRecovered, initialMode = "signin" }: { initialMode?: "signin" | "signup"; recovery?: boolean; onRecovered: () => void }) {
+  const [mode, setMode] = useState<'signin' | 'signup' | 'reset'>(initialMode);
+  useEffect(() => { setMode(initialMode); }, [initialMode]);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const title = recovery ? 'Set new password' : mode === 'signup' ? 'Create account' : mode === 'reset' ? 'Reset password' : 'Sign in';

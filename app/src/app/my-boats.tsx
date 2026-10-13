@@ -1,3 +1,5 @@
+import BoatPublishing from "../boats/BoatPublishing";
+import { refreshOwnedBoats } from "../boats/cloudBoats";
 import RaceBoatLink from "../boats/RaceBoatLink";
 import * as Crypto from "expo-crypto";
 import BoatModelLookup from "../boats/BoatModelLookup";
@@ -37,6 +39,7 @@ export default function MyBoats() {
         setExternalBoat(boat ? undefined : { id: params.boatId, name: params.boatName || t('Boat') });
       }
     } }).catch(e => { if (alive) setError(e.message); });
+    void refreshOwnedBoats().then(value => { if (alive) setFleet(value); }).catch(e => { if (alive) setError(e.message); });
     void (async () => {
       const saved = await savedSeriesPhone();
       if (alive) setInvited(saved);
@@ -93,7 +96,7 @@ export default function MyBoats() {
       }} />
       <BoatPolarDetails onInteractionChange={setPolarInteracting} key={externalBoat.id} boatId={externalBoat.id} />
     </> : edit ? <>
-      <Text style={{ color: c.textMuted }}>{t("Private · saved only on this device. Nothing is published.")}</Text>
+      <Text style={{ color: c.textMuted }}>{t("Edits are saved on this device. Use Publish below to share your boat details publicly.")}</Text>
       <BoatModelLookup label={edit.catalogLabel} selectedId={edit.catalogId} selectedRevision={edit.catalogRevision} disabled={busy} onSelect={async entry=> {
         setDimensionErrors({});
         const next=entry ? applyCatalogBoat(edit,entry,Crypto.randomUUID()) : {...edit,catalogId:undefined,catalogRevision:undefined,catalogLabel:undefined,catalogPolar:undefined};
@@ -134,15 +137,17 @@ export default function MyBoats() {
           ? <Text style={{ color: c.textMuted }}>{t("Active for private trips")}</Text>
           : button(t("Use for private trips"), () => void useBoat(edit.id))}
         <BoatPolarDetails onInteractionChange={setPolarInteracting} key={`${edit.id}:${edit.catalogPolar?.id??""}`} boatId={edit.id} />
+        <BoatPublishing key={edit.id} boatId={edit.id} disabled={busy || Object.values(dimensionErrors).some(Boolean)} onRefresh={() => {void refreshOwnedBoats().then(setFleet).catch(e=>setError(e.message));}} />
         {button(t("Delete boat"), () => confirmDelete(edit))}
       </>}
     </> : <>
-      <Text style={{ color: c.textMuted }}>{t("Private boats stay on this device. Series invitations connect you to a race boat without granting ownership.")}</Text>
+      <Text style={{ color: c.textMuted }}>{t("Private boats stay on this device until you publish them. Boats owned by your account also appear here. Race invitations grant tracking access, not ownership.")}</Text>
       {fleet.boats.map(boat => <Pressable key={boat.id} accessibilityRole="button" disabled={busy} onPress={() => {setDimensionErrors({});setEdit(boat);}} style={style}>
         <Text style={{ color: c.text }}>{boat.name} ›</Text>
         {fleet.activeId === boat.id && <Text style={{ color: c.textMuted }}>{t("Active for private trips")}</Text>}
       </Pressable>)}
       {button(t("Create private boat"), () => {setDimensionErrors({});setEdit({ id: "", name: "", className: "", sailNumber: "" });})}
+      {button(t("Refresh boats"), () => {setBusy(true);setError("");void refreshOwnedBoats().then(setFleet).catch(e=>setError(e.message)).finally(()=>setBusy(false));})}
       {button(t('Restore polars from my account'), () => {
         setBusy(true); setError('');
         void restorePolars().then(setFleet).catch(e => setError(e.message)).finally(() => setBusy(false));

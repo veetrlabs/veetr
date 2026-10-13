@@ -473,6 +473,8 @@ export type Database = {
       accept_boat_invitation: { Args: { invite_token: string }; Returns: undefined }
       prepare_boat_invitation_email: { Args: { invitation_id: string }; Returns: Json }
       mark_boat_invitation_sent: { Args: { invitation_id: string }; Returns: undefined }
+      my_owned_boats: { Args: Record<PropertyKey, never>; Returns: Json };
+      publish_private_boat: { Args: { bid: string; profile: Json; expected?: string }; Returns: Json };
       my_boats: { Args: Record<PropertyKey, never>; Returns: Json }
       tracking_window: { Args: { sid: string }; Returns: Json }
       set_tracking_window: { Args: { sid: string; enabled: boolean }; Returns: undefined }
