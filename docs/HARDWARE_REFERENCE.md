@@ -6,6 +6,8 @@ editUrl: https://github.com/veetrlabs/veetr/edit/main/docs/HARDWARE_REFERENCE.md
 
 This page collects the lower-level values used by the current prototype. Treat them as implementation details and test targets, not certified product specifications.
 
+For the Waveshare target, use [current RLCD wiring](RLCD_TO_SENSORS.md) and the [RLCD v2 hardware plan and BOM](RLCD_V2_HARDWARE.md). The table below describes the original ESP32 prototype; its GPIOs must not be copied to the ESP32-S3.
+
 ## Controller configuration
 
 | Item | Current prototype |

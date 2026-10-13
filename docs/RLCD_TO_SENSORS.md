@@ -2,6 +2,8 @@
 
 This document maps each external sensor board to the corresponding pins on the **Waveshare ESP32-S3-RLCD-4.2** devboard. The canonical source of truth for firmware pin definitions is [`firmware/include/board/pins_esp32s3_rlcd.h`](../firmware/include/board/pins_esp32s3_rlcd.h).
 
+> This is the current firmware wiring, not the proposed v2 carrier pinout. See [RLCD v2 hardware plan](RLCD_V2_HARDWARE.md) for verified SD wiring, NMEA2000 allocation, EU sourcing, BOM, and validation gates. No active pin definitions were changed by that plan.
+
 ## Quick Reference
 
 All sensor signals use GPIOs accessible on the **2×8 expansion header (P1)** — no soldering to module edge castellations required.
@@ -19,7 +21,7 @@ All sensor signals use GPIOs accessible on the **2×8 expansion header (P1)** �
 | **Discovery LED** | GPIO output | GPIO2 | Pin 9 | GPIO2 |
 | **Anchor Light** | Not assigned | — | — | GPIO25 |
 
-> **Legend:** Pins shown with grey background were **available on the DevKitC but NOT on the RLCD 2×8 header** and have been rerouted. Pins shown with white background are unchanged.
+> Header numbering is from the official Waveshare schematic. Verify connector orientation on the actual board before wiring.
 
 ---
 
@@ -47,11 +49,11 @@ SCL     →  GPIO14
 
 ## 2. RS485 Wind Sensor (UART2)
 
-An RS485-to-TTL converter (MAX485/SP3485) sits between the ESP32 UART and the wind sensor differential pair.
+A converter with **3.3 V-compatible logic** (verify the exact board; a bare 5 V MAX485 receiver output must not drive the ESP32 directly) sits between the ESP32 UART and the wind sensor differential pair.
 
 ```
 RS485 Module  →  RLCD-4.2 header P1
-VCC           →  Pin 1 (3.3V) or Pin 2 (VBUS 5V)
+VCC           →  Module-rated supply; P1-2 VBUS is USB power, not battery-backed 5V
 GND           →  Pin 3 or 4 (GND)
 DI (TX)       →  Pin 13 — GPIO17      (ESP32 TX → RS485 input)
 RO (RX)       →  Pin  7 — GPIO1       (RS485 output → ESP32 RX)
@@ -67,7 +69,7 @@ DE/RE         →  Pin 11 — GPIO3       (ESP32 GPIO controls TX/RX direction)
 - Wind sensor: ultrasonic, RS485 Modbus RTU, 9600 baud, 8E1 (IEEE754 float format).
 - Firmware uses `HardwareSerial rs485(RS485_UART)` with UART number 2.
 - DE/RE is driven LOW initially (receive mode); `preTransmission` / `postTransmission` callbacks toggle it HIGH during Modbus requests.
-- GPIO3 is the SD card chip-select. The SD card slot is unused in this design, so there is no conflict.
+- GPIO3 is **not** SD chip-select; it is a JTAG-selection strapping pin exposed on P1-11. Check reset-time loading from the RS485 module. SD uses CLK=38, CMD=21, D0=39 in one-bit SDMMC mode. GPIO17 has an optional connection to SD DAT3/CS through R7, marked NC (unpopulated). Verify the actual board revision and absence of R7 before simultaneous wind/SD testing; do not move working RS485 pins on the basis of the old SD claim.
 
 ---
 
@@ -75,7 +77,7 @@ DE/RE         →  Pin 11 — GPIO3       (ESP32 GPIO controls TX/RX direction)
 
 ```
 GPS Module  →  RLCD-4.2 header P1
-VCC         →  Pin 1 (3.3V) or Pin 2 (VBUS 5V)
+VCC         →  Module-rated supply; P1-2 VBUS is not battery-backed 5V
 GND         →  Pin 3 or 4 (GND)
 TX          →  Pin 12 — GPIO44      (GPS TX → ESP32 RX)
 RX          →  Pin 10 — GPIO43      (ESP32 TX → GPS RX)
@@ -140,7 +142,7 @@ The onboard **KEY** button (GPIO18) replaces the old BOOT button for discovery m
 - The I2C bus (GPIO13/GPIO14) is shared with SHTC3, PCF85063, and the audio codecs.
 - The BOOT button (GPIO0) and KEY button (GPIO18) are on P1-5 and P1-15 respectively.
 - GPIO19/GPIO20 (P1-6/P1-8) are the USB Serial/JTAG pins; both remain reserved for runtime USB.
-- GPIO3 (P1-11) is the SD card CS — unused in this design, safe for RS485 DE/RE.
+- SD reserves GPIO38 (CLK), GPIO21 (CMD), GPIO39 (D0). GPIO17 connects to DAT3/CS only if R7 is fitted. GPIO3 is unrelated to SD; its strapping behavior still matters.
 
 ## Onboard I2C Bus Devices
 

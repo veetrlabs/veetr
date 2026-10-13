@@ -13,7 +13,7 @@
 //   Pin  5: GPIO0 (BOOT)    Pin  6: GPIO19 (USB D-)
 //   Pin  7: GPIO1           Pin  8: GPIO20 (USB D+)
 //   Pin  9: GPIO2           Pin 10: GPIO43 (U0TXD)
-//   Pin 11: GPIO3 (SD CS)   Pin 12: GPIO44 (U0RXD)
+//   Pin 11: GPIO3 (strap)   Pin 12: GPIO44 (U0RXD)
 //   Pin 13: GPIO17          Pin 14: GPIO13 (I2C SDA)
 //   Pin 15: GPIO18 (KEY)    Pin 16: GPIO14 (I2C SCL)
 //
@@ -23,7 +23,9 @@
 // KEY button:       GPIO18     (P1-15)
 // BOOT button:      GPIO0      (P1-5)
 // USB Serial/JTAG:  GPIO19/20  (P1-6, P1-8)
-// SD card CS:       GPIO3      (P1-11)
+// SD (1-bit SDMMC): CLK=38, CMD=21, D0=39 (not on P1)
+// SD DAT3/CS:       optional GPIO17 via R7, marked NC in schematic
+// GPIO3:           P1-11, JTAG-selection strapping pin; not SD CS
 // Display:          GPIO5,6,11,12,40,41
 // Audio/I2S:        GPIO8,9,10,16,45,46
 // Battery ADC:      GPIO4
@@ -34,7 +36,10 @@
 
 // RS485 Wind Sensor (UART2) - all signals on expansion header
 // RX=GPIO1 (P1-7), TX=GPIO17 (P1-13)
-// DE/RE moved from GPIO42 (not on header) to GPIO3 (P1-11, SD CS — SD card unused)
+// DE/RE uses GPIO3 (P1-11); check attached circuitry preserves reset strapping.
+// Keep working wiring unchanged. Verify R7 is absent before concurrent SD use.
+// Sources and proposed v2 allocation: docs/RLCD_V2_HARDWARE.md.
+// CAN/GNSS-I2C allocation remains documentation-only until hardware validation.
 #define RS485_DE 3
 #define RS485_RX 1
 #define RS485_TX 17

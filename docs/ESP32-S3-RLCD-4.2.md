@@ -17,14 +17,16 @@ The platform is an AIoT development board centered on the **ESP32-S3-WROOM-1-N16
 
 ---
 
-## 2. Complete GPIO Pin Mapping
-Firmware implementations must strictly adhere to the following hardware assignments to avoid bus contention or component failure:
+## 2. Onboard GPIO Pin Mapping
+Verified against the [official schematic](https://files.waveshare.com/wiki/ESP32-S3-RLCD-4.2/ESP32-S3-RLCD-4.2-schematic.pdf) and [official SD example source](https://github.com/waveshareteam/ESP32-S3-RLCD-4.2/blob/eb1f63427d735a22b9c30e22fa63ebddae1834d3/02_Example/Arduino/06_SD_Card/sdcard_bsp.h) on 2026-10-13. See the [v2 hardware plan](RLCD_V2_HARDWARE.md) for the full P1 header, current/proposed external wiring, and physical verification requirements.
 
 | GPIO | Function | Description |
 | :--- | :--- | :--- |
 | **GPIO0** | **BOOT Button** | Active Low; used for Flash mode or custom input. |
+| **GPIO3** | **Expansion / strap** | P1-11; JTAG-selection strap, not SD CS. Current Veetr RS485 DE/RE. |
 | **GPIO4** | **Battery Sensing** | Analog Input (ADC1_CH3) with a 3x voltage divider. |
 | **GPIO5** | **RLCD DC** | Data/Command selection for ST7305 controller. |
+| **GPIO6** | **RLCD TE** | Onboard display tearing-effect signal; reserve even if unused by firmware. |
 | **GPIO8** | **I2S DOUT** | Digital Audio Out to ES8311 DAC (Speaker). |
 | **GPIO9** | **I2S BCLK** | Shared Bit Clock for Audio DAC and ADC. |
 | **GPIO10** | **I2S DIN** | Digital Audio In from ES7210 ADC (Microphones). |
@@ -32,8 +34,14 @@ Firmware implementations must strictly adhere to the following hardware assignme
 | **GPIO12** | **SPI MOSI** | Serial Data Out to the RLCD. |
 | **GPIO13** | **I2C SDA** | Shared I2C Data bus for sensors and codecs. |
 | **GPIO14** | **I2C SCL** | Shared I2C Clock bus. |
+| **GPIO15** | **RTC INT** | Onboard RTC interrupt net. |
 | **GPIO16** | **I2S MCLK** | Master Clock reference for audio codecs. |
+| **GPIO17** | **Optional SD DAT3/CS** | Via R7 marked NC; P1-13 remains current RS485 TX. Inspect board population. |
 | **GPIO18** | **KEY Button** | Customizable User Button (Active Low). |
+| **GPIO19/20** | **USB D-/D+** | Keep reserved for runtime USB. |
+| **GPIO21** | **SD CMD** | Schematic MOSI net, SD1 pin 3. |
+| **GPIO38** | **SD CLK** | Schematic SCK net, SD1 pin 5. |
+| **GPIO39** | **SD D0** | Schematic MISO net, SD1 pin 7. |
 | **GPIO40** | **RLCD CS** | SPI Chip Select (Active Low). |
 | **GPIO41** | **RLCD RST** | Display Hardware Reset (Active Low). |
 | **GPIO45** | **I2S LRCLK** | Word Select / Left-Right Clock for Audio. |
@@ -49,12 +57,16 @@ The display is driven by the **Sitronix ST7305** controller (or compatible ST730
 *   **PSRAM Requirement:** **Octal PSRAM must be enabled** (40MHz or 80MHz) to store the frame buffer and lookup tables (LUTs) used for rendering.
 *   **Library Support:** Use `u8g2` (constructor `U8G2_ST7305_300X400_F_4W_HW_SPI`) or the `ST7305_MonoTFT_Library`.
 
-### 3.2 Audio Subsystem
+### 3.2 SD card
+
+The vendor `CustomSDPort` constructor defaults to `clk=38, cmd=21, d0=39, width=1`; its implementation assigns these to the SDMMC slot. This is **one-bit SDMMC**, not SPI with a software CS pin. DAT1/DAT2 have no MCU connection; DAT3 is pulled up and optionally linked to GPIO17 through R7. The Arduino `06_SD_Card` sketch writes and reads a test file. This establishes the documented design, not successful operation of the Veetr assembly. Do not populate R7 or change existing RS485 wiring for this update.
+
+### 3.3 Audio Subsystem
 *   **Playback (ES8311):** Driven via I2S. Ensure **GPIO46** is driven **High** to enable the Class-D amplifier.
 *   **Capture (ES7210):** Supports a dual-microphone array with hardware echo cancellation.
 *   **Sample Format:** Standardized for AI interaction at **16-bit, 16 kHz mono PCM**.
 
-### 3.3 Sensors and Monitoring
+### 3.4 Sensors and Monitoring
 *   **SHTC3 (I2C 0x70):** Provides relative humidity and temperature.
 *   **PCF85063 (I2C):** Real-time clock for persistent timekeeping.
 *   **Battery Voltage:** Read from **GPIO4**. Calculate true voltage using: `V_bat = V_adc_pin * 3.0`.
