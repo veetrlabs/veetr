@@ -448,6 +448,8 @@ export type Database = {
     }
     Functions: {
       admin_user: { Args: { target_user: string }; Returns: Json };
+      boat_specifications: { Args: { bid: string }; Returns: Json };
+      save_boat_specifications: { Args: { bid: string; details: Json; expected: Json }; Returns: Json };
       save_boat_profile: { Args: { boat_id: string; boat_name: string; boat_class: string; boat_length: number | null; boat_weight: number | null; boat_color: string | null; expected?: Json }; Returns: Json };
       boat_responsibility: { Args: {bid: string}; Returns: Json };
       request_boat_handover: { Args: {bid: string; recipient: string}; Returns: Json };

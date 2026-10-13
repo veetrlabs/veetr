@@ -1,3 +1,4 @@
+import TripEngineUse from "../../tracking/TripEngineUse";
 import BackButton from '../../components/BackButton';
 import { formatNumber, locale, translateMessage, t, useLanguageRefresh } from '../../i18n';
 import { errorOccurredAt } from "../../tracking/errorHistory";
@@ -223,6 +224,7 @@ export default function TripDetail() {
               <Text style={{ color: c.text }}>{t("Replay race · show competitors")}</Text>
             </Pressable>}
 
+            <TripEngineUse session={trip.session} onSaved={session=>setTrip(previous=>previous ? {...previous,session} : previous)} />
             <TripChart
               points={trip.points}
               index={index}

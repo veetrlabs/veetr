@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { syncPolars, syncPendingPolars, restorePolars } from "../sync";
 import { polarRepository } from "../repository";
-import { privateFleet, savePrivateBoat } from "../../boats/privateBoats";
+import { privateFleet, linkRaceBoat, savePrivateBoat } from "../../boats/privateBoats";
 let mockUser = "first",
   mockOffline = false;
 const mockRows: any[] = [];
@@ -96,4 +96,23 @@ test("restores the boat identity and cached polar without overwriting a local bo
   });
   await restorePolars();
   expect((await privateFleet()).boats[0].name).toBe("Local name");
+});
+
+test("local race linking does not upload anything or expose the link through account polar backup", async () => {
+  await savePrivateBoat({id:"local",name:"Private boat",className:"",sailNumber:""});
+  await polarRepository.add("local",polar);
+  await linkRaceBoat({boatId:"race-boat",boatName:"Race boat"},"local");
+  expect(mockRows).toHaveLength(0);
+  await syncPendingPolars();
+  expect(mockRows).toHaveLength(0);
+  await syncPolars("local");
+  expect(mockRows).toHaveLength(1);
+  expect(mockRows[0].boat_id).toBe("local");
+  expect(JSON.stringify(mockRows[0])).not.toContain("race-boat");
+});
+
+test("account backup restores boat weight", async () => {
+ mockRows.push({user_id:"first",boat_id:"weight",boat_document:{name:"Boat",weightKg:3456},document:polar});
+ await restorePolars();
+ expect((await privateFleet()).boats.find(b=>b.id==="weight")?.weightKg).toBe(3456);
 });

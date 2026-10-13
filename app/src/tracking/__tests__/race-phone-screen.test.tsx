@@ -1,3 +1,4 @@
+jest.mock("../../boats/RaceBoatLink", () => ({ __esModule: true, default: ({boatId}: {boatId:string}) => require("react").createElement("Text", null, `Local boat link: ${boatId}`) }));
 import React from "react";
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
 import { Alert } from "react-native";

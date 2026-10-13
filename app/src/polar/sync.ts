@@ -130,6 +130,9 @@ export function restorePolars() {
             : {}),
           ...(typeof b?.model === "string" ? { model: b.model } : {}),
           ...(typeof b?.variant === "string" ? { variant: b.variant } : {}),
+          ...Object.fromEntries(([['weightKg',999999999],['waterlineLengthM',200],['draftM',30],['airDraftM',200],['beamM',100]] as const)
+            .filter(([field,max])=>typeof b?.[field]==='number' && Number.isFinite(b[field]) && b[field]>0 && b[field]<=max)
+            .map(([field])=>[field,b[field]])),
           ...(typeof b?.lengthM === "number" &&
           b.lengthM > 0 &&
           b.lengthM <= 200

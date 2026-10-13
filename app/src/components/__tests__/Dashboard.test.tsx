@@ -1,0 +1,21 @@
+import React from 'react';
+import {render} from '@testing-library/react-native';
+import Dashboard from '../Dashboard';
+let mockResult: {performancePercent:number}|null={performancePercent:95};
+jest.mock('react-native',()=>({Text:'Text',View:'View',StyleSheet:{create:(s:unknown)=>s,flatten:(s:unknown)=>s}}));
+jest.mock('react-native-safe-area-context',()=>({useSafeAreaInsets:()=>({top:0,left:0,right:0,bottom:0})}));
+jest.mock('../../i18n',()=>({t:(s:string)=>s,formatNumber:(n:number)=>String(n),useLanguageRefresh:()=>{}}));
+jest.mock('../../context/ThemeContext',()=>({useTheme:()=>({theme:'light'})}));
+jest.mock('../../polar/usePerformance',()=>({usePerformance:()=>({result:mockResult})}));
+jest.mock('../../navigation/NavigationContext',()=>({useNavigation:()=>({deviceFresh:true,fix:{sogKnots:5,course:20},phoneStartLine:{line:{port:null,starboard:null}},phoneHeading:{sample:null}})}));
+jest.mock('../../context/BLEContext',()=>({useBLE:()=>({state:{isConnected:true,sailingData:{recordingInstruments:{heading:20},windSpeed:8,trueWindSpeed:8,trueWindAngle:60}}})}));
+jest.mock('../../navigation/phoneStartLine',()=>({shouldUseDeviceStartLine:()=>true}));
+jest.mock('../../navigation/phoneHeading',()=>({compassBearings:()=>({reference:'true',heading:20,course:20})}));
+jest.mock('../cards/WindAngleCard',()=>({__esModule:true,default:()=>null}));
+test('live performance is a metric immediately beside SOG and is absent without a valid result',()=>{
+ const screen=render(<Dashboard/>);
+ const metrics=screen.UNSAFE_getAllByType('View' as any).filter(v=>v.props.accessibilityLabel).map(v=>v.props.accessibilityLabel);
+ expect(metrics[metrics.indexOf('SOG 5 kn')+1]).toBe('Performance 95 %');
+ mockResult=null;screen.rerender(<Dashboard/>);
+ expect(screen.queryByText('Performance')).toBeNull();
+});

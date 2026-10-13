@@ -2,8 +2,6 @@ import { formatNumber, t, useLanguageRefresh } from '../i18n';
 import { shouldUseDeviceStartLine } from '../navigation/phoneStartLine'
 import { phoneStartLineDistance, startLineDistanceAtPosition } from '../navigation/startLineDistance'
 import { useState } from 'react'
-import { router } from 'expo-router'
-import { Pressable } from 'react-native'
 import { usePerformance } from '../polar/usePerformance'
 import { View, Text, StyleSheet } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -54,15 +52,14 @@ export default function Dashboard() {
     { label: 'TWS', value: number(d.trueWindSpeed, 1), unit: 'kn' },
     { label: 'TWA', value: number(d.trueWindAngle), unit: '°' },
     { label: 'SOG', value: number(nav.fix?.sogKnots, 1), unit: 'kn' },
+    ...(performance.result ? [{ label: t('Performance'), value: number(performance.result.performancePercent), unit: '%' }] : []),
     { label: headingReading.uncertain ? t('HDG · uncertain') : 'HDG', value: `${headingReading.uncertain ? '~' : ''}${number(deviceHeading)}`, unit: '°' },
     { label: t('Line'), value: localLine ? number(phoneDistance) : d.hasStartLine ? number(d.distanceToLine) : '—', unit: 'm' },
     { label: t('HEEL'), value: number(d.tilt), unit: '°' },
   ]
-  const vaneFont = Math.max(12, Math.min(panelHeight / 4 * 0.68, panelWidth / 2 * 0.29, 120))
+  const vaneRows = Math.ceil(vaneMetrics.length / 2)
+  const vaneFont = Math.max(12, Math.min(panelHeight / vaneRows * 0.68, panelWidth / 2 * 0.29, 120))
   return <View style={[styles.screen, { paddingTop: insets.top + 4, paddingLeft: Math.max(12, insets.left), paddingRight: Math.max(12, insets.right) }]}>
-    {performance.polar && <Pressable accessibilityRole="link" onPress={() => router.push({ pathname: "/my-boats", params: { boatId: performance.boatId, boatName: nav.session?.boatName ?? "" } })} style={{ padding: 8 }}>
-      <Text style={{ color: colors.text, textAlign: 'center', fontWeight: '700' }}>{t('Performance')} {performance.result ? `${number(performance.result.performancePercent)}% · ${t('Target')} ${number(performance.result.targetSpeed, 1)} kn` : '—'} ›</Text>
-    </Pressable>}
     <View style={styles.instrumentArea} onLayout={e => setSpace(e.nativeEvent.layout)}>
       <View style={[styles.layout, { flexDirection: landscape ? 'row' : 'column' }]}>
         <View style={{ width: compassSize, height: compassSize, alignSelf: 'center' }}>
@@ -78,9 +75,9 @@ export default function Dashboard() {
         </View>
         <View style={styles.numbers}>
           {device ? <View style={styles.metrics}>
-            {vaneMetrics.map(metric => <View key={metric.label} accessibilityLabel={`${metric.label} ${metric.value} ${metric.value === '—' ? '' : metric.unit}`} style={styles.vaneMetric}>
+            {vaneMetrics.map(metric => <View key={metric.label} accessibilityLabel={`${metric.label} ${metric.value} ${metric.value === '—' ? '' : metric.unit}`} style={[styles.vaneMetric, {height: `${100 / vaneRows}%`}]} >
               <View style={styles.verticalLabel}>
-                <Text numberOfLines={1} style={{ width: 64, textAlign: 'center', transform: [{ rotate: '-90deg' }], color: colors.textSecondary, fontSize: Math.max(10, Math.min(15, vaneFont * 0.23)), fontWeight: '800' }}>{metric.label}</Text>
+                <Text numberOfLines={1} adjustsFontSizeToFit style={{ width: 64, textAlign: 'center', transform: [{ rotate: '-90deg' }], color: colors.textSecondary, fontSize: Math.max(10, Math.min(15, vaneFont * 0.23)), fontWeight: '800' }}>{metric.label}</Text>
               </View>
               <View style={styles.vaneValue}>
                 <Text numberOfLines={1} adjustsFontSizeToFit style={{ flexShrink: 1, color: colors.text, fontSize: vaneFont, lineHeight: vaneFont * 1.12, fontWeight: '900', fontVariant: ['tabular-nums'] }}>{metric.value}</Text>

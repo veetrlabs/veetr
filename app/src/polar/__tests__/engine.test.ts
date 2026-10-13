@@ -191,3 +191,20 @@ test("keeps the actual tack and excludes gradual sustained turns from learning",
   }));
   expect(buildLearnedPoints(turning, "boat").points).toEqual([]);
 });
+
+
+test("a boat keeps one reference and a measured curve; replacement never touches another boat", async () => {
+  const values = new Map<string,string>();
+  const repo = new PolarRepository({getItem: async k=>values.get(k)??null,setItem:async(k,v)=>{values.set(k,v);}});
+  await repo.setPolar("a",polar);
+  await repo.setPolar("b",{...polar,id:"other"});
+  await repo.setPolar("a",{...polar,id:"measured",source:"learned"});
+  expect((await repo.read("a")).selectedId).toBe(polar.id);
+  await repo.setPolar("a",{...polar,id:"replacement"});
+  const current=await repo.read("a");
+  expect(current.polars.map(p=>p.id)).toEqual(["replacement","measured"]);
+  expect(current.selectedId).toBe("replacement");
+  expect((await repo.read("b")).selectedId).toBe("other");
+  await repo.setPolar("learned-only",{...polar,id:"measured",source:"learned"});
+  expect((await repo.read("learned-only")).selectedId).toBe("measured");
+});

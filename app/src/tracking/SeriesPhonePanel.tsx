@@ -1,3 +1,4 @@
+import RaceBoatLink from "../boats/RaceBoatLink";
 import BackButton from '../components/BackButton';
 import { useState } from "react";
 import { Alert, Pressable, ScrollView, Text, TextInput } from "react-native";
@@ -88,6 +89,7 @@ export default function SeriesPhonePanel({
             "One invitation for this series. Your phone stays paired between races. Choose a race below when you are ready.",
           )}
         </Text>
+        {phone.valid && <RaceBoatLink key={phone.boatId} boatId={phone.boatId} boatName={phone.boatName} />}
         {!phone.valid ? (
           <Text style={{ color: c.text }}>
             {t(

@@ -22,3 +22,19 @@ export function polarCurve(polar: Polar, tws: number, scale: number) {
   }
   return path;
 }
+
+/** Stable colors use the full wind range, never the currently visible subset. */
+export function polarWindColor(wind: number, winds: number[]) {
+  const min = Math.min(...winds),
+    max = Math.max(...winds);
+  const fraction =
+    max > min ? Math.max(0, Math.min(1, (wind - min) / (max - min))) : 0;
+  return `hsl(${Math.round(240 * (1 - fraction))}, 80%, 48%)`;
+}
+export function polarWindSpeeds(...polars: (Polar | undefined)[]) {
+  return [
+    ...new Set(
+      polars.flatMap((p) => p?.points.map((point) => point.tws) ?? []),
+    ),
+  ].sort((a, b) => a - b);
+}

@@ -17,7 +17,6 @@ export function tripObservations(
     heel: p.instruments?.heel,
     gpsValid: p.sogMps !== null,
     windValid: p.instruments?.tws != null && p.instruments?.twa != null,
-    // Only explicitly selected sailing-only trips are passed to this adapter.
-    engine: false,
+    engine: session.engineUse === "engine-used" ? true : session.engineUse === "sailing-only" ? false : undefined,
   }));
 }

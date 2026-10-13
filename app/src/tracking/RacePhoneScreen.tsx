@@ -1,3 +1,4 @@
+import RaceBoatLink from "../boats/RaceBoatLink";
 import BackButton from '../components/BackButton';
 import { locale, translateMessage, t, useLanguageRefresh } from '../i18n';
 import { useEffect, useState } from "react";
@@ -159,6 +160,7 @@ export default function RacePhoneScreen({ token, raceLinkId, eventId }: { token?
             <Text style={{ color: c.textSecondary }}>
               {t("Expected start:")} {new Date(phone.scheduledStart).toLocaleString(locale())}
             </Text>
+            {phone.valid && <RaceBoatLink key={phone.boatId} boatId={phone.boatId} boatName={phone.boatName} />}
             {phone.course && <View style={{ height: 260, borderRadius: 12, overflow: "hidden" }}>
               <TripMap points={[]} course={phone.course} />
             </View>}

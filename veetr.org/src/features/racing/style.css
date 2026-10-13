@@ -1204,3 +1204,12 @@ section.entity-details { padding: 0; border: 0; border-radius: 0; background: tr
   width: auto;
   max-width: 100%;
 }
+
+.boat-specifications dl { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .5rem 1rem; }
+.boat-specifications dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
+.boat-specifications .edit-row label { max-width: none; min-width: 0; }
+.boat-specifications fieldset { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(12rem, 100%), 1fr)); gap: .75rem 1rem; }
+.boat-specifications textarea { width: 100%; box-sizing: border-box; }
+
+.boat-core-editor fieldset { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(12rem, 100%), 1fr)); gap: .75rem 1rem; }
+.boat-core-editor label { max-width: none; min-width: 0; }
