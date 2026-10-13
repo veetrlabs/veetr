@@ -5,7 +5,6 @@ import * as Crypto from "expo-crypto";
 import BoatModelLookup from "../boats/BoatModelLookup";
 import { applyCatalogBoat } from "../boats/catalog";
 import BoatPolarDetails from '../polar/BoatPolarDetails';
-import { restorePolars } from '../polar/sync';
 import BackButton from '../components/BackButton';
 import { useCallback, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
@@ -96,7 +95,7 @@ export default function MyBoats() {
       }} />
       <BoatPolarDetails onInteractionChange={setPolarInteracting} key={externalBoat.id} boatId={externalBoat.id} />
     </> : edit ? <>
-      <Text style={{ color: c.textMuted }}>{t("Edits are saved on this device. Use Publish below to share your boat details publicly.")}</Text>
+      <Text style={{ color: c.textMuted }}>{t("Edits are saved on this device. Upload below to save the boat to your account or publish it.")}</Text>
       <BoatModelLookup label={edit.catalogLabel} selectedId={edit.catalogId} selectedRevision={edit.catalogRevision} disabled={busy} onSelect={async entry=> {
         setDimensionErrors({});
         const next=entry ? applyCatalogBoat(edit,entry,Crypto.randomUUID()) : {...edit,catalogId:undefined,catalogRevision:undefined,catalogLabel:undefined,catalogPolar:undefined};
@@ -141,17 +140,13 @@ export default function MyBoats() {
         {button(t("Delete boat"), () => confirmDelete(edit))}
       </>}
     </> : <>
-      <Text style={{ color: c.textMuted }}>{t("Private boats stay on this device until you publish them. Boats owned by your account also appear here. Race invitations grant tracking access, not ownership.")}</Text>
+      <Text style={{ color: c.textMuted }}>{t("Upload a boat to use it on your other devices. New boats stay private unless you choose a public upload. Race invitations grant tracking access, not ownership.")}</Text>
       {fleet.boats.map(boat => <Pressable key={boat.id} accessibilityRole="button" disabled={busy} onPress={() => {setDimensionErrors({});setEdit(boat);}} style={style}>
         <Text style={{ color: c.text }}>{boat.name} ›</Text>
         {fleet.activeId === boat.id && <Text style={{ color: c.textMuted }}>{t("Active for private trips")}</Text>}
       </Pressable>)}
       {button(t("Create private boat"), () => {setDimensionErrors({});setEdit({ id: "", name: "", className: "", sailNumber: "" });})}
       {button(t("Refresh boats"), () => {setBusy(true);setError("");void refreshOwnedBoats().then(setFleet).catch(e=>setError(e.message)).finally(()=>setBusy(false));})}
-      {button(t('Restore polars from my account'), () => {
-        setBusy(true); setError('');
-        void restorePolars().then(setFleet).catch(e => setError(e.message)).finally(() => setBusy(false));
-      })}
       <Text style={{ color: c.text, fontSize: 22, fontWeight: "600" }}>{t("Invited races")}</Text>
       {invited ? <View style={{ padding: 16, borderWidth: 1, borderColor: c.border, borderRadius: 12, gap: 12 }}>
         <Text style={{ color: c.text, fontWeight: "700", fontSize: 20 }}>{invited.boatName}</Text>

@@ -1,3 +1,5 @@
+import { accountBoatProfile } from "./boatProfile";
+import { boatPolarCurves } from "../../../packages/shared/src/polar/repository";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Crypto from "expo-crypto";
 import { polarRepository } from "../polar/repository";
@@ -25,6 +27,12 @@ export type PrivateBoat = {
   catalogPolar?: Polar;
 };
 export type Fleet = {
+  accountCopies?: {
+    server: string;
+    userId: string;
+    localBoatId: string;
+    profile: string;
+  }[];
   boats: PrivateBoat[];
   activeId?: string;
   raceLinks?: { server: string; raceBoatId: string; localBoatId: string }[];
@@ -142,6 +150,13 @@ export function deletePrivateBoat(id: string) {
     ...(fleet.raceLinks
       ? { raceLinks: fleet.raceLinks.filter((link) => link.localBoatId !== id) }
       : {}),
+    ...(fleet.accountCopies
+      ? {
+          accountCopies: fleet.accountCopies.filter(
+            (copy) => copy.localBoatId !== id,
+          ),
+        }
+      : {}),
     boats: fleet.boats.filter((boat) => boat.id !== id),
     activeId: fleet.activeId === id ? undefined : fleet.activeId,
   }));
@@ -243,6 +258,101 @@ export function importOwnedBoat(
           { server: raceServer(), raceBoatId, localBoatId: saved.id },
         ],
       };
+    },
+    async () => {
+      await undo?.();
+    },
+  );
+}
+
+function withAccountCopy(
+  fleet: Fleet,
+  localBoatId: string,
+  userId: string,
+  profile: string,
+): Fleet {
+  return {
+    ...fleet,
+    accountCopies: [
+      ...(fleet.accountCopies ?? []).filter(
+        (copy) =>
+          !(
+            copy.server === raceServer() &&
+            copy.userId === userId &&
+            copy.localBoatId === localBoatId
+          ),
+      ),
+      { server: raceServer(), userId, localBoatId, profile },
+    ],
+  };
+}
+export function rememberAccountBoat(
+  localBoatId: string,
+  userId: string,
+  profile: string,
+) {
+  return update((fleet) =>
+    withAccountCopy(fleet, localBoatId, userId, profile),
+  );
+}
+/** Pull saved edits only when this device still matches its last account copy. */
+export function syncAccountBoat(
+  boat: Omit<PrivateBoat, "id">,
+  cloudId: string,
+  userId: string,
+) {
+  let undo: (() => Promise<void>) | undefined;
+  return update(
+    async (fleet) => {
+      const existing = linkedRaceBoat(fleet, cloudId);
+      const id = existing?.id ?? Crypto.randomUUID();
+      const previous = await polarRepository.read(id);
+      if (existing) {
+        const base = fleet.accountCopies?.find(
+          (copy) =>
+            copy.server === raceServer() &&
+            copy.userId === userId &&
+            copy.localBoatId === id,
+        );
+        if (
+          !base ||
+          base.profile !==
+            JSON.stringify(
+              accountBoatProfile(existing, boatPolarCurves(previous).reference),
+            )
+        )
+          return fleet;
+      }
+      const saved = { ...boat, id };
+      const profile = JSON.stringify(
+        accountBoatProfile(saved, saved.catalogPolar),
+      );
+      const previousReference = boatPolarCurves(previous).reference;
+      undo = () =>
+        (previousReference
+          ? polarRepository.setPolar(id, previousReference)
+          : polarRepository.clearReference(id)
+        ).then(() => {});
+      // Use queued polar changes so a concurrent observation/measurement update is retained.
+      if (saved.catalogPolar)
+        await polarRepository.setPolar(id, saved.catalogPolar);
+      else await polarRepository.clearReference(id);
+      return withAccountCopy(
+        {
+          ...fleet,
+          boats: [...fleet.boats.filter((b) => b.id !== id), saved],
+          activeId: fleet.activeId ?? id,
+          raceLinks: existing
+            ? fleet.raceLinks
+            : [
+                ...(fleet.raceLinks ?? []),
+                { server: raceServer(), raceBoatId: cloudId, localBoatId: id },
+              ],
+        },
+        id,
+        userId,
+        profile,
+      );
     },
     async () => {
       await undo?.();

@@ -1059,5 +1059,18 @@
   "Verify your email before publishing a boat.": "Verify your email before publishing a boat.",
   "This race boat belongs to another account. Accept its ownership invitation before publishing changes.": "This race boat belongs to another account. Accept its ownership invitation before publishing changes.",
   "Boat changed elsewhere. Refresh your boats before publishing again.": "Boat changed elsewhere. Refresh your boats before publishing again.",
-  "Boat no longer available. Refresh your boats.": "Boat no longer available. Refresh your boats."
+  "Boat no longer available. Refresh your boats.": "Boat no longer available. Refresh your boats.",
+  "Upload boat": "Upload boat",
+  "Upload publicly": "Upload publicly",
+  "Upload boat details and the reference polar. Trips and measured sailing data stay on this device.": "Upload boat details and the reference polar. Trips and measured sailing data stay on this device.",
+  "Anyone can view the uploaded boat details and polar.": "Anyone can view the uploaded boat details and polar.",
+  "Only your account can access this upload. Sign in on your other device to download it.": "Only your account can access this upload. Sign in on your other device to download it.",
+  "This boat already has a public profile. A private upload does not remove its previously published details.": "This boat already has a public profile. A private upload does not remove its previously published details.",
+  "Boat uploaded publicly.": "Boat uploaded publicly.",
+  "Boat uploaded to your account.": "Boat uploaded to your account.",
+  "Edits are saved on this device. Upload below to save the boat to your account or publish it.": "Edits are saved on this device. Upload below to save the boat to your account or publish it.",
+  "Upload a boat to use it on your other devices. New boats stay private unless you choose a public upload. Race invitations grant tracking access, not ownership.": "Upload a boat to use it on your other devices. New boats stay private unless you choose a public upload. Race invitations grant tracking access, not ownership.",
+  "Verify your email before uploading a boat.": "Verify your email before uploading a boat.",
+  "Boat changed elsewhere. Refresh your boats before uploading again.": "Boat changed elsewhere. Refresh your boats before uploading again.",
+  "Sign in to upload or refresh your boats.": "Sign in to upload or refresh your boats."
 }

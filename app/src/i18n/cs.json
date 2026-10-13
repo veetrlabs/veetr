@@ -1069,5 +1069,18 @@
   "Verify your email before publishing a boat.": "Před zveřejněním lodi ověřte svůj e-mail.",
   "This race boat belongs to another account. Accept its ownership invitation before publishing changes.": "Tuto závodní loď spravuje jiný účet. Před zveřejněním změn přijměte pozvánku k její správě.",
   "Boat changed elsewhere. Refresh your boats before publishing again.": "Loď byla změněna jinde. Před dalším zveřejněním obnovte seznam lodí.",
-  "Boat no longer available. Refresh your boats.": "Loď již není dostupná. Obnovte seznam lodí."
+  "Boat no longer available. Refresh your boats.": "Loď již není dostupná. Obnovte seznam lodí.",
+  "Upload boat": "Nahrát loď",
+  "Upload publicly": "Nahrát veřejně",
+  "Upload boat details and the reference polar. Trips and measured sailing data stay on this device.": "Nahrajte údaje o lodi a referenční poláru. Plavby a naměřená data zůstávají v tomto zařízení.",
+  "Anyone can view the uploaded boat details and polar.": "Nahrané údaje o lodi a poláru si může zobrazit kdokoli.",
+  "Only your account can access this upload. Sign in on your other device to download it.": "K této nahrané kopii má přístup jen váš účet. Na druhém zařízení se přihlaste stejným účtem.",
+  "This boat already has a public profile. A private upload does not remove its previously published details.": "Tato loď už má veřejný profil. Soukromé nahrání neodstraní dříve zveřejněné údaje.",
+  "Boat uploaded publicly.": "Loď byla nahrána veřejně.",
+  "Boat uploaded to your account.": "Loď byla nahrána do vašeho účtu.",
+  "Edits are saved on this device. Upload below to save the boat to your account or publish it.": "Úpravy se ukládají v tomto zařízení. Nahráním níže uložíte loď do účtu nebo ji zveřejníte.",
+  "Upload a boat to use it on your other devices. New boats stay private unless you choose a public upload. Race invitations grant tracking access, not ownership.": "Nahrajte loď, abyste ji mohli používat na dalších zařízeních. Nové lodě zůstávají soukromé, pokud nezvolíte veřejné nahrání. Závodní pozvánky umožňují sledování, nikoli správu lodi.",
+  "Verify your email before uploading a boat.": "Před nahráním lodi ověřte svůj e-mail.",
+  "Boat changed elsewhere. Refresh your boats before uploading again.": "Loď byla změněna jinde. Před dalším nahráním obnovte seznam lodí.",
+  "Sign in to upload or refresh your boats.": "Pro nahrání nebo načtení lodí se přihlaste."
 }

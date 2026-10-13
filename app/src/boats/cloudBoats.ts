@@ -1,8 +1,10 @@
+import { accountBoatProfile, publicBoatProfile } from "./boatProfile";
+export { publicBoatProfile } from "./boatProfile";
 import { trackingClient, trackingRpc } from "../tracking/client";
 import {
   privateFleet,
-  importOwnedBoat,
-  linkedRaceBoat,
+  syncAccountBoat,
+  rememberAccountBoat,
   reservePublicBoatId,
   type PrivateBoat,
 } from "./privateBoats";
@@ -15,6 +17,10 @@ import {
 export type OwnedBoat = Omit<PrivateBoat, "catalogPolar"> & {
   updatedAt: string;
   polar?: Polar;
+  privateUpdatedAt?: string | null;
+  publicUpdatedAt?: string | null;
+  publiclyVisible?: boolean;
+  uploadPublic?: boolean;
 };
 export async function boatAccount() {
   if (!trackingClient) return null;
@@ -25,13 +31,13 @@ export async function boatAccount() {
 async function requireAccount(userId?: string) {
   const user = await boatAccount();
   if (!user || (userId && user.id !== userId))
-    throw new Error("Sign in to publish or refresh your boats.");
+    throw new Error("Sign in to upload or refresh your boats.");
   return user;
 }
 export async function ownedBoats(): Promise<OwnedBoat[]> {
   const user = await boatAccount();
   if (!user) return [];
-  const boats = await trackingRpc<OwnedBoat[]>("my_owned_boats");
+  const boats = await trackingRpc<OwnedBoat[]>("my_account_boats");
   await requireAccount(user.id);
   return boats;
 }
@@ -39,13 +45,21 @@ export async function ownedBoats(): Promise<OwnedBoat[]> {
 export async function refreshOwnedBoats() {
   const user = await boatAccount();
   if (!user) return privateFleet();
-  const boats = await trackingRpc<OwnedBoat[]>("my_owned_boats");
+  const boats = await trackingRpc<OwnedBoat[]>("my_account_boats");
   for (const cloud of boats) {
     await requireAccount(user.id);
-    if (linkedRaceBoat(await privateFleet(), cloud.id)) continue;
-    const { id, updatedAt, polar, ...details } = cloud;
+    const {
+      id,
+      updatedAt,
+      privateUpdatedAt,
+      publicUpdatedAt,
+      publiclyVisible,
+      uploadPublic,
+      polar,
+      ...details
+    } = cloud;
     if (polar) validatePolar(polar);
-    await importOwnedBoat(
+    await syncAccountBoat(
       {
         ...details,
         className: details.className ?? "",
@@ -53,44 +67,10 @@ export async function refreshOwnedBoats() {
         catalogPolar: polar,
       },
       id,
+      user.id,
     );
   }
   return privateFleet();
-}
-export function publicBoatProfile(boat: PrivateBoat, polar?: Polar) {
-  return JSON.parse(
-    JSON.stringify({
-      name: boat.name,
-      className: boat.className,
-      sailNumber: boat.sailNumber,
-      manufacturer: boat.manufacturer,
-      model: boat.model,
-      variant: boat.variant,
-      lengthM: boat.lengthM,
-      weightKg: boat.weightKg,
-      waterlineLengthM: boat.waterlineLengthM,
-      draftM: boat.draftM,
-      airDraftM: boat.airDraftM,
-      beamM: boat.beamM,
-      polar: polar
-        ? {
-            id: polar.id,
-            name: polar.name,
-            version: polar.version,
-            source: polar.source,
-            createdAt: polar.createdAt,
-            sourceUrl: polar.sourceUrl,
-            sourceVersion: polar.sourceVersion,
-            speedBasis: polar.speedBasis,
-            points: polar.points.map(({ tws, twa, speed }) => ({
-              tws,
-              twa,
-              speed,
-            })),
-          }
-        : undefined,
-    }),
-  );
 }
 export async function publishBoat(localId: string, expected?: OwnedBoat) {
   const user = await requireAccount();
@@ -106,5 +86,29 @@ export async function publishBoat(localId: string, expected?: OwnedBoat) {
     expected: expected?.updatedAt ?? null,
   });
   await requireAccount(user.id);
+  return result;
+}
+
+export async function uploadBoat(
+  localId: string,
+  publish: boolean,
+  expected?: OwnedBoat,
+) {
+  const user = await requireAccount();
+  const id = await reservePublicBoatId(localId);
+  const boat = (await privateFleet()).boats.find((b) => b.id === localId);
+  if (!boat) throw new Error("No boats found");
+  const { reference } = boatPolarCurves(await polarRepository.read(localId));
+  const profile = accountBoatProfile(boat, reference);
+  await requireAccount(user.id);
+  const result = await trackingRpc<OwnedBoat>("upload_account_boat", {
+    bid: id,
+    profile,
+    publish,
+    expected_private: expected?.privateUpdatedAt ?? null,
+    expected_public: expected?.publicUpdatedAt ?? null,
+  });
+  await requireAccount(user.id);
+  await rememberAccountBoat(localId, user.id, JSON.stringify(profile));
   return result;
 }

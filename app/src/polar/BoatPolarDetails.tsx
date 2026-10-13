@@ -7,7 +7,6 @@ import { themeColors } from "../constants/colors";
 import { t, locale, useLanguageRefresh, translateMessage } from "../i18n";
 import PolarDiagram from "./PolarDiagram";
 import { trackingStore } from "../tracking/database";
-import { syncPolars } from "./sync";
 import PolarCsvEditor from "./PolarCsvEditor";
 import type { Polar } from "../../../packages/shared/src/polar/model";
 import {
@@ -227,10 +226,6 @@ export default function BoatPolarDetails({
             onPreview={setPreview}
             onSaved={setLibrary}
           />
-          {button(
-            "Sync polars with my account",
-            () => void act(() => syncPolars(boatId)),
-          )}
         </>
       )}
       {!!error && (

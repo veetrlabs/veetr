@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { Linking, Pressable, Text, View } from "react-native";
+import { Linking, Pressable, Switch, Text, View } from "react-native";
 import { useFocusEffect } from "expo-router";
 import AccountSignIn from "../components/AccountSignIn";
 import { useTheme } from "../context/ThemeContext";
@@ -8,7 +8,7 @@ import { t, translateMessage } from "../i18n";
 import {
   boatAccount,
   ownedBoats,
-  publishBoat,
+  uploadBoat,
   type OwnedBoat,
 } from "./cloudBoats";
 import { privateFleet, raceBoatIdForLocal } from "./privateBoats";
@@ -25,7 +25,7 @@ export default function BoatPublishing({
   const colors = themeColors[useTheme().theme];
   const [account, setAccount] = useState<string>();
   const [published, setPublished] = useState<OwnedBoat>();
-  const [linked, setLinked] = useState(false);
+  const [uploadPublic, setUploadPublic] = useState(false);
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -36,10 +36,11 @@ export default function BoatPublishing({
     const user = await boatAccount();
     setAccount(user?.id);
     const id = raceBoatIdForLocal(await privateFleet(), boatId);
-    setLinked(Boolean(id));
-    setPublished(
-      user ? (await ownedBoats()).find((b) => b.id === id) : undefined,
-    );
+    const saved = user
+      ? (await ownedBoats()).find((b) => b.id === id)
+      : undefined;
+    setPublished(saved);
+    setUploadPublic(Boolean(saved?.uploadPublic));
     setReady(true);
   }, [boatId]);
   useFocusEffect(
@@ -50,6 +51,7 @@ export default function BoatPublishing({
   const action = (label: string, run: () => void) => (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={t(label)}
       disabled={busy || disabled}
       onPress={run}
       style={({ pressed }) => ({
@@ -75,11 +77,11 @@ export default function BoatPublishing({
       }}
     >
       <Text style={{ color: colors.text, fontSize: 20, fontWeight: "600" }}>
-        {t("Public boat profile")}
+        {t("Upload boat")}
       </Text>
       <Text style={{ color: colors.textMuted }}>
         {t(
-          "Publishing shares your boat details and reference polar publicly. Private trips and measured sailing data are not uploaded. Later edits stay on this device until you publish updates.",
+          "Upload boat details and the reference polar. Trips and measured sailing data stay on this device.",
         )}
       </Text>
       {!ready ? (
@@ -95,28 +97,56 @@ export default function BoatPublishing({
         />
       ) : (
         <>
-          {linked && !published && (
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+            }}
+          >
+            <Text style={{ color: colors.text, flex: 1 }}>
+              {t("Upload publicly")}
+            </Text>
+            <Switch
+              accessibilityLabel={t("Upload publicly")}
+              value={uploadPublic}
+              disabled={busy || disabled}
+              onValueChange={setUploadPublic}
+            />
+          </View>
+          <Text style={{ color: colors.textMuted }}>
+            {t(
+              uploadPublic
+                ? "Anyone can view the uploaded boat details and polar."
+                : "Only your account can access this upload. Sign in on your other device to download it.",
+            )}
+          </Text>
+          {!uploadPublic && published?.publiclyVisible && (
             <Text style={{ color: colors.textMuted }}>
               {t(
-                "If this is a race boat, accept its ownership invitation with this account before publishing. Tracking access alone cannot change its public profile.",
+                "This boat already has a public profile. A private upload does not remove its previously published details.",
               )}
             </Text>
           )}
-          {action(published ? "Publish updates" : "Publish boat", () => {
+          {action("Upload boat", () => {
             setBusy(true);
             setError("");
             setMessage("");
-            void publishBoat(boatId, published)
+            void uploadBoat(boatId, uploadPublic, published)
               .then((result) => {
                 setPublished(result);
-                setLinked(true);
-                setMessage("Boat published.");
+                setMessage(
+                  uploadPublic
+                    ? "Boat uploaded publicly."
+                    : "Boat uploaded to your account.",
+                );
                 onRefresh();
               })
               .catch((e) => setError(e.message))
               .finally(() => setBusy(false));
           })}
-          {published &&
+          {published?.publiclyVisible &&
             action("View public boat", () => {
               void Linking.openURL(
                 `${(process.env.EXPO_PUBLIC_SITE_URL || "https://veetr.org").replace(/\/$/, "")}/boats/${published.id}/`,

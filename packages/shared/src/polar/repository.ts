@@ -75,6 +75,16 @@ export class PolarRepository {
       };
     });
   }
+  clearReference(boatId: string) {
+    return this.update(boatId, (state) => {
+      const measured = boatPolarCurves(state).measured;
+      return {
+        ...state,
+        polars: measured ? [measured] : [],
+        selectedId: measured?.id,
+      };
+    });
+  }
   clearMeasured(boatId: string) {
     return this.update(boatId, (state) => {
       const reference = boatPolarCurves(state).reference;

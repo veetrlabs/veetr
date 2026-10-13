@@ -5,6 +5,7 @@ import {
   publishBoat,
   refreshOwnedBoats,
   publicBoatProfile,
+  uploadBoat,
 } from "../cloudBoats";
 import { polarRepository } from "../../polar/repository";
 jest.mock("@react-native-async-storage/async-storage", () =>
@@ -83,7 +84,7 @@ test("owned refresh reuses a tracking link and preserves local edits and trips",
   expect(fleet.boats[0].name).toBe("Mine");
   expect(fleet.boats[0].id).toBe("local");
   expect((await polarRepository.read("local")).selectedId).toBe("polar");
-  expect(rpc).toHaveBeenCalledWith("my_owned_boats");
+  expect(rpc).toHaveBeenCalledWith("my_account_boats");
   await publishBoat("local", { ...boat, id: "cloud", updatedAt: "previous" });
   expect(rpc).toHaveBeenLastCalledWith(
     "publish_private_boat",
@@ -115,4 +116,115 @@ test("signed out refresh stays local and publishing is rejected", async () => {
   expect((await refreshOwnedBoats()).boats[0].id).toBe("local");
   await expect(publishBoat("local")).rejects.toThrow("Sign in");
   expect(rpc).not.toHaveBeenCalled();
+});
+
+test("whole boat upload defaults to a private account copy and downloads later edits without overwriting local changes", async () => {
+  await savePrivateBoat({
+    ...boat,
+    catalogPolar: polar,
+    catalogId: "catalog-id",
+  });
+  rpc.mockImplementation(async (name, args) =>
+    name === "upload_account_boat"
+      ? {
+          ...args.profile,
+          id: args.bid,
+          updatedAt: "one",
+          privateUpdatedAt: "one",
+          publiclyVisible: false,
+          uploadPublic: false,
+        }
+      : [],
+  );
+  const saved = await uploadBoat(boat.id, false);
+  expect(rpc).toHaveBeenLastCalledWith(
+    "upload_account_boat",
+    expect.objectContaining({
+      publish: false,
+      profile: expect.objectContaining({
+        catalogId: "catalog-id",
+        weightKg: 5000,
+      }),
+    }),
+  );
+  rpc.mockResolvedValue([
+    {
+      ...saved,
+      name: "Edited on tablet",
+      polar: { ...polar, points: [{ tws: 6, twa: 60, speed: 5 }] },
+    },
+  ]);
+  await refreshOwnedBoats();
+  expect((await privateFleet()).boats[0].name).toBe("Edited on tablet");
+  expect((await polarRepository.read(boat.id)).polars[0].points[0].speed).toBe(
+    5,
+  );
+  await savePrivateBoat({
+    ...(await privateFleet()).boats[0],
+    name: "Unsaved local edit",
+  });
+  rpc.mockResolvedValue([{ ...saved, name: "Another tablet edit" }]);
+  await refreshOwnedBoats();
+  expect((await privateFleet()).boats[0].name).toBe("Unsaved local edit");
+});
+
+test("downloading a cleared reference retains measured curves and trip observations", async () => {
+  rpc.mockResolvedValue([
+    { id: "cloud", name: "Boat", updatedAt: "one", polar },
+  ]);
+  const fleet = await refreshOwnedBoats();
+  const local = fleet.boats[0].id;
+  await polarRepository.setPolar(local, {
+    ...polar,
+    id: "measured",
+    source: "learned",
+  });
+  await polarRepository.saveObservations(local, "trip", [
+    {
+      id: "sample",
+      boatId: local,
+      timestamp: 1,
+      tws: 6,
+      twa: 60,
+      speed: 4,
+      gpsValid: true,
+      windValid: true,
+    },
+  ]);
+  rpc.mockResolvedValue([{ id: "cloud", name: "Boat", updatedAt: "two" }]);
+  await refreshOwnedBoats();
+  expect((await polarRepository.read(local)).polars.map((p) => p.id)).toEqual([
+    "measured",
+  ]);
+  expect(await polarRepository.observations(local)).toHaveLength(1);
+});
+
+test("a failed download restores the reference and leaves the saved local boat intact", async () => {
+  rpc.mockResolvedValue([
+    { id: "cloud", name: "Before", updatedAt: "one", polar },
+  ]);
+  const fleet = await refreshOwnedBoats(),
+    local = fleet.boats[0].id;
+  rpc.mockResolvedValue([
+    {
+      id: "cloud",
+      name: "After",
+      updatedAt: "two",
+      polar: { ...polar, points: [{ tws: 6, twa: 60, speed: 5 }] },
+    },
+  ]);
+  const original = (AsyncStorage.setItem as jest.Mock).getMockImplementation()!;
+  const spy = jest
+    .spyOn(AsyncStorage, "setItem")
+    .mockImplementation(async (key, value) => {
+      if (key === "veetr-private-boats:v1") throw new Error("Disk full");
+      return original(key, value);
+    });
+  try {
+    await expect(refreshOwnedBoats()).rejects.toThrow("Disk full");
+  } finally {
+    spy.mockImplementation(original);
+  }
+  expect((await privateFleet()).boats[0].name).toBe("Before");
+  expect((await polarRepository.read(local)).polars[0].points[0].speed).toBe(4);
 });
