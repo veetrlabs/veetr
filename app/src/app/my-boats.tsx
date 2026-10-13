@@ -185,9 +185,9 @@ export default function MyBoats() {
       </View>)}
       {!edit.id && button(t("Create private boat"), () => {if(!Object.values(dimensionErrors).some(Boolean)) void persist(edit);})}
       {!!edit.id && <>
-        {!edit.racePreview && (fleet.activeId === edit.id
+        {fleet.activeId === edit.id
           ? <Text style={{ color: c.textMuted }}>{t("Active for private trips")}</Text>
-          : button(t("Use for private trips"), () => void useBoat(edit.id)))}
+          : button(t("Use for private trips"), () => void useBoat(edit.id))}
         <BoatPolarDetails readOnly={readOnly} onInteractionChange={setPolarInteracting} key={`${edit.id}:${edit.catalogPolar?.id??""}:${refreshVersion}`} boatId={edit.id} />
         {!readOnly && <BoatPublishing key={edit.id} boatId={edit.id} refreshVersion={refreshVersion} disabled={busy || refreshing || Object.values(dimensionErrors).some(Boolean)} onRefresh={() => {void refreshOwnedBoats().then(setFleet).catch(e=>setError(e.message));}} />}
         {!edit.racePreview && button(t("Delete boat"), () => confirmDelete(edit))}
@@ -202,6 +202,7 @@ export default function MyBoats() {
       <Text style={{ color: c.text, fontSize: 22, fontWeight: "600" }}>{t("Invited races")}</Text>
       {invited ? <View style={{ padding: 16, borderWidth: 1, borderColor: c.border, borderRadius: 12, gap: 12 }}>
         <RaceBoatPreview boatId={invited.boatId} boatName={invited.boatName} />
+        {fleet.boats.some(boat => boat.id === fleet.activeId && boat.racePreview && boat.downloadedFrom?.boatId === invited.boatId && boat.downloadedFrom?.server === (process.env.EXPO_PUBLIC_SUPABASE_URL ?? "")) && <Text style={{color:c.textMuted}}>{t("Active for private trips")}</Text>}
         <Text style={{ color: c.text }}>{invited.seriesName}</Text>
         <Text style={{ color: c.textMuted }}>{t("Race access only. Boat names, results and shared race tracks are visible to spectators. Private trips remain private.")}</Text>
         {invited.valid ? invited.races.map(race => <View key={race.eventId}>{button(t("Join {{v0}}", { v0: race.raceName }), () => router.push({ pathname: "/race-phone", params: { eventId: race.eventId } }))}</View>)

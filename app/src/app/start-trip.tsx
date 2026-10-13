@@ -37,7 +37,7 @@ export default function StartTrip() {
     void (async () => {
       const local = await privateFleet();
       if (alive) {
-        setPrivateBoats(local.boats.filter(b => !b.racePreview));
+        setPrivateBoats(local.boats);
         setPrivateBoat(local.boats.find(b => b.id === local.activeId));
       }
       const auth = await trackingClient?.auth.getSession();

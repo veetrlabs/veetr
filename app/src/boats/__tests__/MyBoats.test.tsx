@@ -132,7 +132,7 @@ test("boat details let users activate a boat and require confirmation before del
 
 
 test("downloaded profiles are read-only without a confirmed owner", async () => {
-  const boat = {id:"downloaded",name:"Luna",className:"",sailNumber:"",downloadedFrom:{server:"",boatId:"race",baseline:""}};
+  const boat = {id:"downloaded",name:"Luna",className:"",sailNumber:"",racePreview:true,downloadedFrom:{server:"",boatId:"race",baseline:""}};
   (useLocalSearchParams as jest.Mock).mockReturnValue({boatId:boat.id});
   (privateFleet as jest.Mock).mockResolvedValue({boats:[boat]});
   const ui = render(<MyBoats/>);
