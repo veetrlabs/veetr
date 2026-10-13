@@ -1091,5 +1091,7 @@
   "Download the public boat details and polar for offline use, or link an existing boat. Only the owner can edit a downloaded profile. Private trips stay on this device.": "Stáhněte veřejné údaje o lodi a poláru pro použití offline nebo propojte existující loď. Stažený profil může upravovat pouze vlastník. Soukromé plavby zůstanou na tomto zařízení.",
   "Downloaded public boat. Details refresh when you open My boats or pull down. Only the owner can edit; saved details remain available offline.": "Stažená veřejná loď. Údaje se aktualizují při otevření stránky Moje lodě nebo tažením dolů. Upravovat je může pouze vlastník. Uložené údaje jsou dostupné i offline.",
   "This boat is no longer available. The saved copy is still on this device.": "Tato loď už není dostupná. Uložená kopie zůstává na tomto zařízení.",
-  "Only the boat owner can edit or upload this downloaded boat.": "Tuto staženou loď může upravovat nebo nahrávat pouze její vlastník."
+  "Only the boat owner can edit or upload this downloaded boat.": "Tuto staženou loď může upravovat nebo nahrávat pouze její vlastník.",
+  "Replace saved boat details": "Nahradit uložené údaje o lodi",
+  "Replace {{v0}}’s details and reference polar with {{v1}}’s public profile? Trips and measurements will be kept. The downloaded profile is editable only by its owner.": "Nahradit údaje a referenční poláru lodi {{v0}} veřejným profilem lodi {{v1}}? Plavby a měření zůstanou zachovány. Stažený profil může upravovat pouze vlastník."
 }

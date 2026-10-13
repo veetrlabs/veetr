@@ -3,7 +3,6 @@ import { downloadRaceBoat } from "../cloudBoats";
 jest.mock("@react-native-async-storage/async-storage", () => require("@react-native-async-storage/async-storage/jest/async-storage-mock"));
 import React from "react";
 import { fireEvent, render, waitFor } from "@testing-library/react-native";
-import { router } from "expo-router";
 import RaceBoatLink from "../RaceBoatLink";
 import { privateFleet, linkRaceBoat } from "../privateBoats";
 jest.mock("expo-router", () => ({router:{push:jest.fn()},useFocusEffect:(fn:any)=>require("react").useEffect(fn,[fn])}));
@@ -14,7 +13,7 @@ jest.mock("../privateBoats", () => ({...jest.requireActual("../privateBoats"),pr
 const boat={id:"local",name:"My boat",className:"",sailNumber:""};
 const linked={boats:[boat],raceLinks:[{server:process.env.EXPO_PUBLIC_SUPABASE_URL??"",raceBoatId:"race",localBoatId:"local"}]};
 beforeEach(()=>jest.clearAllMocks());
-test("selecting an existing boat saves locally, opens its details and allows unlinking",async()=>{
+test("selecting an existing boat saves locally without duplicate navigation and allows unlinking",async()=>{
   (privateFleet as jest.Mock).mockResolvedValue({boats:[boat]});
   (linkRaceBoat as jest.Mock).mockResolvedValue(linked);
   const changed=jest.fn();
@@ -23,11 +22,10 @@ test("selecting an existing boat saves locally, opens its details and allows unl
   fireEvent.press(ui.getByLabelText("Boat on this device"));
   fireEvent.press(ui.getByText("My boat"));
   await waitFor(()=>expect(linkRaceBoat).toHaveBeenCalledWith({boatId:"race",boatName:"Race name"},"local"));
-  await waitFor(()=>expect(ui.getByText("Boat details")).toBeTruthy());
+  await waitFor(()=>expect(ui.getByText("Replace saved boat details")).toBeTruthy());
   expect(changed).toHaveBeenCalledWith(linked);
   expect(ui.queryByText("Add to My boats")).toBeNull();
-  fireEvent.press(ui.getByText("Boat details"));
-  expect(router.push).toHaveBeenCalledWith({pathname:"/my-boats",params:{boatId:"local"}});
+  expect(ui.queryByText("Boat details")).toBeNull();
   (linkRaceBoat as jest.Mock).mockResolvedValue({boats:[boat],raceLinks:[]});
   fireEvent.press(ui.getByLabelText("Boat on this device"));
   fireEvent.press(ui.getByText("Download race boat"));
@@ -42,7 +40,7 @@ test("adding a boat reports storage failure and can be retried",async()=>{
   fireEvent.press(ui.getByText("Add to My boats"));
   await waitFor(()=>expect(ui.getByText("Disk full")).toBeTruthy());
   fireEvent.press(ui.getByText("Add to My boats"));
-  await waitFor(()=>expect(ui.getByText("Boat details")).toBeTruthy());
+  await waitFor(()=>expect(ui.getByText("Replace saved boat details")).toBeTruthy());
   expect(downloadRaceBoat).toHaveBeenLastCalledWith("race");
   expect(ui.queryByText("Disk full")).toBeNull();
 });

@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { Alert, Pressable, Text, View } from "react-native";
-import { router, useFocusEffect } from "expo-router";
+import { useFocusEffect } from "expo-router";
 import { useTheme } from "../context/ThemeContext";
 import { themeColors } from "../constants/colors";
 import { t, translateMessage } from "../i18n";
@@ -79,13 +79,14 @@ export default function RaceBoatLink({
       return;
     }
     Alert.alert(
-      t("Download boat details"),
+      t("Replace saved boat details"),
       t(
-        "Replace the saved boat details and reference polar with the published profile? Private trips and measurements will be kept.",
+        "Replace {{v0}}’s details and reference polar with {{v1}}’s public profile? Trips and measurements will be kept. The downloaded profile is editable only by its owner.",
+        { v0: linked.name, v1: boatName },
       ),
       [
         { text: t("Cancel"), style: "cancel" },
-        { text: t("Download"), onPress: () => void download() },
+        { text: t("Replace saved boat details"), onPress: () => void download() },
       ],
     );
   }
@@ -131,17 +132,10 @@ export default function RaceBoatLink({
           ))}
         </PolarSelect>
       )}
-      {linked
-        ? button(t("Boat details"), () =>
-            router.push({
-              pathname: "/my-boats",
-              params: { boatId: linked.id },
-            }),
-          )
-        : button(t("Add to My boats"), confirmDownload)}
+      {!linked && button(t("Add to My boats"), confirmDownload)}
       {!!linked &&
         !linked.downloadedFrom &&
-        button(t("Download boat details"), confirmDownload)}
+        button(t("Replace saved boat details"), confirmDownload)}
       {!!error && (
         <Text accessibilityRole="alert" style={{ color: c.text }}>
           {translateMessage(error)}
