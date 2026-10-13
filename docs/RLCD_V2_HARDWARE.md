@@ -79,7 +79,7 @@ Prices and availability are indicative as of 2026-10-13; entries with conflictin
 | Function / rank | Exact candidate and EU sourcing | Fit, assembly and evidence | Limitation / disposition |
 | --- | --- | --- | --- |
 | Controller/display: retain | Waveshare ESP32-S3-RLCD-4.2, BerryBase **WS-33298** ([listing][rlcd-eu]) | Existing platform; P1 socket, onboard display/SD/battery; Espressif publishes WROOM-1 CE/FCC records [certificates][esp-cert] | Whole-board DoC, board/panel longevity and production availability remain unconfirmed. Request exact PCB version and batch quote |
-| GNSS: socket preference | MIKROE **MIKROE-4643 GNSS MAX Click**, MAX-M10S; [TME listing][gnss-tme], [Mouser EU][gnss-mouser] | 3.3 V, I²C/UART, mikroBUS headers, external SMA antenna. [Manufacturer][gnss-click]; u-blox has a module-level [RED DoC][gnss-doc] | Mouser listing: €46.44, 9 stock, 26 on order with an already-past ETA; not confirmed availability. GNSS antenna extra. Board-level CE/FCC evidence not established |
+| GNSS: socket preference | MIKROE **MIKROE-4643 GNSS MAX Click**, MAX-M10S; [manufacturer product page][gnss-click], [DigiKey EU listing][gnss-digikey] | 3.3 V, I²C/UART, mikroBUS headers, external SMA antenna. [Manufacturer][gnss-click]; u-blox has a module-level [RED DoC][gnss-doc] | Budget €46.44 ex VAT; current price and availability require confirmation. GNSS antenna extra. [Product brochure][gnss-brochure]. Board-level CE/FCC evidence not established |
 | GNSS: compact alternative | SparkFun **GPS-18037 MAX-M10S Qwiic**, [Botland][gnss-botland] | Solderless Qwiic plus mounting holes; same GNSS IC/module family, [source][gnss-sparkfun] | Header pins may require assembly; Qwiic cables need retention. Not a second semiconductor source. EU price and availability require a supplier quote |
 | IMU: retain existing, replacement candidate | Adafruit **4754 BNO085**, BerryBase **ADA4754** ([listing][imu-eu]) | Tested assembled breakout, STEMMA QT connectors; 9-axis fused orientation, [pinout][imu-pins] | €27.45 incl. VAT. English page says 100+ while German page says unavailable: stock unconfirmed. I²C warning above. Whole-board CE/FCC and lifecycle commitment not established |
 | CAN: first prototype candidate | Olimex **A20-CAN-ISO**, [EU manufacturer store][olimex-can] | €15.95 ex VAT, listed in stock; assembled board; carrier needs a mating-header adapter. Separate [isolated schematic][olimex-sch] shows TJA1052, isolated DC/DC, 3.3 V logic, 5 V power, normally open termination jumpers. Signed [EU EMC/RoHS DoC][olimex-doc] covers ISO variant | Needs battery-backed 5 V and carrier adapter; confirm supplied revision/connector population, unpowered behavior and startup inhibit. FCC/REACH evidence and production quantities unconfirmed |
@@ -126,7 +126,7 @@ One of each unless stated otherwise. Prices are provisional; production availabi
 | Item | Quantity | Budget EUR, excluding VAT/shipping | Basis / additional requirement |
 | --- | --- | --- | --- |
 | WS-33298 RLCD board | 1 | 30–45 | Engineering allowance; EU listing verified, reliable live price not obtained |
-| MIKROE-4643 GNSS | 1 | 46.44 | Distributor listing; antenna not included |
+| MIKROE-4643 GNSS | 1 | 46.44 | Indicative budget; current supplier quote and antenna additional |
 | SMA GNSS antenna / cable | 1 | 10–25 | Allowance; choose compatible active/passive antenna and bias specification with GNSS vendor |
 | ADA4754 IMU | 1 | 23.07 | €27.45 gross converted at German 19% VAT for comparison; reuse existing IMU when possible |
 | Olimex A20-CAN-ISO | 1 | 15.95 | Manufacturer net price; mating connector included in carrier allowance |
@@ -208,8 +208,8 @@ The proposed carrier requires a dedicated v2 firmware profile and regression tes
 [rlcd-eu]: https://www.berrybase.de/es/waveshare-esp32-s3-rlcd-aiot-reflexionsdisplay-dev-board-4-2-zoll-300x400-gpio-i2c-uart-akku
 [esp-cert]: https://www.espressif.com/en/support/documents/certificates
 [gnss-click]: https://www.mikroe.com/gnss-max-click
-[gnss-tme]: https://www.tme.eu/rs/en/details/mikroe-4643/add-on-boards/mikroe/
-[gnss-mouser]: https://eu.mouser.com/en/ProductDetail/Mikroe/MIKROE-4643?qs=rQFj71Wb1eVDhsMv9QMdow%3D%3D
+[gnss-brochure]: https://www.mikroe.com/brochure?ref=MIKROE-4643
+[gnss-digikey]: https://www.digikey.ie/en/products/detail/mikroelektronika/MIKROE-4643/20840833
 [gnss-doc]: https://content.u-blox.com/sites/default/files/documents/MAX-M10_RED_Conformity_UBX-22013367.pdf
 [gnss-sparkfun]: https://www.sparkfun.com/sparkfun-gnss-receiver-breakout-max-m10s-qwiic.html
 [gnss-guide]: https://docs.sparkfun.com/SparkFun_u-blox_MAX-M10S/hardware_overview/
