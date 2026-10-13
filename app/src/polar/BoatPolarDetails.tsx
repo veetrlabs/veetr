@@ -19,8 +19,10 @@ import type { Trip } from "../tracking/trip";
 export default function BoatPolarDetails({
   boatId,
   onInteractionChange,
+  readOnly = false,
 }: {
   boatId: string;
+  readOnly?: boolean;
   onInteractionChange?: (active: boolean) => void;
 }) {
   useLanguageRefresh();
@@ -219,13 +221,13 @@ export default function BoatPolarDetails({
               )}
             </Text>
           )}
-          <PolarCsvEditor
+          {!readOnly && <PolarCsvEditor
             key={`csv:${boatId}`}
             boatId={boatId}
             reference={reference}
             onPreview={setPreview}
             onSaved={setLibrary}
-          />
+          />}
         </>
       )}
       {!!error && (

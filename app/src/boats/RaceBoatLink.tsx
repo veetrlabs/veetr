@@ -1,9 +1,10 @@
 import { useCallback, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Alert, Pressable, Text, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { useTheme } from "../context/ThemeContext";
 import { themeColors } from "../constants/colors";
 import { t, translateMessage } from "../i18n";
+import { downloadRaceBoat } from "./cloudBoats";
 import { PolarSelect } from "../polar/PolarSelect";
 import {
   privateFleet,
@@ -59,6 +60,35 @@ export default function RaceBoatLink({
       setBusy(false);
     }
   }
+  async function download() {
+    setBusy(true);
+    setError("");
+    try {
+      const next = await downloadRaceBoat(boatId);
+      setFleet(next);
+      onChange?.(next);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  function confirmDownload() {
+    if (!linked) {
+      void download();
+      return;
+    }
+    Alert.alert(
+      t("Download boat details"),
+      t(
+        "Replace the saved boat details and reference polar with the published profile? Private trips and measurements will be kept.",
+      ),
+      [
+        { text: t("Cancel"), style: "cancel" },
+        { text: t("Download"), onPress: () => void download() },
+      ],
+    );
+  }
   const button = (label: string, action: () => void) => (
     <Pressable
       accessibilityRole="button"
@@ -85,7 +115,7 @@ export default function RaceBoatLink({
       </Text>
       <Text style={{ color: c.textMuted }}>
         {t(
-          "Link to a boat already in My boats, or add it. Linking stays on this device: no boat details, polars or private trips are uploaded, and it does not grant boat management access.",
+          "Download the public boat details and polar for offline use, or link an existing boat. Only the owner can edit a downloaded profile. Private trips stay on this device.",
         )}
       </Text>
       {!!fleet.boats.length && (
@@ -95,7 +125,7 @@ export default function RaceBoatLink({
           enabled={loaded && !busy}
           onValueChange={(id) => void change(id || undefined)}
         >
-          <PolarSelect.Item value="" label={t("Not linked")} />
+          <PolarSelect.Item value="" label={t("Download race boat")} />
           {fleet.boats.map((boat) => (
             <PolarSelect.Item key={boat.id} value={boat.id} label={boat.name} />
           ))}
@@ -108,7 +138,10 @@ export default function RaceBoatLink({
               params: { boatId: linked.id },
             }),
           )
-        : button(t("Add to My boats"), () => void change(null))}
+        : button(t("Add to My boats"), confirmDownload)}
+      {!!linked &&
+        !linked.downloadedFrom &&
+        button(t("Download boat details"), confirmDownload)}
       {!!error && (
         <Text accessibilityRole="alert" style={{ color: c.text }}>
           {translateMessage(error)}

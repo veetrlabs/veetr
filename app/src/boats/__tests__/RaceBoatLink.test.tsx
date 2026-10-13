@@ -1,3 +1,5 @@
+jest.mock("../cloudBoats", () => ({downloadRaceBoat:jest.fn()}));
+import { downloadRaceBoat } from "../cloudBoats";
 jest.mock("@react-native-async-storage/async-storage", () => require("@react-native-async-storage/async-storage/jest/async-storage-mock"));
 import React from "react";
 import { fireEvent, render, waitFor } from "@testing-library/react-native";
@@ -28,19 +30,19 @@ test("selecting an existing boat saves locally, opens its details and allows unl
   expect(router.push).toHaveBeenCalledWith({pathname:"/my-boats",params:{boatId:"local"}});
   (linkRaceBoat as jest.Mock).mockResolvedValue({boats:[boat],raceLinks:[]});
   fireEvent.press(ui.getByLabelText("Boat on this device"));
-  fireEvent.press(ui.getByText("Not linked"));
+  fireEvent.press(ui.getByText("Download race boat"));
   await waitFor(()=>expect(ui.getByText("Add to My boats")).toBeTruthy());
   expect(linkRaceBoat).toHaveBeenLastCalledWith({boatId:"race",boatName:"Race name"},undefined);
 });
 test("adding a boat reports storage failure and can be retried",async()=>{
   (privateFleet as jest.Mock).mockResolvedValue({boats:[]});
-  (linkRaceBoat as jest.Mock).mockRejectedValueOnce(new Error("Disk full")).mockResolvedValueOnce(linked);
+  (downloadRaceBoat as jest.Mock).mockRejectedValueOnce(new Error("Disk full")).mockResolvedValueOnce(linked);
   const ui=render(<RaceBoatLink boatId="race" boatName="Race name"/>);
   await waitFor(()=>expect(ui.UNSAFE_getAllByType("View" as any).find(v => v.props.accessibilityRole === "button")!.props.disabled).toBe(false));
   fireEvent.press(ui.getByText("Add to My boats"));
   await waitFor(()=>expect(ui.getByText("Disk full")).toBeTruthy());
   fireEvent.press(ui.getByText("Add to My boats"));
   await waitFor(()=>expect(ui.getByText("Boat details")).toBeTruthy());
-  expect(linkRaceBoat).toHaveBeenLastCalledWith({boatId:"race",boatName:"Race name"},null);
+  expect(downloadRaceBoat).toHaveBeenLastCalledWith("race");
   expect(ui.queryByText("Disk full")).toBeNull();
 });

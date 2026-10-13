@@ -1,5 +1,6 @@
 import BoatPublishing from "../boats/BoatPublishing";
-import { refreshOwnedBoats } from "../boats/cloudBoats";
+import { canEditDownloadedBoat, refreshOwnedBoats } from "../boats/cloudBoats";
+import { trackingClient } from "../tracking/client";
 import RaceBoatLink from "../boats/RaceBoatLink";
 import * as Crypto from "expo-crypto";
 import BoatModelLookup from "../boats/BoatModelLookup";
@@ -24,10 +25,26 @@ export default function MyBoats() {
   const [fleet, setFleet] = useState<Awaited<ReturnType<typeof privateFleet>>>({ boats: [] });
   const [invited, setInvited] = useState<SeriesPhone | null>(null);
   const [edit, setEdit] = useState<PrivateBoat>();
+  const [refreshVersion, setRefreshVersion] = useState(0);
+  const [editableId, setEditableId] = useState<string>();
+  const readOnly = !!edit?.downloadedFrom && editableId !== edit.id;
+  useFocusEffect(useCallback(() => {
+    let alive = true;
+    let revision = 0;
+    const check = async () => {
+      const current = ++revision;
+      setEditableId(undefined);
+      if (!edit?.downloadedFrom) return;
+      try { if (await canEditDownloadedBoat(edit)) { if (alive && revision === current) setEditableId(edit.id); } }
+      catch { /* Keep the offline copy readable, with editing locked. */ }
+    };
+    void check();
+    const subscription = trackingClient?.auth.onAuthStateChange?.(() => { setEditableId(undefined); revision++; setTimeout(() => { if (alive) void check(); }, 0); });
+    return () => { alive = false; subscription?.data.subscription.unsubscribe(); };
+  }, [edit?.id, edit?.downloadedFrom?.boatId, refreshVersion]));
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [refreshVersion, setRefreshVersion] = useState(0);
   const refreshInFlight = useRef(false);
   const [polarInteracting,setPolarInteracting]=useState(false);
   const [dimensionErrors, setDimensionErrors] = useState<Record<string,string>>({});
@@ -41,7 +58,7 @@ export default function MyBoats() {
         setExternalBoat(boat ? undefined : { id: params.boatId, name: params.boatName || t('Boat') });
       }
     } }).catch(e => { if (alive) setError(e.message); });
-    void refreshOwnedBoats().then(value => { if (alive) setFleet(value); }).catch(e => { if (alive) setError(e.message); });
+    void (async () => { const before = await privateFleet(); const value = await refreshOwnedBoats(); if (alive) { setFleet(value); setEdit(current => current?.downloadedFrom && JSON.stringify(current) === JSON.stringify(before.boats.find(b => b.id === current.id)) ? value.boats.find(b => b.id === current.id) ?? current : current); setRefreshVersion(v => v + 1); } })().catch(e => { if (alive) setError(e.message); });
     void (async () => {
       const saved = await savedSeriesPhone();
       if (alive) setInvited(saved);
@@ -71,8 +88,10 @@ export default function MyBoats() {
   const style = { padding: 16, borderRadius: 12, backgroundColor: c.buttonBg, minHeight: 48 };
   const button = (label: string, action: () => void) => <Pressable accessibilityRole="button" disabled={busy} onPress={action} style={style}><Text style={{ color: c.text }}>{label}</Text></Pressable>;
   const persist = async (boat: PrivateBoat) => {
+    if (readOnly) return;
     setBusy(true); setError("");
     try {
+      if (!(await canEditDownloadedBoat(boat))) throw new Error("Only the boat owner can edit or upload this downloaded boat.");
       const next = await savePrivateBoat(boat);
       setFleet(next);
       if (!boat.id) setEdit(undefined);
@@ -113,10 +132,10 @@ export default function MyBoats() {
         const boat = linkedRaceBoat(next, externalBoat.id);
         if (boat) { setEdit(boat); setExternalBoat(undefined); }
       }} />
-      <BoatPolarDetails onInteractionChange={setPolarInteracting} key={externalBoat.id} boatId={externalBoat.id} />
+      <BoatPolarDetails readOnly onInteractionChange={setPolarInteracting} key={externalBoat.id} boatId={externalBoat.id} />
     </> : edit ? <>
-      <Text style={{ color: c.textMuted }}>{t("Edits are saved on this device. Upload below to save the boat to your account or publish it.")}</Text>
-      <BoatModelLookup label={edit.catalogLabel} selectedId={edit.catalogId} selectedRevision={edit.catalogRevision} disabled={busy} onSelect={async entry=> {
+      <Text style={{ color: c.textMuted }}>{t(readOnly ? "Downloaded public boat. Details refresh when you open My boats or pull down. Only the owner can edit; saved details remain available offline." : "Edits are saved on this device. Upload below to save the boat to your account or publish it.")}</Text>
+      {!readOnly && <BoatModelLookup label={edit.catalogLabel} selectedId={edit.catalogId} selectedRevision={edit.catalogRevision} disabled={busy} onSelect={async entry=> {
         setDimensionErrors({});
         const next=entry ? applyCatalogBoat(edit,entry,Crypto.randomUUID()) : {...edit,catalogId:undefined,catalogRevision:undefined,catalogLabel:undefined,catalogPolar:undefined};
         if (next.id) {
@@ -124,11 +143,11 @@ export default function MyBoats() {
           try { setFleet(await savePrivateBoat(next)); setEdit(next); }
           finally { setBusy(false); }
         } else setEdit(next);
-      }} />
+      }} />}
       {(["name", "className", "sailNumber", "manufacturer", "model", "variant"] as const).map((field, i) => <View key={field} style={{ gap: 6 }}>
         <Text style={{ color: c.text }}>{t(["Boat name", "Boat class", "Sail number", "Manufacturer", "Model", "Variant / year"][i])}</Text>
-        <TextInput accessibilityLabel={t(["Boat name", "Boat class", "Sail number", "Manufacturer", "Model", "Variant / year"][i])} value={edit[field]} maxLength={120}
-          onChangeText={value => setEdit({ ...edit, [field]: value })}
+        <TextInput editable={!readOnly} accessibilityLabel={t(["Boat name", "Boat class", "Sail number", "Manufacturer", "Model", "Variant / year"][i])} value={edit[field]} maxLength={120}
+          onChangeText={value => !readOnly && setEdit({ ...edit, [field]: value })}
           onBlur={() => { if (edit.id) void persist(edit); }}
           style={{ ...style, color: c.text, borderColor: c.border, borderWidth: 1 }} />
       </View>)}
@@ -137,8 +156,9 @@ export default function MyBoats() {
         ['draftM','Draft (m)'],['airDraftM','Height above waterline (m)'],['beamM','Beam (m)'],
       ] as const).map(([field,label])=><View key={`${edit.catalogPolar?.id??'custom'}:${field}:${edit[field]??''}`} style={{gap:6}}>
         <Text style={{color:c.text}}>{t(label)}</Text>
-        <TextInput accessibilityLabel={t(label)} keyboardType="decimal-pad" defaultValue={edit[field]?.toString()??''}
+        <TextInput editable={!readOnly} accessibilityLabel={t(label)} keyboardType="decimal-pad" defaultValue={edit[field]?.toString()??''}
           onEndEditing={event=>{
+            if(readOnly)return;
             const text=event.nativeEvent.text.trim().replace(',','.');
             const value=text?Number(text):undefined;
             const max=field==='weightKg'?999999999:field==='draftM'?30:field==='beamM'?100:200;
@@ -155,8 +175,8 @@ export default function MyBoats() {
         {fleet.activeId === edit.id
           ? <Text style={{ color: c.textMuted }}>{t("Active for private trips")}</Text>
           : button(t("Use for private trips"), () => void useBoat(edit.id))}
-        <BoatPolarDetails onInteractionChange={setPolarInteracting} key={`${edit.id}:${edit.catalogPolar?.id??""}:${refreshVersion}`} boatId={edit.id} />
-        <BoatPublishing key={edit.id} boatId={edit.id} refreshVersion={refreshVersion} disabled={busy || refreshing || Object.values(dimensionErrors).some(Boolean)} onRefresh={() => {void refreshOwnedBoats().then(setFleet).catch(e=>setError(e.message));}} />
+        <BoatPolarDetails readOnly={readOnly} onInteractionChange={setPolarInteracting} key={`${edit.id}:${edit.catalogPolar?.id??""}:${refreshVersion}`} boatId={edit.id} />
+        {!readOnly && <BoatPublishing key={edit.id} boatId={edit.id} refreshVersion={refreshVersion} disabled={busy || refreshing || Object.values(dimensionErrors).some(Boolean)} onRefresh={() => {void refreshOwnedBoats().then(setFleet).catch(e=>setError(e.message));}} />}
         {button(t("Delete boat"), () => confirmDelete(edit))}
       </>}
     </> : <>

@@ -25,6 +25,7 @@ export type PrivateBoat = {
   catalogRevision?: string;
   catalogLabel?: string;
   catalogPolar?: Polar;
+  downloadedFrom?: { server: string; boatId: string; baseline: string };
 };
 export type Fleet = {
   accountCopies?: {
@@ -323,7 +324,13 @@ export function syncAccountBoat(
         )
           return fleet;
       }
-      const saved = { ...boat, id };
+      const saved = {
+        ...boat,
+        id,
+        ...(existing?.downloadedFrom
+          ? { downloadedFrom: existing.downloadedFrom }
+          : {}),
+      };
       const profile = JSON.stringify(
         accountBoatProfile(saved, saved.catalogPolar),
       );
@@ -353,6 +360,71 @@ export function syncAccountBoat(
         userId,
         profile,
       );
+    },
+    async () => {
+      await undo?.();
+    },
+  );
+}
+
+/** Keep a downloaded public profile under the same local identity and trip history. */
+export function storeDownloadedBoat(
+  boat: Omit<PrivateBoat, "id">,
+  cloudId: string,
+  replace = false,
+) {
+  let undo: (() => Promise<void>) | undefined;
+  return update(
+    async (fleet) => {
+      const existing = linkedRaceBoat(fleet, cloudId);
+      // Background refresh cannot recreate a removed copy or replace a private boat.
+      if (
+        !replace &&
+        (!existing?.downloadedFrom ||
+          existing.downloadedFrom.boatId !== cloudId)
+      )
+        return fleet;
+      const id = existing?.id ?? Crypto.randomUUID();
+      const previous = boatPolarCurves(
+        await polarRepository.read(id),
+      ).reference;
+      if (
+        !replace &&
+        existing &&
+        JSON.stringify(accountBoatProfile(existing, previous)) !==
+          existing.downloadedFrom?.baseline
+      )
+        return fleet;
+      const saved: PrivateBoat = {
+        ...boat,
+        id,
+        downloadedFrom: {
+          server: raceServer(),
+          boatId: cloudId,
+          baseline: JSON.stringify(
+            accountBoatProfile(boat as PrivateBoat, boat.catalogPolar),
+          ),
+        },
+      };
+      undo = () =>
+        (previous
+          ? polarRepository.setPolar(id, previous)
+          : polarRepository.clearReference(id)
+        ).then(() => {});
+      if (boat.catalogPolar)
+        await polarRepository.setPolar(id, boat.catalogPolar);
+      else await polarRepository.clearReference(id);
+      return {
+        ...fleet,
+        boats: [...fleet.boats.filter((b) => b.id !== id), saved],
+        activeId: fleet.activeId ?? id,
+        raceLinks: [
+          ...(fleet.raceLinks ?? []).filter(
+            (l) => l.server !== raceServer() || l.raceBoatId !== cloudId,
+          ),
+          { server: raceServer(), raceBoatId: cloudId, localBoatId: id },
+        ],
+      };
     },
     async () => {
       await undo?.();

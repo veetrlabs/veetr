@@ -129,3 +129,15 @@ test("boat details let users activate a boat and require confirmation before del
   expect(ui.getByLabelText("Boat name").props.value).toBe("Mine");
   ui.unmount();
  });
+
+
+test("downloaded profiles are read-only without a confirmed owner", async () => {
+  const boat = {id:"downloaded",name:"Luna",className:"",sailNumber:"",downloadedFrom:{server:"",boatId:"race",baseline:""}};
+  (useLocalSearchParams as jest.Mock).mockReturnValue({boatId:boat.id});
+  (privateFleet as jest.Mock).mockResolvedValue({boats:[boat]});
+  const ui = render(<MyBoats/>);
+  await waitFor(() => expect(ui.getByLabelText("Boat name").props.editable).toBe(false));
+  expect(ui.getByLabelText("Draft (m)").props.editable).toBe(false);
+  expect(ui.getByText("Use for private trips")).toBeTruthy();
+  ui.unmount();
+});

@@ -228,3 +228,41 @@ test("a failed download restores the reference and leaves the saved local boat i
   expect((await privateFleet()).boats[0].name).toBe("Before");
   expect((await polarRepository.read(local)).polars[0].points[0].speed).toBe(4);
 });
+
+test("downloaded race profiles refresh anonymously, retain local identity and fail closed for editing", async () => {
+  const { downloadRaceBoat, canEditDownloadedBoat } = require("../cloudBoats");
+  const cloud = {id:"race",name:"Luna",className:"Cruiser",weightKg:4000,waterlineLengthM:8,draftM:2,airDraftM:14,polar,isOwner:false};
+  session.mockResolvedValue({data:{session:null}});
+  rpc.mockResolvedValue(cloud);
+  const downloaded = await downloadRaceBoat("race");
+  const local = downloaded.boats[0];
+  expect(local).toMatchObject({name:"Luna",weightKg:4000,draftM:2,downloadedFrom:{boatId:"race"}});
+  expect(await canEditDownloadedBoat(local)).toBe(false);
+  rpc.mockResolvedValue({...cloud,name:"Luna II"});
+  const next = await refreshOwnedBoats();
+  expect(next.boats).toHaveLength(1);
+  expect(next.boats[0]).toMatchObject({id:local.id,name:"Luna II"});
+  expect((await polarRepository.read(local.id)).polars).toContainEqual(polar);
+  rpc.mockRejectedValue(new Error("Offline"));
+  await expect(refreshOwnedBoats()).rejects.toThrow("Offline");
+  expect((await privateFleet()).boats[0].name).toBe("Luna II");
+});
+test("explicit download replaces linked details, keeps measurements, and background refresh preserves owner edits", async () => {
+  const { downloadRaceBoat, canEditDownloadedBoat } = require("../cloudBoats");
+  await savePrivateBoat(boat);
+  await linkRaceBoat({boatId:"race",boatName:"Luna"},boat.id);
+  const measured = {...polar,id:"measured",source:"learned" as const};
+  await polarRepository.setPolar(boat.id,measured);
+  rpc.mockResolvedValue({id:"race",name:"Luna",className:"",polar,isOwner:true});
+  const fleet = await downloadRaceBoat("race");
+  expect(fleet.boats).toHaveLength(1);
+  expect(fleet.boats[0].id).toBe(boat.id);
+  expect((await polarRepository.read(boat.id)).polars).toContainEqual(measured);
+  expect(await canEditDownloadedBoat(fleet.boats[0])).toBe(true);
+  await savePrivateBoat({...fleet.boats[0],name:"Local edit"});
+  await downloadRaceBoat("race",false);
+  expect((await privateFleet()).boats[0].name).toBe("Local edit");
+  rpc.mockResolvedValue({id:"race",name:"Luna",isOwner:false});
+  expect(await canEditDownloadedBoat(fleet.boats[0])).toBe(false);
+  await expect(uploadBoat(boat.id,true)).rejects.toThrow("Only the boat owner");
+});

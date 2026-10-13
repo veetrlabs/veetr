@@ -3,6 +3,7 @@ export { publicBoatProfile } from "./boatProfile";
 import { trackingClient, trackingRpc } from "../tracking/client";
 import {
   privateFleet,
+  storeDownloadedBoat,
   syncAccountBoat,
   rememberAccountBoat,
   reservePublicBoatId,
@@ -43,8 +44,22 @@ export async function ownedBoats(): Promise<OwnedBoat[]> {
 }
 /** Sync owned boat identities down; never upload private records during refresh. */
 export async function refreshOwnedBoats() {
+  const cached = await privateFleet();
+  const downloads = await Promise.allSettled(
+    cached.boats
+      .filter(
+        (boat) =>
+          boat.downloadedFrom?.server ===
+          (process.env.EXPO_PUBLIC_SUPABASE_URL ?? ""),
+      )
+      .map((boat) => downloadRaceBoat(boat.downloadedFrom!.boatId, false)),
+  );
+  const failed = downloads.find((result) => result.status === "rejected");
   const user = await boatAccount();
-  if (!user) return privateFleet();
+  if (!user) {
+    if (failed?.status === "rejected") throw failed.reason;
+    return privateFleet();
+  }
   const boats = await trackingRpc<OwnedBoat[]>("my_account_boats");
   for (const cloud of boats) {
     await requireAccount(user.id);
@@ -70,6 +85,7 @@ export async function refreshOwnedBoats() {
       user.id,
     );
   }
+  if (failed?.status === "rejected") throw failed.reason;
   return privateFleet();
 }
 export async function publishBoat(localId: string, expected?: OwnedBoat) {
@@ -78,6 +94,10 @@ export async function publishBoat(localId: string, expected?: OwnedBoat) {
   const id = await reservePublicBoatId(localId);
   const boat = (await privateFleet()).boats.find((b) => b.id === localId);
   if (!boat) throw new Error("No boats found");
+  if (!(await canEditDownloadedBoat(boat)))
+    throw new Error(
+      "Only the boat owner can edit or upload this downloaded boat.",
+    );
   const { reference } = boatPolarCurves(await polarRepository.read(localId));
   await requireAccount(user.id);
   const result = await trackingRpc<OwnedBoat>("publish_private_boat", {
@@ -98,6 +118,10 @@ export async function uploadBoat(
   const id = await reservePublicBoatId(localId);
   const boat = (await privateFleet()).boats.find((b) => b.id === localId);
   if (!boat) throw new Error("No boats found");
+  if (!(await canEditDownloadedBoat(boat)))
+    throw new Error(
+      "Only the boat owner can edit or upload this downloaded boat.",
+    );
   const { reference } = boatPolarCurves(await polarRepository.read(localId));
   const profile = accountBoatProfile(boat, reference);
   await requireAccount(user.id);
@@ -111,4 +135,43 @@ export async function uploadBoat(
   await requireAccount(user.id);
   await rememberAccountBoat(localId, user.id, JSON.stringify(profile));
   return result;
+}
+
+export async function downloadedBoatProfile(boatId: string) {
+  const value = await trackingRpc<(OwnedBoat & { isOwner: boolean }) | null>(
+    "boat_download_profile",
+    { bid: boatId },
+  );
+  if (!value)
+    throw new Error(
+      "This boat is no longer available. The saved copy is still on this device.",
+    );
+  if (value.polar) validatePolar(value.polar);
+  return value;
+}
+export async function downloadRaceBoat(boatId: string, replace = true) {
+  const { id, updatedAt, isOwner, polar, ...details } =
+    await downloadedBoatProfile(boatId);
+  return storeDownloadedBoat(
+    {
+      ...details,
+      className: details.className ?? "",
+      sailNumber: details.sailNumber ?? "",
+      catalogPolar: polar,
+    },
+    boatId,
+    replace,
+  );
+}
+/** Permission is checked online for the current account, never cached as ownership. */
+export async function canEditDownloadedBoat(boat: PrivateBoat) {
+  if (!boat.downloadedFrom) return true;
+  if (
+    boat.downloadedFrom.server !== (process.env.EXPO_PUBLIC_SUPABASE_URL ?? "")
+  )
+    return false;
+  const user = await boatAccount();
+  if (!user) return false;
+  const profile = await downloadedBoatProfile(boat.downloadedFrom.boatId);
+  return profile.isOwner && (await boatAccount())?.id === user.id;
 }

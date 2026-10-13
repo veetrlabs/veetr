@@ -1073,5 +1073,13 @@
   "Verify your email before uploading a boat.": "Verify your email before uploading a boat.",
   "Boat changed elsewhere. Refresh your boats before uploading again.": "Boat changed elsewhere. Refresh your boats before uploading again.",
   "Sign in to upload or refresh your boats.": "Sign in to upload or refresh your boats.",
-  "Pull down to try again.": "Pull down to try again."
+  "Pull down to try again.": "Pull down to try again.",
+  "Download race boat": "Download race boat",
+  "Download boat details": "Download boat details",
+  "Download": "Download",
+  "Replace the saved boat details and reference polar with the published profile? Private trips and measurements will be kept.": "Replace the saved boat details and reference polar with the published profile? Private trips and measurements will be kept.",
+  "Download the public boat details and polar for offline use, or link an existing boat. Only the owner can edit a downloaded profile. Private trips stay on this device.": "Download the public boat details and polar for offline use, or link an existing boat. Only the owner can edit a downloaded profile. Private trips stay on this device.",
+  "Downloaded public boat. Details refresh when you open My boats or pull down. Only the owner can edit; saved details remain available offline.": "Downloaded public boat. Details refresh when you open My boats or pull down. Only the owner can edit; saved details remain available offline.",
+  "This boat is no longer available. The saved copy is still on this device.": "This boat is no longer available. The saved copy is still on this device.",
+  "Only the boat owner can edit or upload this downloaded boat.": "Only the boat owner can edit or upload this downloaded boat."
 }
