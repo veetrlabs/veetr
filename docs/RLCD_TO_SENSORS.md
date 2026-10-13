@@ -67,6 +67,7 @@ DE/RE         →  Pin 11 — GPIO3       (ESP32 GPIO controls TX/RX direction)
 | DE/RE | **3** | 11 | 14 | was GPIO42 (module-only), now on header |
 
 - Wind sensor: ultrasonic, RS485 Modbus RTU, 9600 baud, 8E1 (IEEE754 float format).
+- The PoC wind sensor requires 5 V and currently runs from USB power. Battery operation needs a [5 V boost supply](RLCD_V2_HARDWARE.md#battery-powered-5-v-wind-sensor); the converter and battery connection are pending validation.
 - Firmware uses `HardwareSerial rs485(RS485_UART)` with UART number 2.
 - DE/RE is driven LOW initially (receive mode); `preTransmission` / `postTransmission` callbacks toggle it HIGH during Modbus requests.
 - GPIO3 (P1-11) controls RS485 direction and selects the JTAG interface during reset. Check that the RS485 module preserves the required reset-time signal level.
