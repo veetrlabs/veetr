@@ -1,41 +1,37 @@
 ---
 title: Compliance and certifications
-description: Module evidence and assembled-product compliance responsibilities for Veetr Vane.
+description: Recorded compliance status and component evidence for Veetr Vane.
 editUrl: https://github.com/veetrlabs/veetr/edit/main/docs/COMPLIANCE.md
 ---
 
-Veetr's component choices do **not** establish certification of an assembled Veetr Vane. A radio module's approval, a component's isolation rating, or a supplier's material declaration covers a defined item and scope. The carrier PCB, enclosure, antennas, cables, power system and firmware must be considered in the finished product's assessment.
+Veetr Vane is an open hardware project. **No completed-product certification or EU Declaration of Conformity for an assembled Veetr Vane is documented in this repository.** Component approvals listed below apply to the identified components, not automatically to the assembled product.
 
-This page records engineering/procurement considerations, not an issued product declaration. The previous generic FCC/ISED compliance statements and blanket personal-use/low-power exemptions were not evidence for the completed product and must not be used as product labeling.
+Status reviewed: **2026-10-13**. This page records the evidence available to the project; it is not a product declaration.
 
-## Keep the two hardware generations separate
+## Veetr Vane product status
 
-| Target | Radio module | Evidence to obtain for the actual assembly |
-| --- | --- | --- |
-| Original ESP32 prototype | ESP32-WROOM-32U | Exact module marking, current grants/DoC and antenna/integration conditions |
-| Waveshare RLCD v2 proposal | ESP32-S3-WROOM-1-N16R8 in the reviewed schematic | WROOM-1 documents matching the installed module, plus Waveshare board evidence and host assessment |
-
-Do not copy the original ESP32-WROOM-32U FCC/ISED identifiers onto an ESP32-S3 product. [Espressif's certificate catalogue](https://www.espressif.com/en/support/documents/certificates) lists WROOM-1 CE and FCC documents; an entry alone does not prove that a particular assembled unit meets its conditions. Match the module, antenna and configuration to the actual grant and integration instructions.
-
-The [RLCD v2 hardware plan](RLCD_V2_HARDWARE.md) records the evidence found for concrete modules, EU suppliers, stock limitations and unresolved documentation requests.
-
-## What the different documents mean
-
-| Document / marking | Scope and limitation |
+| Area | Recorded project status |
 | --- | --- |
-| **CE / EU Declaration of Conformity** | The manufacturer declares conformity of an identified product with applicable EU legislation. CE is not a general quality mark or necessarily a third-party certificate. The finished-product manufacturer remains responsible for conformity assessment, technical documentation and its own declaration. |
-| **RoHS** | Restricts specified hazardous substances in electrical/electronic equipment. A supplier declaration helps material compliance; it does not demonstrate EMC, radio, ingress or marine reliability. |
-| **REACH** | EU chemical/substance obligations, including applicable restrictions and substance communication. Obtain relevant current declarations for exact parts; it is not a radio certificate. |
-| **FCC modular authorization** | Can support host integration under the grant's conditions. Check approved antenna, RF exposure, labeling, operating configuration and simultaneous transmitters. Host digital emissions and other applicable requirements remain to be assessed. |
-| **UL/VDE isolation component evidence** | Supports specified insulation ratings and conditions for an isolator/component. It does not certify the breakout, custom carrier, complete product or lightning immunity. |
-| **NMEA2000 certification** | Separate product and network/protocol certification. Using a CAN transceiver or library does not grant certification or permission to claim “NMEA 2000 Certified.” |
+| EU CE / Radio Equipment Directive | No Veetr Vane declaration or completed-product assessment recorded. |
+| US FCC | No completed-host compliance assessment recorded. Radio-module evidence is separate, as listed below. |
+| Canada ISED | No completed-product assessment recorded. |
+| RoHS / REACH | No declaration covering the complete Veetr Vane BOM and assembly recorded. Some proposed modules have supplier RoHS evidence. |
+| NMEA2000 | The RLCD v2 interface is a proposal; RX/TX integration, interoperability testing and product certification are not completed by the hardware documentation update. No Veetr NMEA2000 certification recorded. |
+| Environmental and electrical qualification | No completed-assembly ingress, salt/condensation, vibration, transient or battery-system qualification reports recorded. |
 
-Primary references: [EU manufacturer responsibilities](https://single-market-economy.ec.europa.eu/single-market/goods/ce-marking/manufacturers_en), [EU Radio Equipment Directive](https://single-market-economy.ec.europa.eu/sectors/electrical-and-electronic-engineering-industries-eei/radio-equipment-directive-red_en), [RoHS](https://environment.ec.europa.eu/topics/waste-and-recycling/rohs-directive_en), [REACH](https://echa.europa.eu/regulations/reach/understanding-reach), [FCC KDB 996369 module/host integration guidance](https://apps.fcc.gov/oetcf/kdb/forms/FTSSearchResultPage.cfm?id=44637&switch=P), and [NMEA's certification process](https://www.nmea.org/nmea-2000.html).
+These statuses cover the original ESP32 prototype and the proposed RLCD v2 assembly. They describe the project's evidence, rather than a finding that any particular unit has passed or failed an assessment.
 
-## Evidence required before production claims
+## Component evidence
 
-Collect signed declarations and applicable reports with exact model/revision coverage, traceable sourcing, radio grant and antenna conditions, and current material declarations. Identify applicable markets and legislation with the assessment provider; neither open-source distribution nor low sensor power establishes a blanket exemption.
+| Hardware / component | Evidence recorded | Scope |
+| --- | --- | --- |
+| Original ESP32 prototype: ESP32-WROOM-32U | The earlier project documentation identifies this radio module. Matching grants and integration conditions are not archived with a validated Veetr assembly. | Component identification; no completed-product approval established here. |
+| RLCD v2 proposal: ESP32-S3-WROOM-1-N16R8 | Identified in the [Waveshare schematic](https://files.waveshare.com/wiki/ESP32-S3-RLCD-4.2/ESP32-S3-RLCD-4.2-schematic.pdf). [Espressif's catalogue](https://www.espressif.com/en/support/documents/certificates) lists WROOM-1 CE and FCC documents. | Espressif radio module. No signed whole-RLCD-board declaration was reviewed. |
+| Proposed CAN interface: Olimex A20-CAN-ISO | [Signed EU declaration](https://www.olimex.com/Products/OLinuXino/A20/A20-CAN/resources/EU-DOC-A20-CAN.pdf), dated 2021-07-08, covers A20-CAN and A20-CAN-ISO under EMC and RoHS. | Olimex board; not the Veetr carrier or complete assembly. |
+| Proposed GNSS: MAX-M10S on MIKROE-4643 or SparkFun GPS-18037 | [u-blox MAX-M10 declaration](https://content.u-blox.com/sites/default/files/documents/MAX-M10_RED_Conformity_UBX-22013367.pdf), R06 dated 2025-11-26, covers RED/RoHS with a specified external antenna. | u-blox module and stated configuration; not either third-party breakout automatically. |
 
-Assess the complete operating configurations, including BLE plus Wi-Fi, GNSS reception, display and SD activity, charging, battery operation and attached marine cables. Cable transients, power conversion emissions, grounding and radio placement can change the result even when every board was previously tested separately. Validate temperature, ingress, condensation, corrosion and vibration independently of radio compliance.
+The v2 components above remain candidates, not a released production BOM. Evidence for alternatives and gaps in exact-board CE, FCC and REACH documentation are recorded in the [RLCD v2 hardware plan](RLCD_V2_HARDWARE.md#regulatory-evidence-and-supply-confidence).
 
-Battery and shipping documentation, labeling, technical-file maintenance and production change control also need an owner. No fixed RF separation distance or completed-product compliance statement is prescribed here without evidence for the final configuration. Where Canada or another market is intended, obtain the applicable current local authorization and integration requirements as well.
+## Qualification work
+
+The [hardware plan's acceptance gates](RLCD_V2_HARDWARE.md#open-verification-items-and-acceptance-gates) track the outstanding electrical, functional, environmental and procurement checks. That plan also explains the different regulatory documents and their limits. This page will be updated when project-specific declarations or assessment reports become available.
