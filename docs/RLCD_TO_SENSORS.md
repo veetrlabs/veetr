@@ -69,7 +69,8 @@ DE/RE         →  Pin 11 — GPIO3       (ESP32 GPIO controls TX/RX direction)
 - Wind sensor: ultrasonic, RS485 Modbus RTU, 9600 baud, 8E1 (IEEE754 float format).
 - Firmware uses `HardwareSerial rs485(RS485_UART)` with UART number 2.
 - DE/RE is driven LOW initially (receive mode); `preTransmission` / `postTransmission` callbacks toggle it HIGH during Modbus requests.
-- GPIO3 is **not** SD chip-select; it is a JTAG-selection strapping pin exposed on P1-11. Check reset-time loading from the RS485 module. SD uses CLK=38, CMD=21, D0=39 in one-bit SDMMC mode. GPIO17 has an optional connection to SD DAT3/CS through R7, marked NC (unpopulated). Verify the actual board revision and absence of R7 before simultaneous wind/SD testing; do not move working RS485 pins on the basis of the old SD claim.
+- GPIO3 (P1-11) controls RS485 direction and selects the JTAG interface during reset. Check that the RS485 module preserves the required reset-time signal level.
+- SD uses GPIO38 (CLK), GPIO21 (CMD) and GPIO39 (D0) in one-bit SDMMC mode. GPIO17 connects to SD DAT3/CS through optional resistor R7, shown unpopulated in the schematic. Confirm R7 is absent on your board before testing wind and SD together.
 
 ---
 
