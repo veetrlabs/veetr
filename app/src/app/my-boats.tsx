@@ -6,8 +6,8 @@ import BoatModelLookup from "../boats/BoatModelLookup";
 import { applyCatalogBoat } from "../boats/catalog";
 import BoatPolarDetails from '../polar/BoatPolarDetails';
 import BackButton from '../components/BackButton';
-import { useCallback, useState } from "react";
-import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { useCallback, useRef, useState } from "react";
+import { Alert, Pressable, RefreshControl, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { t, translateMessage, useLanguageRefresh } from "../i18n";
@@ -26,6 +26,9 @@ export default function MyBoats() {
   const [edit, setEdit] = useState<PrivateBoat>();
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshVersion, setRefreshVersion] = useState(0);
+  const refreshInFlight = useRef(false);
   const [polarInteracting,setPolarInteracting]=useState(false);
   const [dimensionErrors, setDimensionErrors] = useState<Record<string,string>>({});
   useFocusEffect(useCallback(() => {
@@ -49,6 +52,22 @@ export default function MyBoats() {
     })().catch(e => { if (alive) setError(e.message); });
     return () => { alive = false; };
   }, [params.boatId, params.boatName]));
+  const refresh = async () => {
+    if (refreshInFlight.current || busy || polarInteracting) return;
+    refreshInFlight.current = true;
+    setRefreshing(true); setError("");
+    try {
+      const before = await privateFleet();
+      const next = await refreshOwnedBoats();
+      setFleet(next);
+      // Refresh a displayed saved profile without discarding an unfinished field edit.
+      setEdit(current => current && JSON.stringify(current) === JSON.stringify(before.boats.find(b => b.id === current.id))
+        ? next.boats.find(b => b.id === current.id) ?? current : current);
+      const saved = await savedSeriesPhone();
+      setInvited(saved ? await seriesPhoneStatus(saved.linkId) : null);
+    } catch (e) { setError((e as Error).message); }
+    finally { setRefreshVersion(v => v + 1); setRefreshing(false); refreshInFlight.current = false; }
+  };
   const style = { padding: 16, borderRadius: 12, backgroundColor: c.buttonBg, minHeight: 48 };
   const button = (label: string, action: () => void) => <Pressable accessibilityRole="button" disabled={busy} onPress={action} style={style}><Text style={{ color: c.text }}>{label}</Text></Pressable>;
   const persist = async (boat: PrivateBoat) => {
@@ -75,7 +94,8 @@ export default function MyBoats() {
       finally { setBusy(false); }
     } }],
   );
-  return <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}><ScrollView scrollEnabled={!polarInteracting}
+  return <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}><ScrollView scrollEnabled={!polarInteracting} alwaysBounceVertical
+    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} enabled={!busy && !polarInteracting} tintColor={c.text} colors={[c.text]} />}
     onStartShouldSetResponderCapture={(event) => {
       // A new touch sequence must never inherit a missed release from the chart.
       if (event.nativeEvent.touches.length === 1) setPolarInteracting(false);
@@ -115,7 +135,7 @@ export default function MyBoats() {
       {([
         ['weightKg','Weight (kg)'],['lengthM','Overall length (m)'],['waterlineLengthM','Waterline length (m)'],
         ['draftM','Draft (m)'],['airDraftM','Height above waterline (m)'],['beamM','Beam (m)'],
-      ] as const).map(([field,label])=><View key={`${edit.catalogPolar?.id??'custom'}:${field}`} style={{gap:6}}>
+      ] as const).map(([field,label])=><View key={`${edit.catalogPolar?.id??'custom'}:${field}:${edit[field]??''}`} style={{gap:6}}>
         <Text style={{color:c.text}}>{t(label)}</Text>
         <TextInput accessibilityLabel={t(label)} keyboardType="decimal-pad" defaultValue={edit[field]?.toString()??''}
           onEndEditing={event=>{
@@ -135,8 +155,8 @@ export default function MyBoats() {
         {fleet.activeId === edit.id
           ? <Text style={{ color: c.textMuted }}>{t("Active for private trips")}</Text>
           : button(t("Use for private trips"), () => void useBoat(edit.id))}
-        <BoatPolarDetails onInteractionChange={setPolarInteracting} key={`${edit.id}:${edit.catalogPolar?.id??""}`} boatId={edit.id} />
-        <BoatPublishing key={edit.id} boatId={edit.id} disabled={busy || Object.values(dimensionErrors).some(Boolean)} onRefresh={() => {void refreshOwnedBoats().then(setFleet).catch(e=>setError(e.message));}} />
+        <BoatPolarDetails onInteractionChange={setPolarInteracting} key={`${edit.id}:${edit.catalogPolar?.id??""}:${refreshVersion}`} boatId={edit.id} />
+        <BoatPublishing key={edit.id} boatId={edit.id} refreshVersion={refreshVersion} disabled={busy || refreshing || Object.values(dimensionErrors).some(Boolean)} onRefresh={() => {void refreshOwnedBoats().then(setFleet).catch(e=>setError(e.message));}} />
         {button(t("Delete boat"), () => confirmDelete(edit))}
       </>}
     </> : <>
@@ -146,7 +166,6 @@ export default function MyBoats() {
         {fleet.activeId === boat.id && <Text style={{ color: c.textMuted }}>{t("Active for private trips")}</Text>}
       </Pressable>)}
       {button(t("Create private boat"), () => {setDimensionErrors({});setEdit({ id: "", name: "", className: "", sailNumber: "" });})}
-      {button(t("Refresh boats"), () => {setBusy(true);setError("");void refreshOwnedBoats().then(setFleet).catch(e=>setError(e.message)).finally(()=>setBusy(false));})}
       <Text style={{ color: c.text, fontSize: 22, fontWeight: "600" }}>{t("Invited races")}</Text>
       {invited ? <View style={{ padding: 16, borderWidth: 1, borderColor: c.border, borderRadius: 12, gap: 12 }}>
         <Text style={{ color: c.text, fontWeight: "700", fontSize: 20 }}>{invited.boatName}</Text>

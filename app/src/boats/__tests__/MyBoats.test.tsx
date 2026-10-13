@@ -13,7 +13,7 @@ let mockPolarInteraction: ((active:boolean)=>void) | undefined;
 jest.mock('../../polar/BoatPolarDetails', () => ({__esModule:true,default:({boatId,onInteractionChange}:any)=>{mockPolarInteraction=onInteractionChange;return require('react').createElement('Text',null,`Polar for ${boatId}`);}}));
 jest.mock('../../polar/sync', () => ({restorePolars:jest.fn()}));
 jest.mock("expo-router", () => ({ router: { push: jest.fn(), back: jest.fn() }, useLocalSearchParams: jest.fn(() => ({})), useFocusEffect: (fn: any) => require("react").useEffect(fn, [fn]) }));
-jest.mock("react-native", () => ({ Alert: { alert: jest.fn() }, Text: "Text", TextInput: "TextInput", View: "View", ScrollView: "View", Pressable: "View", StyleSheet: { flatten: (s: unknown) => s } }));
+jest.mock("react-native", () => ({ Alert: { alert: jest.fn() }, Text: "Text", TextInput: "TextInput", View: "View", ScrollView: "View", RefreshControl: "RefreshControl", Pressable: "View", StyleSheet: { flatten: (s: unknown) => s } }));
 jest.mock("react-native-safe-area-context", () => ({ SafeAreaView: "View" }));
 jest.mock("../../context/ThemeContext", () => ({ useTheme: () => ({ theme: "light" }) }));
 jest.mock("../privateBoats", () => ({ linkedRaceBoat: jest.requireActual("../privateBoats").linkedRaceBoat, linkRaceBoat: jest.fn(), privateFleet: jest.fn(), savePrivateBoat: jest.fn(), selectPrivateBoat: jest.fn(), deletePrivateBoat: jest.fn() }));

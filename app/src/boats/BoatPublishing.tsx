@@ -17,8 +17,10 @@ export default function BoatPublishing({
   boatId,
   disabled,
   onRefresh,
+  refreshVersion = 0,
 }: {
   boatId: string;
+  refreshVersion?: number;
   disabled?: boolean;
   onRefresh: () => void;
 }) {
@@ -46,7 +48,7 @@ export default function BoatPublishing({
   useFocusEffect(
     useCallback(() => {
       void load().catch((e) => setError(e.message));
-    }, [load]),
+    }, [load, refreshVersion]),
   );
   const action = (label: string, run: () => void) => (
     <Pressable
@@ -85,9 +87,7 @@ export default function BoatPublishing({
         )}
       </Text>
       {!ready ? (
-        action("Refresh boats", () => {
-          void load().catch((e) => setError(e.message));
-        })
+        <Text style={{color:colors.textMuted}}>{t(error ? "Pull down to try again." : "Loading boats…")}</Text>
       ) : !account ? (
         <AccountSignIn
           onSignedIn={() => {
@@ -152,11 +152,6 @@ export default function BoatPublishing({
                 `${(process.env.EXPO_PUBLIC_SITE_URL || "https://veetr.org").replace(/\/$/, "")}/boats/${published.id}/`,
               );
             })}
-          {action("Refresh boats", () => {
-            void load()
-              .then(onRefresh)
-              .catch((e) => setError(e.message));
-          })}
         </>
       )}
       {!!message && (

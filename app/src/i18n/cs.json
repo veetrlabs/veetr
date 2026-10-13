@@ -1082,5 +1082,6 @@
   "Upload a boat to use it on your other devices. New boats stay private unless you choose a public upload. Race invitations grant tracking access, not ownership.": "Nahrajte loď, abyste ji mohli používat na dalších zařízeních. Nové lodě zůstávají soukromé, pokud nezvolíte veřejné nahrání. Závodní pozvánky umožňují sledování, nikoli správu lodi.",
   "Verify your email before uploading a boat.": "Před nahráním lodi ověřte svůj e-mail.",
   "Boat changed elsewhere. Refresh your boats before uploading again.": "Loď byla změněna jinde. Před dalším nahráním obnovte seznam lodí.",
-  "Sign in to upload or refresh your boats.": "Pro nahrání nebo načtení lodí se přihlaste."
+  "Sign in to upload or refresh your boats.": "Pro nahrání nebo načtení lodí se přihlaste.",
+  "Pull down to try again.": "Pro další pokus potáhněte dolů."
 }
