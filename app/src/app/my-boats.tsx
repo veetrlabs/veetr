@@ -8,7 +8,7 @@ import { applyCatalogBoat } from "../boats/catalog";
 import BoatPolarDetails from '../polar/BoatPolarDetails';
 import BackButton from '../components/BackButton';
 import { useCallback, useRef, useState } from "react";
-import { Alert, Pressable, RefreshControl, ScrollView, Text, TextInput, View } from "react-native";
+import { Alert, Pressable, RefreshControl, ScrollView, Switch, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { t, translateMessage, useLanguageRefresh } from "../i18n";
@@ -116,7 +116,7 @@ export default function MyBoats() {
     } catch (e) { setError((e as Error).message); }
     finally { setBusy(false); }
   };
-  const useBoat = async (id: string) => {
+  const useBoat = async (id?: string) => {
     setBusy(true); setError("");
     try { setFleet(await selectPrivateBoat(id)); }
     catch (e) { setError((e as Error).message); }
@@ -185,9 +185,11 @@ export default function MyBoats() {
       </View>)}
       {!edit.id && button(t("Create private boat"), () => {if(!Object.values(dimensionErrors).some(Boolean)) void persist(edit);})}
       {!!edit.id && <>
-        {fleet.activeId === edit.id
-          ? <Text style={{ color: c.textMuted }}>{t("Active for private trips")}</Text>
-          : button(t("Use for private trips"), () => void useBoat(edit.id))}
+        <View style={{flexDirection:"row",alignItems:"center",gap:12,minHeight:48}}>
+          <Text style={{color:c.text,flex:1}}>{t("Use for private trips")}</Text>
+          <Switch accessibilityLabel={t("Use for private trips")} value={fleet.activeId === edit.id}
+            disabled={busy || refreshing} onValueChange={enabled => void useBoat(enabled ? edit.id : undefined)} />
+        </View>
         <BoatPolarDetails readOnly={readOnly} onInteractionChange={setPolarInteracting} key={`${edit.id}:${edit.catalogPolar?.id??""}:${refreshVersion}`} boatId={edit.id} />
         {!readOnly && <BoatPublishing key={edit.id} boatId={edit.id} refreshVersion={refreshVersion} disabled={busy || refreshing || Object.values(dimensionErrors).some(Boolean)} onRefresh={() => {void refreshOwnedBoats().then(setFleet).catch(e=>setError(e.message));}} />}
         {!edit.racePreview && button(t("Delete boat"), () => confirmDelete(edit))}
