@@ -4,7 +4,7 @@ Updated: **2026-10-13**. Status: **proposed design; hardware validation pending*
 
 ## Decision
 
-Keep the Waveshare ESP32-S3-RLCD-4.2 and its display, radio, SD socket, battery circuit, and USB. Retain wind RS485 and the working BNO08x IMU. Prototype a MAX-M10S GNSS board over I²C, freeing GPIO43/44 for the ESP32-S3's CAN controller and an isolated transceiver. The proposed pin budget supports all required functions. GNSS-over-I²C, NMEA2000 read/write and SD logging require firmware integration and hardware validation. Wi-Fi remains a hardware capability to integrate and validate alongside BLE.
+Keep the Waveshare ESP32-S3-RLCD-4.2 and its display, radio, SD socket, battery circuit, and USB. Retain wind RS485 and keep the working BNO08x IMU in the existing prototype until the v2 assembly passes validation. Use Qwiic/STEMMA QT connections for the v2 I²C modules, with SparkFun GPS-18037 MAX-M10S as the preferred GNSS and Adafruit 4754 BNO085 as the preferred new-build IMU candidate. Moving GNSS to I²C frees GPIO43/44 for the ESP32-S3's CAN controller and an isolated transceiver. The proposed pin budget supports all required functions. GNSS-over-I²C, NMEA2000 read/write and SD logging require firmware integration and hardware validation. Wi-Fi remains a hardware capability to integrate and validate alongside BLE.
 
 Module selection remains provisional pending production availability, lifecycle commitments, regulatory evidence and carrier compatibility. The shortlist records the limitations of each candidate.
 
@@ -64,6 +64,30 @@ Other reservations, verified from Waveshare schematic and current firmware:
 | Flash / PSRAM | WROOM N16R8 resources | Do not reclaim internal memory pins |
 | BLE and Wi-Fi | Internal radio | No additional P1 pins; shared RF/CPU/power budget |
 
+### I²C module connections: Qwiic / STEMMA QT
+
+The carrier provides two identical **4-pin JST-SH, 1.0 mm pitch** Qwiic/STEMMA QT ports for GNSS and IMU. Both connect to the shared GPIO13/14 bus and supply **3.3 V**. The carrier assembler fits the sockets; standard cables connect directly to the selected modules. No per-module adapter PCB or identification EEPROM is required.
+
+| Connector pin | Signal | Carrier connection |
+| --- | --- | --- |
+| 1 | GND | P1-3/4 |
+| 2 | 3.3 V | P1-1 |
+| 3 | SDA | P1-14 / GPIO13 |
+| 4 | SCL | P1-16 / GPIO14 |
+
+Follow the connector manufacturer's numbered footprint and the [Qwiic/STEMMA QT pin convention][qt-spec]; confirm mating orientation before layout. Use four-pin JST-SH Qwiic/QT cables, rather than the larger JST-PH STEMMA connector. The two ports are electrically interchangeable for compatible 3.3 V I²C modules. The v2 firmware will identify supported devices through protocol-specific queries; addresses alone do not identify a board. Both ports share one bus, so physical socket location is not detectable. Connect or disconnect modules with power off.
+
+| Candidate | Direct Qwiic/QT connection | Selection |
+| --- | --- | --- |
+| SparkFun GPS-18037 MAX-M10S | **Yes:** two fitted Qwiic connectors supply power and I²C; 3.3 V, default address `0x42`. [Hardware guide][gnss-guide] | Preferred GNSS; external SMA antenna required. No headers needed for I²C. |
+| Adafruit 4754 BNO085 | **Yes:** fitted STEMMA QT connectors carry power and I²C; default `0x4A`, optionally `0x4B`. [Pinout][imu-pins] | Preferred new-build 9-axis fusion IMU candidate, conditional on ESP32-S3 bus validation. |
+| MIKROE-4643 GNSS MAX Click | mikroBUS headers; no native Qwiic/QT connector. [Board][gnss-click] | Outside the preferred direct-cable BOM. |
+| MIKROE-6369 Smart DOF 4 Click | mikroBUS headers; no native Qwiic/QT connector. SPI is the default; I²C requires solder-jumper configuration. [Board][imu-click] | Outside the preferred direct-cable BOM. |
+
+Use two short internal cables, initially 100 mm each, and mounting standoffs with cable retention. Qwiic/QT supplies an electrical connection, not mechanical board support or environmental sealing. These cables stay inside the enclosure. PPS, hardware reset and interrupt signals are outside the four-wire connection; the initial firmware must support GNSS and IMU operation without dedicated lines. If recovery or timing tests require extra signals, revise the carrier interface before production.
+
+The MAX-M10S board's 2.2 kΩ I²C pull-ups are disconnected by default; the Adafruit board has 10 kΩ pull-ups on SDA/SCL. Account for Waveshare's onboard pull-ups before adding more. Validate signal rise times, total cable capacitance, 3.3 V current margin and recovery from a stalled device. A fault on the shared bus can affect both sensors and onboard peripherals.
+
 ### GNSS and IMU bus feasibility
 
 MAX-M10S has an I²C interface (normally `0x42`); current IMU addresses `0x4A/0x4B`, RTC `0x51`, and SHTC3 `0x70` do not conflict. Also inventory the onboard audio codecs and every module's pull-ups. Address compatibility alone does not establish timing reliability. See [SparkFun's hookup guide][gnss-guide] and [Adafruit's BNO085 warning][imu-warning]. Keep all pull-ups at 3.3 V and verify their parallel resistance and edge timing.
@@ -79,9 +103,9 @@ Prices and availability are indicative as of 2026-10-13; entries with conflictin
 | Function / rank | Exact candidate and EU sourcing | Fit, assembly and evidence | Limitation / disposition |
 | --- | --- | --- | --- |
 | Controller/display: retain | Waveshare ESP32-S3-RLCD-4.2, BerryBase **WS-33298** ([listing][rlcd-eu]) | Existing platform; P1 socket, onboard display/SD/battery; Espressif publishes WROOM-1 CE/FCC records [certificates][esp-cert] | Whole-board DoC, board/panel longevity and production availability remain unconfirmed. Request exact PCB version and batch quote |
-| GNSS: socket preference | MIKROE **MIKROE-4643 GNSS MAX Click**, MAX-M10S; [manufacturer product page][gnss-click], [DigiKey EU listing][gnss-digikey] | 3.3 V, I²C/UART, mikroBUS headers, external SMA antenna. [Manufacturer][gnss-click]; u-blox has a module-level [RED DoC][gnss-doc] | Budget €46.44 ex VAT; current price and availability require confirmation. GNSS antenna extra. [Product brochure][gnss-brochure]. Board-level CE/FCC evidence not established |
-| GNSS: compact alternative | SparkFun **GPS-18037 MAX-M10S Qwiic**, [Botland][gnss-botland] | Solderless Qwiic plus mounting holes; same GNSS IC/module family, [source][gnss-sparkfun] | Header pins may require assembly; Qwiic cables need retention. Not a second semiconductor source. EU price and availability require a supplier quote |
-| IMU: retain existing, replacement candidate | Adafruit **4754 BNO085**, BerryBase **ADA4754** ([listing][imu-eu]) | Tested assembled breakout, STEMMA QT connectors; 9-axis fused orientation, [pinout][imu-pins] | €27.45 incl. VAT. English page says 100+ while German page says unavailable: stock unconfirmed. I²C warning above. Whole-board CE/FCC and lifecycle commitment not established |
+| GNSS: mikroBUS alternative | MIKROE **MIKROE-4643 GNSS MAX Click**, MAX-M10S; [manufacturer][gnss-click], [DigiKey EU][gnss-digikey] | 3.3 V I²C/UART, mikroBUS headers, external SMA antenna; module-level [RED DoC][gnss-doc] | Requires an adapter or custom wiring for Qwiic/QT; excluded from the preferred BOM. [Product brochure][gnss-brochure] |
+| GNSS: preferred Qwiic candidate | SparkFun **GPS-18037 MAX-M10S Qwiic**, [manufacturer][gnss-sparkfun], [Botland EU][gnss-botland] | Two fitted Qwiic connectors, 3.3 V I²C, SMA antenna connector and mounting holes; module-level [RED DoC][gnss-doc] | External antenna and cable required. EU price/quantity quote pending. Shared semiconductor source with the Click alternative; breakout-level compliance remains unconfirmed |
+| IMU: preferred QT candidate for new builds | Adafruit **4754 BNO085**, BerryBase **ADA4754** ([listing][imu-eu]) | Assembled breakout with fitted STEMMA QT connectors; 9-axis fused orientation, [pinout][imu-pins] | €27.45 incl. VAT. English page says 100+ while German page says unavailable: stock unconfirmed. I²C warning above. Whole-board CE/FCC and lifecycle commitment not established |
 | CAN: first prototype candidate | Olimex **A20-CAN-ISO**, [EU manufacturer store][olimex-can] | €15.95 ex VAT, listed in stock; assembled board; carrier needs a mating-header adapter. Separate [isolated schematic][olimex-sch] shows TJA1052, isolated DC/DC, 3.3 V logic, 5 V power, normally open termination jumpers. Signed [EU EMC/RoHS DoC][olimex-doc] covers ISO variant | Needs battery-backed 5 V and carrier adapter; confirm supplied revision/connector population, unpowered behavior and startup inhibit. FCC/REACH evidence and production quantities unconfirmed |
 | CAN: socket alternative, conditional | MIKROE **MIKROE-5785 CAN Isolator 3 Click**, MAX14882; [TME][can-tme] | Integrated isolated supply path and 3.3 V operation, mikroBUS; [manufacturer][can3], [schematic][can3-sch] | €46.38 ex VAT / €55.19 incl. on German listing, **0 TME stock**. Fixed termination needs supplier-prepared removal for a drop node. Board DoC/FCC evidence and production qualification pending |
 | CAN: older alternative | MIKROE **MIKROE-2627 CAN Isolator Click**, ADM3053; [TME][can1-tme] | Signal + isolated power, long documented history ([2017 announcement][can1-history]), socket assembly | [Schematic][can1-sch] includes split termination; 5 V power required even with 3.3 V I/O. More power/EMI work; no clear cost or solderless advantage |
@@ -126,20 +150,20 @@ One of each unless stated otherwise. Prices are provisional; production availabi
 | Item | Quantity | Budget EUR, excluding VAT/shipping | Basis / additional requirement |
 | --- | --- | --- | --- |
 | WS-33298 RLCD board | 1 | 30–45 | Engineering allowance; EU listing verified, reliable live price not obtained |
-| MIKROE-4643 GNSS | 1 | 46.44 | Indicative budget; current supplier quote and antenna additional |
+| SparkFun GPS-18037 Qwiic GNSS | 1 | 40–55 | Engineering allowance pending EU quote; manufacturer lists US$45.95 before destination costs |
 | SMA GNSS antenna / cable | 1 | 10–25 | Allowance; choose compatible active/passive antenna and bias specification with GNSS vendor |
-| ADA4754 IMU | 1 | 23.07 | €27.45 gross converted at German 19% VAT for comparison; reuse existing IMU when possible |
+| ADA4754 IMU | 1 | 23.07 | €27.45 gross converted at German 19% VAT for comparison; reuse existing IMU only if its connector and bus behavior meet this design |
 | Olimex A20-CAN-ISO | 1 | 15.95 | Manufacturer net price; mating connector included in carrier allowance |
 | MIKROE-3863 isolated RS485 | 1 | 40.68 | Optional replacement of existing converter; supplier setup not priced |
 | SDCIT2/8GB | 1 | 10–20 | Allowance pending quote |
 | Compatible documented single-cell battery | 1 | 8–15 | Allowance; exact cell, fit, protection and charging qualification open |
-| Carrier PCB, sockets, retention, internal cables | 1 set | 15–35 | Prototype allowance, supplier assembly additional |
+| Carrier PCB, sockets, retention, internal cables | 1 set | 15–35 | Includes two fitted Qwiic/QT sockets and two standard 100 mm cables; prototype allowance, supplier assembly additional |
 | NMEA2000 connector/drop lead, enclosure sealing and protection | 1 set | 25–60 | Allowance; final connector SKU and surge design open |
 | Battery-backed 5 V CAN conversion | 1 | 15–25 | Pololu 4085 evaluation allowance pending EU quote and rail tests; CAN supply; separate wind boost budgeted below |
 | Wind-sensor 5 V boost | 1 | 5.46 | Pololu 2562 distributor listing; headers, protected power-path integration and assembly additional |
-| **Planning subtotal** | | **244.60–356.60** | Includes isolated RS485; excludes wind head, existing wind power supply, labour, test gear and certification |
+| **Planning subtotal** | | **238.16–365.16** | Includes isolated RS485; excludes wind head, existing wind power supply, labour, test gear and certification |
 
-Using the existing IMU and RS485 converter reduces that subtotal by €63.75, but preserves the existing converter's isolation limitations. A retained RLCD board is also a sunk cost for the prototype, not for new production. The RLCD board already includes the SD socket and Wi-Fi/BLE radio. Replacing the CAN Click with Olimex saves €30.43 in board price before accounting for its required 5 V supply. Replacing the RS485 Click with Olimex could save another €23.73 but is not included in the subtotal because protocol compatibility is unverified. Socket GNSS and isolated CAN are the main new functional cost; GNSS alternatives require current quotes before claiming savings.
+Reusing the RS485 converter saves €40.68 but preserves its isolation limitations. Reusing an existing IMU saves another €23.07 only if its connector and bus behavior meet the Qwiic/QT design. A retained RLCD board is also a sunk cost for the prototype, not for new production. The RLCD board already includes the SD socket and Wi-Fi/BLE radio. Replacing the CAN Click with Olimex saves €30.43 in board price before accounting for its required 5 V supply. Replacing the RS485 Click with Olimex could save another €23.73 but is not included in the subtotal because protocol compatibility is unverified. Qwiic GNSS and isolated CAN are the main new functional cost; GNSS alternatives require current quotes before claiming savings.
 
 The repository README's roughly **US$250 (2025)** electronics estimate has different currency, date and scope. There is no verified like-for-like v1 procurement BOM here; therefore the “lower price than v1” objective remains **unproven**. Obtain 10/100/500-unit quotes with VAT, shipping, wind head, antenna, carrier assembly, battery and enclosure treated consistently. Compare an unchanged v1 baseline, a reuse prototype, and a new-build v2.
 
@@ -189,7 +213,7 @@ Before ordering production quantities, obtain written lead times and 10/100/500-
 | Board revision | Photograph revision/R7, unpowered continuity check, correct header orientation and supply rails | Physical RLCD required |
 | SD + existing wind | Vendor SD smoke test, then concurrent Modbus/file read-write; repeated cold boots and battery/USB transitions; no sensor regression | Existing board + card + sensors |
 | GPIO3 / CAN startup | Scope reset-time strap loading and DE behavior; later GPIO43 boot traffic, transceiver inhibit and recessive bus behavior | Actual module assemblies required |
-| I²C feasibility | GNSS+IMU+onboard scan, pull-up/edge checks, report age and bus utilization, recovery after sensor failure under full workload | GNSS candidate and current IMU required |
+| I²C feasibility | GPS-18037 + ADA4754 + onboard devices: connector polarity/3.3 V, pull-ups/edges, cold starts, report age, full-workload recovery with four-wire connections; verify supported device identification in either port | Selected modules and assembled carrier required |
 | CAN physical module | Confirm isolated power, actual termination resistance/DNP variant, logic voltage, current, no DC ground bridge; rated tests by suitable lab | Supplier schematic/config confirmation now; hardware/lab later |
 | NMEA2000 RX/TX | Two-node 250 kbit/s extended-frame tests, ACK, address claim, PGNs, bus-off/recovery, real network interoperability | Hardware and firmware implementation required |
 | Power / endurance | Worst-case rail/current/temperature measurements with radios+SD+wind+CAN; runtime, charge/discharge and power-loss logging tests | Hardware required |
@@ -247,3 +271,6 @@ The proposed carrier requires a dedicated v2 firmware profile and regression tes
 [olimex-rs-doc]: https://www.olimex.com/Products/Modules/Interface/MOD-RS485-ISO/resources/EU-DOC-MOD-RS485-ISO.pdf
 [power]: https://www.pololu.com/product/4085
 [power-eu]: https://botland.store/276-converters-step-up-step-down
+
+[qt-spec]: https://learn.adafruit.com/introducing-adafruit-stemma-qt/technical-specs
+[imu-click]: https://www.mikroe.com/smart-dof-4-click

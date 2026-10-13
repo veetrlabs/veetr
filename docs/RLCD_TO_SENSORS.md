@@ -2,7 +2,7 @@
 
 This document maps each external sensor board to the corresponding pins on the **Waveshare ESP32-S3-RLCD-4.2** devboard. The canonical source of truth for firmware pin definitions is [`firmware/include/board/pins_esp32s3_rlcd.h`](../firmware/include/board/pins_esp32s3_rlcd.h).
 
-> This is the current firmware wiring, not the proposed v2 carrier pinout. See [RLCD v2 hardware plan](RLCD_V2_HARDWARE.md) for verified SD wiring, NMEA2000 allocation, EU sourcing, BOM, and validation gates.
+> This is the current firmware wiring, not the proposed v2 carrier pinout. See [RLCD v2 hardware plan](RLCD_V2_HARDWARE.md) for verified SD wiring, NMEA2000 allocation, Qwiic/STEMMA QT module connections, EU sourcing, BOM, and validation gates.
 
 ## Quick Reference
 
