@@ -25,7 +25,7 @@
 // USB Serial/JTAG:  GPIO19/20  (P1-6, P1-8)
 // SD (1-bit SDMMC): CLK=38, CMD=21, D0=39 (not on P1)
 // SD DAT3/CS:       optional GPIO17 via R7, marked NC in schematic
-// GPIO3:           P1-11, JTAG-selection strapping pin; not SD CS
+// GPIO3:           P1-11, JTAG-selection strapping pin
 // Display:          GPIO5,6,11,12,40,41
 // Audio/I2S:        GPIO8,9,10,16,45,46
 // Battery ADC:      GPIO4

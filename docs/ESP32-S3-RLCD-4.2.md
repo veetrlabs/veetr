@@ -23,7 +23,7 @@ Verified against the [official schematic](https://files.waveshare.com/wiki/ESP32
 | GPIO | Function | Description |
 | :--- | :--- | :--- |
 | **GPIO0** | **BOOT Button** | Active Low; used for Flash mode or custom input. |
-| **GPIO3** | **Expansion / strap** | P1-11; JTAG-selection strap, not SD CS. Current Veetr RS485 DE/RE. |
+| **GPIO3** | **Expansion / strap** | P1-11; JTAG-selection strap. Current Veetr RS485 DE/RE. |
 | **GPIO4** | **Battery Sensing** | Analog Input (ADC1_CH3) with a 3x voltage divider. |
 | **GPIO5** | **RLCD DC** | Data/Command selection for ST7305 controller. |
 | **GPIO6** | **RLCD TE** | Onboard display tearing-effect signal; reserve even if unused by firmware. |
@@ -59,7 +59,7 @@ The display is driven by the **Sitronix ST7305** controller (or compatible ST730
 
 ### 3.2 SD card
 
-The vendor `CustomSDPort` constructor defaults to `clk=38, cmd=21, d0=39, width=1`; its implementation assigns these to the SDMMC slot. This is **one-bit SDMMC**, not SPI with a software CS pin. DAT1/DAT2 have no MCU connection; DAT3 is pulled up and optionally linked to GPIO17 through R7. The Arduino `06_SD_Card` sketch writes and reads a test file. This establishes the documented design, not successful operation of the Veetr assembly. Do not populate R7 or change existing RS485 wiring for this update.
+The vendor `CustomSDPort` constructor defaults to `clk=38, cmd=21, d0=39, width=1`; its implementation assigns these to the SDMMC slot. This is **one-bit SDMMC**, not SPI with a software CS pin. DAT1/DAT2 have no MCU connection; DAT3 is pulled up and optionally linked to GPIO17 through R7. The Arduino `06_SD_Card` sketch writes and reads a test file. Concurrent SD and RS485 operation requires an unpopulated R7 and testing on the assembled board.
 
 ### 3.3 Audio Subsystem
 *   **Playback (ES8311):** Driven via I2S. Ensure **GPIO46** is driven **High** to enable the Class-D amplifier.

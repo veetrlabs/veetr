@@ -2,7 +2,7 @@
 
 This document maps each external sensor board to the corresponding pins on the **Waveshare ESP32-S3-RLCD-4.2** devboard. The canonical source of truth for firmware pin definitions is [`firmware/include/board/pins_esp32s3_rlcd.h`](../firmware/include/board/pins_esp32s3_rlcd.h).
 
-> This is the current firmware wiring, not the proposed v2 carrier pinout. See [RLCD v2 hardware plan](RLCD_V2_HARDWARE.md) for verified SD wiring, NMEA2000 allocation, EU sourcing, BOM, and validation gates. No active pin definitions were changed by that plan.
+> This is the current firmware wiring, not the proposed v2 carrier pinout. See [RLCD v2 hardware plan](RLCD_V2_HARDWARE.md) for verified SD wiring, NMEA2000 allocation, EU sourcing, BOM, and validation gates.
 
 ## Quick Reference
 
@@ -144,7 +144,7 @@ The onboard **KEY** button (GPIO18) replaces the old BOOT button for discovery m
 - The I2C bus (GPIO13/GPIO14) is shared with SHTC3, PCF85063, and the audio codecs.
 - The BOOT button (GPIO0) and KEY button (GPIO18) are on P1-5 and P1-15 respectively.
 - GPIO19/GPIO20 (P1-6/P1-8) are the USB Serial/JTAG pins; both remain reserved for runtime USB.
-- SD reserves GPIO38 (CLK), GPIO21 (CMD), GPIO39 (D0). GPIO17 connects to DAT3/CS only if R7 is fitted. GPIO3 is unrelated to SD; its strapping behavior still matters.
+- SD reserves GPIO38 (CLK), GPIO21 (CMD), GPIO39 (D0). GPIO17 connects to DAT3/CS only if R7 is fitted. GPIO3 also selects the JTAG interface during reset.
 
 ## Onboard I2C Bus Devices
 

@@ -1,16 +1,16 @@
 # RLCD v2 hardware: verified wiring and module shortlist
 
-Evidence reviewed: **2026-10-13**. Status: **engineering proposal, not a validated carrier design or purchasing release**. Keep the existing [RLCD firmware pins](../firmware/include/board/pins_esp32s3_rlcd.h) and [sensor wiring](RLCD_TO_SENSORS.md) until the relevant hardware tests pass. The original ESP32 target is unchanged.
+Updated: **2026-10-13**. Status: **proposed design; hardware validation pending**. Keep the existing [RLCD firmware pins](../firmware/include/board/pins_esp32s3_rlcd.h) and [sensor wiring](RLCD_TO_SENSORS.md) until the relevant hardware tests pass. The original ESP32 target is unchanged.
 
 ## Decision
 
-Keep the Waveshare ESP32-S3-RLCD-4.2 and its display, radio, SD socket, battery circuit, and USB. Retain wind RS485 and the working BNO08x IMU. Prototype a MAX-M10S GNSS board over I²C, freeing GPIO43/44 for the ESP32-S3's CAN controller and an isolated transceiver. This preserves the required functions in the proposed pin budget, but **GNSS-over-I²C, NMEA2000 read/write and SD logging are not implemented by this documentation update**. Wi-Fi remains a hardware capability to integrate and validate alongside BLE.
+Keep the Waveshare ESP32-S3-RLCD-4.2 and its display, radio, SD socket, battery circuit, and USB. Retain wind RS485 and the working BNO08x IMU. Prototype a MAX-M10S GNSS board over I²C, freeing GPIO43/44 for the ESP32-S3's CAN controller and an isolated transceiver. The proposed pin budget supports all required functions. GNSS-over-I²C, NMEA2000 read/write and SD logging require firmware integration and hardware validation. Wi-Fi remains a hardware capability to integrate and validate alongside BLE.
 
-No researched board combination yet demonstrates all of: confirmed production quantities, long-term availability, complete regulatory evidence, low cost, and zero module rework. The tables below identify useful candidates and the specific reasons they are conditional. Do not freeze the carrier PCB from a retailer description alone.
+Module selection remains provisional pending production availability, lifecycle commitments, regulatory evidence and carrier compatibility. The shortlist records the limitations of each candidate.
 
 ## Direct verification of Waveshare SD and header wiring
 
-The earlier proposed CMD=38 / CLK=21 mapping is reversed. The verified mapping is:
+The official schematic and SDMMC example specify the following connections:
 
 | SD1 signal | Schematic net | ESP32 GPIO | Evidence |
 | --- | --- | --- | --- |
@@ -19,15 +19,14 @@ The earlier proposed CMD=38 / CLK=21 mapping is reversed. The verified mapping i
 | Pin 7 D0 | MISO | **39** | Same two independent sources |
 | Pin 2 DAT3 / SPI CS | SDCS | **17 only through R7** | R7 is marked **NC**, not populated in the documented design |
 | DAT1 / DAT2 | No MCU connection | None | One-bit design |
-| GPIO3 | Expansion P1-11 | **Not SD** | Direct header connection, no SDCS assignment |
 
 The [official schematic][ws-sch] was inspected visually, including SD-CARD, U1 and P1; its downloaded SHA-256 was `63e679d106253ac6ce8c4eaa69610f34f879660f372953f15e259fc2a7dac1aa`. Waveshare can replace that URL without changing its name; compare the purchased PCB revision.
 
 The [official Arduino header][ws-sdh], at vendor commit `eb1f63427d735a22b9c30e22fa63ebddae1834d3`, declares `CustomSDPort(..., int clk = 38, int cmd = 21, int d0 = 39, int width = 1)`. Its [implementation][ws-sdc] assigns these parameters to `slot_config` and calls `esp_vfs_fat_sdmmc_mount`. The [06_SD_Card sketch][ws-demo] constructs the default port and performs file write/read operations. The [vendor walkthrough][ws-arduino] agrees that it uses SDMMC.
 
-Thus SD does not need GPIO3 or a driven CS in this mode. R7's schematic NC marking is not a continuity measurement on the user's board. Before using SD and RS485 together, inspect R7 and check the GPIO17-to-DAT3 path unpowered. If fitted, stop and resolve the board variant; GPIO17 toggling can interfere with SD startup even when the intended transport is SDMMC. Do not silently relocate RS485 TX or fit/remove R7 in software documentation.
+Before using SD and RS485 together, confirm R7 is unpopulated and check the GPIO17-to-DAT3 path with the board unpowered. A populated R7 connects RS485 TX to DAT3 and can interfere with SD startup. Such a board variant requires a revised wiring design.
 
-GPIO3 is a **JTAG-selection strapping pin**, not the BOOT-mode strap. Check reset-time bias and external DE/RE loading against the [ESP32-S3 datasheet][s3-data]. Its use as DE/RE after reset is separate from its strap function.
+GPIO3 is a **JTAG-selection strapping pin**, exposed on P1-11. Check reset-time bias and external DE/RE loading against the [ESP32-S3 datasheet][s3-data]. Its use as DE/RE after reset is separate from its strap function.
 
 ### Verified P1 header and proposed allocation
 
@@ -75,26 +74,26 @@ Prototype with bounded GNSS reads, limited output sentences/UBX messages, IMU re
 
 ## Ready-made module shortlist
 
-Prices and stock below are observations from retrieved distributor pages, sometimes cached and contradictory, not quotes. EU-based sellers (TME Poland, Botland Poland, BerryBase Germany, and Olimex direct in Bulgaria) are preferred. Mouser/DigiKey regional storefronts are alternatives serving the EU; an EU website does not prove EU warehouse stock or shipment origin. No purchases were made.
+Prices and availability are indicative as of 2026-10-13; entries with conflicting stock information require supplier confirmation. EU-based sellers (TME Poland, Botland Poland, BerryBase Germany, and Olimex direct in Bulgaria) are preferred. Mouser/DigiKey regional storefronts are alternatives serving the EU; an EU website does not prove EU warehouse stock or shipment origin.
 
 | Function / rank | Exact candidate and EU sourcing | Fit, assembly and evidence | Limitation / disposition |
 | --- | --- | --- | --- |
-| Controller/display: retain | Waveshare ESP32-S3-RLCD-4.2, BerryBase **WS-33298** ([listing][rlcd-eu]) | Existing platform; P1 socket, onboard display/SD/battery; Espressif publishes WROOM-1 CE/FCC records [certificates][esp-cert] | No signed whole-RLCD-board DoC reviewed. No board/panel longevity or production-stock commitment found. Request exact PCB version and batch quote |
-| GNSS: socket preference | MIKROE **MIKROE-4643 GNSS MAX Click**, MAX-M10S; [TME listing][gnss-tme], [Mouser EU][gnss-mouser] | 3.3 V, I²C/UART, mikroBUS headers, external SMA antenna. [Manufacturer][gnss-click]; u-blox has a module-level [RED DoC][gnss-doc] | Mouser snapshot: €46.44, 9 stock, 26 on order with an already-past ETA; not confirmed availability. GNSS antenna extra. Board-level CE/FCC evidence not established |
-| GNSS: compact alternative | SparkFun **GPS-18037 MAX-M10S Qwiic**, [Botland][gnss-botland] | Solderless Qwiic plus mounting holes; same GNSS IC/module family, [source][gnss-sparkfun] | Header pins may require assembly; Qwiic cables need retention. Not a second semiconductor source. EU price/stock not reliably extracted; obtain quote |
+| Controller/display: retain | Waveshare ESP32-S3-RLCD-4.2, BerryBase **WS-33298** ([listing][rlcd-eu]) | Existing platform; P1 socket, onboard display/SD/battery; Espressif publishes WROOM-1 CE/FCC records [certificates][esp-cert] | Whole-board DoC, board/panel longevity and production availability remain unconfirmed. Request exact PCB version and batch quote |
+| GNSS: socket preference | MIKROE **MIKROE-4643 GNSS MAX Click**, MAX-M10S; [TME listing][gnss-tme], [Mouser EU][gnss-mouser] | 3.3 V, I²C/UART, mikroBUS headers, external SMA antenna. [Manufacturer][gnss-click]; u-blox has a module-level [RED DoC][gnss-doc] | Mouser listing: €46.44, 9 stock, 26 on order with an already-past ETA; not confirmed availability. GNSS antenna extra. Board-level CE/FCC evidence not established |
+| GNSS: compact alternative | SparkFun **GPS-18037 MAX-M10S Qwiic**, [Botland][gnss-botland] | Solderless Qwiic plus mounting holes; same GNSS IC/module family, [source][gnss-sparkfun] | Header pins may require assembly; Qwiic cables need retention. Not a second semiconductor source. EU price and availability require a supplier quote |
 | IMU: retain existing, replacement candidate | Adafruit **4754 BNO085**, BerryBase **ADA4754** ([listing][imu-eu]) | Tested assembled breakout, STEMMA QT connectors; 9-axis fused orientation, [pinout][imu-pins] | €27.45 incl. VAT. English page says 100+ while German page says unavailable: stock unconfirmed. I²C warning above. Whole-board CE/FCC and lifecycle commitment not established |
-| CAN: first prototype candidate | Olimex **A20-CAN-ISO**, [EU manufacturer store][olimex-can] | €15.95 ex VAT, listed in stock; assembled board; carrier needs a mating-header adapter. Separate [isolated schematic][olimex-sch] shows TJA1052, isolated DC/DC, 3.3 V logic, 5 V power, normally open termination jumpers. Signed [EU EMC/RoHS DoC][olimex-doc] covers ISO variant | Needs battery-backed 5 V and carrier adapter; confirm supplied revision/connector population, unpowered behavior and startup inhibit. No reviewed FCC/REACH evidence or quantity guarantee |
-| CAN: socket alternative, conditional | MIKROE **MIKROE-5785 CAN Isolator 3 Click**, MAX14882; [TME][can-tme] | Integrated isolated supply path and 3.3 V operation, mikroBUS; [manufacturer][can3], [schematic][can3-sch] | €46.38 ex VAT / €55.19 incl. on German listing, **0 TME stock**. Fixed termination needs supplier-prepared removal for a drop node. No reviewed board DoC/FCC evidence; not approved for carrier production |
+| CAN: first prototype candidate | Olimex **A20-CAN-ISO**, [EU manufacturer store][olimex-can] | €15.95 ex VAT, listed in stock; assembled board; carrier needs a mating-header adapter. Separate [isolated schematic][olimex-sch] shows TJA1052, isolated DC/DC, 3.3 V logic, 5 V power, normally open termination jumpers. Signed [EU EMC/RoHS DoC][olimex-doc] covers ISO variant | Needs battery-backed 5 V and carrier adapter; confirm supplied revision/connector population, unpowered behavior and startup inhibit. FCC/REACH evidence and production quantities unconfirmed |
+| CAN: socket alternative, conditional | MIKROE **MIKROE-5785 CAN Isolator 3 Click**, MAX14882; [TME][can-tme] | Integrated isolated supply path and 3.3 V operation, mikroBUS; [manufacturer][can3], [schematic][can3-sch] | €46.38 ex VAT / €55.19 incl. on German listing, **0 TME stock**. Fixed termination needs supplier-prepared removal for a drop node. Board DoC/FCC evidence and production qualification pending |
 | CAN: older alternative | MIKROE **MIKROE-2627 CAN Isolator Click**, ADM3053; [TME][can1-tme] | Signal + isolated power, long documented history ([2017 announcement][can1-history]), socket assembly | [Schematic][can1-sch] includes split termination; 5 V power required even with 3.3 V I/O. More power/EMI work; no clear cost or solderless advantage |
 | CAN: regulatory evidence / lab reference | TI **ISOW1044DFMEVM**, [TI][can-evm], [Mouser Spain][can-evm-eu] | Ready-made board, isolated DC/DC, 3.3 V-compatible I/O, TI lists a board-specific EU DoC and emission evidence | Evaluation board, not a compact production module. Price/stock and commercial embedding terms require confirmation; [guide][can-evm-guide] uses populated termination resistors, so do not assume jumper-only drop-node conversion |
-| CAN: not complete by itself | MIKROE **MIKROE-4809 CAN Isolator 2 Click**, ISO1042 ([manufacturer][can2]) | Cheaper transceiver board, 3.3 V host logic | Requires a separately isolated bus-side supply; **ISO1042 isolation alone does not provide isolated power**. Do not price it as a complete isolated interface |
+| CAN: not complete by itself | MIKROE **MIKROE-4809 CAN Isolator 2 Click**, ISO1042 ([manufacturer][can2]) | Cheaper transceiver board, 3.3 V host logic | Requires a separately isolated bus-side supply; **ISO1042 isolation alone does not provide isolated power**. Include that supply in the carrier design and BOM |
 | Wind RS485: retain, isolated upgrade candidate | MIKROE **MIKROE-3863 RS485 Isolator 2 Click**, ADM2867E; [TME][rs485-tme] | Signal + power isolation, mikroBUS; [manufacturer][rs485] documents half-duplex and direction options | €40.68 ex VAT / €48.82 incl., 0 TME stock. Configure half-duplex and linked DE and /RE; jumpers include solder options, so request factory setup. Not a drop-in untested replacement |
 | RS485: lower-cost EU alternative | Olimex **MOD-RS485-ISO**, [manufacturer][olimex-rs] | €16.95 ex VAT, in-stock listing, UEXT cable included; [board EMC/RoHS DoC][olimex-rs-doc], ISO35T and onboard PIC | PIC firmware/protocol and half-duplex **9600 8E1** compatibility need review; do not assume transparent replacement of current converter. Retain existing converter until validated |
 | SD: first logging candidate | Kingston **SDCIT2/8GB**, [TME][sd-tme] | Industrial pSLC microSDHC, fits existing socket; [manufacturer][sd-maker] | No extra breakout. Validate FAT, endurance workload, removal/power-loss recovery. Price/quantity quote still required |
 
 ### Preferred CAN prototype: Olimex A20-CAN-ISO
 
-The isolated board has its **own repository**; the product page's generic A20-CAN link can lead to the non-isolated design. The reviewed isolated source commit is `ca00943e6385a4c8b9c4c8e3a69489aa078ce446`. Its Rev_B directory contains a drawing whose title block says Rev_A (2016-04-04): confirm the shipped revision rather than guessing from the filename.
+The isolated board has its **own repository**; the product page's generic A20-CAN link can lead to the non-isolated design. The isolated schematic is pinned to commit `ca00943e6385a4c8b9c4c8e3a69489aa078ce446`. Its Rev_B directory contains a drawing whose title block says Rev_A (2016-04-04): confirm the shipped revision against the drawing.
 
 The drawing shows TJA1052IT/5Y, F0505S-2WR2 isolated 5 V DC/DC, separate ground domains, and split termination through **CAN_T1/CAN_T2 marked opened**. Keep both open for a drop. This makes it a better first prototype candidate than the fixed-termination Click, subject to verifying actual population. Its 40-pin GPIO3 connector is an Olimex connector name, **not ESP32 GPIO3**: pin 1=5 V, pin 3=3.3 V, pins 2/4=local GND, pin 33=CAN-TX, pin 35=CAN-RX. CAN1 pin 1=isolated ground, 2=CANL, 3=CANH. Confirm which connector footprint is fitted and key the adapter. Do not connect the 40-pin connector directly to Waveshare P1.
 
@@ -102,9 +101,9 @@ Battery operation needs a regulated 5 V rail. A concrete evaluation candidate is
 
 ### Battery-powered 5 V wind sensor
 
-The v2 PoC wind sensor requires 5 V and currently runs only with USB connected (reported from the prototype). Battery-only wind measurement therefore needs a regulated 5 V supply. Proposed power path: **protected, switched battery supply → boost converter → wind sensor 5 V input**. Keep RS485 signal wiring unchanged.
+The v2 PoC wind sensor requires 5 V and currently runs only with USB connected. Battery-only wind measurement therefore needs a regulated 5 V supply. Proposed power path: **protected, switched battery supply → boost converter → wind sensor 5 V input**. Keep RS485 signal wiring unchanged.
 
-A concrete prototype candidate is [Pololu U1V11F5, item 2562](https://www.pololu.com/product/2562), listed by [Botland EU](https://botland.store/converters-step-up/1893-step-up-voltage-regulator-u1v11f5-5v-12a-pololu-2562-5904422308230.html) at €5.46 excluding VAT (€6.50 including VAT), available in the reviewed listing on 2026-10-13. It supports a single lithium cell, provides 5 V with ±4% accuracy, has true shutdown, and uses 2.54 mm header spacing. Headers require fitting by the assembler. Pololu lists it as Active and Preferred. Botland provides a supplier RoHS statement; board-level CE/FCC evidence was not established.
+A concrete prototype candidate is [Pololu U1V11F5, item 2562](https://www.pololu.com/product/2562), listed by [Botland EU](https://botland.store/converters-step-up/1893-step-up-voltage-regulator-u1v11f5-5v-12a-pololu-2562-5904422308230.html) at €5.46 excluding VAT (€6.50 including VAT), listed as available on 2026-10-13. It supports a single lithium cell, provides 5 V with ±4% accuracy, has true shutdown, and uses 2.54 mm header spacing. Headers require fitting by the assembler. Pololu lists it as Active and Preferred. Botland provides a supplier RoHS statement; board-level CE/FCC evidence was not established.
 
 Its 1.2 A rating describes input/switch current, not guaranteed 5 V output. Select it only after establishing sensor running/startup current, minimum battery voltage, cable voltage drop and temperature margin. The repository's whole-device consumption estimate is not a wind-sensor specification. For illustration, a 100 mA load at 5 V draws about 159 mA from a 3.7 V battery at 85% efficiency, before other loads.
 
@@ -116,18 +115,18 @@ The CAN interface could share a suitably sized 5 V supply on the same ground dom
 
 The CAN Isolator 3 file URL says v100 but its drawing title is **v101**. It shows MAX14882, transformer T1 (TGMR-1464V6LF), rectifier D1/D2 and isolated-ground domain: this is evidence of a complete isolated power path, unlike the ISO1042-only candidate. It also shows **R6 and R7, each 56 Ω, in series across CANH/CANL** (112 Ω DC termination); no termination-disable jumper is shown. JP1 selects supply, JP2 configures the isolated rail, not termination. These R7 references are on the CAN board and unrelated to Waveshare's SD R7.
 
-Consequently, an unmodified CAN Isolator 3 is not the default module for a normal drop on an already terminated NMEA2000 backbone. Ask the supplier for a documented DNP termination variant or a prepared assembly service, then verify resistance and PCB revision. Do not require the user to remove small resistors while calling the result socket-only. This excludes the unmodified Click from the preferred drop-node BOM; the Olimex candidate above avoids that documented fixed-termination issue. Final carrier selection still requires physical validation.
+Consequently, an unmodified CAN Isolator 3 is not the default module for a normal drop on an already terminated NMEA2000 backbone. Ask the supplier for a documented DNP termination variant or a prepared assembly service, then verify resistance and PCB revision. Socket-based assembly requires the supplier to complete this configuration before delivery. This excludes the unmodified Click from the preferred drop-node BOM; the Olimex candidate above avoids that documented fixed-termination issue. Final carrier selection still requires physical validation.
 
 Vendor descriptions call the Click connection “UART”, but MAX14882/ADM3053/ISO1042 are **physical-layer transceivers**, not UART-to-NMEA2000 gateways. Route ESP32-S3 **TWAI TX/RX** to the actual IC TXD/RXD nets, checking the Click's header naming. The [Espressif TWAI documentation][twai] requires an external transceiver. No additional CAN controller is needed for this proposed two-GPIO solution.
 
 ## Preliminary BOM and cost comparison
 
-One of each unless stated otherwise. This is a planning BOM, not a claim that all parts are currently orderable or that v2 is cheaper than v1. Keep the existing ultrasonic wind head and its rated power supply until a replacement is qualified.
+One of each unless stated otherwise. Prices are provisional; production availability and the v1 cost comparison remain open. Keep the existing ultrasonic wind head and its rated power supply until a replacement is qualified.
 
 | Item | Quantity | Budget EUR, excluding VAT/shipping | Basis / additional requirement |
 | --- | --- | --- | --- |
 | WS-33298 RLCD board | 1 | 30–45 | Engineering allowance; EU listing verified, reliable live price not obtained |
-| MIKROE-4643 GNSS | 1 | 46.44 | Distributor snapshot; antenna not included |
+| MIKROE-4643 GNSS | 1 | 46.44 | Distributor listing; antenna not included |
 | SMA GNSS antenna / cable | 1 | 10–25 | Allowance; choose compatible active/passive antenna and bias specification with GNSS vendor |
 | ADA4754 IMU | 1 | 23.07 | €27.45 gross converted at German 19% VAT for comparison; reuse existing IMU when possible |
 | Olimex A20-CAN-ISO | 1 | 15.95 | Manufacturer net price; mating connector included in carrier allowance |
@@ -137,12 +136,12 @@ One of each unless stated otherwise. This is a planning BOM, not a claim that al
 | Carrier PCB, sockets, retention, internal cables | 1 set | 15–35 | Prototype allowance, supplier assembly additional |
 | NMEA2000 connector/drop lead, enclosure sealing and protection | 1 set | 25–60 | Allowance; final connector SKU and surge design open |
 | Battery-backed 5 V CAN conversion | 1 | 15–25 | Pololu 4085 evaluation allowance pending EU quote and rail tests; CAN supply; separate wind boost budgeted below |
-| Wind-sensor 5 V boost | 1 | 5.46 | Pololu 2562 distributor snapshot; headers, protected power-path integration and assembly additional |
+| Wind-sensor 5 V boost | 1 | 5.46 | Pololu 2562 distributor listing; headers, protected power-path integration and assembly additional |
 | **Planning subtotal** | | **244.60–356.60** | Includes isolated RS485; excludes wind head, existing wind power supply, labour, test gear and certification |
 
-Using the existing IMU and RS485 converter reduces that subtotal by €63.75, but preserves the existing converter's isolation limitations. A retained RLCD board is also a sunk cost for the prototype, not for new production. Do not add an external SD breakout or separate Wi-Fi/BLE board. Replacing the CAN Click with Olimex saves €30.43 in board price before accounting for its required 5 V supply. Replacing the RS485 Click with Olimex could save another €23.73 but is not included in the subtotal because protocol compatibility is unverified. Socket GNSS and isolated CAN are the main new functional cost; GNSS alternatives require current quotes before claiming savings.
+Using the existing IMU and RS485 converter reduces that subtotal by €63.75, but preserves the existing converter's isolation limitations. A retained RLCD board is also a sunk cost for the prototype, not for new production. The RLCD board already includes the SD socket and Wi-Fi/BLE radio. Replacing the CAN Click with Olimex saves €30.43 in board price before accounting for its required 5 V supply. Replacing the RS485 Click with Olimex could save another €23.73 but is not included in the subtotal because protocol compatibility is unverified. Socket GNSS and isolated CAN are the main new functional cost; GNSS alternatives require current quotes before claiming savings.
 
-The repository README's roughly **US$250 (2025)** electronics estimate has different currency, date and scope. There is no verified like-for-like v1 procurement BOM here; therefore the “lower price than v1” objective remains **unproven**. Obtain 10/100/500-unit quotes with VAT, shipping, wind head, antenna, carrier assembly, battery and enclosure treated consistently. Compare an unchanged v1 baseline, a reuse prototype, and a new-build v2. Do not reduce surge protection, isolation or connector retention to hit an unsupported target.
+The repository README's roughly **US$250 (2025)** electronics estimate has different currency, date and scope. There is no verified like-for-like v1 procurement BOM here; therefore the “lower price than v1” objective remains **unproven**. Obtain 10/100/500-unit quotes with VAT, shipping, wind head, antenna, carrier assembly, battery and enclosure treated consistently. Compare an unchanged v1 baseline, a reuse prototype, and a new-build v2.
 
 ## Power, assembly and sailing reliability
 
@@ -176,7 +175,7 @@ Keep termination at the two backbone ends, not every drop. Follow the current li
 
 Sources: [EU manufacturer obligations][eu-ce], [European Commission RoHS][eu-rohs], [ECHA REACH][reach], [FCC module integration guidance][fcc], [NMEA][nmea].
 
-Strongest evidence found: Olimex's **signed A20-CAN/A20-CAN-ISO EMC/RoHS DoC** dated 2021-07-08 and its separate MOD-RS485-ISO DoC; Espressif's WROOM-1 **CE/FCC listings**; u-blox's **MAX-M10 RED/RoHS declaration**, R06 dated 2025-11-26 (with a specified external antenna); TI's **ISOW1044DFMEVM EU DoC listing**. These cover different objects. OSHWA certification concerns open-source hardware, not regulatory compliance. None is a signed DoC for an assembled Veetr, and u-blox's module document does not cover a third-party breakout automatically. No exact-board CE/REACH/FCC evidence was established for the Click candidates or ADA4754 in this review. A retailer's generic “Certificates” heading, US manufacturing origin, or a RoHS badge is not such evidence. Request model-specific documents and check their scope before production selection.
+Available component evidence includes: Olimex's **signed A20-CAN/A20-CAN-ISO EMC/RoHS DoC** dated 2021-07-08 and its separate MOD-RS485-ISO DoC; Espressif's WROOM-1 **CE/FCC listings**; u-blox's **MAX-M10 RED/RoHS declaration**, R06 dated 2025-11-26 (with a specified external antenna); TI's **ISOW1044DFMEVM EU DoC listing**. These cover different objects. OSHWA certification concerns open-source hardware, not regulatory compliance. None is a signed DoC for an assembled Veetr, and u-blox's module document does not cover a third-party breakout automatically. No exact-board CE/REACH/FCC evidence was established for the Click candidates or ADA4754. Request model-specific documents and check their scope before production selection.
 
 Supply ranking: Olimex's isolated CAN schematic dates to 2016, its [OSHWA record][olimex-oshwa] to 2020, and it remains listed in 2026; this is useful history, not a future supply contract. Its published price tiers of €14.36 at 10+ and €12.76 at 50+ do not prove those quantities are in stock. Espressif publishes an [ESP32-S3 commitment of at least 12 years from 2021-01-01][longevity]; this is not a Waveshare display-board or panel commitment. MIKROE's CAN family has documented predecessors back to 2017 and continued variants, which supports ecosystem continuity but not pin-compatible replacement or guaranteed stocking of a specific Click. MAX-M10S has multiple breakout vendors, but both depend on the same underlying module. BNO080 → BNO085 evolution supports software familiarity, not a future supply guarantee. No binding multiyear supply promises for these complete boards were found.
 
@@ -198,7 +197,7 @@ Before ordering production quantities, obtain written lead times and 10/100/500-
 | Procurement / compliance | Signed exact-part evidence, suitable unmodified or factory-configured CAN module, EU stock and lifecycle/quantity quotes, final cost comparison | Supplier/lab follow-up; no approvals assumed |
 | Environmental qualification | Enclosed-unit salt/condensation, vibration, ingress, temperature, RF/EMC and cabled transient tests with recorded criteria | Final assembly required |
 
-The next firmware change should introduce an explicit, separately validated v2 profile. This update changes only documentation and misleading comments in the current pin header; no new active SD/CAN/GNSS pin macros or runtime behavior are introduced.
+The proposed carrier requires a dedicated v2 firmware profile and regression testing before deployment.
 
 [ws-sch]: https://files.waveshare.com/wiki/ESP32-S3-RLCD-4.2/ESP32-S3-RLCD-4.2-schematic.pdf
 [ws-sdh]: https://github.com/waveshareteam/ESP32-S3-RLCD-4.2/blob/eb1f63427d735a22b9c30e22fa63ebddae1834d3/02_Example/Arduino/06_SD_Card/sdcard_bsp.h
