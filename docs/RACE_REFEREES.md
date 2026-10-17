@@ -11,7 +11,7 @@ Open a race or one of its heats, select **Map & replay**, and choose **Set cours
 
 Arrange the numbered marks in sailing order, and choose **Leave to port (left)** or **Leave to starboard (right)**. The map shows numbered marks, sailing direction arrows, and the start line. Optional course notes can describe laps or other instructions.
 
-Choose **Save course** to apply the draft. The course belongs to the race and appears alongside boat tracks in **Map & replay**, shared by all its heats. The coordinate list and **Export GPX** are below the map. Replay uses the current course layout. Public visitors can see it once the race has a published or locked heat. Positions are approximate. To remove the course, remove its marks, start line and notes, then save.
+Choose **Save course** to apply the draft. The course belongs to the race and appears alongside boat tracks in **Map & replay**, shared by all its heats. The coordinate list and **Export GPX** are below the map. Replay uses the current course layout. Public visitors can see it once the race has a published or locked heat. Positions are approximate. To remove the course, remove its marks, start line and notes, and select **Same as start line** for the finish, then save.
 
 ### Set the start from a phone
 
@@ -22,6 +22,14 @@ If the buoy position is unknown, choose **Bearing and length** in the start-line
 After saving and syncing, choose **Fixed position** or **Live phone position** on the detail page. Fixed mode uses the captured position. Live mode starts only when you press **Start live referee position**, shares the phone position as A, and updates at most once every five seconds. A measured B stays fixed; a captured bearing also stays fixed until you aim again. Use **Stop and freeze start line** to keep the last saved position.
 
 Live mode requires the browser page to stay visible and the screen awake. It stops on loss of usable GPS, a conflicting course edit, or leaving the page. If the final freeze cannot reach the server, public pages label the last position stale after 15 seconds. Sensor access requires browser permission and HTTPS; manual map and bearing entry remain available when sensors cannot be used.
+
+### Set the finish line
+
+**Finish-line location** defaults to **Same as start line**. It follows changes to the start line, including live referee position updates.
+
+Choose **Separate finish line** to place ends **F1** and **F2** elsewhere. For each end, choose **Place on map**, enter latitude and longitude, or use **Read phone position** and capture the position while standing at that end. You can drag either endpoint independently.
+
+Alternatively, choose **Bearing and length**: set F1, enter the bearing from F1 toward F2 measured clockwise from true north, and enter the line length in metres. You can also capture the bearing with the phone compass. F2 is then an estimate; moving F1 moves the whole line. Save the course to share the finish line and include it in GPX exports. A separate finish stays fixed when the start line moves. Finish-line placement does not automatically record results.
 
 ## Record finishes
 

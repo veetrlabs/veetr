@@ -4,6 +4,8 @@ import {
   courseFingerprint,
   courseFor,
   courseRoute,
+  finishGeometry,
+  coursePoints,
   midpoint,
   setCourse,
   validateCourse,
@@ -50,7 +52,7 @@ test("a race course preserves sailing order, start endpoints and rounding instru
   setCourse(s, eventId, c);
   validateSeries(s);
   assert.deepEqual(courseFor(s, eventId), c);
-  assert.deepEqual(courseRoute(c), [midpoint(...c.startLine!), ...c.marks]);
+  assert.deepEqual(courseRoute(c), [midpoint(...c.startLine!), ...c.marks, midpoint(...c.startLine!)]);
   c.marks[0].name = "Changed draft";
   assert.equal(courseFor(s, eventId)?.marks[0].name, "Windward");
   const expected = courseFingerprint(courseFor(s, eventId));
@@ -126,10 +128,38 @@ test('bearing start lines connect their midpoint to mark one only when length is
   delete c.startLine;
   c.startBearing = { origin, degrees: 90, distanceMetres: 400 };
   const route = courseRoute(c);
-  assert.equal(route.length, c.marks.length + 1);
+  assert.equal(route.length, c.marks.length + 2);
   assert.deepEqual(route[1], c.marks[0]);
   assert.ok(route[0].longitude > origin.longitude);
   assert.ok(route[0].longitude < origin.longitude + 0.005);
   delete c.startBearing.distanceMetres;
   assert.deepEqual(courseRoute(c), c.marks);
+});
+
+test("finish defaults to start and separate lines survive save, fit and route generation", () => {
+  const c = course();
+  assert.deepEqual(finishGeometry(c), c.startLine);
+  const before = courseFingerprint(c);
+  c.finishLine = [{ latitude: 50, longitude: 15 }, { latitude: 50, longitude: 15.01 }];
+  validateCourse(c);
+  assert.notEqual(courseFingerprint(c), before);
+  assert.deepEqual(courseRoute(c).at(-1), midpoint(...c.finishLine));
+  assert.ok(coursePoints(c).includes(c.finishLine[1]));
+  const origin = c.finishLine[0];
+  delete c.finishLine;
+  c.finishBearing = { origin, degrees: 90, distanceMetres: 200 };
+  validateCourse(c);
+  assert.equal(finishGeometry(c).length, 2);
+  assert.ok(finishGeometry(c)[1].longitude > origin.longitude);
+});
+test("incomplete, coincident and invalid finishes are rejected", () => {
+  for (const finish of [
+    {finishLine: [{latitude: 0, longitude: 0}]},
+    {finishLine: [{latitude: 0, longitude: 180}, {latitude: 0, longitude: -180}]},
+    {finishLine: [{latitude: 91, longitude: 0}, {latitude: 0, longitude: 0}]},
+    {finishBearing: {origin: {latitude: 0, longitude: 0}, degrees: 90}},
+    ...[NaN, 360, -1].map(degrees => ({finishBearing: {origin: {latitude: 0, longitude: 0}, degrees, distanceMetres: 100}})),
+    ...[0, -1, 10001, Infinity].map(distanceMetres => ({finishBearing: {origin: {latitude: 0, longitude: 0}, degrees: 90, distanceMetres}})),
+    {finishLine: course().startLine, finishBearing: {origin: {latitude: 0, longitude: 0}, degrees: 90, distanceMetres: 100}},
+  ]) assert.throws(() => validateCourse({...course(), ...finish}), /finish/);
 });

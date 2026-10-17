@@ -17,6 +17,9 @@ export interface RaceCourse {
     degrees: number;
     distanceMetres?: number;
   };
+  // Omitted finish fields mean the finish uses the start line.
+  finishLine?: [CoursePoint, CoursePoint];
+  finishBearing?: { origin: CoursePoint; degrees: number; distanceMetres: number };
   startLive?: { updatedAt: string; accuracyMetres: number };
   notes?: string;
 }
@@ -54,6 +57,8 @@ export function validateCourse(value: unknown): asserts value is RaceCourse {
       "startLine",
       "startBearing",
       "startLive",
+      "finishLine",
+      "finishBearing",
       "notes",
     ]) ||
     !Array.isArray(value.marks) ||
@@ -62,6 +67,18 @@ export function validateCourse(value: unknown): asserts value is RaceCourse {
       (typeof value.notes !== "string" || value.notes.length > 1000))
   )
     throw new Error("Invalid course map");
+  if (value.finishLine !== undefined || value.finishBearing !== undefined) {
+    try {
+      validateCourse({ marks: [],
+        ...(value.finishLine !== undefined ? { startLine: value.finishLine } : {}),
+        ...(value.finishBearing !== undefined ? { startBearing: value.finishBearing } : {}),
+      });
+      if (value.finishBearing !== undefined && (!object(value.finishBearing) || value.finishBearing.distanceMetres === undefined))
+        throw new Error("Missing length");
+    } catch {
+      throw new Error("Check both finish positions, or the finish bearing and length");
+    }
+  }
   if (value.startLive !== undefined) {
     const live = value.startLive;
     if (
@@ -152,7 +169,7 @@ export function courseFor(
   return series.courses?.[eventId];
 }
 export function coursePoints(course: RaceCourse): CoursePoint[] {
-  return [...startGeometry(course), ...course.marks];
+  return [...startGeometry(course), ...course.marks, ...(hasSeparateFinish(course) ? finishGeometry(course) : [])];
 }
 export const wrapBearing = (degrees: number) => ((degrees % 360) + 360) % 360;
 export function destination(
@@ -189,12 +206,25 @@ export function startGeometry(course: RaceCourse): CoursePoint[] {
       : [])
   );
 }
+export const hasSeparateFinish = (course: RaceCourse) => !!(course.finishLine || course.finishBearing);
+export function finishGeometry(course: RaceCourse): CoursePoint[] {
+  return hasSeparateFinish(course)
+    ? startGeometry({ marks: [], startLine: course.finishLine, startBearing: course.finishBearing })
+    : startGeometry(course);
+}
+export function finishMidpoint(course: RaceCourse): CoursePoint | undefined {
+  const ends = finishGeometry(course);
+  const known = hasSeparateFinish(course) || !!course.startLine || !!course.startBearing?.distanceMetres;
+  return known && ends.length === 2 ? midpoint(ends[0], ends[1]) : undefined;
+}
 export function courseRoute(course: RaceCourse): CoursePoint[] {
   const ends = startGeometry(course);
+  const finish = finishMidpoint(course);
   const hasLine = !!course.startLine || !!course.startBearing?.distanceMetres;
   return [
     ...(hasLine && ends[0] && ends[1] ? [midpoint(ends[0], ends[1])] : []),
     ...course.marks,
+    ...(finish && (course.marks.length || hasSeparateFinish(course)) ? [finish] : []),
   ];
 }
 export function courseFingerprint(course?: RaceCourse) {
@@ -221,6 +251,8 @@ export function courseFingerprint(course?: RaceCourse) {
             ? [course.startLive.updatedAt, course.startLive.accuracyMetres]
             : null,
           course.notes ?? "",
+          course.finishLine?.map((p) => [p.latitude, p.longitude]),
+          course.finishBearing ? [course.finishBearing.origin.latitude, course.finishBearing.origin.longitude, course.finishBearing.degrees, course.finishBearing.distanceMetres] : null,
         ]
       : null,
   );

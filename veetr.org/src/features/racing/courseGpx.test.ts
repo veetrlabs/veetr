@@ -7,7 +7,7 @@ test('GPX exports named endpoints and a midpoint-first route with rounding descr
  const gpx=courseGpx(course,'Race & <test>');
  assert.match(gpx,/xmlns="http:\/\/www.topografix.com\/GPX\/1\/1"/);
  assert.equal((gpx.match(/<wpt /g)||[]).length,3);
- assert.equal((gpx.match(/<rtept /g)||[]).length,2);
+ assert.equal((gpx.match(/<rtept /g)||[]).length,3);
  assert.match(gpx,/<name>Start midpoint<\/name>.*\n.*<name>Mark 1<\/name>/);
  assert.match(gpx,/Leave to starboard \(right\)/);
  assert.match(gpx,/Race &amp; &lt;test&gt;/);
@@ -19,4 +19,12 @@ test('unknown buoy distance exports no fictional B or start midpoint',()=>{
  assert.doesNotMatch(gpx,/Start B|Start midpoint/);
  assert.equal((gpx.match(/<wpt /g)||[]).length,2);
  assert.equal((gpx.match(/<rtept /g)||[]).length,1);
+});
+
+test('a separate finish exports both endpoints and the last route point',()=>{
+ const gpx=courseGpx({...course,finishLine:[{latitude:50,longitude:15},{latitude:50,longitude:15.01}]},'Race');
+ assert.equal((gpx.match(/<wpt /g)||[]).length,5);
+ assert.match(gpx,/<name>Finish F1<\/name>/);
+ assert.match(gpx,/<name>Finish F2<\/name>/);
+ assert.match(gpx,/<rtept lat="50.00000000" lon="15.00500000"><name>Finish midpoint/);
 });

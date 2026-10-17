@@ -1,11 +1,12 @@
 import type * as Leaflet from "leaflet";
-import { courseRoute, longitudeDelta, midpoint, startGeometry, type CoursePoint, type RaceCourse } from "./course";
+import { courseRoute, finishGeometry, hasSeparateFinish, longitudeDelta, midpoint, startGeometry, type CoursePoint, type RaceCourse } from "./course";
 import { t } from "./i18n";
-export type CourseTarget = "startA" | "startB" | `mark:${string}`;
+export type CourseTarget = "startA" | "startB" | "finishA" | "finishB" | `mark:${string}`;
 export const coordinates = (p: CoursePoint, anchor: number): [number, number] => [p.latitude, anchor + longitudeDelta(anchor, p.longitude)];
 const point = (p: Leaflet.LatLng): CoursePoint => ({latitude: Number(p.lat.toFixed(6)), longitude: Number(p.wrap().lng.toFixed(6))});
 // Shared by the editor and the race/heat tracking map.
 export function drawCourse(L: typeof Leaflet, m: Leaflet.Map, group: Leaflet.LayerGroup, course: RaceCourse, options: {
+  finishDraft?: [CoursePoint | undefined, CoursePoint | undefined];
   startDraft?: [CoursePoint | undefined, CoursePoint | undefined];
   onMove?: (target: CourseTarget, point: CoursePoint) => void;
   onGesture?: () => void;
@@ -14,8 +15,10 @@ export function drawCourse(L: typeof Leaflet, m: Leaflet.Map, group: Leaflet.Lay
   group.clearLayers();
     const endpoints: (CoursePoint | undefined)[] =
       startDraft ?? startGeometry(course);
+    const finish = options.finishDraft ?? (hasSeparateFinish(course) ? finishGeometry(course) : []);
     const all = [
       ...course.marks,
+      ...finish.filter((p): p is CoursePoint => !!p),
       ...endpoints.filter((p): p is CoursePoint => !!p),
     ];
     const anchor = all[0]?.longitude ?? 0;
@@ -40,7 +43,7 @@ export function drawCourse(L: typeof Leaflet, m: Leaflet.Map, group: Leaflet.Lay
         }),
         title,
         alt: title,
-        draggable: !!options.onMove && !(target === "startB" && course.startBearing),
+        draggable: !!options.onMove && !((target === "startB" && course.startBearing) || (target === "finishB" && course.finishBearing)),
         bubblingMouseEvents: false,
       })
         .bindTooltip(tooltip)
@@ -51,7 +54,7 @@ export function drawCourse(L: typeof Leaflet, m: Leaflet.Map, group: Leaflet.Lay
         L.DomEvent.disableClickPropagation(markerElement);
         L.DomEvent.on(markerElement, "mousedown touchstart", () => { options.onGesture?.(); });
       }
-      if (options.onMove && !(target === "startB" && course.startBearing))
+      if (options.onMove && !((target === "startB" && course.startBearing) || (target === "finishB" && course.finishBearing)))
         mark.on("dragend", () =>
           options.onMove?.(target, point(mark.getLatLng())),
         );
@@ -143,6 +146,10 @@ export function drawCourse(L: typeof Leaflet, m: Leaflet.Map, group: Leaflet.Lay
           "course-pin-start",
           i === 0 ? "startA" : "startB",
         );
+    });
+    if (finish[0] && finish[1]) L.polyline([coordinates(finish[0], anchor), coordinates(finish[1], anchor)], { color: "#7952b3", weight: 5, dashArray: course.finishBearing ? "10 7" : undefined, interactive: false }).addTo(group);
+    finish.forEach((p, i) => {
+      if (p) marker(p, i === 0 ? "F1" : "F2", t(i === 0 ? "Finish line end F1" : "Finish line end F2"), "course-pin-finish", i === 0 ? "finishA" : "finishB");
     });
     course.marks.forEach((mark, i) =>
       marker(

@@ -18,12 +18,14 @@ const point = (p: Leaflet.LatLng): CoursePoint => ({
 export function CourseMap({
   course,
   startDraft,
+  finishDraft,
   onPick,
   onMove,
   picking = false,
   actions,
 }: {
   course: RaceCourse;
+  finishDraft?: [CoursePoint | undefined, CoursePoint | undefined];
   startDraft?: [CoursePoint | undefined, CoursePoint | undefined];
   onPick?: (point: CoursePoint) => void;
   onMove?: (target: CourseTarget, point: CoursePoint) => void;
@@ -118,9 +120,10 @@ export function CourseMap({
     const endpoints: (CoursePoint | undefined)[] =
       startDraft ?? startGeometry(course);
     const points: CoursePoint[] = [
-      ...course.marks,
-      ...endpoints.filter((p): p is CoursePoint => !!p),
-    ];
+      ...coursePoints(course),
+      ...(finishDraft ?? []),
+      ...endpoints,
+    ].filter((p): p is CoursePoint => !!p);
     if (!L || !m || !points.length) return;
     m.fitBounds(
       L.latLngBounds(points.map((p) => coordinates(p, points[0].longitude))),
@@ -133,20 +136,20 @@ export function CourseMap({
       group = layer.current;
     if (!L || !m || !group) return;
     group.clearLayers();
-    drawCourse(L, m, group, course, {startDraft, onMove: onMove ? (target, point) => callbacks.current.onMove?.(target, point) : undefined, onGesture: () => {markerGesture.current = true;}});
-    const all = [...course.marks, ...(startDraft ?? startGeometry(course)).filter(Boolean)];
+    drawCourse(L, m, group, course, {startDraft, finishDraft, onMove: onMove ? (target, point) => callbacks.current.onMove?.(target, point) : undefined, onGesture: () => {markerGesture.current = true;}});
+    const all = [...coursePoints(course), ...(finishDraft ?? []).filter(Boolean), ...(startDraft ?? startGeometry(course)).filter(Boolean)];
     if (!fitted.current && (all.length || onMove)) {
       // An empty editor has no initial bounds. Preserve the user's view when
       // they place its first point instead of fitting that point at maxZoom 16.
       if (all.length) fit();
       fitted.current = true;
     }
-  }, [course, startDraft, ready, language, !!onMove]);
+  }, [course, startDraft, finishDraft, ready, language, !!onMove]);
   return (
     <div className={`course-map-shell${picking ? " course-map-picking" : ""}`}>
       <p className="course-map-legend">
         <strong>{t("A–B: start line")}</strong>{" · "}
-        {t("A: referee · B: buoy · 1, 2…: turning marks")}
+        {t("A: referee · B: buoy · 1, 2…: turning marks")} · {t(course.finishLine || course.finishBearing || finishDraft ? "F1–F2: finish line" : "Finish: same as start line")}
       </p>
       <div className="course-map-viewport">
       <div className="course-map-actions" role="group" aria-label={t("Course map tools")}>
@@ -154,7 +157,7 @@ export function CourseMap({
           type="button"
           disabled={
             !ready ||
-            !(coursePoints(course).length || startDraft?.some(Boolean))
+            !(coursePoints(course).length || startDraft?.some(Boolean) || finishDraft?.some(Boolean))
           }
           title={t("Show whole course")}
           aria-label={t("Show whole course")}

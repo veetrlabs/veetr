@@ -970,6 +970,7 @@ section.entity-details { padding: 0; border: 0; border-radius: 0; background: tr
 .course-pin { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; border: 3px solid white; color: white; font-size: 15px; font-weight: 800; box-shadow: 0 1px 5px #0008; white-space: nowrap; }
 .course-pin-port { background: #a52d32; }
 .course-pin-starboard { background: #176747; }
+.course-pin-finish { background: #7952b3; border-radius: 7px; }
 .course-pin-start { background: #79520d; border-radius: 7px; }
 .course-leg-arrow { display: block; font-size: 24px; line-height: 24px; text-align: center; color: #295b91; text-shadow: 0 0 3px white, 0 0 3px white; }
 .course-mark-list { padding-left: 1.7rem; }
@@ -1229,3 +1230,6 @@ section.entity-details { padding: 0; border: 0; border-radius: 0; background: tr
 .replay-boats button[aria-pressed] { color: var(--sl-color-white, #e3eaf1); background: var(--sl-color-gray-6, #1e293b); border: 1px solid var(--sl-color-gray-5, #415369); }
 .replay-boats button[aria-pressed]:active { opacity: .7; }
 .replay-chart-help { color: inherit; opacity: .8; }
+
+.course-editor .course-finish-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+@media (max-width: 600px) { .course-editor .course-finish-fields { grid-template-columns: 1fr; } }

@@ -1,4 +1,4 @@
-import { midpoint, startGeometry, validateCourse, type CoursePoint, type RaceCourse } from './course';
+import { midpoint, startGeometry, finishGeometry, finishMidpoint, hasSeparateFinish, validateCourse, type CoursePoint, type RaceCourse } from './course';
 const xml = (value: string) => value.replace(/[^\u0009\u000a\u000d\u0020-\ud7ff\ue000-\ufffd\u{10000}-\u{10ffff}]/gu, '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]!));
 export function courseGpx(course: RaceCourse, name: string): string {
   validateCourse(course);
@@ -8,8 +8,11 @@ export function courseGpx(course: RaceCourse, name: string): string {
   const start = ends[0] ? [{point: ends[0], name: 'Start A', description: 'Referee end'}] : [];
   if (knownLine && ends[1]) start.push({point: ends[1], name: 'Start B', description: course.startBearing ? 'Estimated buoy position from bearing and length' : 'Buoy end'});
   const route = knownLine ? [{point: midpoint(ends[0], ends[1]), name: 'Start midpoint', description: course.startBearing ? 'Estimated start-line midpoint' : 'Start-line midpoint'}, ...marks] : marks;
+  const finish = hasSeparateFinish(course) ? finishGeometry(course).map((point, i) => ({point, name: `Finish F${i + 1}`, description: course.finishBearing && i === 1 ? 'Estimated finish endpoint from bearing and length' : 'Finish endpoint'})) : [];
+  const end = finishMidpoint(course);
+  if (end && (course.marks.length || hasSeparateFinish(course))) route.push({ point: end, name: 'Finish midpoint', description: hasSeparateFinish(course) ? 'Finish-line midpoint' : 'Finish at the start line' });
   const pointXml = (tag: string, entry: {point: CoursePoint; name: string; description: string}) => `  <${tag} lat="${entry.point.latitude.toFixed(8)}" lon="${entry.point.longitude.toFixed(8)}"><name>${xml(entry.name)}</name><desc>${xml(entry.description)}</desc></${tag}>`;
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Veetr" xmlns="http://www.topografix.com/GPX/1/1">\n  <metadata><name>${xml(name)}</name><desc>${xml(course.notes ?? '')}</desc></metadata>\n${[...start, ...marks].map(p => pointXml('wpt', p)).join('\n')}\n${route.length ? `  <rte><name>${xml(name)}</name><desc>Course order; rounding instructions are in point descriptions.</desc>\n${route.map(p => pointXml('rtept',p)).join('\n')}\n  </rte>\n` : ''}</gpx>\n`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Veetr" xmlns="http://www.topografix.com/GPX/1/1">\n  <metadata><name>${xml(name)}</name><desc>${xml(course.notes ?? '')}</desc></metadata>\n${[...start, ...marks, ...finish].map(p => pointXml('wpt', p)).join('\n')}\n${route.length ? `  <rte><name>${xml(name)}</name><desc>Course order; rounding instructions are in point descriptions.</desc>\n${route.map(p => pointXml('rtept',p)).join('\n')}\n  </rte>\n` : ''}</gpx>\n`;
 }
 export function downloadCourseGpx(course: RaceCourse, name: string) {
   const url = URL.createObjectURL(new Blob([courseGpx(course, name)], {type: 'application/gpx+xml;charset=utf-8'}));

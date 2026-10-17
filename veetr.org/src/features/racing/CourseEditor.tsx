@@ -1,6 +1,6 @@
 import type { CompassPreview } from "./StartLineTools";
 import { MapPinPlus, ArrowUp, ArrowDown, Trash2 } from "lucide-react";
-import React, { useEffect, useState, useImperativeHandle } from "react";
+import React, { useEffect, useState, useImperativeHandle, useRef } from "react";
 import { CourseMap, type CourseTarget } from "./CourseMap";
 import {
   courseFingerprint,
@@ -8,6 +8,7 @@ import {
   MAX_COURSE_MARKS,
   setCourse,
   startGeometry,
+  finishGeometry,
   validCoursePoint,
   validateCourse,
   type CoursePoint,
@@ -20,15 +21,15 @@ function PositionFields({
   point,
   onChange,
 }: {
-  point: CoursePoint;
+  point?: CoursePoint;
   onChange: (point: CoursePoint) => void;
 }) {
-  const [lat, setLat] = useState(String(point.latitude)),
-    [lng, setLng] = useState(String(point.longitude));
+  const [lat, setLat] = useState(point ? String(point.latitude) : ""),
+    [lng, setLng] = useState(point ? String(point.longitude) : "");
   useEffect(() => {
-    setLat(String(point.latitude));
-    setLng(String(point.longitude));
-  }, [point.latitude, point.longitude]);
+    setLat(point ? String(point.latitude) : "");
+    setLng(point ? String(point.longitude) : "");
+  }, [point?.latitude, point?.longitude]);
   const update = (latitude: string, longitude: string) => {
     setLat(latitude);
     setLng(longitude);
@@ -106,6 +107,12 @@ export function CourseEditor({
   const [distance, setDistance] = useState(
     String(original?.startBearing?.distanceMetres ?? 250),
   );
+  const [finishMode, setFinishMode] = useState(original?.finishBearing ? "bearing" : original?.finishLine ? "points" : "same");
+  const [finishA, setFinishA] = useState<CoursePoint | undefined>(original?.finishLine?.[0] ?? original?.finishBearing?.origin);
+  const [finishB, setFinishB] = useState<CoursePoint | undefined>(original?.finishLine?.[1]);
+  const [finishBearing, setFinishBearing] = useState(String(original?.finishBearing?.degrees ?? ""));
+  const [finishDistance, setFinishDistance] = useState(String(original?.finishBearing?.distanceMetres ?? 250));
+  const [finishPreview, setFinishPreview] = useState<CompassPreview | null>(null);
   const [target, setTarget] = useState<CourseTarget | "new" | null>(null);
   const [busy, setBusy] = useState(false),
     [error, setError] = useState("");
@@ -132,10 +139,16 @@ export function CourseEditor({
           },
         }
       : {}),
+    ...(finishMode === "points" && finishA && finishB ? { finishLine: [finishA, finishB] as [CoursePoint, CoursePoint] } : {}),
+    ...(finishMode === "bearing" && finishA && finishBearing.trim() && Number.isFinite(Number(finishBearing)) && Number(finishBearing) >= 0 && Number(finishBearing) < 360 && finishDistance.trim() && Number(finishDistance) > 0 && Number(finishDistance) <= 10000 ? {
+      finishBearing: { origin: finishA, degrees: Number(finishBearing), distanceMetres: Number(finishDistance) },
+    } : {}),
     ...(notes.trim() ? { notes: notes.trim() } : {}),
   };
   const move = (target: CourseTarget, point: CoursePoint) => {
-    if (target === "startA") setStartA(point);
+    if (target === "finishA") setFinishA(point);
+    else if (target === "finishB") setFinishB(point);
+    else if (target === "startA") setStartA(point);
     else if (target === "startB") {
       setStartMode("points");
       setStartB(point);
@@ -163,7 +176,7 @@ export function CourseEditor({
     setTarget(
       target === "startA" && startMode === "points" && !startB
         ? "startB"
-        : null,
+        : target === "finishA" && finishMode === "points" && !finishB ? "finishB" : null,
     );
   };
   const reorder = (index: number, delta: number) =>
@@ -172,14 +185,21 @@ export function CourseEditor({
       [next[index], next[index + delta]] = [next[index + delta], next[index]];
       return next;
     });
+  const formElement = useRef<HTMLElement | null>(null);
   const prepare = () => {
+    for (const field of formElement.current?.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("input, textarea") ?? []) {
+      if (!field.reportValidity()) throw new Error("Check the highlighted course fields.");
+    }
     if (startMode === "points" && Boolean(startA) !== Boolean(startB))
       throw new Error("Place both ends of the start line");
     if (compassPreview) throw new Error("Capture or cancel the compass reading before saving.");
     if (startMode === "bearing" && !course.startBearing)
       throw new Error("Set the referee position and a bearing");
+    if (finishPreview) throw new Error("Capture or cancel the compass reading before saving.");
+    if (finishMode === "points" && (!finishA || !finishB)) throw new Error("Place both ends of the finish line");
+    if (finishMode === "bearing" && !course.finishBearing) throw new Error("Set the finish position, bearing and length");
     validateCourse(course);
-    const next = marks.length || course.startLine || course.startBearing || course.notes ? course : undefined;
+    const next = marks.length || course.startLine || course.startBearing || course.finishLine || course.finishBearing || course.notes ? course : undefined;
     return (series: Series) => setCourse(series, eventId, next, courseFingerprint(original));
   };
   useImperativeHandle(draftRef, () => ({ prepare }));
@@ -198,6 +218,7 @@ export function CourseEditor({
       </button>}
       {draftRef ? <h2>{t("Course")}</h2> : <h1>{t("Edit course")} · {event.name}</h1>}
       <FormContainer
+        ref={(element: HTMLDivElement | HTMLFormElement | null) => { formElement.current = element; }}
         onSubmit={(e) => {
           e.preventDefault();
           void (async () => {
@@ -228,6 +249,8 @@ export function CourseEditor({
                   ? "Tap the map to place start line end A."
                   : target === "startB"
                     ? "Tap the map to place start line end B."
+                    : target === "finishA" ? "Tap the map to place finish line end F1."
+                    : target === "finishB" ? "Tap the map to place finish line end F2."
                     : target
                       ? "Tap the map to move the selected mark."
                       : "Drag a point to move it. Drag the background to pan the map.",
@@ -243,6 +266,7 @@ export function CourseEditor({
                     ? undefined
                     : [startA, undefined]
               }
+              finishDraft={finishMode === "same" ? undefined : finishMode === "points" ? [finishA, finishB] : course.finishBearing && Number.isFinite(course.finishBearing.degrees) && Number.isFinite(course.finishBearing.distanceMetres) ? undefined : [finishA, undefined]}
               onPick={pick}
               onMove={busy ? undefined : move}
               picking={!!target}
@@ -344,6 +368,44 @@ export function CourseEditor({
               )}
             </fieldset>
           </div>
+          <h2>{t("Finish line")}</h2>
+          <label>
+            {t("Finish-line location")}
+            <select value={finishMode === "same" ? "same" : "separate"} onChange={e => { setFinishMode(e.target.value === "same" ? "same" : "points"); setTarget(null); setFinishPreview(null); }}>
+              <option value="same">{t("Same as start line")}</option>
+              <option value="separate">{t("Separate finish line")}</option>
+            </select>
+          </label>
+          {finishMode === "same" ? <p>{t("The finish follows any changes to the start line.")}</p> : <>
+            <label>{t("Finish-line method")}
+              <select value={finishMode} onChange={e => {
+                if (e.target.value === "points" && course.finishBearing) setFinishB(finishGeometry(course)[1]);
+                setFinishMode(e.target.value); setTarget(null); setFinishPreview(null);
+              }}>
+                <option value="points">{t("Place both ends")}</option>
+                <option value="bearing">{t("Bearing and length")}</option>
+              </select>
+            </label>
+            <div className="course-start-fields course-finish-fields">
+              <fieldset><legend>{t("Finish line end F1")}</legend>
+                <PositionFields point={finishA} onChange={setFinishA} />
+                <button type="button" onClick={() => setTarget("finishA")}>{t("Place on map")}</button>
+                <StartLinePosition end="finishA" onPosition={setFinishA} />
+              </fieldset>
+              <fieldset><legend>{t("Finish line end F2")}</legend>
+                {finishMode === "points" ? <>
+                  <PositionFields point={finishB} onChange={setFinishB} />
+                  <button type="button" onClick={() => setTarget("finishB")}>{t("Place on map")}</button>
+                  <StartLinePosition end="finishB" onPosition={setFinishB} />
+                </> : <>
+                  <label>{t("Finish bearing (° true)")}<input type="number" required min="0" max="359.999999" step="any" value={finishBearing} onChange={e => setFinishBearing(e.target.value)} /></label>
+                  <StartLineCompass position={finishA} onPreview={setFinishPreview} onBearing={degrees => setFinishBearing(String(degrees))} />
+                  {finishPreview && <p role="status">{t(finishPreview.trueNorth ? "Live bearing (° true)" : "Live bearing (° magnetic)")}: {finishPreview.degrees?.toFixed(1) ?? "—"}</p>}
+                  <label>{t("Estimated finish-line length (m)")}<input type="number" required min="0.01" max="10000" step="any" value={finishDistance} onChange={e => setFinishDistance(e.target.value)} /></label>
+                </>}
+              </fieldset>
+            </div>
+          </>}
           <h2>{t("Marks in sailing order")}</h2>
           {!marks.length && (
             <p>{t("No marks yet. Choose Add mark, then tap the map.")}</p>

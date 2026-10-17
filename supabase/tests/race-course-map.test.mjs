@@ -86,6 +86,7 @@ test("race courses are validated, editable by referees and visible only for publ
       { latitude: 49.58, longitude: 14.2 },
       { latitude: 49.58, longitude: 14.201 },
     ],
+    finishLine: [{latitude: 49.59, longitude: 14.22}, {latitude: 49.59, longitude: 14.221}],
     notes: "Two laps",
   };
   await login(owner);
@@ -119,6 +120,11 @@ test("race courses are validated, editable by referees and visible only for publ
     (c) => (c.marks[0].rounding = "either"),
     (c) => (c.marks[0].name = ""),
     (c) => (c.marks[1].id = c.marks[0].id),
+    (c) => c.finishLine.pop(),
+    (c) => (c.finishLine[1] = c.finishLine[0]),
+    (c) => (c.finishLine[0].latitude = 91),
+    (c) => (c.finishLine[0].secret = "private"),
+    (c) => (c.finishBearing = {origin: {latitude: 49, longitude: 14}, degrees: 90, distanceMetres: 100}),
     (c) => c.startLine.pop(),
     (c) => (c.startLine[1] = c.startLine[0]),
     (c) => (c.notes = { secret: "private" }),
@@ -131,7 +137,7 @@ test("race courses are validated, editable by referees and visible only for publ
     mutate(copy.courses[race1]);
     await assert.rejects(
       rpc("save_series", [copy, 2, id()]),
-      /course|mark|start line|position/i,
+      /course|mark|start line|position|finish/i,
     );
   }
   const orphan = structuredClone(doc);
@@ -191,6 +197,7 @@ test("race courses are validated, editable by referees and visible only for publ
   });
   assert.deepEqual(live.startLine[1], expected.startLine[1]);
   assert.deepEqual(live.marks, expected.marks);
+  assert.deepEqual(live.finishLine, expected.finishLine);
   assert.equal(live.startLive.accuracyMetres, 5);
   await assert.rejects(
     rpc("update_race_start_position", [sid, race1, expected, fix]),
@@ -210,9 +217,15 @@ test("race courses are validated, editable by referees and visible only for publ
   doc.courses[race1] = {
     marks: course.marks,
     startBearing: { origin: fix, degrees: 90 },
+    finishBearing: { origin: {latitude: 49.59, longitude: 14.22}, degrees: 180, distanceMetres: 100 },
   };
   doc.courses[race1].startBearing.origin = { latitude: 49, longitude: 14 };
   for (const mutate of [
+    (c) => delete c.finishBearing.distanceMetres,
+    (c) => (c.finishBearing.degrees = 360),
+    (c) => (c.finishBearing.distanceMetres = 0),
+    (c) => (c.finishBearing.origin.longitude = 181),
+    (c) => (c.finishBearing.origin.secret = "private"),
     (c) => (c.startBearing.degrees = 360),
     (c) => (c.startBearing.distanceMetres = 0),
     (c) => (c.startBearing.origin.secret = "x"),
@@ -220,7 +233,7 @@ test("race courses are validated, editable by referees and visible only for publ
   ]) {
     const invalid = structuredClone(doc);
     mutate(invalid.courses[race1]);
-    await assert.rejects(rpc("save_series", [invalid, 5, id()]), /start/i);
+    await assert.rejects(rpc("save_series", [invalid, 5, id()]), /start|finish/i);
   }
   assert.equal(await rpc("save_series", [doc, 5, id()]), 6);
   const bearing = await rpc("update_race_start_position", [
@@ -229,6 +242,7 @@ test("race courses are validated, editable by referees and visible only for publ
     doc.courses[race1],
     { ...fix, timestamp: Date.now() },
   ]);
+  assert.deepEqual(bearing.finishBearing, doc.courses[race1].finishBearing);
   assert.equal(bearing.startLine, undefined);
   assert.equal(bearing.startBearing.distanceMetres, undefined);
   assert.equal(bearing.startBearing.degrees, 90);

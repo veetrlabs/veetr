@@ -15,8 +15,8 @@ export function StartLinePosition({
   onPosition,
   end,
 }: {
-  onPosition: (point: CoursePoint, end: "startA" | "startB") => void;
-  end: "startA" | "startB";
+  onPosition: (point: CoursePoint, end: "startA" | "startB" | "finishA" | "finishB") => void;
+  end: "startA" | "startB" | "finishA" | "finishB";
 }) {
   const [fix, setFix] = useState<StartFix | null>(null),
     [reading, setReading] = useState(false),
@@ -87,7 +87,7 @@ export function StartLinePosition({
             }}
           >
             {t(
-              end === "startA"
+              end === "finishA" ? "Use position for finish end F1" : end === "finishB" ? "Use position for finish end F2" : end === "startA"
                 ? "Use position for referee end A"
                 : "Use position for buoy end B",
             )}

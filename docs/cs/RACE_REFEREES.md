@@ -24,6 +24,14 @@ Po uložení a synchronizaci vyberte na detailu **Pevná poloha** nebo **Živá 
 
 Živý režim vyžaduje viditelnou stránku a zapnutou obrazovku. Zastaví se při ztrátě použitelné GPS, konfliktní úpravě tratě nebo opuštění stránky. Pokud závěrečné zafixování nedorazí na server, veřejná stránka označí polohu po 15 sekundách jako zastaralou. Snímače potřebují oprávnění prohlížeče a HTTPS; ruční zadání na mapě a náměru zůstává dostupné.
 
+### Cílová čára
+
+V nastavení **Umístění cílové čáry** je výchozí volba **Stejná jako startovní čára**. Cíl tak sleduje i živé změny polohy startu.
+
+Pro cíl jinde vyberte **Samostatná cílová čára**. Konce **F1** a **F2** umístěte do mapy, zadejte souřadnice nebo na daném místě načtěte a potvrďte polohu telefonu. Oba konce lze posouvat samostatně. Při volbě **Náměr a délka** nastavte F1, směr k F2 od zeměpisného severu a délku v metrech; F2 pak bude odhadovaná poloha. Směr lze zachytit také kompasem telefonu.
+
+Uložením trati cílovou čáru sdílíte a zahrnete do exportu GPX. Samostatný cíl se při posunu startu nemění. Umístění cíle samo nezapisuje výsledky.
+
 ## Zápis dojezdů
 
 1. Otevřete přidělený seriál ve [správě závodů](/cs/races/manage/).

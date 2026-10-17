@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { CourseMap } from "./CourseMap";
-import { courseFor, startGeometry, type RaceCourse } from "./course";
+import { courseFor, startGeometry, finishGeometry, hasSeparateFinish, coursePoints, type RaceCourse } from "./course";
 import { eventsFor, type Series } from "./domain";
 import { downloadCourseGpx } from "./courseGpx";
 import { t } from "./i18n";
@@ -78,6 +78,12 @@ export function CourseDescription({ course }: { course: RaceCourse }) {
           ))}
         </ol>
       )}
+      <p><strong>{t("Finish line")}</strong>: {t(hasSeparateFinish(course) ? "F1–F2: finish line" : "Same as start line")}</p>
+      {hasSeparateFinish(course) && <ul className="course-mark-list">{finishGeometry(course).map((point, i) => <li key={i}>
+        <strong>{t(i === 0 ? "Finish line end F1" : "Finish line end F2")}</strong>
+        {i === 1 && course.finishBearing && <span> · {t("Estimated position")}</span>}
+        <span className="course-mark-coordinates">{t("Latitude")}: {point.latitude.toFixed(6)}° · {t("Longitude")}: {point.longitude.toFixed(6)}°</span>
+      </li>)}</ul>}
       {course.notes && <p className="course-notes">{course.notes}</p>}
     </>
   );
@@ -123,11 +129,9 @@ export function CourseDetails({
               "Approximate mark positions. Follow the marks in numbered order and leave each on the indicated side.",
             )}
           </p>
-          {!renderMap && (course.marks.length > 0 ||
-            course.startLine ||
-            course.startBearing) && <CourseMap key={eventId} course={course} />}
+          {!renderMap && (coursePoints(course).length > 0) && <CourseMap key={eventId} course={course} />}
           <CourseDescription course={course} />
-          {(course.marks.length > 0 || course.startLine || course.startBearing) && <div className="course-export">
+          {(coursePoints(course).length > 0) && <div className="course-export">
             <button type="button" onClick={() => downloadCourseGpx(course, eventsFor(series).find(event => event.id === eventId)?.name ?? series.name)}>{t("Export GPX")}</button>
             <p>{t("Includes waypoints and sailing order. Rounding sides are in point descriptions; estimated positions remain approximate.")}</p>
           </div>}

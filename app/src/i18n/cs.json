@@ -1095,5 +1095,7 @@
   "Replace saved boat details": "Nahradit uložené údaje o lodi",
   "Replace {{v0}}’s details and reference polar with {{v1}}’s public profile? Trips and measurements will be kept. The downloaded profile is editable only by its owner.": "Nahradit údaje a referenční poláru lodi {{v0}} veřejným profilem lodi {{v1}}? Plavby a měření zůstanou zachovány. Stažený profil může upravovat pouze vlastník.",
   "Loading boat details…": "Načítání údajů o lodi…",
-  "Boat details unavailable. Pull down to try again.": "Údaje o lodi nejsou dostupné. Zkuste to znovu tažením dolů."
+  "Boat details unavailable. Pull down to try again.": "Údaje o lodi nejsou dostupné. Zkuste to znovu tažením dolů.",
+  "Finish line end F1": "Konec cílové čáry F1",
+  "Finish line end F2": "Konec cílové čáry F2"
 }

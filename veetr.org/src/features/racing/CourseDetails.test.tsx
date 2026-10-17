@@ -125,3 +125,20 @@ test("bearing editor defaults missing length to 250 m and preserves saved length
     assert.doesNotMatch(html,/type="range"|Start with an estimated/);
   }
 });
+
+test("finish controls default to the start line and expose coordinate and phone placement for a separate finish", () => {
+  const s = newSeries(), eventId = id();
+  s.events = [{id:eventId,name:"Finish test",order:1,weight:1,completed:false,discards:[]}];
+  const editor = () => render(<CourseEditor series={s} eventId={eventId} save={async () => {}} onBack={() => {}} />);
+  assert.match(editor(), /value="same" selected=""/);
+  assert.doesNotMatch(editor(), /<legend>Finish line end F1/);
+  setCourse(s,eventId,{marks:[],finishLine:[{latitude:49,longitude:14},{latitude:49,longitude:14.001}]});
+  const html = editor();
+  assert.match(html, /value="separate" selected=""/);
+  assert.match(html, /<legend>Finish line end F1/);
+  assert.match(html, /<legend>Finish line end F2/);
+  assert.equal((html.match(/Read phone position/g) ?? []).length,4);
+  const detail = render(<CourseDetails series={s} eventId={eventId} />);
+  assert.match(detail, /F1–F2: finish line/);
+  assert.match(detail, /14.001000/);
+});
