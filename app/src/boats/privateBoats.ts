@@ -180,7 +180,7 @@ export async function localBoatIdForRace(raceBoatId: string) {
       (b) =>
         b.racePreview &&
         b.downloadedFrom?.server === raceServer() &&
-        b.downloadedFrom.boatId === raceBoatId,
+        b.downloadedFrom?.boatId === raceBoatId,
     )?.id ??
     linkedRaceBoat(fleet, raceBoatId)?.id ??
     raceBoatId
@@ -332,7 +332,7 @@ export function syncAccountBoat(
           (b) =>
             b.racePreview &&
             b.downloadedFrom?.server === raceServer() &&
-            b.downloadedFrom.boatId === cloudId,
+            b.downloadedFrom?.boatId === cloudId,
         ) ?? linkedRaceBoat(fleet, cloudId);
       const id = existing?.id ?? Crypto.randomUUID();
       const previous = await polarRepository.read(id);
@@ -411,7 +411,7 @@ export function storeDownloadedBoat(
             (b) =>
               b.racePreview &&
               b.downloadedFrom?.server === raceServer() &&
-              b.downloadedFrom.boatId === cloudId,
+              b.downloadedFrom?.boatId === cloudId,
           )
         : linkedRaceBoat(fleet, cloudId);
       // Background refresh cannot recreate a removed copy or replace a private boat.
