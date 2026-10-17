@@ -32,7 +32,7 @@ by a catalog import.
 Search access is read-only for anon/authenticated roles. Staging and publishing
 are service-role-only. The Edge Function independently checks its service-role
 credential; ordinary user tokens and anon keys cannot import. Credentials never
-belong in the app or repository. No schedule is installed.
+belong in the app or repository.
 
 ## Manual execution
 
@@ -49,10 +49,40 @@ node tools/import-boat-catalog.mjs 2024 <full-git-commit-sha>
 
 A successful response includes count, skipped count, country count and source
 identity. Re-importing the same source is safe and does not duplicate entries.
-Scheduling can later invoke this same authenticated endpoint; no client change is
+The manual workflow invokes this same authenticated endpoint; no client change is
 needed. Before distributing the upstream dataset, retain its repository license
 notice and resolve the upstream ORC data reuse terms separately from software MIT
 licensing.
+
+## On-demand GitHub update
+
+`.github/workflows/boat-catalog-sync.yml` has no schedule. Use **Run workflow**
+when an upstream update is worth importing. It is available once merged into
+`main`. Before running it, deploy the catalog migration and Edge Function, and add the
+GitHub Actions secret `VEETR_SUPABASE_SERVICE_ROLE_KEY` for the Veetr project.
+The database deployment workflow now deploys the importer alongside the email
+functions. Never put this credential in repository variables or source files.
+
+The workflow defaults to `ALL2024.json`. Its **year** input can select another
+year after its completeness has been reviewed; a newer filename alone does not mean a complete worldwide export.
+It checks the most recent GitHub commit touching that file, then compares the
+SHA-256 of its contents with `boat_catalog_source`. Identical commits or contents
+skip import. An empty installed catalog triggers the initial import.
+
+Changed data is downloaded from that exact commit by the existing importer.
+Its size, coverage and row-count checks still apply, and publication is atomic.
+Failures mark the Action failed and preserve the installed catalog. Workflow
+concurrency prevents overlap with another manual run or database deployment.
+It runs no upstream code. Credentials are sent only to their respective hosts.
+Saved boat profiles, race boat details and private trips are not modified by this
+catalog update. Race profiles continue refreshing from Veetr when viewed.
+
+For a read-only check with the same environment variables as manual import:
+
+```sh
+BOAT_CATALOG_CHECK_ONLY=true node tools/sync-boat-catalog.mjs
+node --test supabase/tests/boat-catalog-sync.test.mjs
+```
 
 ## Local verification
 
