@@ -1,0 +1,22 @@
+import { renderHook, waitFor } from "@testing-library/react-native";
+import { usePerformance } from "../usePerformance";
+import { localBoatIdForRace } from "../../boats/privateBoats";
+import { refreshBoatTripPolar } from "../tripPolars";
+const mockTime = Date.now();
+const mockNav = {deviceFresh:true,fix:{sogKnots:5},session:{mode:"race",phase:"recording",boatId:"race"}};
+jest.mock("expo-router",()=>({useFocusEffect:(fn:any)=>require("react").useEffect(fn,[fn])}));
+jest.mock("../../navigation/NavigationContext",()=>({useNavigation:()=>mockNav}));
+jest.mock("../../context/BLEContext",()=>({useBLE:()=>({state:{isConnected:true,lastMessageTime:mockTime,sailingData:{recordingInstruments:{tws:8,twa:60}}}})}));
+jest.mock("../../boats/privateBoats",()=>({localBoatIdForRace:jest.fn(),activePrivateBoat:jest.fn()}));
+jest.mock("../../tracking/database",()=>({trackingStore:async()=>({localRecordings:async()=>[]})}));
+jest.mock("../tripPolars",()=>({refreshBoatTripPolar:jest.fn()}));
+test("a race uses the linked boat polar without changing the race session identity",async()=>{
+  (localBoatIdForRace as jest.Mock).mockResolvedValue("local");
+  (refreshBoatTripPolar as jest.Mock).mockResolvedValue({selectedId:"polar",polars:[{id:"polar",name:"Boat",source:"upload",version:"1",createdAt:"2026-10-13T00:00:00Z",points:[{tws:8,twa:60,speed:5}]}],observationSets:[]});
+  const ui=renderHook(()=>usePerformance());
+  await waitFor(()=>expect(ui.result.current.boatId).toBe("local"));
+  expect(ui.result.current.result?.performancePercent).toBe(100);
+  expect(refreshBoatTripPolar).toHaveBeenCalledWith([],"local");
+  expect(mockNav.session.boatId).toBe("race");
+  ui.unmount();
+});

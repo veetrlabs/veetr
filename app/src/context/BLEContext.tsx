@@ -34,7 +34,7 @@ function getBleManager(): any | false {
 
 export interface SailingData {
   compass?: CompassTelemetry;
-  recordingInstruments?: {aws:number|null;tws:number|null;awa:number|null;twa:number|null;heading:number|null}
+  recordingInstruments?: {heel?:number;aws:number|null;tws:number|null;awa:number|null;twa:number|null;heading:number|null}
   speed: number
   speedMax: number
   speedAvg: number
@@ -311,6 +311,7 @@ export function BLEProvider({ children }: { children: ReactNode }) {
       const mappedData: Partial<SailingData> = {
         compass: compassTelemetry(parsed),
         recordingInstruments: {
+          ...(Number.isFinite(parsed.heel ?? parsed.hl) ? {heel: parsed.heel ?? parsed.hl} : {}),
           aws: Number.isFinite(parsed.AWS) && parsed.AWS >= 0 && parsed.AWS <= 200 ? parsed.AWS : null,
           tws: Number.isFinite(parsed.TWS) && parsed.TWS >= 0 && parsed.TWS <= 200 ? parsed.TWS : null,
           awa: Number.isFinite(parsed.AWA) ? convertToSailingAngle(parsed.AWA) : null,

@@ -448,6 +448,8 @@ export type Database = {
     }
     Functions: {
       admin_user: { Args: { target_user: string }; Returns: Json };
+      boat_specifications: { Args: { bid: string }; Returns: Json };
+      save_boat_specifications: { Args: { bid: string; details: Json; expected: Json }; Returns: Json };
       save_boat_profile: { Args: { boat_id: string; boat_name: string; boat_class: string; boat_length: number | null; boat_weight: number | null; boat_color: string | null; expected?: Json }; Returns: Json };
       boat_responsibility: { Args: {bid: string}; Returns: Json };
       request_boat_handover: { Args: {bid: string; recipient: string}; Returns: Json };
@@ -471,6 +473,8 @@ export type Database = {
       accept_boat_invitation: { Args: { invite_token: string }; Returns: undefined }
       prepare_boat_invitation_email: { Args: { invitation_id: string }; Returns: Json }
       mark_boat_invitation_sent: { Args: { invitation_id: string }; Returns: undefined }
+      my_owned_boats: { Args: Record<PropertyKey, never>; Returns: Json };
+      publish_private_boat: { Args: { bid: string; profile: Json; expected?: string }; Returns: Json };
       my_boats: { Args: Record<PropertyKey, never>; Returns: Json }
       tracking_window: { Args: { sid: string }; Returns: Json }
       set_tracking_window: { Args: { sid: string; enabled: boolean }; Returns: undefined }

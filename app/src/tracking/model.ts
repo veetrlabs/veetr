@@ -22,6 +22,7 @@ export interface TripSharing {
   uploaded: number; finished?: boolean; error?: string;
 }
 export interface TrackingSession extends TrackingEntry {
+  engineUse?: "unknown" | "sailing-only" | "engine-used";
   course?: import("../../../veetr.org/src/features/racing/course").RaceCourse | null;
   sharing?: TripSharing;
   id: string;
@@ -75,7 +76,7 @@ export interface TrackingPoint {
   sogMps: number | null;
   cogDeg: number | null;
   source: "phone" | "veetr";
-  instruments?: { aws: number | null; tws: number | null; awa?: number | null; twa?: number | null; heading?: number | null };
+  instruments?: { heel?: number; aws: number | null; tws: number | null; awa?: number | null; twa?: number | null; heading?: number | null };
 }
 export interface LocationFix {
   timestamp: number;

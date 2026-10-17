@@ -401,3 +401,16 @@ test("race course snapshot survives archiving and later races", async () => {
     assert.deepEqual(saved?.session.course, course);
   } finally { db.close(); }
 });
+
+test('engine-use metadata survives archival and restart without changing recorded points',async()=>{
+ const db=new DatabaseSync(':memory:');
+ try {
+  const s=store(db);await s.init();await s.create({...session,mode:'local'});await s.append(session.id,[point(1)]);
+  await s.updateTrip(session.id,{engineUse:'sailing-only'});
+  assert.equal((await s.get())?.engineUse,'sailing-only');
+  await s.patch(session.id,{phase:'stopping'});await s.archiveLocal();
+  await s.updateTrip(session.id,{engineUse:'engine-used'});
+  const restarted=store(db);await restarted.init();const saved=await restarted.localRecording(session.id);
+  assert.equal(saved?.session.engineUse,'engine-used');assert.equal(saved?.points.length,1);assert.equal(saved?.session.boatId,'boat');
+ } finally {db.close();}
+});

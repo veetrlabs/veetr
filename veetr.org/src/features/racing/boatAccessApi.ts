@@ -96,7 +96,7 @@ export async function previewInvitation(invite_token: string) {
     invite_token,
   });
   if (error) throw error;
-  return data as { boat: string; series: string | null; handover?: boolean; role?: string; status: string } | null;
+  return data as { boatId?: string; boat: string; series: string | null; handover?: boolean; role?: string; status: string } | null;
 }
 export async function acceptInvitation(invite_token: string) {
   const { error } = await client().rpc("accept_boat_invitation", {
@@ -117,4 +117,11 @@ export async function getTrackingWindow(sid: string) {
 export async function setTrackingWindow(sid: string, enabled: boolean) {
   const { error } = await client().rpc("set_tracking_window", { sid, enabled });
   if (error) throw error;
+}
+
+/** Account boats include owned profiles that have never entered a race. */
+export async function getAccountBoats(): Promise<Pick<MyBoat, "boatId" | "boat">[]> {
+  const [entries, owned] = await Promise.all([getMyBoats(), client().rpc("my_owned_boats")]);
+  if (owned.error) throw owned.error;
+  return [...entries, ...(owned.data as unknown as {id:string;name:string}[]).map(b => ({boatId:b.id,boat:b.name}))];
 }

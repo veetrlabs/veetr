@@ -711,6 +711,7 @@ Please try the update again or contact support.`, '❌ Firmware Apply Failed')
       
       // Map standard keys to internal data structure
       const mappedData: Partial<SailingData> = {
+        polarReadingValid: Number.isFinite(data.TWS) && data.TWS > 0 && Number.isFinite(data.TWA) && Number.isFinite(data.SOG) && data.SOG >= 0 && (data.satellites ?? data.sat ?? 0) >= 3 && Number.isFinite(data.lat) && Math.abs(data.lat) <= 90 && Number.isFinite(data.lon) && Math.abs(data.lon) <= 180,
         speed: data.SOG || 0,            // Speed Over Ground
         speedMax: data.SOGMax || 0,
         speedAvg: data.SOGAvg || 0,

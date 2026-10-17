@@ -1,43 +1,474 @@
+import { accountBoatProfile } from "./boatProfile";
+import { boatPolarCurves } from "../../../packages/shared/src/polar/repository";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Crypto from "expo-crypto";
-export type PrivateBoat = { id: string; name: string; className: string; sailNumber: string };
-type Fleet = { boats: PrivateBoat[]; activeId?: string };
+import { polarRepository } from "../polar/repository";
+import {
+  validatePolar,
+  type Polar,
+} from "../../../packages/shared/src/polar/model";
+export type PrivateBoat = {
+  id: string;
+  name: string;
+  className: string;
+  sailNumber: string;
+  manufacturer?: string;
+  model?: string;
+  variant?: string;
+  lengthM?: number;
+  weightKg?: number;
+  waterlineLengthM?: number;
+  draftM?: number;
+  airDraftM?: number;
+  beamM?: number;
+  catalogId?: string;
+  catalogRevision?: string;
+  catalogLabel?: string;
+  catalogPolar?: Polar;
+  racePreview?: boolean;
+  downloadedFrom?: { server: string; boatId: string; baseline: string };
+};
+export type Fleet = {
+  accountCopies?: {
+    server: string;
+    userId: string;
+    localBoatId: string;
+    profile: string;
+  }[];
+  boats: PrivateBoat[];
+  activeId?: string;
+  raceLinks?: { server: string; raceBoatId: string; localBoatId: string }[];
+};
+const raceServer = () => process.env.EXPO_PUBLIC_SUPABASE_URL ?? "";
 const key = "veetr-private-boats:v1";
 let pending: Promise<unknown> = Promise.resolve();
 export async function privateFleet(): Promise<Fleet> {
   const raw = await AsyncStorage.getItem(key);
   return raw ? JSON.parse(raw) : { boats: [] };
 }
-function update(change: (fleet: Fleet) => Fleet) {
+function update(
+  change: (fleet: Fleet) => Fleet | Promise<Fleet>,
+  rollback?: () => Promise<void>,
+) {
   const next = pending.then(async () => {
-    const fleet = change(await privateFleet());
-    await AsyncStorage.setItem(key, JSON.stringify(fleet));
-    return fleet;
+    try {
+      const fleet = await change(await privateFleet());
+      await AsyncStorage.setItem(key, JSON.stringify(fleet));
+      return fleet;
+    } catch (error) {
+      await rollback?.();
+      throw error;
+    }
   });
   pending = next.catch(() => {});
   return next;
 }
 export function savePrivateBoat(boat: PrivateBoat) {
   const name = boat.name.trim();
-  if (!name || name.length > 120) return Promise.reject(new Error("Enter a boat name (up to 120 characters)."));
-  return update(fleet => {
-    const saved = { ...boat, id: boat.id || Crypto.randomUUID(), name, className: boat.className.trim(), sailNumber: boat.sailNumber.trim() };
-    return { boats: [...fleet.boats.filter(b => b.id !== saved.id), saved], activeId: fleet.activeId ?? saved.id };
-  });
+  if (
+    boat.lengthM !== undefined &&
+    (!Number.isFinite(boat.lengthM) || boat.lengthM <= 0 || boat.lengthM > 200)
+  )
+    return Promise.reject(new Error("Enter a valid boat length."));
+  if (
+    boat.weightKg !== undefined &&
+    (!Number.isFinite(boat.weightKg) ||
+      boat.weightKg <= 0 ||
+      boat.weightKg >= 1000000000)
+  )
+    return Promise.reject(new Error("Enter a valid boat weight."));
+  for (const [field, max] of [
+    ["waterlineLengthM", 200],
+    ["draftM", 30],
+    ["airDraftM", 200],
+    ["beamM", 100],
+  ] as const) {
+    const value = boat[field];
+    if (
+      value !== undefined &&
+      (!Number.isFinite(value) || value <= 0 || value > max)
+    )
+      return Promise.reject(new Error("Enter a valid boat dimension."));
+  }
+  if (
+    boat.waterlineLengthM &&
+    boat.lengthM &&
+    boat.waterlineLengthM > boat.lengthM
+  )
+    return Promise.reject(
+      new Error("Waterline length cannot exceed overall length."),
+    );
+  if (boat.catalogPolar) validatePolar(boat.catalogPolar);
+  if (!name || name.length > 120)
+    return Promise.reject(
+      new Error("Enter a boat name (up to 120 characters)."),
+    );
+  let undo: (() => Promise<void>) | undefined;
+  return update(
+    async (fleet) => {
+      const saved = {
+        ...boat,
+        id: boat.id || Crypto.randomUUID(),
+        name,
+        className: boat.className.trim(),
+        sailNumber: boat.sailNumber.trim(),
+      };
+      const previous = fleet.boats.find((b) => b.id === saved.id);
+      if (
+        saved.catalogPolar &&
+        saved.catalogPolar.id !== previous?.catalogPolar?.id
+      ) {
+        const library = await polarRepository.read(saved.id);
+        undo = async () => {
+          await polarRepository.restore(saved.id, library);
+        };
+        await polarRepository.setPolar(saved.id, saved.catalogPolar);
+      }
+      return {
+        ...fleet,
+        boats: [...fleet.boats.filter((b) => b.id !== saved.id), saved],
+        activeId: saved.racePreview
+          ? fleet.activeId
+          : (fleet.activeId ?? saved.id),
+      };
+    },
+    async () => {
+      await undo?.();
+    },
+  );
 }
 export function selectPrivateBoat(id?: string) {
-  return update(fleet => {
-    if (id && !fleet.boats.some(b => b.id === id)) throw new Error("No boats found");
+  return update((fleet) => {
+    if (id && !fleet.boats.some((b) => b.id === id))
+      throw new Error("No boats found");
     return { ...fleet, activeId: id };
   });
 }
 export async function activePrivateBoat() {
   const fleet = await privateFleet();
-  return fleet.boats.find(b => b.id === fleet.activeId);
+  return fleet.boats.find((b) => b.id === fleet.activeId);
 }
 export function deletePrivateBoat(id: string) {
-  return update(fleet => ({
-    boats: fleet.boats.filter(boat => boat.id !== id),
+  return update((fleet) => ({
+    ...fleet,
+    ...(fleet.raceLinks
+      ? { raceLinks: fleet.raceLinks.filter((link) => link.localBoatId !== id) }
+      : {}),
+    ...(fleet.accountCopies
+      ? {
+          accountCopies: fleet.accountCopies.filter(
+            (copy) => copy.localBoatId !== id,
+          ),
+        }
+      : {}),
+    boats: fleet.boats.filter((boat) => boat.id !== id),
     activeId: fleet.activeId === id ? undefined : fleet.activeId,
   }));
+}
+
+/** Device-only identity mapping. Never changes tracking permissions or trip identifiers. */
+export function linkedRaceBoat(fleet: Fleet, raceBoatId: string) {
+  const link = fleet.raceLinks?.find(
+    (link) => link.server === raceServer() && link.raceBoatId === raceBoatId,
+  );
+  return fleet.boats.find((boat) => boat.id === link?.localBoatId);
+}
+export async function localBoatIdForRace(raceBoatId: string) {
+  const fleet = await privateFleet();
+  return (
+    fleet.boats.find(
+      (b) =>
+        b.racePreview &&
+        b.downloadedFrom?.server === raceServer() &&
+        b.downloadedFrom.boatId === raceBoatId,
+    )?.id ??
+    linkedRaceBoat(fleet, raceBoatId)?.id ??
+    raceBoatId
+  );
+}
+/** Undefined unlinks; null adds a new local boat. Existing links are reused on retries. */
+export function linkRaceBoat(
+  race: { boatId: string; boatName: string },
+  localBoatId: string | null | undefined,
+) {
+  return update((fleet) => {
+    if (!race.boatId) throw new Error("No boats found");
+    const existing = linkedRaceBoat(fleet, race.boatId);
+    const boat =
+      localBoatId === null
+        ? (existing ?? {
+            id: Crypto.randomUUID(),
+            name: race.boatName.trim() || "Boat",
+            className: "",
+            sailNumber: "",
+          })
+        : fleet.boats.find((boat) => boat.id === localBoatId);
+    if (localBoatId !== undefined && !boat) throw new Error("No boats found");
+    const raceLinks = (fleet.raceLinks ?? []).filter(
+      (link) => link.server !== raceServer() || link.raceBoatId !== race.boatId,
+    );
+    if (boat)
+      raceLinks.push({
+        server: raceServer(),
+        raceBoatId: race.boatId,
+        localBoatId: boat.id,
+      });
+    return {
+      ...fleet,
+      raceLinks,
+      boats:
+        boat && !fleet.boats.some((b) => b.id === boat.id)
+          ? [...fleet.boats, boat]
+          : fleet.boats,
+      activeId: fleet.activeId ?? boat?.id,
+    };
+  });
+}
+
+export function raceBoatIdForLocal(fleet: Fleet, localBoatId: string) {
+  const cached = fleet.boats.find(
+    (b) =>
+      b.id === localBoatId &&
+      b.racePreview &&
+      b.downloadedFrom?.server === raceServer(),
+  );
+  if (cached) return cached.downloadedFrom!.boatId;
+  return fleet.raceLinks?.find(
+    (link) => link.server === raceServer() && link.localBoatId === localBoatId,
+  )?.raceBoatId;
+}
+/** Persist the publication identity before networking, so retries cannot create duplicates. */
+export async function reservePublicBoatId(localBoatId: string) {
+  let id = "";
+  await update((fleet) => {
+    if (!fleet.boats.some((b) => b.id === localBoatId))
+      throw new Error("No boats found");
+    id = raceBoatIdForLocal(fleet, localBoatId) ?? Crypto.randomUUID();
+    if (raceBoatIdForLocal(fleet, localBoatId)) return fleet;
+    return {
+      ...fleet,
+      raceLinks: [
+        ...(fleet.raceLinks ?? []),
+        { server: raceServer(), raceBoatId: id, localBoatId },
+      ],
+    };
+  });
+  return id;
+}
+/** Add an owned cloud boat once, preserving any existing local link, edits and trips. */
+export function importOwnedBoat(
+  boat: Omit<PrivateBoat, "id">,
+  raceBoatId: string,
+) {
+  let undo: (() => Promise<void>) | undefined;
+  return update(
+    async (fleet) => {
+      if (linkedRaceBoat(fleet, raceBoatId)) return fleet;
+      const saved = { ...boat, id: Crypto.randomUUID() };
+      if (saved.catalogPolar) {
+        const previous = await polarRepository.read(saved.id);
+        undo = () => polarRepository.restore(saved.id, previous).then(() => {});
+        await polarRepository.setPolar(saved.id, saved.catalogPolar);
+      }
+      return {
+        ...fleet,
+        boats: [...fleet.boats, saved],
+        activeId: saved.racePreview
+          ? fleet.activeId
+          : (fleet.activeId ?? saved.id),
+        raceLinks: [
+          ...(fleet.raceLinks ?? []),
+          { server: raceServer(), raceBoatId, localBoatId: saved.id },
+        ],
+      };
+    },
+    async () => {
+      await undo?.();
+    },
+  );
+}
+
+function withAccountCopy(
+  fleet: Fleet,
+  localBoatId: string,
+  userId: string,
+  profile: string,
+): Fleet {
+  return {
+    ...fleet,
+    accountCopies: [
+      ...(fleet.accountCopies ?? []).filter(
+        (copy) =>
+          !(
+            copy.server === raceServer() &&
+            copy.userId === userId &&
+            copy.localBoatId === localBoatId
+          ),
+      ),
+      { server: raceServer(), userId, localBoatId, profile },
+    ],
+  };
+}
+export function rememberAccountBoat(
+  localBoatId: string,
+  userId: string,
+  profile: string,
+) {
+  return update((fleet) =>
+    withAccountCopy(fleet, localBoatId, userId, profile),
+  );
+}
+/** Pull saved edits only when this device still matches its last account copy. */
+export function syncAccountBoat(
+  boat: Omit<PrivateBoat, "id">,
+  cloudId: string,
+  userId: string,
+) {
+  let undo: (() => Promise<void>) | undefined;
+  return update(
+    async (fleet) => {
+      const existing =
+        fleet.boats.find(
+          (b) =>
+            b.racePreview &&
+            b.downloadedFrom?.server === raceServer() &&
+            b.downloadedFrom.boatId === cloudId,
+        ) ?? linkedRaceBoat(fleet, cloudId);
+      const id = existing?.id ?? Crypto.randomUUID();
+      const previous = await polarRepository.read(id);
+      if (existing) {
+        const base = fleet.accountCopies?.find(
+          (copy) =>
+            copy.server === raceServer() &&
+            copy.userId === userId &&
+            copy.localBoatId === id,
+        );
+        if (
+          !base ||
+          base.profile !==
+            JSON.stringify(
+              accountBoatProfile(existing, boatPolarCurves(previous).reference),
+            )
+        )
+          return fleet;
+      }
+      const saved = {
+        ...boat,
+        id,
+        ...(existing?.racePreview ? { racePreview: true } : {}),
+        ...(existing?.downloadedFrom
+          ? { downloadedFrom: existing.downloadedFrom }
+          : {}),
+      };
+      const profile = JSON.stringify(
+        accountBoatProfile(saved, saved.catalogPolar),
+      );
+      const previousReference = boatPolarCurves(previous).reference;
+      undo = () =>
+        (previousReference
+          ? polarRepository.setPolar(id, previousReference)
+          : polarRepository.clearReference(id)
+        ).then(() => {});
+      // Use queued polar changes so a concurrent observation/measurement update is retained.
+      if (saved.catalogPolar)
+        await polarRepository.setPolar(id, saved.catalogPolar);
+      else await polarRepository.clearReference(id);
+      return withAccountCopy(
+        {
+          ...fleet,
+          boats: [...fleet.boats.filter((b) => b.id !== id), saved],
+          activeId: saved.racePreview ? fleet.activeId : fleet.activeId ?? id,
+          raceLinks: existing
+            ? fleet.raceLinks
+            : [
+                ...(fleet.raceLinks ?? []),
+                { server: raceServer(), raceBoatId: cloudId, localBoatId: id },
+              ],
+        },
+        id,
+        userId,
+        profile,
+      );
+    },
+    async () => {
+      await undo?.();
+    },
+  );
+}
+
+/** Keep a downloaded public profile under the same local identity and trip history. */
+export function storeDownloadedBoat(
+  boat: Omit<PrivateBoat, "id">,
+  cloudId: string,
+  replace = false,
+  racePreview = false,
+) {
+  let undo: (() => Promise<void>) | undefined;
+  return update(
+    async (fleet) => {
+      const existing = racePreview
+        ? fleet.boats.find(
+            (b) =>
+              b.racePreview &&
+              b.downloadedFrom?.server === raceServer() &&
+              b.downloadedFrom.boatId === cloudId,
+          )
+        : linkedRaceBoat(fleet, cloudId);
+      // Background refresh cannot recreate a removed copy or replace a private boat.
+      if (
+        !replace &&
+        !racePreview &&
+        (!existing?.downloadedFrom ||
+          existing.downloadedFrom.boatId !== cloudId)
+      )
+        return fleet;
+      const id = existing?.id ?? Crypto.randomUUID();
+      const previous = boatPolarCurves(
+        await polarRepository.read(id),
+      ).reference;
+      if (
+        !replace &&
+        existing &&
+        JSON.stringify(accountBoatProfile(existing, previous)) !==
+          existing.downloadedFrom?.baseline
+      )
+        return fleet;
+      const saved: PrivateBoat = {
+        ...boat,
+        id,
+        ...(racePreview ? { racePreview: true } : {}),
+        downloadedFrom: {
+          server: raceServer(),
+          boatId: cloudId,
+          baseline: JSON.stringify(
+            accountBoatProfile(boat as PrivateBoat, boat.catalogPolar),
+          ),
+        },
+      };
+      undo = () =>
+        (previous
+          ? polarRepository.setPolar(id, previous)
+          : polarRepository.clearReference(id)
+        ).then(() => {});
+      if (boat.catalogPolar)
+        await polarRepository.setPolar(id, boat.catalogPolar);
+      else await polarRepository.clearReference(id);
+      return {
+        ...fleet,
+        boats: [...fleet.boats.filter((b) => b.id !== id), saved],
+        activeId: racePreview ? fleet.activeId : (fleet.activeId ?? id),
+        raceLinks: racePreview
+          ? fleet.raceLinks
+          : [
+              ...(fleet.raceLinks ?? []).filter(
+                (l) => l.server !== raceServer() || l.raceBoatId !== cloudId,
+              ),
+              { server: raceServer(), raceBoatId: cloudId, localBoatId: id },
+            ],
+      };
+    },
+    async () => {
+      await undo?.();
+    },
+  );
 }

@@ -1,3 +1,4 @@
+import { BoatSpecifications } from "./BoatSpecifications";
 import { EditEntityButton } from "./EditEntityButton";
 import { BoatShareDialog, phoneTrackingStatus, type RaceTrackingEvent } from "./RacePhones";
 import { BoatParticipation, BoatInvitations, BoatProfileInvitations, FleetBoatActions } from "./BoatAccess";
@@ -5,7 +6,7 @@ import {BoatTeam} from "./BoatTeam";
 import { appHref } from "./routes";
 import { DeleteSection } from "./DeleteAction";
 import { t } from "./i18n";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   supabase,
   listBoats,
@@ -94,34 +95,30 @@ function EditBoat({
 }) {
   const [busy, setBusy] = useState(false),
     [error, setError] = useState("");
-  return (
-    <form
-      className="edit-row"
-      aria-label={t("Edit boat")}
-      onSubmit={async (e) => {
-        e.preventDefault();
-        const data = new FormData(e.currentTarget);
-        const next: RegisteredBoat = {
-          id: boat.id,
-          trackingColor: String(data.get("color")),
-          ...(data.get("weight") ? {weightKg: Number(data.get("weight"))} : {}),
-          name: String(data.get("name")).trim(),
-          className: String(data.get("class")),
-          ...(data.get("length") ? { length: Number(data.get("length")) } : {}),
-        };
-        setBusy(true);
-        setError("");
-        try {
-          await updateBoat(next, boat);
-          onSaved(next);
-        } catch (e) {
-          setError(String((e as Error).message));
-        } finally {
-          setBusy(false);
-        }
-      }}
-    >
-      <fieldset disabled={busy}>
+  const [specBusy, setSpecBusy] = useState(false);
+  const saving = useRef(false);
+  const save = async (form: HTMLFormElement) => {
+    if (saving.current || specBusy || !form.reportValidity()) return;
+    const data = new FormData(form);
+    const next: RegisteredBoat = {
+      id: boat.id, name: String(data.get("name")).trim(), className: String(data.get("class")),
+      trackingColor: String(data.get("color")),
+      ...(data.get("weight") ? {weightKg: Number(data.get("weight"))} : {}),
+      ...(data.get("length") ? {length: Number(data.get("length"))} : {}),
+    };
+    if ((["name","className","trackingColor","weightKg","length"] as const).every(key => next[key] === boat[key])) return;
+    saving.current = true; setBusy(true); setError("");
+    try { await updateBoat(next, boat); onSaved(next); }
+    catch (e) { setError((e as Error).message); }
+    finally { saving.current = false; setBusy(false); }
+  };
+  return (<>
+    <a href={appHref(`?boat=${boat.id}`)} aria-disabled={busy || specBusy} onClick={e => {e.preventDefault(); if (!busy && !specBusy) onCancel();}}>{t("Back to boat")}</a>
+    <form className="edit-row boat-core-editor" aria-label={t("Edit boat")}
+      onSubmit={e => {e.preventDefault(); void save(e.currentTarget);}}
+      onBlur={e => {void save(e.currentTarget);}}>
+      <p>{t("Changes save automatically.")}</p>
+      <fieldset disabled={busy || specBusy}>
         <label>
           {t("Boat name")}
           <input name="name" required defaultValue={boat.name} />
@@ -142,14 +139,11 @@ function EditBoat({
         </label>
         <label>{t("Weight (kg)")}<input name="weight" type="number" min="0.01" max="999999999" step="0.01" defaultValue={boat.weightKg} /></label>
         <label>{t("Tracking color")}<input name="color" type="color" defaultValue={boat.trackingColor || "#007f73"} /></label>
-        <button>{t("Save boat")}</button>
-        <button type="button" onClick={onCancel}>
-          {t("Cancel")}
-        </button>
       </fieldset>
       {error && <p role="alert">{t(error)}</p>}
     </form>
-  );
+    <BoatSpecifications key={boat.id} boatId={boat.id} editable onBusyChange={setSpecBusy} />
+  </>);
 }
 export function Boats({
   boatId,
@@ -221,7 +215,7 @@ export function Boats({
   </section>;
   if (boatId && userId && editing && editable) return <section className="entity-editor">
     <h1>{t("Edit boat")}: {editing.name}</h1>
-    <EditBoat boat={editing} onCancel={() => setEditing(null)} onSaved={updated => { setBoats(old => old.map(b => b.id === updated.id ? updated : b)); setEditing(null); }} />
+    <EditBoat boat={editing} onCancel={() => setEditing(null)} onSaved={updated => { setBoats(old => old.map(b => b.id === updated.id ? updated : b)); setEditing(updated); }} />
     {manager === userId && <DeleteSection description={t("Delete this boat profile? It must be removed from every series first.")} onDelete={async () => {await deleteBoat(editing.id); window.location.href=appHref("/");}} />}
   </section>;
   if (boatId)
@@ -249,7 +243,7 @@ export function Boats({
                   setBoats((old) =>
                     old.map((b) => (b.id === updated.id ? updated : b)),
                   );
-                  setEditing(null);
+                  setEditing(updated);
                 }}
               />
             )}
@@ -259,6 +253,7 @@ export function Boats({
                 .join(" · ")}
             </p>
 
+            <BoatSpecifications key={boat.id} boatId={boat.id} />
             <button onClick={() => setInviting(true)}>{t("Invite a boat to a race")}</button>
           {userId && <a className="directory-create" href={`${appHref(`?boat=${boatId}`)}?accessBoat=1`}>{t("Manage boat access")}</a>}
             {userId && <BoatParticipation key={`${boatId}/${userId}`} boatId={boatId} />}

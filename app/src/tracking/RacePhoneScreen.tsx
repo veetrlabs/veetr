@@ -1,3 +1,4 @@
+import RaceBoatPreview from "../boats/RaceBoatPreview";
 import BackButton from '../components/BackButton';
 import { locale, translateMessage, t, useLanguageRefresh } from '../i18n';
 import { useEffect, useState } from "react";
@@ -150,9 +151,7 @@ export default function RacePhoneScreen({ token, raceLinkId, eventId }: { token?
           </View>
         ) : (
           <>
-            <Text style={{ color: c.text, fontSize: 32, fontWeight: "700" }}>
-              {phone.boatName}
-            </Text>
+            <RaceBoatPreview boatId={phone.boatId} boatName={phone.boatName} />
             <Text style={{ color: c.text, fontSize: 22 }}>
               {phone.raceName}
             </Text>

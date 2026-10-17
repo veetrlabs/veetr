@@ -1,10 +1,15 @@
+import { syncPendingPolars } from "../polar/sync";
 import { syncPendingTrips } from "./tripSharing";
 import { useEffect } from "react";
 import { AppState } from "react-native";
 import NetInfo from "@react-native-community/netinfo";
 import { trackingClient } from "./client";
 import { trackingStore } from "./database";
-import { flushDiagnostics, reportDiagnostic, initializeDiagnostics } from "../diagnostics/service";
+import {
+  flushDiagnostics,
+  reportDiagnostic,
+  initializeDiagnostics,
+} from "../diagnostics/service";
 import {
   resumeTracking,
   stopTracking,
@@ -21,9 +26,10 @@ export default function TrackingRuntime() {
       void resumeTracking().catch(() => {});
     };
     const active = () => {
-      reportDiagnostic('app_state');
+      reportDiagnostic("app_state");
       void flushDiagnostics().catch(() => {});
       void syncPendingTrips().catch(() => {});
+      void syncPendingPolars().catch(() => {});
       if (AppState.currentState === "active") {
         client?.auth.startAutoRefresh();
         resume();
@@ -39,16 +45,18 @@ export default function TrackingRuntime() {
         void syncTracking(true).catch(() => {});
         void flushDiagnostics().catch(() => {});
         void syncPendingTrips().catch(() => {});
+        void syncPendingPolars().catch(() => {});
       }
     });
     const timer = setInterval(() => {
       void recoverStalledTracking().catch(() => {});
       void flushDiagnostics().catch(() => {});
       void syncPendingTrips().catch(() => {});
+      void syncPendingPolars().catch(() => {});
       void trackingStore()
         .then(async (store) => {
           const session = await store.get();
-          if (session?.phase === "recording") reportDiagnostic('health');
+          if (session?.phase === "recording") reportDiagnostic("health");
           if (
             session?.phase === "recording" &&
             Date.parse(session.expiresAt) <= Date.now()
