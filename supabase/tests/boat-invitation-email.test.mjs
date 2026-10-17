@@ -186,7 +186,8 @@ test('handover email describes explicit acceptance and the change in responsibil
  const messages=[];
  const handle=createInvitationHandler(env,async url=>url.endsWith('prepare_boat_invitation_email') ? Response.json({email:'new@test.example',boat:'Luna',role:'manager',handover:true,granted:false,series:null,token:id}) : Response.json({}),async message=>{messages.push(message);return new Response(null,{status:200});});
  assert.equal((await handle(request())).status,200);
- assert.match(messages[0].text,/explicitly accept/);
+ assert.match(messages[0].text,/create a Veetr account/);
+ assert.match(messages[0].text,/preview and accept the boat/);
  assert.match(messages[0].text,/previous custodian loses boat access/);
  assert.match(messages[0].text,/\?invite=/);
  assert.doesNotMatch(messages[0].text,/You now have/);

@@ -1,0 +1,40 @@
+name: Update boat catalog
+
+on:
+  workflow_dispatch:
+    inputs:
+      year:
+        description: 'Reviewed upstream catalog year'
+        required: true
+        default: '2024'
+        type: string
+
+permissions:
+  contents: read
+
+# Serialize publication with database/function deployment as well as other syncs.
+concurrency:
+  group: veetr-production-database
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.19.0'
+      - name: Test catalog update checks
+        run: node --test supabase/tests/boat-catalog-sync.test.mjs supabase/tests/boat-catalog-import.test.mjs
+      - name: Check upstream and import changes
+        env:
+          SUPABASE_URL: https://xvqlsltglpgfjhdrhdyc.supabase.co
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.VEETR_SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.VEETR_SUPABASE_SERVICE_ROLE_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
+          # Change only after reviewing the completeness of a newer annual export.
+          BOAT_CATALOG_YEAR: ${{ inputs.year }}
+        run: node tools/sync-boat-catalog.mjs

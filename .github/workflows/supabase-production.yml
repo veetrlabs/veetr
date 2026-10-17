@@ -65,3 +65,14 @@ jobs:
 
       - name: Deploy boat invitation email function
         run: supabase functions deploy boat-invitation-email --use-api --project-ref "$SUPABASE_PROJECT_ID"
+
+      - name: Deploy boat catalog importer
+        run: supabase functions deploy import-boat-catalog --use-api --project-ref "$SUPABASE_PROJECT_ID"
+
+
+      - name: Initialize boat catalog if empty
+        env:
+          SUPABASE_URL: https://xvqlsltglpgfjhdrhdyc.supabase.co
+          GITHUB_TOKEN: ${{ github.token }}
+          BOAT_CATALOG_INITIAL_ONLY: 'true'
+        run: node tools/sync-boat-catalog.mjs
