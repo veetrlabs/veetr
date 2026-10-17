@@ -28,7 +28,7 @@ test('changed or missing catalog imports the exact verified snapshot',async()=>{
  for(const installed of [[],[{year:2024,revision:old,sha256:'outdated'}]]) {
   const f=fixture(installed);assert.equal((await syncBoatCatalog(env,f.fetcher)).status,'updated');
   assert.deepEqual(JSON.parse(f.calls.at(-1).options.body),{year:2024,revision});
-  assert.equal(f.calls[1].options.headers.Authorization,'Bearer github-test-only');
+  assert.equal(f.calls[1].options.headers.Authorization,undefined);
   assert.equal(f.calls[2].options.headers,undefined);
   assert.equal(f.calls[3].options.headers.Authorization,'Bearer test-only');
  }

@@ -16,7 +16,7 @@ export async function syncBoatCatalog(env, fetcher = fetch) {
   };
   const readJson = async (url, options = {}) => {
     const response = await fetcher(url, {signal: AbortSignal.timeout(30000), ...options});
-    if (!response.ok) throw new Error(`Catalog request failed (${response.status})`);
+    if (!response.ok) throw new Error(`Catalog request failed at ${new URL(url).hostname}${new URL(url).pathname} (${response.status})`);
     return response.json();
   };
   const source = await readJson(`${base}/rest/v1/boat_catalog_source?select=revision,year,sha256&singleton=eq.true`, {headers});
@@ -25,7 +25,7 @@ export async function syncBoatCatalog(env, fetcher = fetch) {
   if (installed && env.BOAT_CATALOG_INITIAL_ONLY === "true") return {status:"already-initialized",year:installed.year,revision:installed.revision};
   const commits = await readJson(`https://api.github.com/repos/jieter/orc-data/commits?path=ALL${year}.json&per_page=1`, {
     headers: { Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28",
-      ...(env.GITHUB_TOKEN ? {Authorization: `Bearer ${env.GITHUB_TOKEN}`} : {}) },
+ },
   });
   const revision = commits?.[0]?.sha;
   if (typeof revision !== "string" || !/^[a-f0-9]{40}$/.test(revision))

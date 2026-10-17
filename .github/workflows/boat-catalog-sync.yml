@@ -34,7 +34,6 @@ jobs:
           SUPABASE_URL: https://xvqlsltglpgfjhdrhdyc.supabase.co
           SUPABASE_ACCESS_TOKEN: ${{ secrets.VEETR_SUPABASE_ACCESS_TOKEN }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.VEETR_SUPABASE_SERVICE_ROLE_KEY }}
-          GITHUB_TOKEN: ${{ github.token }}
           # Change only after reviewing the completeness of a newer annual export.
           BOAT_CATALOG_YEAR: ${{ inputs.year }}
         run: node tools/sync-boat-catalog.mjs
