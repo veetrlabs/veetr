@@ -1,3 +1,4 @@
+import { ReplaySpeedChart, trackingColor } from './ReplaySpeedChart';
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { LocateFixed, Minimize2, Scan, Focus } from "lucide-react";
 import type * as Leaflet from "leaflet";
@@ -27,7 +28,9 @@ function TrackingMap({ seriesId, eventId, heatId, boatIds, course }: TrackingMap
   const shell = useRef<HTMLDialogElement>(null);
   const expandButton = useRef<HTMLButtonElement>(null);
   const replay = useHeatReplay(seriesId, eventId, heatId);
-  const positions = useMemo(() => positionsForHeat(replay.positions, boatIds), [replay.positions, boatIds]);
+  const [hidden, setHidden] = useState<Set<string>>(() => new Set());
+  const chartPoints = useMemo(() => replay.points.filter(p => boatIds.includes(p.boatId)), [replay.points, boatIds]);
+  const positions = useMemo(() => positionsForHeat(replay.positions, boatIds).filter(p => !hidden.has(p.boatId)), [replay.positions, boatIds, hidden]);
   const displayTime = replay.shownAt;
   const formatTime = (stamp: number) => new Date(stamp).toLocaleString(document.documentElement.lang || undefined);
   const [located, setLocated] = useState(false);
@@ -106,7 +109,7 @@ function TrackingMap({ seriesId, eventId, heatId, boatIds, course }: TrackingMap
     const moving: {marker: Leaflet.CircleMarker; position: typeof positions[number]}[] = [];
     for (const p of positions) {
       const stale = positionAge(p, displayTime) > 60,
-        color = boatColors[p.boatId] || `hsl(${Array.from(p.boatId).reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 0) % 360} 65% 40%)`;
+        color = trackingColor(p.boatId, boatColors);
       for (const trail of p.trailSegments ?? [p.trail])
         if (trail.length > 1)
           L.polyline(trail, { color, weight: 3, opacity: 0.5 }).addTo(group);
@@ -246,10 +249,9 @@ function TrackingMap({ seriesId, eventId, heatId, boatIds, course }: TrackingMap
             </select></label>
             <output>{formatTime(replay.at)}</output>
           </div>
-          <label className="replay-timeline">
-            <input aria-label={t("Replay time")} type="range" min={replay.bounds.start} max={replay.bounds.end} step="any" value={replay.at}
-              aria-valuetext={formatTime(replay.at)} onChange={e => replay.seek(Number(e.target.value))} />
-          </label>
+          <ReplaySpeedChart points={chartPoints} bounds={replay.bounds} at={replay.at} colors={boatColors}
+            hidden={hidden} toggle={id => setHidden(previous => { const next = new Set(previous); if (next.has(id)) next.delete(id); else next.add(id); return next; })}
+            seek={replay.seek} loading={replay.loading} />
         </>}
       </div>
       </dialog>

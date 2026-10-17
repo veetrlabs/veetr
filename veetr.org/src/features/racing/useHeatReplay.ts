@@ -1,4 +1,4 @@
-import {useEffect,useRef,useState} from 'react';
+import {useEffect,useMemo,useRef,useState} from 'react';
 import {supabase} from './api';
 import {TrackCache,parseTracks,type TrackMeta,type TrackPoint} from './trackCache';
 import {replayRequests} from './replayRequests';
@@ -21,10 +21,10 @@ export function useHeatReplay(seriesId:string,eventId:string,heatId?:string) {
       if(error) throw error;
       return parseTracks(data);
     }
-    const queue=replayRequests(async requested=>{
+    const queue=replayRequests(async ()=>{
       const current=metaRef.current;if(!current||current.end===null) {if(alive)setLoading(false);return;}
-      const target=requested||current.end;
-      const needed=cache.current.needed(current,target);
+      // The chart needs the whole recording, including samples after the cursor.
+      const needed=cache.current.needed(current,current.end);
       if(needed.every(c=>cache.current.has(c.start,c.version))) {if(alive)setLoading(false);return;}
       if(alive)setLoading(true);
       try {
@@ -83,8 +83,8 @@ export function useHeatReplay(seriesId:string,eventId:string,heatId?:string) {
   // The cache is deliberately memory-only and dies with this mounted map.
   const ready=meta&&cache.current.needed(meta,selected).every(c=>cache.current.has(c.start,c.version));
   const positions=ready?cache.current.frame(selected):[];
-  void version;
-  return {heats:meta?.heats??[],bounds,following:at===0,at:selected,shownAt:selected,positions,playing,speed,loading,error,
+  const points = useMemo(() => meta ? cache.current.points(meta) : [], [meta, version]);
+  return {heats:meta?.heats??[],bounds,following:at===0,at:selected,shownAt:selected,positions,points,playing,speed,loading,error,
     setSpeed,retry:()=>setRetry(n=>n+1),
     seek:(value:number)=>{setPlaying(false);setAt(bounds&&value>=bounds.end?0:value);},
     togglePlay:()=>{if(bounds&&(!at||at>=bounds.end))setAt(bounds.start);setPlaying(v=>!v);}};

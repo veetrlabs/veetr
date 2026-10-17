@@ -25,6 +25,9 @@ export class TrackCache {
   needed(meta:TrackMeta,at:number) {
     return meta.chunks.filter(c=>c.start<=at+60000);
   }
+  points(meta:TrackMeta):TrackPoint[] {
+    return meta.chunks.flatMap(c => this.has(c.start,c.version) ? this.chunks.get(c.start)!.points : []);
+  }
   frame(at:number):TrackingPosition[] {
     const boats = new Map<string,TrackPoint[]>();
     for(const chunk of this.chunks.values()) for(const p of chunk.points) {

@@ -862,8 +862,6 @@ a.directory-create { display: inline-flex; align-items: center; min-height: 44px
 .replay-toolbar label { display: flex; align-items: center; gap: .5rem; }
 .replay-toolbar select { width: auto; }
 .replay-toolbar button[aria-pressed="true"] { background: var(--sl-color-accent-low); border-color: var(--sl-color-accent); }
-.replay-timeline { display: block; }
-.replay-timeline input { display: block; width: 100%; min-height: 44px; padding: 0; }
 .replay-range { display: flex; justify-content: space-between; flex-wrap: wrap; gap: .5rem; font-size: .85rem; }
 
 .entity-delete-options { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--line); }
@@ -893,15 +891,12 @@ a.directory-create { display: inline-flex; align-items: center; min-height: 44px
 .tracking-map-shell.is-fullscreen .replay-toolbar output { font-size: .85rem; line-height: 1.35; font-variant-numeric: tabular-nums; }
 .tracking-map-shell.is-fullscreen .replay-toolbar label { display: flex; align-items: center; font-size: 0; gap: 0; margin: 0; }
 .tracking-map-shell.is-fullscreen .replay-toolbar select { font-size: 1rem; margin: 0; height: 44px; box-sizing: border-box; }
-.tracking-map-shell.is-fullscreen .replay-timeline { font-size: .8rem; }
 .tracking-map-shell.is-fullscreen button { padding: .55rem .75rem; min-height: 44px; }
 
 .tracking-map-shell { --map-overlay: rgba(15, 28, 44, .45); --map-overlay-text: #f4f7fb; }
 :root[data-theme=light] .tracking-map-shell { --map-overlay: rgba(255, 255, 255, .55); --map-overlay-text: #172b33; }
 .tracking-map-shell.is-fullscreen .replay-toolbar :is(button, select) { background: var(--map-overlay); color: inherit; border-color: #8293a780; min-height: 44px; margin: 0; }
 .tracking-map-shell.is-fullscreen .replay-toolbar select option { background: var(--sl-color-gray-6, #102333); color: var(--map-overlay-text); }
-.tracking-map-shell.is-fullscreen .replay-timeline { margin: 0; }
-.tracking-map-shell.is-fullscreen .replay-timeline input { margin: 0; }
 @media (max-width: 420px) {
   .tracking-map-shell.is-fullscreen .replay-toolbar { grid-template-columns: minmax(0, 1fr) auto; }
   .tracking-map-shell.is-fullscreen .replay-toolbar output { grid-column: 1 / -1; }
@@ -909,7 +904,6 @@ a.directory-create { display: inline-flex; align-items: center; min-height: 44px
 
 .tracking-map-shell.is-fullscreen .replay-toolbar :is(button, select, output) { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: 0 2px 8px #0003; pointer-events: auto; }
 .tracking-map-shell.is-fullscreen .replay-toolbar output { display: flex; align-items: center; justify-self: start; min-height: 44px; box-sizing: border-box; padding: .4rem .6rem; border-radius: 8px; background: var(--map-overlay); }
-.tracking-map-shell.is-fullscreen .replay-timeline input { pointer-events: auto; }
 
 /* Tab views share the page surface rather than nesting another card. */
 section.race-tab-content { padding: 0; border: 0; border-radius: 0; background: transparent; }
@@ -1213,3 +1207,25 @@ section.entity-details { padding: 0; border: 0; border-radius: 0; background: tr
 
 .boat-core-editor fieldset { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(12rem, 100%), 1fr)); gap: .75rem 1rem; }
 .boat-core-editor label { max-width: none; min-width: 0; }
+
+.replay-speed-chart { padding: .75rem; border: 1px solid var(--sl-color-gray-5, #334155); border-radius: 12px; background: var(--sl-color-black, #091521); }
+.replay-boats { display: flex; flex-wrap: wrap; gap: .5rem; }
+.replay-boats button { min-height: 44px; }
+.replay-boats button[aria-pressed="false"] { opacity: .65; }
+.replay-speed-value { margin-left: .6rem; font-variant-numeric: tabular-nums; }
+.replay-chart-heading, .replay-chart-times { display: flex; justify-content: space-between; gap: 1rem; margin-block: .5rem; }
+.replay-chart-plot { display: flex; height: 190px; }
+.replay-chart-axis { display: flex; flex-direction: column; justify-content: space-between; width: 2.5rem; flex-shrink: 0; padding-block: 0 10px; font-size: .8rem; }
+.replay-chart-plot svg { width: 100%; min-width: 0; height: 100%; overflow: hidden; touch-action: pan-y; cursor: crosshair; }
+.replay-chart-plot svg:focus-visible { outline: 2px solid var(--sl-color-accent); outline-offset: 3px; }
+.replay-chart-grid { stroke: currentColor; opacity: .18; stroke-dasharray: 3 4; vector-effect: non-scaling-stroke; }
+.replay-chart-cursor { stroke: currentColor; stroke-width: 2; stroke-dasharray: 5 4; vector-effect: non-scaling-stroke; }
+.replay-chart-times { padding-left: 2.5rem; font-size: .8rem; }
+.replay-chart-help { font-size: .85rem; margin-bottom: 0; }
+.tracking-map-shell.is-fullscreen { display: flex; flex-direction: column; overflow: auto; }
+.tracking-map-shell.is-fullscreen .tracking-map { flex: 1 0 35dvh; height: auto; }
+.tracking-map-shell.is-fullscreen .replay-controls { position: relative; inset: auto; flex-shrink: 0; padding: .75rem; pointer-events: auto; background: var(--sl-color-black, #091521); }
+.tracking-map-shell.is-fullscreen .replay-speed-chart { margin-top: .75rem; }
+.replay-boats button[aria-pressed] { color: var(--sl-color-white, #e3eaf1); background: var(--sl-color-gray-6, #1e293b); border: 1px solid var(--sl-color-gray-5, #415369); }
+.replay-boats button[aria-pressed]:active { opacity: .7; }
+.replay-chart-help { color: inherit; opacity: .8; }

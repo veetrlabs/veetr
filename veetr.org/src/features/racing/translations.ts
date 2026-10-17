@@ -1,4 +1,7 @@
 export const cs: Record<string, string> = {
+  "Boat speeds": "Rychlosti lodí",
+  "No speed data is available for this recording.": "Pro tento záznam nejsou k dispozici údaje o rychlosti.",
+  "Drag on the chart to replay. Select boats to show or hide them on both the map and chart.": "Posouváním v grafu procházejte záznam. Výběrem lodí je zobrazíte nebo skryjete na mapě i v grafu.",
   "View boat details": "Zobrazit údaje o lodi",
   "Changes save automatically.": "Změny se ukládají automaticky.",
   "Manufacturer": "Výrobce",
