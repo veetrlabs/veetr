@@ -148,8 +148,8 @@ export function CourseMap({
   return (
     <div className={`course-map-shell${picking ? " course-map-picking" : ""}`}>
       <p className="course-map-legend">
-        <strong>{t("A–B: start line")}</strong>{" · "}
-        {t("A: referee · B: buoy · 1, 2…: turning marks")} · {t(course.finishLine || course.finishBearing || finishDraft ? "F1–F2: finish line" : "Finish: same as start line")}
+        <strong>{t(course.finishLine || course.finishBearing || finishDraft ? "S1–S2: start line" : "S1–S2: start / finish")}</strong>{" · "}
+        {t("S1: referee · S2: buoy · 1, 2…: turning marks")}{(course.finishLine || course.finishBearing || finishDraft) && <> · {t("F1–F2: finish line")}</>}
       </p>
       <div className="course-map-viewport">
       <div className="course-map-actions" role="group" aria-label={t("Course map tools")}>

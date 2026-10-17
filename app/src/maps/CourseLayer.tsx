@@ -22,8 +22,8 @@ export default function CourseLayer({ course }: { course?: RaceCourse | null }) 
   return <>
     {ends.length === 2 && <Polyline coordinates={ends} strokeColor="#805508" strokeWidth={4} lineDashPattern={estimated ? [8, 6] : undefined} />}
     {route.length > 1 && <Polyline coordinates={route} strokeColor="#25638f" strokeWidth={3} lineDashPattern={[8, 6]} />}
-    {ends[0] && marker("start-a", ends[0], "A", t("Start line end A"), "#805508")}
-    {ends[1] && (!estimated || course.startBearing?.distanceMetres) && marker("start-b", ends[1], "B", t("Start line end B"), "#805508")}
+    {ends[0] && marker("start-a", ends[0], "S1", t("Start line end S1"), "#805508")}
+    {ends[1] && (!estimated || course.startBearing?.distanceMetres) && marker("start-b", ends[1], "S2", t("Start line end S2"), "#805508")}
     {finish.length === 2 && <Polyline coordinates={finish} strokeColor="#7952b3" strokeWidth={4} lineDashPattern={course.finishBearing ? [8, 6] : undefined} />}
     {finish.map((point, i) => marker(`finish-${i}`, point, `F${i + 1}`, t(i === 0 ? "Finish line end F1" : "Finish line end F2"), "#7952b3"))}
     {course.marks.map((point, i) => marker(point.id, point, `${i + 1} ${point.rounding === "port" ? "↶" : "↷"}`, `${i + 1} · ${t(point.rounding === "port" ? "Leave to port (left)" : "Leave to starboard (right)")}`, point.rounding === "port" ? "#aa292d" : "#14674c"))}

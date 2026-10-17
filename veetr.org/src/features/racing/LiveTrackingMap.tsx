@@ -205,7 +205,7 @@ function TrackingMap({ seriesId, eventId, heatId, boatIds, course }: TrackingMap
         </div>
         <button ref={expandButton} onClick={() => setFullscreen(true)}>{t("Full screen")}</button>
       </div>
-      {course && <p className="course-map-legend"><strong>{t("A–B: start line")}</strong>{" · "}{t("A: referee · B: buoy · 1, 2…: turning marks")} · {t(course.finishLine || course.finishBearing ? "F1–F2: finish line" : "Finish: same as start line")}</p>}
+      {course && <p className="course-map-legend"><strong>{t(course.finishLine || course.finishBearing ? "S1–S2: start line" : "S1–S2: start / finish")}</strong>{" · "}{t("S1: referee · S2: buoy · 1, 2…: turning marks")}{(course.finishLine || course.finishBearing) && <> · {t("F1–F2: finish line")}</>}</p>}
       {course && !replay.following && replay.bounds && <p>{t("Replay shows the current course layout.")}</p>}
       {seamarkError && (
         <p role="status">

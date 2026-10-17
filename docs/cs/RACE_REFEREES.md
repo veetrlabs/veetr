@@ -8,7 +8,7 @@ Rozhodčí působí v přiděleném seriálu. Mohou měnit mapu tratě, přihlá
 
 ## Nastavení tratě
 
-Otevřete úpravu závodu a sekci **Trať**. Posuňte a přibližte mapu na závodní oblast a umístěte konce startovní čáry **A** a **B**. Pomocí **Přidat značku** vložte bóje nebo otočné body. Jejich polohu upravte tažením nebo zadáním souřadnic.
+Otevřete úpravu závodu a sekci **Trať**. Posuňte a přibližte mapu na závodní oblast a umístěte konce startovní čáry **S1** a **S2**. Pomocí **Přidat značku** vložte bóje nebo otočné body. Jejich polohu upravte tažením nebo zadáním souřadnic.
 
 Seřaďte značky podle pořadí obeplutí a vyberte **Nechat vlevo** nebo **Nechat vpravo**. Mapa ukazuje čísla, šipky směru a startovní čáru. Do poznámek lze uvést kola a další pokyny.
 
@@ -16,11 +16,11 @@ Uložte úpravy závodu. Trať patří závodu a zobrazuje se společně se stop
 
 ### Startovní čára z telefonu
 
-V editoru stůjte na konci rozhodčího a zvolte **Načíst polohu telefonu**, poté **Použít polohu pro konec rozhodčího A**. Zobrazená přesnost pomáhá určit vhodný okamžik; editor odmítá polohy starší než 15 sekund nebo horší než 50 metrů. Konec B lze umístit na mapu, zadat podle souřadnic od člověka u bóje nebo jej tam zaměřit telefonem jiného přiděleného rozhodčího. Úpravy koordinujte a po uložení jiným člověkem editor znovu otevřete.
+V editoru stůjte na konci rozhodčího a zvolte **Načíst polohu telefonu**, poté **Použít polohu pro konec rozhodčího S1**. Zobrazená přesnost pomáhá určit vhodný okamžik; editor odmítá polohy starší než 15 sekund nebo horší než 50 metrů. Konec S2 lze umístit na mapu, zadat podle souřadnic od člověka u bóje nebo jej tam zaměřit telefonem jiného přiděleného rozhodčího. Úpravy koordinujte a po uložení jiným člověkem editor znovu otevřete.
 
-Pokud polohu bóje neznáte, pro B vyberte **Náměr a délka**. Zadejte náměr po směru hodinových ručiček od zeměpisného severu nebo použijte **Namířit na bóji** vedle pole náměru. Telefon držte vodorovně a horní hranou miřte k bóji. Magnetická korekce se určuje automaticky podle polohy. Živý náměr se při otáčení mění; tlačítkem **Zachytit náměr** jej zafixujete. Délka začíná odhadem 250 m a lze ji změnit číselně. B je v tomto režimu odhadnutý bod. Úpravou délky jej posouváte po uloženém náměru a poté změnu uložte. Kompas i GPS jsou orientační; systém automaticky neposuzuje přejetí startovní čáry.
+Pokud polohu bóje neznáte, pro S2 vyberte **Náměr a délka**. Zadejte náměr po směru hodinových ručiček od zeměpisného severu nebo použijte **Namířit na bóji** vedle pole náměru. Telefon držte vodorovně a horní hranou miřte k bóji. Magnetická korekce se určuje automaticky podle polohy. Živý náměr se při otáčení mění; tlačítkem **Zachytit náměr** jej zafixujete. Délka začíná odhadem 250 m a lze ji změnit číselně. S2 je v tomto režimu odhadnutý bod. Úpravou délky jej posouváte po uloženém náměru a poté změnu uložte. Kompas i GPS jsou orientační; systém automaticky neposuzuje přejetí startovní čáry.
 
-Po uložení a synchronizaci vyberte na detailu **Pevná poloha** nebo **Živá poloha telefonu**. Pevný režim používá zaměřenou polohu. Živý režim začne až po stisknutí **Spustit živou polohu rozhodčího**, sdílí polohu jako A a aktualizuje nejvýše jednou za pět sekund. Zaměřené B zůstává pevné; uložený náměr se nemění, dokud jej znovu nezaměříte. **Zastavit a zafixovat startovní čáru** ponechá poslední uloženou polohu.
+Po uložení a synchronizaci vyberte na detailu **Pevná poloha** nebo **Živá poloha telefonu**. Pevný režim používá zaměřenou polohu. Živý režim začne až po stisknutí **Spustit živou polohu rozhodčího**, sdílí polohu jako S1 a aktualizuje nejvýše jednou za pět sekund. Zaměřené S2 zůstává pevné; uložený náměr se nemění, dokud jej znovu nezaměříte. **Zastavit a zafixovat startovní čáru** ponechá poslední uloženou polohu.
 
 Živý režim vyžaduje viditelnou stránku a zapnutou obrazovku. Zastaví se při ztrátě použitelné GPS, konfliktní úpravě tratě nebo opuštění stránky. Pokud závěrečné zafixování nedorazí na server, veřejná stránka označí polohu po 15 sekundách jako zastaralou. Snímače potřebují oprávnění prohlížeče a HTTPS; ruční zadání na mapě a náměru zůstává dostupné.
 

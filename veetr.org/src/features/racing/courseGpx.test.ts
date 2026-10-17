@@ -14,9 +14,9 @@ test('GPX exports named endpoints and a midpoint-first route with rounding descr
  assert.match(gpx,/One lap &lt; &amp; &gt;/);
  assert.doesNotMatch(gpx,/Private old name/);
 });
-test('unknown buoy distance exports no fictional B or start midpoint',()=>{
+test('unknown buoy distance exports no fictional S2 or start midpoint',()=>{
  const gpx=courseGpx({...course,startBearing:{origin:{latitude:49.59,longitude:14.19},degrees:90}},'Race');
- assert.doesNotMatch(gpx,/Start B|Start midpoint/);
+ assert.doesNotMatch(gpx,/Start S2|Start midpoint/);
  assert.equal((gpx.match(/<wpt /g)||[]).length,2);
  assert.equal((gpx.match(/<rtept /g)||[]).length,1);
 });

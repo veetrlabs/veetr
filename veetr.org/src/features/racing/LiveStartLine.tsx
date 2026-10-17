@@ -150,7 +150,7 @@ export function LiveStartLine({
   return (
     <div className="live-start-controls">
       <label>
-        {t("Referee end A")}
+        {t("Referee end S1")}
         <select
           disabled={active || stopping}
           value={mode}
@@ -170,13 +170,13 @@ export function LiveStartLine({
         <>
           <p>
             {t(
-              "Starting shares this phone’s position as end A on published race pages. Keep this page open and the screen awake. Stopping freezes the last saved position.",
+              "Starting shares this phone’s position as end S1 on published race pages. Keep this page open and the screen awake. Stopping freezes the last saved position.",
             )}
           </p>
           {course.startBearing && (
             <p>
               {t(
-                "The captured bearing stays fixed while A moves. Aim again if the direction to the buoy changes.",
+                "The captured bearing stays fixed while S1 moves. Aim again if the direction to the buoy changes.",
               )}
             </p>
           )}

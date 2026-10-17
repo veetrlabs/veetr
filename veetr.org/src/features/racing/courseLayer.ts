@@ -48,7 +48,7 @@ export function drawCourse(L: typeof Leaflet, m: Leaflet.Map, group: Leaflet.Lay
       })
         .bindTooltip(tooltip)
         .addTo(group);
-      // A fixed estimate must not pass a drag gesture through to map panning.
+      // S1 fixed estimate must not pass a drag gesture through to map panning.
       const markerElement = mark.getElement();
       if (markerElement) {
         L.DomEvent.disableClickPropagation(markerElement);
@@ -135,13 +135,13 @@ export function drawCourse(L: typeof Leaflet, m: Leaflet.Map, group: Leaflet.Lay
       )
         marker(
           p,
-          i === 0 ? "A" : "B",
+          i === 0 ? "S1" : "S2",
           t(
             i === 0
-              ? "Start line end A"
+              ? "Start line end S1"
               : course.startBearing
-                ? "Estimated buoy position B"
-                : "Start line end B",
+                ? "Estimated buoy position S2"
+                : "Start line end S2",
           ),
           "course-pin-start",
           i === 0 ? "startA" : "startB",

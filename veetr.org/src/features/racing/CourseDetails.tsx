@@ -18,7 +18,7 @@ export function CourseDescription({ course }: { course: RaceCourse }) {
     <>
       {course.startLine && (
         <p className="course-start-legend">
-          <strong>{t("Start line")}</strong>: A — B
+          <strong>{t(hasSeparateFinish(course) ? "Start line" : "Start / finish")}</strong>: S1 — S2
         </p>
       )}
       {course.startBearing && (
@@ -54,12 +54,12 @@ export function CourseDescription({ course }: { course: RaceCourse }) {
         >
           {endpoints.slice(0, knownB ? 2 : 1).map((point, index) => (
             <li key={`start-${index}`} className="course-start-list-item">
-              <strong>{t(index === 0 ? "Start line end A" : "Start line end B")}</strong>
+              <strong>{t(index === 0 ? "Start line end S1" : "Start line end S2")}</strong>
               {index === 1 && course.startBearing && <span> · {t("Estimated position")}</span>}
               <span className="course-mark-coordinates">{t("Latitude")}: {point.latitude.toFixed(6)}° · {t("Longitude")}: {point.longitude.toFixed(6)}°</span>
             </li>
           ))}
-          {endpoints.length > 0 && !knownB && <li className="course-start-list-item"><strong>{t("Start line end B")}</strong><span> · {t("Position unknown — set a buoy distance")}</span></li>}
+          {endpoints.length > 0 && !knownB && <li className="course-start-list-item"><strong>{t("Start line end S2")}</strong><span> · {t("Position unknown — set a buoy distance")}</span></li>}
           {course.marks.map((mark, index) => (
             <li key={mark.id} value={index + 1}>
               <strong>{t("Mark {number}", { number: index + 1 })}</strong>{" "}

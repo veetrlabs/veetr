@@ -5,8 +5,8 @@ export function courseGpx(course: RaceCourse, name: string): string {
   const ends = startGeometry(course);
   const knownLine = !!course.startLine || !!course.startBearing?.distanceMetres;
   const marks = course.marks.map((mark, i) => ({point: mark, name: `Mark ${i + 1}`, description: `Leave to ${mark.rounding === 'port' ? 'port (left)' : 'starboard (right)'}`}));
-  const start = ends[0] ? [{point: ends[0], name: 'Start A', description: 'Referee end'}] : [];
-  if (knownLine && ends[1]) start.push({point: ends[1], name: 'Start B', description: course.startBearing ? 'Estimated buoy position from bearing and length' : 'Buoy end'});
+  const start = ends[0] ? [{point: ends[0], name: 'Start S1', description: 'Referee end'}] : [];
+  if (knownLine && ends[1]) start.push({point: ends[1], name: 'Start S2', description: course.startBearing ? 'Estimated buoy position from bearing and length' : 'Buoy end'});
   const route = knownLine ? [{point: midpoint(ends[0], ends[1]), name: 'Start midpoint', description: course.startBearing ? 'Estimated start-line midpoint' : 'Start-line midpoint'}, ...marks] : marks;
   const finish = hasSeparateFinish(course) ? finishGeometry(course).map((point, i) => ({point, name: `Finish F${i + 1}`, description: course.finishBearing && i === 1 ? 'Estimated finish endpoint from bearing and length' : 'Finish endpoint'})) : [];
   const end = finishMidpoint(course);

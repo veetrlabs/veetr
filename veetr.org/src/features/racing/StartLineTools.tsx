@@ -88,8 +88,8 @@ export function StartLinePosition({
           >
             {t(
               end === "finishA" ? "Use position for finish end F1" : end === "finishB" ? "Use position for finish end F2" : end === "startA"
-                ? "Use position for referee end A"
-                : "Use position for buoy end B",
+                ? "Use position for referee end S1"
+                : "Use position for buoy end S2",
             )}
           </button>
         )}
@@ -210,7 +210,7 @@ export function StartLineCompass({
       </button>
       {!validCorrection && (
         <p className="start-compass-error" role="status">
-          {t(!position ? "Set start A on the map or use your phone position to enable the compass." : "Automatic correction is unavailable for this location or date. Enter a true-north bearing manually.")}
+          {t(!position ? "Set start S1 on the map or use your phone position to enable the compass." : "Automatic correction is unavailable for this location or date. Enter a true-north bearing manually.")}
         </p>
       )}
       {reading && (
@@ -230,7 +230,7 @@ export function StartLineCompass({
                 )}
           </p>
           <div className="start-compass-capture">
-            <p>{validCorrection && t("Automatic magnetic correction: {degrees}° · based on start A", { degrees: correction.toFixed(1) })}</p>
+            <p>{validCorrection && t("Automatic magnetic correction: {degrees}° · based on start S1", { degrees: correction.toFixed(1) })}</p>
             <button
               type="button"
               disabled={!fresh || !validCorrection}

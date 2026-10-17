@@ -237,8 +237,8 @@ export function CourseEditor({
       >
         <fieldset disabled={busy} className="course-editor-fields">
           <div className="course-placement-actions">
-            {!startA && <button type="button" onClick={() => setTarget("startA")}>{t("Place start A")}</button>}
-            {startMode === "points" && !startB && <button type="button" onClick={() => setTarget("startB")}>{t("Place start B")}</button>}
+            {!startA && <button type="button" onClick={() => setTarget("startA")}>{t("Place start S1")}</button>}
+            {startMode === "points" && !startB && <button type="button" onClick={() => setTarget("startB")}>{t("Place start S2")}</button>}
             {target && <button type="button" onClick={() => setTarget(null)}>{t("Cancel placement")}</button>}
           </div>
           {target && <p className="course-placement-hint" role="status">
@@ -246,9 +246,9 @@ export function CourseEditor({
               target === "new"
                 ? "Tap the map to add the next mark."
                 : target === "startA"
-                  ? "Tap the map to place start line end A."
+                  ? "Tap the map to place start line end S1."
                   : target === "startB"
-                    ? "Tap the map to place start line end B."
+                    ? "Tap the map to place start line end S2."
                     : target === "finishA" ? "Tap the map to place finish line end F1."
                     : target === "finishB" ? "Tap the map to place finish line end F2."
                     : target
@@ -278,7 +278,7 @@ export function CourseEditor({
               (p, i) => (
                 <fieldset key={i} className="course-start-a">
                   <legend>
-                    {t(i === 0 ? "Start line end A" : "Start line end B")}
+                    {t(i === 0 ? "Start line end S1" : "Start line end S2")}
                   </legend>
                   {p ? (
                     <PositionFields
@@ -291,7 +291,7 @@ export function CourseEditor({
                     <p>{t("Not placed yet")}</p>
                   )}
                   <StartLinePosition end="startA" onPosition={(point, end) => move(end, point)} />
-                  {p && <button type="button" className="course-end-remove" aria-label={t("Remove A")} title={t("Remove A")} onClick={() => {
+                  {p && <button type="button" className="course-end-remove" aria-label={t("Remove S1")} title={t("Remove S1")} onClick={() => {
                     if (course.startBearing?.distanceMetres) setStartB(startGeometry(course)[1]);
                     setStartMode("points"); setStartA(undefined); setTarget(null);
                   }}><Trash2 size={18} aria-hidden="true" /></button>}
@@ -305,7 +305,7 @@ export function CourseEditor({
               ),
             )}
             <fieldset className="course-start-setup" data-method={startMode}>
-              <legend>{t("Start line end B")}</legend>
+              <legend>{t("Start line end S2")}</legend>
           <div className="course-method">
             <label>
               {t("Start-line method")}
@@ -320,12 +320,12 @@ export function CourseEditor({
               </select>
             </label>
             <p>{t(startMode === "points"
-              ? "Drag A (referee) and B (buoy) separately. Moving one leaves the other in place."
-              : "A is the referee. B is an estimate from the bearing and length. Moving A moves both ends; change the length to move B.")}</p>
+              ? "Drag S1 (referee) and S2 (buoy) separately. Moving one leaves the other in place."
+              : "S1 is the referee. S2 is an estimate from the bearing and length. Moving S1 moves both ends; change the length to move S2.")}</p>
           </div>
               {startMode === "points" && (startB ? <PositionFields point={startB} onChange={p => move("startB", p)} /> : <><p>{t("Not placed yet")}</p><button type="button" onClick={() => setTarget("startB")}>{t("Place on map")}</button></>)}
               {startMode === "points" && <StartLinePosition end="startB" onPosition={(point, end) => move(end, point)} />}
-              {(startB || (startMode === "bearing" && bearing.trim())) && <button type="button" className="course-end-remove" aria-label={t("Remove B")} title={t("Remove B")} onClick={() => {
+              {(startB || (startMode === "bearing" && bearing.trim())) && <button type="button" className="course-end-remove" aria-label={t("Remove S2")} title={t("Remove S2")} onClick={() => {
                 setStartB(undefined); setBearing(""); setDistance("250"); setStartMode("points"); setTarget(null);
               }}><Trash2 size={18} aria-hidden="true" /></button>}
               {startMode === "bearing" && (

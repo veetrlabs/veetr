@@ -82,8 +82,8 @@ test("the course editor opens a local draft and has explicit save and back contr
   assert.deepEqual(s, before);
   assert.match(html, /Save course/);
   assert.match(html, /Back to race/);
-  assert.match(html, /Place start A/);
-  assert.match(html, /Place start B/);
+  assert.match(html, /Place start S1/);
+  assert.match(html, /Place start S2/);
   assert.match(html, /Add mark/);
 });
 test('bearing-only details label an unknown buoy distance and an expired live fix', () => {
@@ -93,7 +93,7 @@ test('bearing-only details label an unknown buoy distance and an expired live fi
   const html=render(<CourseDetails series={s} eventId={eventId}/>);
   assert.match(html,/Buoy distance unknown/);
   assert.match(html,/Referee position is stale/);
-  assert.doesNotMatch(html,/A — B|Live referee position/);
+  assert.doesNotMatch(html,/S1 — S2|Live referee position/);
 });
 
 test("combined race map keeps course actions and coordinates without a second map", () => {
