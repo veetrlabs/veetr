@@ -24,18 +24,23 @@ export function speedSeries(points: TrackPoint[]) {
 export function replayTimeAt(x: number, left: number, width: number, start: number, end: number) {
   return start + Math.max(0, Math.min(1, (x - left) / width)) * (end - start);
 }
-export function ReplaySpeedChart({ points, bounds, at, colors, hidden, toggle, seek, loading }: {
+export function ReplaySpeedChart({ points, bounds: fullBounds, window, at, colors, hidden, toggle, seek, loading }: {
+  window?: { start: number; end: number } | null;
   points: TrackPoint[]; bounds: { start: number; end: number }; at: number; colors: Record<string, string>;
   hidden: Set<string>; toggle: (id: string) => void; seek: (at: number) => void; loading: boolean;
 }) {
   const boats = useMemo(() => speedSeries(points), [points]);
-  const shown = boats.filter(b => !hidden.has(b.id));
+  const bounds = window ?? fullBounds;
+  const plotted = useMemo(() => speedSeries(window === null ? [] : window ? points.filter(p => {
+    const at = Date.parse(p.recordedAt); return at >= window.start && at <= window.end;
+  }) : points), [points, window?.start, window?.end, window === null]);
+  const shown = plotted.filter(b => !hidden.has(b.id));
   const max = Math.max(1, Math.ceil(shown.reduce((max, b) => b.segments.reduce((m, s) => s.reduce((n, p) => Math.max(n, p.knots), m), max), 0)));
   const x = (stamp: number) => (stamp - bounds.start) / (bounds.end - bounds.start || 1) * 1000;
   const y = (knots: number) => 180 - knots / max * 170;
   const lines = useMemo(() => shown.flatMap(b => b.segments.map((segment, i) => segment.length === 1
           ? <circle key={`${b.id}:${i}`} cx={x(segment[0].at)} cy={y(segment[0].knots)} r="2" fill={trackingColor(b.id, colors)} />
-          : <polyline key={`${b.id}:${i}`} points={segment.map(p => `${x(p.at).toFixed(2)},${y(p.knots).toFixed(2)}`).join(' ')} fill="none" stroke={trackingColor(b.id, colors)} strokeWidth="2" vectorEffect="non-scaling-stroke" />)), [boats, hidden, colors, bounds.start, bounds.end, max]);
+          : <polyline key={`${b.id}:${i}`} points={segment.map(p => `${x(p.at).toFixed(2)},${y(p.knots).toFixed(2)}`).join(' ')} fill="none" stroke={trackingColor(b.id, colors)} strokeWidth="2" vectorEffect="non-scaling-stroke" />)), [plotted, hidden, colors, bounds.start, bounds.end, max]);
   const time = (stamp: number) => new Date(stamp).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   function pick(event: React.PointerEvent<SVGSVGElement>) {
     const box = event.currentTarget.getBoundingClientRect();
@@ -51,26 +56,28 @@ export function ReplaySpeedChart({ points, bounds, at, colors, hidden, toggle, s
     })}</div>
     <div className="replay-chart-heading"><strong>{t('Boat speeds')}</strong><span>{t('SOG (kn)')}</span></div>
     {loading && <p role="status">{t('Loading replay…')}</p>}
-    {!loading && !boats.some(b => b.segments.length) && <p>{t('No speed data is available for this recording.')}</p>}
-    <div className="replay-chart-plot">
+    {window === null && !loading && <p>{t('No recorded positions in this map area. Zoom out to see the route.')}</p>}
+    {!loading && window !== null && !boats.some(b => b.segments.length) && <p>{t('No speed data is available for this recording.')}</p>}
+    {window !== null && <><div className="replay-chart-plot">
       <div className="replay-chart-axis" aria-hidden="true"><span>{max}</span><span>{(max / 2).toFixed(1)}</span><span>0</span></div>
       <svg viewBox="0 0 1000 190" preserveAspectRatio="none" role="slider" tabIndex={0}
-        aria-label={t('Replay time')} aria-valuemin={bounds.start} aria-valuemax={bounds.end} aria-valuenow={at}
-        aria-valuetext={new Date(at).toLocaleString()} aria-describedby="replay-chart-help"
+        aria-label={t('Replay time')} aria-valuemin={bounds.start} aria-valuemax={bounds.end} aria-valuenow={Math.max(bounds.start, Math.min(bounds.end, at))}
+        aria-valuetext={new Date(Math.max(bounds.start, Math.min(bounds.end, at))).toLocaleString()} aria-describedby="replay-chart-help"
         onPointerDown={e => { e.currentTarget.setPointerCapture(e.pointerId); pick(e); }}
         onPointerMove={e => { if (e.currentTarget.hasPointerCapture(e.pointerId)) pick(e); }}
         onPointerUp={e => { if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId); }}
         onKeyDown={e => {
           const step = e.shiftKey ? 60000 : 1000;
-          const target = e.key === 'Home' ? bounds.start : e.key === 'End' ? bounds.end : e.key === 'ArrowRight' || e.key === 'ArrowUp' ? at + step : e.key === 'ArrowLeft' || e.key === 'ArrowDown' ? at - step : null;
+          const current = Math.max(bounds.start, Math.min(bounds.end, at));
+          const target = e.key === 'Home' ? bounds.start : e.key === 'End' ? bounds.end : e.key === 'ArrowRight' || e.key === 'ArrowUp' ? current + step : e.key === 'ArrowLeft' || e.key === 'ArrowDown' ? current - step : null;
           if (target !== null) { e.preventDefault(); seek(Math.max(bounds.start, Math.min(bounds.end, target))); }
         }}>
         {[0, max / 2, max].map(v => <line key={v} x1="0" x2="1000" y1={y(v)} y2={y(v)} className="replay-chart-grid" />)}
         {lines}
-        <line x1={x(at)} x2={x(at)} y1="0" y2="190" className="replay-chart-cursor" />
+        {window !== null && at >= bounds.start && at <= bounds.end && <line x1={x(at)} x2={x(at)} y1="0" y2="190" className="replay-chart-cursor" />}
       </svg>
     </div>
-    <div className="replay-chart-times"><span>{time(bounds.start)}</span><span>{time(bounds.end)}</span></div>
-    <p id="replay-chart-help" className="replay-chart-help">{t('Drag on the chart to replay. Select boats to show or hide them on both the map and chart.')}</p>
+    <div className="replay-chart-times"><span>{time(bounds.start)}</span><span>{time(bounds.end)}</span></div></>}
+    <p id="replay-chart-help" className="replay-chart-help">{t('Zoom or pan the map to focus the chart. Drag on the chart to replay. Select boats to show or hide them on both the map and chart.')}</p>
   </section>;
 }

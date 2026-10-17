@@ -1,3 +1,4 @@
+import { mapChartWindow, type MapViewport } from "./mapChartWindow";
 import { ReplaySpeedChart, trackingColor } from './ReplaySpeedChart';
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { LocateFixed, Minimize2, Scan, Focus } from "lucide-react";
@@ -31,6 +32,8 @@ function TrackingMap({ seriesId, eventId, heatId, boatIds, course }: TrackingMap
   const [hidden, setHidden] = useState<Set<string>>(() => new Set());
   const chartPoints = useMemo(() => replay.points.filter(p => boatIds.includes(p.boatId)), [replay.points, boatIds]);
   const positions = useMemo(() => positionsForHeat(replay.positions, boatIds).filter(p => !hidden.has(p.boatId)), [replay.positions, boatIds, hidden]);
+  const [viewport, setViewport] = useState<MapViewport | null>(null);
+  const chartWindow = useMemo(() => mapChartWindow(chartPoints.filter(p => !hidden.has(p.boatId)), viewport), [chartPoints, hidden, viewport]);
   const displayTime = replay.shownAt;
   const formatTime = (stamp: number) => new Date(stamp).toLocaleString(document.documentElement.lang || undefined);
   const [located, setLocated] = useState(false);
@@ -53,6 +56,10 @@ function TrackingMap({ seriesId, eventId, heatId, boatIds, course }: TrackingMap
         if (!alive || !element.current) return;
         leaflet.current = L;
         map.current = L.map(element.current);
+        map.current.on("moveend", () => {
+          const bounds = map.current?.getBounds();
+          if (alive && bounds) setViewport({south: bounds.getSouth(), north: bounds.getNorth(), west: bounds.getWest(), east: bounds.getEast()});
+        });
         L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
           maxZoom: 19,
           attribution:
@@ -249,7 +256,7 @@ function TrackingMap({ seriesId, eventId, heatId, boatIds, course }: TrackingMap
             </select></label>
             <output>{formatTime(replay.at)}</output>
           </div>
-          <ReplaySpeedChart points={chartPoints} bounds={replay.bounds} at={replay.at} colors={boatColors}
+          <ReplaySpeedChart points={chartPoints} window={viewport ? chartWindow : undefined} bounds={replay.bounds} at={replay.at} colors={boatColors}
             hidden={hidden} toggle={id => setHidden(previous => { const next = new Set(previous); if (next.has(id)) next.delete(id); else next.add(id); return next; })}
             seek={replay.seek} loading={replay.loading} />
         </>}

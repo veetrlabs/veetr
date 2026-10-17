@@ -1,3 +1,4 @@
+import { mapChartWindow, type MapViewport } from "./mapChartWindow";
 import { t as tr } from "./i18n";
 import { localizedPath, siteLanguage } from "../../i18n/site";
 const language = siteLanguage(location.pathname);
@@ -6,7 +7,7 @@ const href = (path: string) => localizedPath(path, language);
 import { countryLabel } from "./tripCountryLabels";
 import { startCountry } from "./tripCountry";
 import { sharedDistance, tripPlot, boatOrientation, tripIndexAtFraction } from "./sharedTripData";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type * as Leaflet from "leaflet";
 import { supabase } from "./api";
@@ -50,10 +51,12 @@ function Map({
   points,
   color,
   selected,
+  onViewport,
 }: {
   points: Point[];
   color: string;
   selected?: Point;
+  onViewport: (viewport: MapViewport) => void;
 }) {
   const element = useRef<HTMLDivElement>(null),
     map = useRef<Leaflet.Map | null>(null),
@@ -70,6 +73,10 @@ function Map({
         const L = mod.default ?? mod;
         leaflet.current = L;
         map.current = L.map(element.current, {zoomControl:false}).setView([49.7, 14.2], 6);
+        map.current.on("moveend", () => {
+          const bounds = map.current?.getBounds();
+          if (alive && bounds) onViewport({south: bounds.getSouth(), north: bounds.getNorth(), west: bounds.getWest(), east: bounds.getEast()});
+        });
         L.control.zoom({zoomInTitle:tr("Zoom in"),zoomOutTitle:tr("Zoom out")}).addTo(map.current);
         L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
           attribution:
@@ -159,6 +166,7 @@ function Map({
   );
 }
 export default function SharedTrips() {
+  const [viewport, setViewport] = useState<MapViewport | null>(null);
   const [token, setToken] = useState(
       () => new URLSearchParams(location.hash.slice(1)).get("trip") ?? "",
     ),
@@ -177,6 +185,7 @@ export default function SharedTrips() {
     const change = () => {
       setToken(new URLSearchParams(location.hash.slice(1)).get("trip") ?? "");
       setIndex(null);
+      setViewport(null);
     };
     window.addEventListener("hashchange", change);
     return () => window.removeEventListener("hashchange", change);
@@ -264,24 +273,35 @@ export default function SharedTrips() {
         ["AWS", format(p.instruments?.aws, "kn")],
       ]
     : [];
+  const chartRange = useMemo(() => {
+    const points = trip?.points ?? [];
+    const window = mapChartWindow(points, viewport);
+    if (!window) return { points: [], offset: 0 };
+    const offset = points.findIndex(p => Date.parse(p.recordedAt) >= window.start);
+    let end = points.length - 1;
+    while (end >= offset && Date.parse(points[end].recordedAt) > window.end) end--;
+    return { points: points.slice(offset, end + 1), offset };
+  }, [trip?.points, viewport]);
+  const chartPoints = chartRange.points;
+  const chartEnd = chartRange.offset + chartPoints.length - 1;
   const speedSeries = [
     { key: "sog", label: tr("Boat speed · SOG"), color: "#38bdf8" },
     { key: "tws", label: tr("True wind · TWS"), color: "#f59e0b" },
     { key: "aws", label: tr("Apparent wind · AWS"), color: "#c084fc" },
   ] as const;
   const speedMax = trip
-    ? Math.ceil(1.1 * Math.max(1, ...speedSeries.map((s) => tripPlot(trip.points, s.key).max)))
+    ? Math.ceil(1.1 * Math.max(1, ...speedSeries.map((s) => tripPlot(chartPoints, s.key).max)))
     : 1;
   const plots = trip
     ? speedSeries.map((s) => ({
         ...s,
-        plot: tripPlot(trip.points, s.key, speedMax),
+        plot: tripPlot(chartPoints, s.key, speedMax),
       }))
     : [];
-  const startTime = Date.parse(trip?.points[0]?.recordedAt ?? "");
+  const startTime = Date.parse(chartPoints[0]?.recordedAt ?? "");
   const duration = Math.max(
     1,
-    Date.parse(trip?.points.at(-1)?.recordedAt ?? "") - startTime,
+    Date.parse(chartPoints.at(-1)?.recordedAt ?? "") - startTime,
   );
   const cursor = p
     ? (600 * (Date.parse(p.recordedAt) - startTime)) / duration
@@ -357,11 +377,12 @@ export default function SharedTrips() {
             )}{" "}
             min
           </p>
-          <Map points={trip.points} color={trip.color} selected={p} />
+          <Map key={token} points={trip.points} color={trip.color} selected={p} onViewport={setViewport} />
           <p className="trip-map-key">
             {tr("Boat points along heading; amber arrow shows true wind blowing toward it. Without heading, the boat uses COG and the wind arrow is hidden. Heading is magnetic; COG is true.")}
           </p>
-          {trip.points.length > 0 && (
+          {trip.points.length > 0 && !chartPoints.length && <p>{tr("No recorded positions in this map area. Zoom out to see the route.")}</p>}
+          {chartPoints.length > 0 && (
             <figure className="trip-chart">
               <figcaption>{tr("Speed \u00b7 knots")}</figcaption>
               <div className="trip-chart-legend">
@@ -381,33 +402,33 @@ export default function SharedTrips() {
                 role="slider"
                 tabIndex={0}
                 aria-label={tr("Explore trip timeline")}
-                aria-valuemin={0}
-                aria-valuemax={trip.points.length - 1}
-                aria-valuenow={index ?? trip.points.length - 1}
-                aria-valuetext={p ? new Date(p.recordedAt).toLocaleString(locale) : ""}
+                aria-valuemin={chartRange.offset}
+                aria-valuemax={chartEnd}
+                aria-valuenow={Math.max(chartRange.offset, Math.min(chartEnd, index ?? chartEnd))}
+                aria-valuetext={new Date(trip.points[Math.max(chartRange.offset, Math.min(chartEnd, index ?? chartEnd))].recordedAt).toLocaleString(locale)}
                 aria-describedby="trip-chart-help"
                 onPointerDown={e => {
                   if (e.button !== 0) return;
                   e.currentTarget.focus();
                   e.currentTarget.setPointerCapture(e.pointerId);
                   const rect = e.currentTarget.getBoundingClientRect();
-                  setIndex(tripIndexAtFraction(trip.points, (e.clientX - rect.left) / rect.width));
+                  setIndex(chartRange.offset + tripIndexAtFraction(chartPoints, (e.clientX - rect.left) / rect.width));
                 }}
                 onPointerMove={e => {
                   if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
                   const rect = e.currentTarget.getBoundingClientRect();
-                  setIndex(tripIndexAtFraction(trip.points, (e.clientX - rect.left) / rect.width));
+                  setIndex(chartRange.offset + tripIndexAtFraction(chartPoints, (e.clientX - rect.left) / rect.width));
                 }}
                 onPointerUp={e => {
                   if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
                 }}
                 onKeyDown={e => {
-                  const current = index ?? trip.points.length - 1;
-                  const next = e.key === "Home" ? 0 : e.key === "End" ? trip.points.length - 1 :
+                  const current = Math.max(chartRange.offset, Math.min(chartEnd, index ?? chartEnd));
+                  const next = e.key === "Home" ? chartRange.offset : e.key === "End" ? chartEnd :
                     ["ArrowLeft", "ArrowDown"].includes(e.key) ? current - 1 :
                     ["ArrowRight", "ArrowUp"].includes(e.key) ? current + 1 :
                     e.key === "PageDown" ? current - 10 : e.key === "PageUp" ? current + 10 : null;
-                  if (next !== null) { e.preventDefault(); setIndex(Math.max(0, Math.min(trip.points.length - 1, next))); }
+                  if (next !== null) { e.preventDefault(); setIndex(Math.max(chartRange.offset, Math.min(chartEnd, next))); }
                 }}
                 preserveAspectRatio="none"
               >
@@ -432,7 +453,7 @@ export default function SharedTrips() {
                     vectorEffect="non-scaling-stroke"
                   />
                 ))}
-                <line
+                {cursor >= 0 && cursor <= 600 && <><line
                   x1={cursor}
                   x2={cursor}
                   y1="0"
@@ -441,7 +462,7 @@ export default function SharedTrips() {
                   strokeDasharray="4 4"
                   opacity=".7"
                 />
-              <circle cx={Math.max(5, Math.min(595, cursor))} cy="132" r="5" fill="currentColor" />
+              <circle cx={Math.max(5, Math.min(595, cursor))} cy="132" r="5" fill="currentColor" /></>}
               </svg>
               <div className="trip-chart-times">
                 <span>{new Date(startTime).toLocaleTimeString(locale)}</span>
@@ -456,7 +477,7 @@ export default function SharedTrips() {
           )}
           {trip.points.length > 0 && (
             <>
-              <p id="trip-chart-help" className="trip-map-key">{tr("Drag across the chart to explore the route. Use arrow keys when focused.")}</p>
+              <p id="trip-chart-help" className="trip-map-key">{tr("Zoom or pan the map to focus the chart. Drag across the chart to explore the route. Use arrow keys when focused.")}</p>
               <p className="trip-selected-time">{p ? new Date(p.recordedAt).toLocaleString(locale) : ""}</p>
               {trip.live && index !== null && (
                 <button onClick={() => setIndex(null)}>{tr("Back to live")}</button>

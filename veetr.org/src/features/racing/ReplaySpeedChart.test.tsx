@@ -24,3 +24,16 @@ test('hidden boats keep their single toggle but have no plotted speed line', () 
   assert.doesNotMatch(html, /<polyline/);
   assert.doesNotMatch(html, /type="range"/);
 });
+
+test('map window rescales the plot and timeline without losing boat toggles', () => {
+  const props = {points:[point(0,100),point(1000,1),point(2000,2),point(3000,100,'session','other')],bounds:{start:0,end:3000},at:3000,colors:{},hidden:new Set<string>(),toggle:()=>{},seek:()=>{},loading:false};
+  const html=renderToStaticMarkup(<ReplaySpeedChart {...props} window={{start:1000,end:2000}}/>);
+  assert.match(html,/aria-valuemin="1000" aria-valuemax="2000"/);
+  assert.equal((html.match(/aria-pressed="true"/g)||[]).length,2);
+  assert.match(html,/points="0.00,[^ ]+ 1000.00,/);
+  assert.doesNotMatch(html,/class="replay-chart-cursor"/);
+  const empty=renderToStaticMarkup(<ReplaySpeedChart {...props} window={null}/>);
+  assert.match(empty,/No recorded positions in this map area/);
+  assert.doesNotMatch(empty,/role="slider"/);
+  assert.equal((empty.match(/aria-pressed="true"/g)||[]).length,2);
+});
