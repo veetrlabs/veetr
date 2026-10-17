@@ -69,7 +69,8 @@ test("import is admin-only and fixed-host; failed validation never calls databas
   let calls = 0;
   const handler = createCatalogImportHandler(
     { SUPABASE_SERVICE_ROLE_KEY: "secret", SUPABASE_URL: "http://local" },
-    async () => {
+    async (url) => {
+      if (url.includes("boat_catalog_staging?")) return new Response(null,{status:403});
       calls++;
       return Response.json([]);
     },
@@ -112,4 +113,19 @@ test("successful import publishes once after validating complete source", async 
   assert.equal(response.status, 200);
   assert.equal((await response.json()).count, 1000);
   assert.equal(calls, 12);
+});
+
+test("gateway service credentials are verified by a privileged read, failing closed", async () => {
+  for (const status of [200,401,403,500]) {
+    let calls=0;
+    const handler=createCatalogImportHandler({SUPABASE_URL:"http://local",SUPABASE_SERVICE_ROLE_KEY:"internal"},async(url,init)=>{
+      calls++;
+      assert.equal(url,"http://local/rest/v1/boat_catalog_staging?select=run_id&limit=0");
+      assert.equal(init.headers.Authorization,"Bearer exchanged");
+      return new Response("[]",{status});
+    });
+    const response=await handler(new Request("http://local",{method:"POST",headers:{Authorization:"Bearer exchanged"},body:JSON.stringify({revision:"invalid"})}));
+    assert.equal(response.status,status===200?400:401);
+    assert.equal(calls,1);
+  }
 });

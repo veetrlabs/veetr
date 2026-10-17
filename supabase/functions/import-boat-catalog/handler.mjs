@@ -4,12 +4,23 @@ export function createCatalogImportHandler(env, fetcher = fetch) {
   return async (req) => {
     if (req.method !== "POST")
       return Response.json({ error: "POST required" }, { status: 405 });
-    // Manual/admin only. Never accept a user's JWT or a publishable/anon key.
-    if (
-      !env.SUPABASE_SERVICE_ROLE_KEY ||
-      req.headers.get("authorization") !==
-        `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`
-    )
+    // The gateway can exchange an API key for a different service JWT.
+    // Validate unfamiliar credentials through a service-role-only table read;
+    // anon and authenticated roles have no grants on this staging table.
+    const authorization = req.headers.get("authorization");
+    let authorized = !!env.SUPABASE_SERVICE_ROLE_KEY &&
+      authorization === `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`;
+    if (!authorized && authorization?.startsWith("Bearer ")) {
+      const key = req.headers.get("apikey") || authorization.slice(7);
+      try {
+        const check = await fetcher(`${env.SUPABASE_URL}/rest/v1/boat_catalog_staging?select=run_id&limit=0`, {
+          headers: {apikey:key, Authorization:authorization},
+          signal:AbortSignal.timeout(10000),
+        });
+        authorized = check.ok;
+      } catch { authorized = false; }
+    }
+    if (!authorized || !env.SUPABASE_SERVICE_ROLE_KEY)
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     try {
       const body = await req.json(),
