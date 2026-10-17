@@ -1,0 +1,58 @@
+.map-chart-panel {
+  color: var(--sl-color-white, #172b33);
+  background: var(--sl-color-bg, #fff);
+  border: 1px solid var(--sl-color-gray-5, #cad2c4);
+  border-radius: 0 0 12px 12px;
+  min-width: 0;
+}
+.map-chart-panel .map-chart-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding: .5rem .9rem;
+  border: 0;
+  border-radius: 0;
+  background: var(--sl-color-gray-6, #eef2f5);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+.map-chart-toggle:hover { filter: brightness(.95); }
+.map-chart-toggle:active { filter: brightness(.9); }
+.map-chart-toggle:focus-visible { outline: 2px solid var(--sl-color-text-accent, #008c83); outline-offset: -3px; }
+.map-chart-content { padding: .75rem; }
+.map-chart-content[hidden] { display: none; }
+.map-chart-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.tracking-map-shell .tracking-map, .trip-map-frame .trip-map { border-radius: 12px 12px 0 0; }
+.tracking-map-shell .replay-controls { margin: 0; }
+.trip-map-frame .trip-chart { margin: 0; }
+.trip-map-frame {
+  position: relative; inset: auto; width: 100%; max-width: none; max-height: none;
+  margin: 0; padding: 0; border: 0; color: inherit; background: transparent;
+}
+.trip-map-frame .trip-map-fit, .trip-map-frame .trip-map-exit {
+  position: absolute; z-index: 2; top: .75rem; right: .75rem; margin: 0;
+  background: var(--sl-color-bg); box-shadow: 0 2px 8px #0003;
+}
+.trip-map-frame.is-fullscreen .trip-map-fit { right: 4.5rem; }
+.trip-map-frame.is-fullscreen, .tracking-map-shell.is-fullscreen {
+  position: fixed; inset: 0; width: 100%; height: 100dvh; max-height: none;
+  box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden;
+  background: var(--sl-color-bg, #fff);
+}
+.trip-map-frame.is-fullscreen .trip-map, .tracking-map-shell.is-fullscreen .tracking-map {
+  flex: 1 1 auto; height: 0; min-height: 100px; border-radius: 0;
+}
+.is-fullscreen > .map-chart-panel {
+  flex: 0 1 auto; min-height: 44px; max-height: 55dvh;
+  overflow: auto; border-radius: 0;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.is-fullscreen .map-chart-toggle { position: sticky; top: 0; z-index: 3; }
+.is-fullscreen .replay-chart-plot { height: clamp(80px, 19dvh, 190px); }
+.is-fullscreen .replay-chart-help { display: none; }
+.is-fullscreen .map-chart-content { padding: .5rem .75rem; }

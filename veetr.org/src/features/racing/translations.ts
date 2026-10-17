@@ -1,4 +1,7 @@
 export const cs: Record<string, string> = {
+  "Speed chart": "Graf rychlosti",
+  "Minimize chart": "Sbalit graf",
+  "Expand chart": "Rozbalit graf",
   "No recorded positions in this map area. Zoom out to see the route.": "V této části mapy nejsou zaznamenané polohy. Oddalte mapu, aby byla vidět trasa.",
   "Zoom or pan the map to focus the chart. Drag on the chart to replay. Select boats to show or hide them on both the map and chart.": "Přiblížením nebo posunutím mapy upravíte rozsah grafu. Tažením v grafu procházejte záznam. Výběrem lodí je zobrazíte nebo skryjete na mapě i v grafu.",
   "Zoom or pan the map to focus the chart. Drag across the chart to explore the route. Use arrow keys when focused.": "Přiblížením nebo posunutím mapy upravíte rozsah grafu. Tažením v grafu procházejte trasu. Po výběru grafu můžete použít šipky.",

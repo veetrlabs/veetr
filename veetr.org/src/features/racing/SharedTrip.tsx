@@ -1,3 +1,4 @@
+import { MapChartPanel, TripMapFrame } from "./MapChartPanel";
 import { mapChartWindow, type MapViewport } from "./mapChartWindow";
 import { t as tr } from "./i18n";
 import { localizedPath, siteLanguage } from "../../i18n/site";
@@ -96,6 +97,12 @@ function Map({
     };
   }, []);
   useEffect(() => {
+    if (!element.current) return;
+    const observer = new ResizeObserver(() => map.current?.invalidateSize());
+    observer.observe(element.current);
+    return () => observer.disconnect();
+  }, []);
+  useEffect(() => {
     const L = leaflet.current,
       m = map.current,
       g = layer.current;
@@ -149,7 +156,7 @@ function Map({
     <>
       <div ref={element} className="trip-map" aria-label={tr("Trip route map")} />
       {error && <p role="alert">{error}</p>}
-      <button
+      <button className="trip-map-fit"
         onClick={() => {
           if (points.length && map.current && leaflet.current)
             map.current.fitBounds(
@@ -377,10 +384,9 @@ export default function SharedTrips() {
             )}{" "}
             min
           </p>
+          <TripMapFrame key={token}>
           <Map key={token} points={trip.points} color={trip.color} selected={p} onViewport={setViewport} />
-          <p className="trip-map-key">
-            {tr("Boat points along heading; amber arrow shows true wind blowing toward it. Without heading, the boat uses COG and the wind arrow is hidden. Heading is magnetic; COG is true.")}
-          </p>
+          <MapChartPanel>
           {trip.points.length > 0 && !chartPoints.length && <p>{tr("No recorded positions in this map area. Zoom out to see the route.")}</p>}
           {chartPoints.length > 0 && (
             <figure className="trip-chart">
@@ -475,6 +481,11 @@ export default function SharedTrips() {
               )}
             </figure>
           )}
+          </MapChartPanel>
+          </TripMapFrame>
+          <p className="trip-map-key">
+            {tr("Boat points along heading; amber arrow shows true wind blowing toward it. Without heading, the boat uses COG and the wind arrow is hidden. Heading is magnetic; COG is true.")}
+          </p>
           {trip.points.length > 0 && (
             <>
               <p id="trip-chart-help" className="trip-map-key">{tr("Zoom or pan the map to focus the chart. Drag across the chart to explore the route. Use arrow keys when focused.")}</p>

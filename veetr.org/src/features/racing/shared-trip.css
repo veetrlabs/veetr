@@ -1,3 +1,4 @@
+@import "./map-chart-panel.css";
 body:has(#shared-trips) .content-panel:first-child {
   display: none;
 }

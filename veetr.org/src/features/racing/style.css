@@ -1,3 +1,4 @@
+@import "./map-chart-panel.css";
 :root {
   font-family:
     Inter,
@@ -884,9 +885,7 @@ a.directory-create { display: inline-flex; align-items: center; min-height: 44px
 .tracking-map-actions { position: absolute; top: .75rem; right: .75rem; z-index: 2; display: flex; gap: .5rem; }
 .tracking-map-actions button { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; background: var(--map-overlay); color: var(--map-overlay-text); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: 0 2px 8px #0003; }
 .tracking-map-shell.is-fullscreen { position: fixed; inset: 0; width: 100%; height: 100dvh; max-height: none; box-sizing: border-box; background: var(--sl-color-black, #091521); }
-.tracking-map-shell.is-fullscreen .tracking-map { height: 100%; min-height: 0; border-radius: 0; }
 .tracking-map-shell.is-fullscreen .tracking-map-actions { top: max(.75rem, env(safe-area-inset-top)); right: max(.75rem, env(safe-area-inset-right)); }
-.tracking-map-shell.is-fullscreen .replay-controls { position: absolute; z-index: 2; bottom: max(1.5rem, env(safe-area-inset-bottom)); left: max(.75rem, env(safe-area-inset-left)); right: max(.75rem, env(safe-area-inset-right)); margin: 0; padding: 0; border-radius: 12px; background: transparent; color: var(--map-overlay-text); pointer-events: none; }
 .tracking-map-shell.is-fullscreen .replay-toolbar { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: stretch; margin: 0; gap: .5rem; }
 .tracking-map-shell.is-fullscreen .replay-toolbar output { font-size: .85rem; line-height: 1.35; font-variant-numeric: tabular-nums; }
 .tracking-map-shell.is-fullscreen .replay-toolbar label { display: flex; align-items: center; font-size: 0; gap: 0; margin: 0; }
@@ -1223,10 +1222,6 @@ section.entity-details { padding: 0; border: 0; border-radius: 0; background: tr
 .replay-chart-cursor { stroke: currentColor; stroke-width: 2; stroke-dasharray: 5 4; vector-effect: non-scaling-stroke; }
 .replay-chart-times { padding-left: 2.5rem; font-size: .8rem; }
 .replay-chart-help { font-size: .85rem; margin-bottom: 0; }
-.tracking-map-shell.is-fullscreen { display: flex; flex-direction: column; overflow: auto; }
-.tracking-map-shell.is-fullscreen .tracking-map { flex: 1 0 35dvh; height: auto; }
-.tracking-map-shell.is-fullscreen .replay-controls { position: relative; inset: auto; flex-shrink: 0; padding: .75rem; pointer-events: auto; background: var(--sl-color-black, #091521); }
-.tracking-map-shell.is-fullscreen .replay-speed-chart { margin-top: .75rem; }
 .replay-boats button[aria-pressed] { color: var(--sl-color-white, #e3eaf1); background: var(--sl-color-gray-6, #1e293b); border: 1px solid var(--sl-color-gray-5, #415369); }
 .replay-boats button[aria-pressed]:active { opacity: .7; }
 .replay-chart-help { color: inherit; opacity: .8; }

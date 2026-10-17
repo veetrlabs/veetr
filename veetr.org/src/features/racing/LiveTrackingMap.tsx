@@ -1,3 +1,4 @@
+import { MapChartPanel } from "./MapChartPanel";
 import { mapChartWindow, type MapViewport } from "./mapChartWindow";
 import { ReplaySpeedChart, trackingColor } from './ReplaySpeedChart';
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -245,7 +246,7 @@ function TrackingMap({ seriesId, eventId, heatId, boatIds, course }: TrackingMap
         role="region"
         aria-label={t("Recorded boat positions map")}
       />
-      <div className="replay-controls">
+      <MapChartPanel><div className="replay-controls">
         {heatId && replay.heats.find(h=>h.id===heatId)?.start === null && <p>{t("The referee has not set this heat’s start time yet.")}</p>}
         {replay.error ? <p role="alert">{t(replay.error)} <button onClick={replay.retry}>{t("Retry")}</button></p> : !replay.bounds && <p role="status">{t(replay.loading ? "Loading replay…" : "No recording is available for this selection.")}</p>}
         {replay.bounds && <>
@@ -261,7 +262,7 @@ function TrackingMap({ seriesId, eventId, heatId, boatIds, course }: TrackingMap
             seek={replay.seek} loading={replay.loading} />
         </>}
       </div>
-      </dialog>
+      </MapChartPanel></dialog>
       <p>
         {t(
           "Grey markers have not reported for over 60 seconds. GPS tracks are not official finish results.",
