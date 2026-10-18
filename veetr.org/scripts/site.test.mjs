@@ -411,3 +411,12 @@ test('Czech installation, invitation and legacy routes retain their language', a
  assert.match(redirects,/\/cs\/join\/:token\s+\/cs\/join\/\s+200/);
  assert.match(redirects,/\/cs\/boats\/:slug\s+\/cs\/boats\/\s+200/);
 });
+
+test('race pages embed shared map/chart layout rather than an unresolved CSS import', async () => {
+  for (const route of ['races/', 'cs/races/']) {
+    const html = await readPage(route);
+    assert.match(html, /\.race-app \.map-chart-panel/);
+    assert.match(html, /\.race-app \.tracking-map-shell\.is-fullscreen \.tracking-map/);
+    assert.doesNotMatch(html, /@import\s*["']\.\/map-chart-panel\.css/);
+  }
+});
