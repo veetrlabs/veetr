@@ -1,3 +1,4 @@
+import { fetchWithTimeout } from "./request";
 import { createClient } from "@supabase/supabase-js";
 import { validateSeries, type Series } from "./domain";
 import type { Database, Json } from "./database.types";
@@ -8,8 +9,7 @@ export const supabase =
   url && key
     ? createClient<Database>(url, key, {
         global: {
-          fetch: (input, init) =>
-            fetch(input, { ...init, signal: AbortSignal.timeout(10000) }),
+          fetch: fetchWithTimeout,
         },
       })
     : null;

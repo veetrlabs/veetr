@@ -1,3 +1,4 @@
+import { requestErrorMessage } from "./request";
 import {CourseDetails} from "./CourseDetails";
 import {SeriesTeam} from "./SeriesTeam";
 import {HeatCreation} from "./HeatCreation";
@@ -123,6 +124,8 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
   const [user, setUser] = useState(""),
     [online, setOnline] = useState(navigator.onLine),
     [message, setMessage] = useState(""),
+    [syncError, setSyncError] = useState(""),
+    [syncBusy, setSyncBusy] = useState(false),
     [busy, setBusy] = useState(false),
     [publicData, setPublicData] = useState<Series>();
   useEffect(() => setEditingResults(false), [location.heatId, user]);
@@ -143,9 +146,7 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
         await work();
       } catch (e) {
         setMessage(
-          e instanceof Error
-            ? e.message
-            : String((e as { message?: string }).message ?? e),
+          requestErrorMessage(e),
         );
       } finally {
         setBusy(false);
@@ -178,6 +179,7 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
     if (!supabase || !identity.current || !navigator.onLine || syncing.current)
       return;
     syncing.current = true;
+    setSyncBusy(true);
     const account = identity.current;
     try {
       await chain.current;
@@ -219,14 +221,12 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
             });
         }
       });
+      if (identity.current === account) setSyncError("");
     } catch (e) {
-      setMessage(
-        e instanceof Error
-          ? e.message
-          : String((e as { message?: string }).message ?? e),
-      );
+      if (identity.current === account) setSyncError(requestErrorMessage(e));
     } finally {
       syncing.current = false;
+      setSyncBusy(false);
     }
   };
   useEffect(() => {
@@ -254,6 +254,7 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
     window.addEventListener("offline", off);
     const sub = supabase?.auth.onAuthStateChange((_event, session) => {
       if (_event === "PASSWORD_RECOVERY") { setPasswordRecovery(true); setAccountPage(true); }
+      if (identity.current !== (session?.user.id ?? "")) setSyncError("");
       identity.current = session?.user.id ?? "";
       setUser(identity.current);
       setAuthReady(true);
@@ -456,6 +457,10 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
             </button>
           </div>
         )}
+        {syncError && <div className="notice" role="alert">
+          {t("Synchronization has not finished.")} {t(syncError)}
+          <button disabled={syncBusy || !online} onClick={() => void sync()}>{t(syncBusy ? "Syncing…" : "Retry")}</button>
+        </div>}
         {message && (
           <div className="notice" role="status">
             {t(message)}

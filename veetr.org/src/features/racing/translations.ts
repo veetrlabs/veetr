@@ -1,4 +1,8 @@
 export const cs: Record<string, string> = {
+  "The server took too long to respond. Please try again.": "Server neodpověděl včas. Zkuste to prosím znovu.",
+  "Could not reach the server. Check your connection and try again.": "Nelze se spojit se serverem. Zkontrolujte připojení a zkuste to znovu.",
+  "Synchronization has not finished.": "Synchronizace nebyla dokončena.",
+  "Syncing…": "Synchronizuji…",
   "Heat 1": "Rozjížďka 1",
   "Race visibility": "Zveřejnění závodu",
   "Draft · visible only to organizers": "Koncept · viditelný jen pořadatelům",
