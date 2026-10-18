@@ -188,6 +188,7 @@ export default function RaceReplay({
         />
       </View>
       <View style={{ paddingHorizontal: 20, gap: 12 }}>
+        <Text style={{color:c.textMuted,fontSize:12}}>{t("Dashed route sections are estimates across unreliable or missing GPS fixes.")}</Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
           {boats.map(boat => {
             const visible = !hidden.includes(boat.id);

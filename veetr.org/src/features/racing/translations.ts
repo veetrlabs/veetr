@@ -1,4 +1,5 @@
 export const cs: Record<string, string> = {
+  "Dashed route sections are estimates across unreliable or missing GPS fixes.": "Přerušované úseky trasy jsou odhady přes nepřesné nebo chybějící polohy GPS.",
   "The server took too long to respond. Please try again.": "Server neodpověděl včas. Zkuste to prosím znovu.",
   "Could not reach the server. Check your connection and try again.": "Nelze se spojit se serverem. Zkontrolujte připojení a zkuste to znovu.",
   "Synchronization has not finished.": "Synchronizace nebyla dokončena.",

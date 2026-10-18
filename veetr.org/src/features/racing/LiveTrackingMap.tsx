@@ -1,3 +1,4 @@
+import { routeGeometry } from "./routeGeometry";
 import { MapChartPanel } from "./MapChartPanel";
 import { mapChartWindow, type MapViewport } from "./mapChartWindow";
 import { ReplaySpeedChart, ReplayBoatControls, trackingColor } from './ReplaySpeedChart';
@@ -118,9 +119,12 @@ function TrackingMap({ seriesId, eventId, heatId, boatIds, course }: TrackingMap
     for (const p of positions) {
       const stale = positionAge(p, displayTime) > 60,
         color = trackingColor(p.boatId, boatColors);
-      for (const trail of p.trailSegments ?? [p.trail])
-        if (trail.length > 1)
-          L.polyline(trail, { color, weight: 3, opacity: 0.5 }).addTo(group);
+      const history = chartPoints.filter(point => point.boatId === p.boatId && Date.parse(point.recordedAt) <= displayTime);
+      if (history.length) {
+        for (const section of routeGeometry(history)) if (section.points.length > 1)
+          L.polyline(section.points.map(point => [point.latitude, point.longitude] as Leaflet.LatLngTuple), {color, weight:3, opacity:0.5, dashArray:section.estimated ? "6 6" : undefined}).addTo(group);
+      } else for (const trail of p.trailSegments ?? [p.trail]) if (trail.length > 1)
+        L.polyline(trail, {color, weight:3, opacity:0.5}).addTo(group);
       const label = document.createElement("span");
       label.textContent =
         p.boatName +
@@ -157,7 +161,7 @@ function TrackingMap({ seriesId, eventId, heatId, boatIds, course }: TrackingMap
       animation = requestAnimationFrame(animate);
     }
     return () => cancelAnimationFrame(animation);
-  }, [boatColors, positions, staleIds, mapReady, displayTime, replay.playing, replay.following, replay.speed, course]);
+  }, [chartPoints, boatColors, positions, staleIds, mapReady, displayTime, replay.playing, replay.following, replay.speed, course]);
   useEffect(() => {
     if (!mapReady || !map.current || !leaflet.current) return;
     setSeamarkError(false);
@@ -272,6 +276,7 @@ function TrackingMap({ seriesId, eventId, heatId, boatIds, course }: TrackingMap
           "Grey markers have not reported for over 60 seconds. GPS tracks are not official finish results.",
         )}
       </p>
+      <p>{t("Dashed route sections are estimates across unreliable or missing GPS fixes.")}</p>
       <div className="table-scroll">
         <table>
           <caption>{t("Latest reported boat positions")}</caption>

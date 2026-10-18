@@ -1,3 +1,4 @@
+import { routeGeometry } from "../../../veetr.org/src/features/racing/routeGeometry";
 import CourseLayer, { courseCoordinates, type RaceCourse } from "../maps/CourseLayer";
 import type { MapRegion } from "../maps/headingRay";
 import BoatMarker from "../maps/BoatMarker";
@@ -6,7 +7,7 @@ import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { View, Text } from "react-native";
 import { MapView, Marker, Polyline } from "../components/NativeMap";
 import type { TrackingPoint } from "./model";
-import { routeSegments, validCoordinate } from "./trip";
+import { validCoordinate } from "./trip";
 import { useTheme } from "../context/ThemeContext";
 import { themeColors } from "../constants/colors";
 export default memo(function TripMap({
@@ -28,7 +29,8 @@ export default memo(function TripMap({
   const ready = useRef(false);
   const fitted = useRef(false);
   const [viewport, setViewport] = useState("");
-  const segments = useMemo(() => routeSegments(points), [points]);
+  const sections = useMemo(() => routeGeometry(points), [points]);
+  const segments = useMemo(() => sections.map(s => s.points), [sections]);
   const coordinates = useMemo(() => segments.flat(), [segments]);
   const bounds = useMemo(() => [...coordinates, ...courseCoordinates(course)], [coordinates, course]);
   function fit() {
@@ -93,12 +95,13 @@ export default memo(function TripMap({
       liteMode={thumbnail}
     >
       <CourseLayer course={course} />
-      {segments
-        .filter((s) => s.length > 1)
-        .map((segment, i) => (
+      {sections
+        .filter((s) => s.points.length > 1)
+        .map((section, i) => (
           <Polyline
             key={i}
-            coordinates={segment}
+            coordinates={section.points}
+            lineDashPattern={section.estimated ? [6, 6] : undefined}
             strokeColor="#008c80"
             strokeWidth={thumbnail ? 3 : 4}
           />

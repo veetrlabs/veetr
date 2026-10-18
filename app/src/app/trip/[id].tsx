@@ -207,6 +207,7 @@ export default function TripDetail() {
             <TripMap course={trip.session.course} points={trip.points} selected={trip.points[index]} />
           </View>
           <View style={{ padding: 20, gap: 24 }}>
+            <Text style={{color:c.textMuted,fontSize:12}}>{t("Dashed route sections are estimates across unreliable or missing GPS fixes.")}</Text>
             {trip.session.phase === "recording" && (
               (trip.session.error || trip.session.lastTaskError || recordingStatus(trip.session, now) !== t("Recording")) && (
                 <Pressable accessibilityRole={warning?.settings === false ? undefined : "button"} disabled={warning?.settings === false} onPress={() => router.push("/settings")}>

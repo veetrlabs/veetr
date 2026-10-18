@@ -1,5 +1,5 @@
 import { courseRoute, startGeometry, type RaceCourse } from "../../../veetr.org/src/features/racing/course";
-import { routeSegments } from "../tracking/trip";
+import { routeGeometry } from "../../../veetr.org/src/features/racing/routeGeometry";
 import type { BoatTrack } from "../replay/boatTracks";
 import { distinctCourse } from "../maps/courseVector";
 import { headingRay } from "../maps/headingRay";
@@ -64,8 +64,8 @@ export default function FleetMap({
           const markers = [...ends.slice(0, course.startBearing && !course.startBearing.distanceMetres ? 1 : 2).map((p, i) => ({...p, label: i ? 'B' : 'A', color: '#805508'})), ...course.marks.map((p, i) => ({...p, label: `${i+1} ${p.rounding === 'port' ? '↶' : '↷'}`, color: p.rounding === 'port' ? '#aa292d' : '#14674c'}))];
           for (const p of markers) L.marker([p.latitude,p.longitude], {icon: L.divIcon({className: '', html: `<span style="display:grid;place-items:center;background:${p.color};color:white;border:2px solid white;border-radius:18px;width:36px;height:36px;font-weight:bold">${p.label}</span>`,iconSize:[36,36],iconAnchor:[18,18]})}).addTo(group);
         }
-        for (const track of routes) for (const segment of routeSegments(track.points)) {
-          if (segment.length > 1) L.polyline(segment.map(p => [p.latitude, p.longitude] as [number, number]), { color: track.color, opacity: 0.5, weight: 2, interactive: false }).addTo(group);
+        for (const track of routes) for (const section of routeGeometry(track.points)) {
+          if (section.points.length > 1) L.polyline(section.points.map(p => [p.latitude, p.longitude] as [number, number]), { color: track.color, dashArray: section.estimated ? "6 6" : undefined, opacity: 0.5, weight: 2, interactive: false }).addTo(group);
         }
         for (const p of positions) {
           const color =
@@ -74,7 +74,7 @@ export default function FleetMap({
               : colors.get(p.boatId) ?? (p.boatId === ownBoatId
                 ? "#008c80"
                 : "#2563eb");
-          for (const segment of p.trailSegments ?? [p.trail]) {
+          for (const segment of routes.some(track => track.id === p.boatId) ? [] : p.trailSegments ?? [p.trail]) {
             if (segment.length > 1) L.polyline(segment, { color }).addTo(group);
           }
           const bounds = m.getBounds(), center = m.getCenter();
