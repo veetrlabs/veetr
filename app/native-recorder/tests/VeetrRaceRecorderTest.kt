@@ -65,6 +65,18 @@ class VeetrRaceRecorderTest {
     field("config",JSONObject().put("sessionId","race").put("linkId","link").put("secret","test-only").put("key","test-only").put("url","http://127.0.0.1:${server.port}"))
   }
   @After fun cleanup() { server.shutdown(); db.close(); dbFile.delete() }
+  @Test fun unreliableSpeedKeepsTheRecordedPositionButNotAFalseSpeedOrBearing() {
+    val location = fix(now).apply { speedAccuracyMetersPerSecond = 10f }
+    call("save", listOf(location))
+    assertEquals(1, count("recording_history"))
+    val point = db.rawQuery("SELECT body FROM recording_history", null).use {
+      it.moveToFirst(); JSONObject(it.getString(0))
+    }
+    assertEquals(location.latitude, point.getDouble("latitude"), 0.0)
+    assertEquals(location.longitude, point.getDouble("longitude"), 0.0)
+    assertTrue(point.isNull("sogMps"))
+    assertTrue(point.isNull("cogDeg"))
+  }
   @Test fun backupStartsFiveMinutesBeforePlannedStartWithoutStartAcknowledgement() {
     setState(state().put("scheduledStart",iso(now+600000)))
     call("save",listOf(fix(now)))

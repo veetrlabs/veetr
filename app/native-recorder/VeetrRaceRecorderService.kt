@@ -4,6 +4,7 @@ import android.app.*
 import android.content.*
 import android.database.sqlite.SQLiteDatabase
 import android.location.Location
+import android.hardware.*
 import android.os.*
 import com.google.android.gms.location.*
 import org.json.JSONArray
@@ -20,6 +21,30 @@ class VeetrRaceRecorderService : Service() {
   private var db: SQLiteDatabase? = null
   private var config: JSONObject? = null
   private var subscribed = false
+  private val motion = VeetrMotionQuality()
+  private val speedQuality = VeetrPhoneSpeedQuality()
+  private var motionRegistered = false
+  private val sensors by lazy { getSystemService(SENSOR_SERVICE) as SensorManager }
+  private val motionListener = object : SensorEventListener {
+    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) { motion.reset() }
+    override fun onSensorChanged(event: SensorEvent) {
+      if (event.accuracy == SensorManager.SENSOR_STATUS_UNRELIABLE) { motion.reset(); return }
+      motion.add(event.timestamp / 1_000_000, event.values[0].toDouble(), event.values[1].toDouble(), event.values[2].toDouble())
+    }
+  }
+  private fun startMotion() {
+    if (motionRegistered) return
+    try {
+      val sensor = sensors.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) ?: return
+      motionRegistered = sensors.registerListener(motionListener, sensor, 200_000, handler)
+    } catch (_: Exception) { motion.reset() } // Sensors must never prevent GPS recording.
+  }
+  private fun stopMotion() {
+    try { if (motionRegistered) sensors.unregisterListener(motionListener) } catch (_: Exception) { }
+    motionRegistered = false
+    motion.reset()
+    speedQuality.reset()
+  }
   private var lastFix = 0L
   private var lastRequest = 0L
   private val network = java.util.concurrent.Executors.newSingleThreadExecutor()
@@ -57,6 +82,7 @@ class VeetrRaceRecorderService : Service() {
         if (config?.optString("sessionId") != incoming.getString("sessionId")) {
           if (checking) { handler.postDelayed({ onStartCommand(null, 0, 0) }, 1000); return@guarded }
           client.removeLocationUpdates(callback)
+          stopMotion()
           subscribed = false; lastFix = 0; lastCheck = 0
           db?.close()
           config = incoming
@@ -81,6 +107,7 @@ class VeetrRaceRecorderService : Service() {
     }
     patch { it.put("nativeRecorderHeartbeatAt", stamp()) }
     val recording = session()?.optString("phase") == "recording"
+    if (recording) startMotion() else stopMotion()
     if (recording && (!subscribed || System.currentTimeMillis() - maxOf(lastFix, lastRequest) > 90_000)) requestGPS()
     if (!recording && subscribed) { client.removeLocationUpdates(callback); subscribed = false }
     // Coalesce UI wakeups: opening a screen must not multiply network requests.
@@ -134,9 +161,16 @@ class VeetrRaceRecorderService : Service() {
       val at = iso(l.time)
       val nearby = db!!.rawQuery("SELECT 1 FROM recording_history WHERE session_id=? AND recorded_at>? AND recorded_at<? LIMIT 1", arrayOf(s.getString("id"), iso(l.time - 900), iso(l.time + 900))).use { it.moveToFirst() }
       if (nearby) continue
+      // Location and SensorEvent share Android's monotonic clock, including batched fixes.
+      val rawSpeed = if (l.hasSpeed() && l.speed.isFinite() && l.speed >= 0) l.speed.toDouble() else null
+      val reliableSpeed = if (Build.VERSION.SDK_INT >= 26 && l.hasSpeedAccuracy() &&
+        (!l.speedAccuracyMetersPerSecond.isFinite() || l.speedAccuracyMetersPerSecond < 0 ||
+          l.speedAccuracyMetersPerSecond > maxOf(1.0, (rawSpeed ?: 0.0) * 0.5))) null else rawSpeed
+      val speed = speedQuality.speed(l.time, l.latitude, l.longitude, l.accuracy.toDouble(), reliableSpeed,
+        motion.quiet(l.elapsedRealtimeNanos / 1_000_000))
       val p = JSONObject().put("recordedAt", at).put("latitude", l.latitude).put("longitude", l.longitude)
-        .put("accuracyM", l.accuracy.toDouble()).put("sogMps", if (l.hasSpeed() && l.speed >= 0) l.speed.toDouble() else JSONObject.NULL)
-        .put("cogDeg", if (l.hasBearing()) l.bearing.toDouble() else JSONObject.NULL).put("source", "phone")
+        .put("accuracyM", l.accuracy.toDouble()).put("sogMps", speed ?: JSONObject.NULL)
+        .put("cogDeg", if (speed != null && speed >= 0.5 && l.hasBearing() && l.bearing.isFinite() && l.bearing >= 0 && l.bearing < 360) l.bearing.toDouble() else JSONObject.NULL).put("source", "phone")
       db!!.execSQL("INSERT OR IGNORE INTO recording_history(session_id,recorded_at,body) VALUES(?,?,?)", arrayOf(s.getString("id"), at, p.toString()))
       db!!.execSQL("INSERT INTO tracking_outbox(session_id,body) VALUES(?,?)", arrayOf(s.getString("id"), p.toString()))
       if (at > s.optString("lastRecordedAt")) s.put("lastRecordedAt", at)
@@ -223,7 +257,7 @@ class VeetrRaceRecorderService : Service() {
     client.removeLocationUpdates(callback)
     handler.removeCallbacksAndMessages(null)
     network.shutdownNow()
-    handler.post { db?.close(); worker.quitSafely() }
+    handler.post { stopMotion(); db?.close(); worker.quitSafely() }
     super.onDestroy()
   }
   companion object {

@@ -51,3 +51,26 @@ Before release, use an Android device to test screen-off capture, loss/recovery 
 network, and termination of just the main app process. Verify that the recorder
 process survives, the stored route remains continuous, and the referee receives
 heartbeats. A simulator/JVM test cannot establish OEM battery-management behavior.
+
+## Phone motion and speed quality
+
+During Android race recording the same foreground service samples the accelerometer
+at a requested 5 Hz. Samples stay in a bounded, in-memory 30-second buffer. Sensor
+and location monotonic timestamps match motion to each fix in a delayed GPS batch;
+missing, unreliable, interrupted or stale motion is never treated as stillness.
+The listener is removed on recording stop, session replacement and service teardown.
+Sensor absence or registration failure falls back to GPS alone.
+
+Quiet motion only corroborates very low GPS speed noise after at least five seconds
+without displacement beyond the reported position uncertainty. Smooth movement is
+not treated as stationary. Position coordinates are never moved by this check.
+Unknown/poor-quality speed is stored as null rather than a fabricated zero; course
+is cleared when speed cannot support it. Android's reported speed uncertainty, when
+available, also rejects speed with uncertainty over max(1 m/s, half the speed).
+These thresholds are conservative heuristics, not a calibrated navigation filter.
+
+This implementation covers the native Android race recorder. iOS and private-trip
+background recording retain the GPS fallback; foreground JavaScript motion checks
+remain available on both platforms. There is no inertial dead reckoning, road
+snapping or guaranteed correction of sustained GPS drift. Screen-off sensor delivery,
+battery use and real moving/stationary behavior still need physical-device testing.

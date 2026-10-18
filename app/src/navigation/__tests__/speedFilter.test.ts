@@ -70,3 +70,17 @@ test('vibration is moving rather than quiet', () => {
   for (let t = 0; t <= 2200; t += 200) motion.add(0, 0, t % 400 ? 9 : 10.5, base + t);
   expect(motion.state(base + 2200)).toBe('moving');
 });
+
+test('a recent sample cannot hide a long interruption in motion sampling', () => {
+  const motion = createMotionWindow();
+  for (let t = 0; t <= 1800; t += 200) motion.add(0, 0, 9.81, base + t);
+  motion.add(0, 0, 9.81, base + 3000);
+  expect(motion.state(base + 3000)).toBe('unknown');
+});
+test('delayed GPS batches use motion at fix time, not motion at delivery time', () => {
+  const motion = createMotionWindow();
+  for (let t = 0; t <= 12000; t += 200) motion.add(0, 0, t <= 3000 ? 9.81 : (t % 400 ? 9 : 11), base + t);
+  expect(motion.state(base + 2800)).toBe('quiet');
+  expect(motion.state(base + 12000)).toBe('moving');
+  expect(motion.state(base + 14000)).toBe('unknown');
+});
