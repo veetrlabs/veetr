@@ -549,18 +549,7 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
 
             {canEdit && series && <>
               {location.eventId && <RacePhones key={`${series.id}/${location.eventId}`} series={series} eventId={location.eventId} />}
-              {race && <section className="tracking-heat">
-                <h3>{t("Heat visibility")}</h3>
-                <p>{t("Publish this heat and register boats in the race’s Fleet tab so invited skippers can join tracking. Opening tracking applies to the whole series.")}</p>
-                <p>{t("{count} boats entered in this heat", { count: race.entries.length })}</p>
-                <label className="check">
-                  <input type="checkbox" checked={race.status !== "draft"} disabled={race.status === "locked"} onChange={e => {
-                    const shared = e.target.checked;
-                    editRace(r => { r.status = shared ? "published" : "draft"; });
-                  }} />
-                  {t("Publish heat for live results and tracking")}
-                </label>
-              </section>}
+
             </>}
 
             {series && location.seriesId && !location.heatId && (

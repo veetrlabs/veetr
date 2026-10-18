@@ -1,4 +1,13 @@
 export const cs: Record<string, string> = {
+  "Heat 1": "Rozjížďka 1",
+  "Race visibility": "Zveřejnění závodu",
+  "Draft · visible only to organizers": "Koncept · viditelný jen pořadatelům",
+  "Published · live results and tracking": "Zveřejněný · živé výsledky a sledování",
+  "Applies to all heats, including new heats.": "Platí pro všechny rozjížďky včetně nových.",
+  "Visibility is set for the whole race in race settings.": "Zveřejnění se nastavuje pro celý závod v jeho nastavení.",
+  "Unlock the heat results before hiding this race.": "Před skrytím závodu odemkněte výsledky rozjížděk.",
+  "Time range on the heat map": "Časový rozsah na mapě rozjížďky",
+  "The heat map and speed chart show only this time range. The whole-race map keeps the complete recording. These times do not change results or stop phone tracking.": "Mapa a graf rychlosti rozjížďky zobrazují jen tento časový úsek. Mapa celého závodu zachová úplný záznam. Tyto časy nemění výsledky ani nezastavují sledování telefonu.",
   "Speed chart": "Graf rychlosti",
   "Minimize chart": "Sbalit graf",
   "Expand chart": "Rozbalit graf",

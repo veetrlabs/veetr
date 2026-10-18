@@ -1,6 +1,7 @@
+import { newEventHeat } from "./eventDefaults";
 import React, { useState } from "react";
 import { Editor, type Location } from "./SeriesBrowser";
-import { id, materializeEvents, type Series, type ControlRace } from "./domain";
+import { materializeEvents, type Series, type ControlRace } from "./domain";
 import { t } from "./i18n";
 
 export function HeatCreation({
@@ -14,17 +15,7 @@ export function HeatCreation({
   save: (change: (series: Series) => void) => Promise<void>;
   navigate: (location: Location) => void;
 }) {
-  const [draft] = useState<ControlRace>(() => ({
-    id: id(),
-    eventId,
-    name: "",
-    date: "",
-    order: 1,
-    weight: 1,
-    status: "draft",
-    entries: [],
-    results: [],
-  }));
+  const [draft] = useState<ControlRace>(() => newEventHeat(series, eventId, ""));
   return (
     <section className="race-creation-page">
       <h1>{t("New heat")}</h1>

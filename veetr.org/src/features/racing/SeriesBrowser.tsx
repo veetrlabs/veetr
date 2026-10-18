@@ -1,3 +1,4 @@
+import { eventIsPublished, setEventPublished } from "./eventDefaults";
 import { CourseEditor } from "./CourseEditor";
 import { EditEntityButton } from "./EditEntityButton";
 import { DeleteSection } from "./DeleteAction";
@@ -413,6 +414,7 @@ export function Editor({
             applyCourse?.(s);
             if (heat) {
               const r = s.races.find((r) => r.id === heat.id)!;
+              const published = eventIsPublished(s, heatDetails!.eventId);
               Object.assign(r, heatDetails);
               if (!eventsFor(s).some((event) => event.id === r.eventId))
                 throw new Error("Select a race for this heat.");
@@ -422,11 +424,13 @@ export function Editor({
                   "The destination race must include all boats with recorded results",
                 );
               r.entries = entries;
+              if (r.status !== "locked") r.status = published ? "published" : "draft";
             } else if (event) {
               Object.assign(
                 s.events!.find((v) => v.id === event.id)!,
                 eventDetails,
               );
+              setEventPublished(s, event.id, d.get("visibility") === "published");
             } else {
               Object.assign(s, {
                 name: String(d.get("name")),
@@ -516,16 +520,17 @@ export function Editor({
               {t("Date")}
               <input name="date" type="date" defaultValue={heat.date} />
             </label>
-            <label className="check">
-              <input
-                name="shared"
-                type="checkbox"
-                defaultChecked={heat.status !== "draft"}
-              />
-              {t("Share live results")}
-            </label>
+            <small>{t("Visibility is set for the whole race in race settings.")}</small>
           </>
         )}
+        {event && <label>
+          {t("Race visibility")}
+          <select name="visibility" defaultValue={creating || eventIsPublished(series, event.id) ? "published" : "draft"}>
+            <option value="draft">{t("Draft · visible only to organizers")}</option>
+            <option value="published">{t("Published · live results and tracking")}</option>
+          </select>
+          <small>{t("Applies to all heats, including new heats.")}</small>
+        </label>}
         {event && (
           <label>
             {t("Race start (your local time)")}
@@ -662,8 +667,5 @@ export function heatDetailsFromForm(data: FormData) {
     date,
     weight: 1,
     eventId,
-    status: (data.get("shared") === "on"
-      ? "published"
-      : "draft") as ControlRace["status"],
   };
 }

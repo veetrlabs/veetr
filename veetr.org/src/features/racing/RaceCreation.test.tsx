@@ -2,7 +2,7 @@ import React from "react";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { renderToStaticMarkup as render } from "react-dom/server";
-import { RaceCreation } from "./RaceCreation";
+import { RaceCreation, createRaceWithFirstHeat } from "./RaceCreation";
 import { raceEventDetails } from "./SeriesBrowser";
 import { newSeries } from "./domain";
 
@@ -60,4 +60,21 @@ test("invalid race details cannot be saved", () => {
       data.set(key, value);
     assert.throws(() => raceEventDetails(data, []));
   }
+});
+
+
+test("saving a new race creates exactly one first heat with its final local date and publication choice", () => {
+  const series = newSeries("Running");
+  const event = {id:"event",name:"",order:1,weight:1,completed:false,discards:[]};
+  createRaceWithFirstHeat(series,event,next => {
+    next.events![0].name="Half marathon";
+    next.events![0].scheduledStart=new Date(2026,9,18,10).toISOString();
+    next.races[0].status="published";
+  });
+  assert.equal(series.events!.length,1);
+  assert.equal(series.races.length,1);
+  assert.equal(series.races[0].name,"Heat 1");
+  assert.equal(series.races[0].eventId,"event");
+  assert.equal(series.races[0].date,"2026-10-18");
+  assert.equal(series.races[0].status,"published");
 });

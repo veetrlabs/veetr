@@ -34,8 +34,8 @@ export function HeatTrackingTimes({heatId,onChange}: {heatId:string;onChange?:()
     finally {setBusy(false);}
   }
   return <section className="heat-tracking-times">
-    <h3>{t('Heat replay times')}</h3>
-    <p>{t('These times select the heat’s replay. They do not change scoring or stop phone tracking.')}</p>
+    <h3>{t('Time range on the heat map')}</h3>
+    <p>{t('The heat map and speed chart show only this time range. The whole-race map keeps the complete recording. These times do not change results or stop phone tracking.')}</p>
     {times?.start && <p>{t('Start')}: {new Date(times.start).toLocaleString()} · {t('End')}: {times.end?new Date(times.end).toLocaleString():t('In progress')}</p>}
     {!editing && <div className="replay-toolbar">
       {!times?.start && <button disabled={busy||!times} onClick={()=>act('start')}>{t('Start heat')}</button>}
