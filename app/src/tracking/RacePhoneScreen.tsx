@@ -159,7 +159,7 @@ export default function RacePhoneScreen({ token, raceLinkId, eventId }: { token?
               {t("Expected start:")} {new Date(phone.scheduledStart).toLocaleString(locale())}
             </Text>
             {phone.course && <View style={{ height: 260, borderRadius: 12, overflow: "hidden" }}>
-              <TripMap points={[]} course={phone.course} />
+              <TripMap key={phone.linkId} points={[]} course={phone.course} />
             </View>}
             {!phone.valid && !own ? (
               <Text style={{ color: c.text }}>

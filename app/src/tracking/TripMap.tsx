@@ -25,12 +25,16 @@ export default memo(function TripMap({
   const { theme } = useTheme(),
     c = themeColors[theme],
     ref = useRef<MapView>(null);
+  const ready = useRef(false);
+  const fitted = useRef(false);
   const [viewport, setViewport] = useState("");
   const segments = useMemo(() => routeSegments(points), [points]);
   const coordinates = useMemo(() => segments.flat(), [segments]);
   const bounds = useMemo(() => [...coordinates, ...courseCoordinates(course)], [coordinates, course]);
   function fit() {
-    if (bounds.length)
+    if (!ready.current || !ref.current || (!thumbnail && fitted.current)) return;
+    if (bounds.length) {
+      fitted.current = true;
       ref.current?.fitToCoordinates(bounds, {
         edgePadding: {
           top: thumbnail ? 14 : 64,
@@ -40,9 +44,11 @@ export default memo(function TripMap({
         },
         animated: false,
       });
+    }
   }
   useEffect(() => {
-    fit();
+    if (!bounds.length) { ready.current = false; fitted.current = false; }
+    else fit();
   }, [bounds]);
   if (!MapView || !bounds.length)
     return (
@@ -75,7 +81,7 @@ export default memo(function TripMap({
         latitudeDelta: 0.025,
         longitudeDelta: 0.025,
       }}
-      onMapReady={fit}
+      onMapReady={() => { ready.current = true; fit(); }}
       onRegionChangeComplete={region => {
         setViewport(`${region.latitude},${region.longitude},${region.latitudeDelta},${region.longitudeDelta}`);
       }}
