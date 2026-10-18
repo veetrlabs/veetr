@@ -1097,5 +1097,6 @@
   "Loading boat details…": "Načítání údajů o lodi…",
   "Boat details unavailable. Pull down to try again.": "Údaje o lodi nejsou dostupné. Zkuste to znovu tažením dolů.",
   "Finish line end F1": "Konec cílové čáry F1",
-  "Finish line end F2": "Konec cílové čáry F2"
+  "Finish line end F2": "Konec cílové čáry F2",
+  "While sharing is enabled, reports also include recent raw and filtered GPS speeds, accuracy, motion summaries and filtering reasons. No coordinates or continuous raw motion recordings are collected for diagnostics. Turning sharing off deletes these unsent samples.": "Při zapnutém sdílení obsahují zprávy také poslední původní a filtrované rychlosti GPS, přesnost, souhrny pohybu a důvody filtrování. Pro diagnostiku se neukládají souřadnice ani nepřetržité záznamy pohybových senzorů. Vypnutím sdílení se tyto neodeslané vzorky smažou."
 }

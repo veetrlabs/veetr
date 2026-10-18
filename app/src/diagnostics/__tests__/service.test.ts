@@ -3,7 +3,7 @@ process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://diagnostics.example.test';
 process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY = 'public-key';
 let mockStored: string | null = null;
 let mockSerial = 0;
-jest.mock('../native', () => ({ nativeDiagnostics: jest.fn(async () => null), trackingHistory: jest.fn(async () => []), setNativeDiagnosticsEnabled: jest.fn(async () => {}) }));
+jest.mock('../native', () => ({ nativeTrackingQuality: jest.fn(async () => []), nativeDiagnostics: jest.fn(async () => null), trackingHistory: jest.fn(async () => []), setNativeDiagnosticsEnabled: jest.fn(async () => {}) }));
 jest.mock('@react-native-async-storage/async-storage', () => ({ getItem: jest.fn(async () => mockStored), setItem: jest.fn(async (_key, value) => { mockStored = value; }) }));
 jest.mock('react-native', () => ({ AppState: { currentState: 'active' }, Platform: { OS: 'android', Version: 34, constants: { Model: 'OnePlus' } } }));
 jest.mock('expo-constants', () => ({ __esModule: true, default: { expoConfig: { version: '0.0.28' }, platform: { android: { versionCode: 12 } } } }));
@@ -14,7 +14,7 @@ jest.mock('expo-location', () => ({ getForegroundPermissionsAsync: jest.fn(async
 jest.mock('../../tracking/database', () => ({ trackingStore: jest.fn(async () => ({
   get: async () => ({ id: 'SECRET-RACE-ID', userId: 'SECRET-USER', phase: 'recording', recentPoints: [{ latitude: 49, longitude: 14 }], error: 'network failed https://secret.test?token=SECRET', lastReportedAccuracyM: 8 }), count: async () => 3,
 })) }));
-const { diagnosticsEnabled, setDiagnosticsEnabled, reportDiagnostic, sendDiagnosticReport, flushDiagnostics }: typeof import('../service') = require('../service');
+const { diagnosticsEnabled, setDiagnosticsEnabled, reportDiagnostic, sendDiagnosticReport, flushDiagnostics, recordTrackingQuality }: typeof import('../service') = require('../service');
 import { trackingStore } from '../../tracking/database';
 import { AppState } from 'react-native';
 import { setNativeDiagnosticsEnabled, trackingHistory } from '../native';
@@ -162,4 +162,36 @@ test('upload size estimates account for UTF-8 characters', () => {
   const {utf8Bytes} = require('../service');
   const value = JSON.stringify({model:'测试📱',reports:[{event:'gap'}]},null,1);
   expect(utf8Bytes(value)).toBe(Buffer.byteLength(value,'utf8'));
+});
+
+ test('extended samples require opt-in; disabling deletes samples and manual reports cannot collect them', async () => {
+  const build = jest.fn(() => [{version:1 as const,at:Date.now(),rawSpeedMps:0.25,speedMps:0,rawCourseDeg:40,courseDeg:null,accuracyM:4,speedAccuracyMps:null,deliveryDelayMs:1000,motion:'quiet' as const,reason:'low_speed_noise' as const}]);
+  recordTrackingQuality(build); await settle(); expect(build).not.toHaveBeenCalled();
+  await setDiagnosticsEnabled(true); await settle();
+  recordTrackingQuality(build); await settle(); expect(build).toHaveBeenCalledTimes(1);
+  expect(JSON.parse(mockStored!).quality).toHaveLength(1);
+  await sendDiagnosticReport();
+  const reports = (fetch as jest.Mock).mock.calls.flatMap(call => JSON.parse(call[1].body).reports);
+  expect(reports.some(r => r.trackingQuality?.[0]?.reason === 'low_speed_noise')).toBe(true);
+  await setDiagnosticsEnabled(false);
+  expect(JSON.parse(mockStored!).quality).toBeUndefined();
+  (fetch as jest.Mock).mockClear();
+  await sendDiagnosticReport();
+  expect(JSON.parse((fetch as jest.Mock).mock.calls[0][1].body).reports[0].trackingQuality).toBeUndefined();
+ });
+ test('opt-out cancels collection already waiting on the diagnostic queue', async () => {
+  await setDiagnosticsEnabled(true); await settle();
+  const build = jest.fn(() => []);
+  recordTrackingQuality(build);
+  await setDiagnosticsEnabled(false); await settle();
+  expect(build).not.toHaveBeenCalled();
+ });
+test('extended history stays bounded', async () => {
+  await setDiagnosticsEnabled(true); await settle();
+  const sample = {version:1 as const,at:Date.now(),rawSpeedMps:2,speedMps:2,rawCourseDeg:40,courseDeg:40,accuracyM:4,speedAccuracyMps:null,deliveryDelayMs:0,motion:'unknown' as const,reason:'accepted' as const};
+  recordTrackingQuality(() => Array(200).fill(sample)); await settle();
+  expect(JSON.parse(mockStored!).quality).toHaveLength(120);
+  await sendDiagnosticReport();
+  const reports = (fetch as jest.Mock).mock.calls.flatMap(call => JSON.parse(call[1].body).reports);
+  expect(reports[reports.length-1].trackingQuality).toHaveLength(32);
 });

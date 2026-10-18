@@ -1,3 +1,5 @@
+import { recordTrackingQuality } from '../diagnostics/service';
+import { qualitySample } from '../diagnostics/trackingQuality';
 import { validSpeedMps } from './speed';
 import { usesNativeRaceRecorder, startNativeRaceRecorder, wakeNativeRaceRecorder, stopNativeRaceRecorder } from './nativeRaceRecorder';
 import { t } from '../i18n';
@@ -552,12 +554,18 @@ export async function recordLocations(locations: LocationFix[], via: 'foreground
       speedFilterSession = session.id;
       filterPhoneSpeed = createSpeedFilter();
     }
+    const quality: (() => ReturnType<typeof qualitySample>)[] = [];
     const points = [...locations].sort((a, b) => a.timestamp - b.timestamp)
       .map((f) => {
         const point = normalizeFix(f);
-        return preferredRecordingPoint(point ? filterPhoneSpeed(point, phoneMotion.state(f.timestamp)) : null);
+        const motion = phoneMotion.state(f.timestamp);
+        const filtered = point ? filterPhoneSpeed(point, motion) : null;
+        const deliveredAt = Date.now();
+        quality.push(() => qualitySample(f, filtered, motion, deliveredAt));
+        return preferredRecordingPoint(filtered);
       })
       .filter((p): p is NonNullable<typeof p> => p !== null);
+    recordTrackingQuality(() => quality.map(build => build()));
     if (points.length) {
       try {
         const saved = await store.append(session.id, points);

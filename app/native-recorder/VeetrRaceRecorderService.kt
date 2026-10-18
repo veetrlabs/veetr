@@ -89,7 +89,7 @@ class VeetrRaceRecorderService : Service() {
           val path = config!!.getString("databasePath")
           require(File(path).canonicalPath.startsWith(filesDir.canonicalPath + "/"))
           db = SQLiteDatabase.openDatabase(path, null, SQLiteDatabase.OPEN_READWRITE or SQLiteDatabase.ENABLE_WRITE_AHEAD_LOGGING)
-          db!!.execSQL("PRAGMA busy_timeout=5000")
+          db!!.rawQuery("PRAGMA busy_timeout=5000", null).use { it.moveToFirst() }
         }
         tick()
         if (subscribed) patch { it.put("nativeRecorderStartedAt", stamp()) }
@@ -157,7 +157,10 @@ class VeetrRaceRecorderService : Service() {
     for (l in locations.sortedBy { it.time }) {
       if (l.time < start || l.time >= expiry || l.time > now + 30_000 ||
           (!s.optBoolean("raceActive") && l.time < planned - 300_000) ||
-          !l.hasAccuracy() || !l.accuracy.isFinite() || l.accuracy < 0 || l.accuracy > 100 || !l.latitude.isFinite() || !l.longitude.isFinite() || kotlin.math.abs(l.latitude) > 90 || kotlin.math.abs(l.longitude) > 180) continue
+          !l.hasAccuracy() || !l.accuracy.isFinite() || l.accuracy < 0 || l.accuracy > 100 || !l.latitude.isFinite() || !l.longitude.isFinite() || kotlin.math.abs(l.latitude) > 90 || kotlin.math.abs(l.longitude) > 180) {
+        recordQuality(l, null, "rejected_fix")
+        continue
+      }
       val at = iso(l.time)
       val nearby = db!!.rawQuery("SELECT 1 FROM recording_history WHERE session_id=? AND recorded_at>? AND recorded_at<? LIMIT 1", arrayOf(s.getString("id"), iso(l.time - 900), iso(l.time + 900))).use { it.moveToFirst() }
       if (nearby) continue
@@ -171,6 +174,13 @@ class VeetrRaceRecorderService : Service() {
       val p = JSONObject().put("recordedAt", at).put("latitude", l.latitude).put("longitude", l.longitude)
         .put("accuracyM", l.accuracy.toDouble()).put("sogMps", speed ?: JSONObject.NULL)
         .put("cogDeg", if (speed != null && speed >= 0.5 && l.hasBearing() && l.bearing.isFinite() && l.bearing >= 0 && l.bearing < 360) l.bearing.toDouble() else JSONObject.NULL).put("source", "phone")
+      recordQuality(l, speed, when {
+        reliableSpeed == null && rawSpeed != null -> "speed_uncertainty"
+        speed == 0.0 && (rawSpeed ?: 0.0) > 0 -> "low_speed_noise"
+        speed == null && l.accuracy > 25 -> "poor_accuracy"
+        speed == null -> "speed_unavailable"
+        else -> "accepted"
+      })
       db!!.execSQL("INSERT OR IGNORE INTO recording_history(session_id,recorded_at,body) VALUES(?,?,?)", arrayOf(s.getString("id"), at, p.toString()))
       db!!.execSQL("INSERT INTO tracking_outbox(session_id,body) VALUES(?,?)", arrayOf(s.getString("id"), p.toString()))
       if (at > s.optString("lastRecordedAt")) s.put("lastRecordedAt", at)
@@ -185,6 +195,19 @@ class VeetrRaceRecorderService : Service() {
       .put("nativeSavedCount", s.optLong("nativeSavedCount") + saved).put("nativeRecorderHeartbeatAt", stamp())
     locations.lastOrNull()?.let { s.put("lastReportedAccuracyM", it.accuracy.toDouble()).put("lastLocationDeliveryDelayMs", maxOf(0, now - it.time)) }
     write(s)
+  }
+  private fun recordQuality(l: Location, speed: Double?, reason: String) {
+    VeetrTrackingQuality.record(this) {
+      fun bounded(value: Double?, max: Double): Any = if (value != null && value.isFinite() && value >= 0) minOf(value, max) else JSONObject.NULL
+      JSONObject().put("version", 1).put("rawSpeedMps", bounded(if (l.hasSpeed()) l.speed.toDouble() else null, 1000.0))
+        .put("speedMps", bounded(speed, 1000.0))
+        .put("rawCourseDeg", bounded(if (l.hasBearing()) l.bearing.toDouble() else null, 360.0))
+        .put("courseDeg", bounded(if (speed != null && speed >= 0.5 && l.hasBearing()) l.bearing.toDouble() else null, 360.0))
+        .put("accuracyM", bounded(if (l.hasAccuracy()) l.accuracy.toDouble() else null, 100000.0))
+        .put("speedAccuracyMps", bounded(if (Build.VERSION.SDK_INT >= 26 && l.hasSpeedAccuracy()) l.speedAccuracyMetersPerSecond.toDouble() else null, 1000.0))
+        .put("deliveryDelayMs", bounded((System.currentTimeMillis() - l.time).toDouble(), 10000000.0))
+        .put("motion", motion.state(l.elapsedRealtimeNanos / 1_000_000)).put("reason", reason)
+    }
   }
   private fun sync() {
     var s = session() ?: return

@@ -74,3 +74,14 @@ background recording retain the GPS fallback; foreground JavaScript motion check
 remain available on both platforms. There is no inertial dead reckoning, road
 snapping or guaranteed correction of sustained GPS drift. Screen-off sensor delivery,
 battery use and real moving/stationary behavior still need physical-device testing.
+
+Extended quality diagnostics are separately opt-in through Share diagnostic reports.
+The two Android processes read consent and append/clear samples in transactions in
+`veetr-tracking-quality.db`; they do not cache consent in process-local preferences.
+Disabling clears that buffer, and a later enable starts empty. No raw coordinates,
+route/session IDs or raw IMU streams enter this store. It retains 120 recent
+technical samples for up to seven days, returns at most 32 per report, and reporting
+uses the existing anonymous diagnostic endpoint and retention rules. This is a
+recent troubleshooting window, not an exhaustive log of a background race.
+The matching server migration must be approved and deployed before distributing
+an app that sends the new report field. No production schema is changed by tests.

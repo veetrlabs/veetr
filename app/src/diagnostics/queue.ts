@@ -7,6 +7,7 @@ export type DiagnosticEvent = {
   tracking: string; fixAgeSeconds: number | null; uploadAgeSeconds: number | null;
   accuracyM: number | null; pendingCount: number; recoveryCount: number;
   errorCode: 'none' | 'permission' | 'network' | 'gps' | 'tracking';
+  trackingQuality?: import('./trackingQuality').TrackingQuality[];
   pipeline?: {
     foregroundCallbackAgeSeconds: number | null; backgroundCallbackAgeSeconds: number | null;
     taskCallbackAgeSeconds: number | null; batchSize: number | null;
@@ -17,7 +18,7 @@ export type DiagnosticEvent = {
   trackingHistory?: import('./native').TrackingHistoryEntry[];
   native?: import('./native').NativeDiagnostics | null;
 };
-export type QueueState = { enabled: boolean; installationId: string | null; events: DiagnosticEvent[] };
+export type QueueState = { enabled: boolean; installationId: string | null; events: DiagnosticEvent[]; quality?: import('./trackingQuality').StoredQuality[] };
 export const emptyState = (): QueueState => ({ enabled: false, installationId: null, events: [] });
 export function enqueue(state: QueueState, event: DiagnosticEvent, now: number): QueueState {
   if (event.consent === 'automatic' && !state.enabled) return state;

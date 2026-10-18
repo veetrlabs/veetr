@@ -1,6 +1,6 @@
 jest.mock('../nativeRaceRecorder', () => ({ usesNativeRaceRecorder: jest.fn(() => false), startNativeRaceRecorder: jest.fn(async () => {}), wakeNativeRaceRecorder: jest.fn(async () => {}), stopNativeRaceRecorder: jest.fn(async () => {}) }));
 jest.mock('../../diagnostics/native', () => ({ markTrackingDiagnostic: jest.fn(async () => {}) }));
-jest.mock('../../diagnostics/service', () => ({ reportDiagnostic: jest.fn() }));
+jest.mock('../../diagnostics/service', () => ({ reportDiagnostic: jest.fn(), recordTrackingQuality: jest.fn() }));
 jest.mock('../locationDisclosure', () => ({ confirmTrackingLocationUse: jest.fn(async () => {}) }));
 jest.mock("@react-native-async-storage/async-storage", () => ({
   getItem: jest.fn(async (key: string) => key.endsWith(":last") ? null : "device-secret"),

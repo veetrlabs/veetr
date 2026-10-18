@@ -1087,5 +1087,6 @@
   "Loading boat details…": "Loading boat details…",
   "Boat details unavailable. Pull down to try again.": "Boat details unavailable. Pull down to try again.",
   "Finish line end F1": "Finish line end F1",
-  "Finish line end F2": "Finish line end F2"
+  "Finish line end F2": "Finish line end F2",
+  "While sharing is enabled, reports also include recent raw and filtered GPS speeds, accuracy, motion summaries and filtering reasons. No coordinates or continuous raw motion recordings are collected for diagnostics. Turning sharing off deletes these unsent samples.": "While sharing is enabled, reports also include recent raw and filtered GPS speeds, accuracy, motion summaries and filtering reasons. No coordinates or continuous raw motion recordings are collected for diagnostics. Turning sharing off deletes these unsent samples."
 }

@@ -15,14 +15,15 @@ internal class VeetrMotionQuality {
     while (samples.isNotEmpty() && at - samples.first().at > 30_000) samples.removeFirst()
     while (samples.size > 300) samples.removeFirst()
   }
-  fun quiet(at: Long): Boolean {
+  fun quiet(at: Long): Boolean = state(at) == "quiet"
+  fun state(at: Long): String {
     val recent = samples.filter { it.at <= at && at - it.at <= 3000 }
     if (recent.size < 10 || at - recent.last().at > 600 ||
         recent.last().at - recent.first().at < 2000 || recent.any { !it.magnitude.isFinite() } ||
-        recent.zipWithNext().any { (a, b) -> b.at - a.at > 600 }) return false
+        recent.zipWithNext().any { (a, b) -> b.at - a.at > 600 }) return "unknown"
     val mean = recent.map { it.magnitude }.average()
     val variance = recent.map { (it.magnitude - mean).pow(2) }.average()
-    return sqrt(variance) < 0.12 && recent.maxOf { it.magnitude } - recent.minOf { it.magnitude } < 0.4
+    return if (sqrt(variance) < 0.12 && recent.maxOf { it.magnitude } - recent.minOf { it.magnitude } < 0.4) "quiet" else "moving"
   }
 }
 
