@@ -1,3 +1,4 @@
+import { inMapViewport, type MapViewport } from "./mapChartWindow";
 export type TripSample = {
   recordedAt: string;
   latitude: number;
@@ -40,11 +41,12 @@ export function tripPlot(
   points: TripSample[],
   metric: TripMetric,
   scaleMax?: number,
+  viewport?: MapViewport | null,
 ) {
   const angles = metric === "awa" || metric === "twa",
     min = angles ? -180 : 0;
   let max = angles ? 180 : 1;
-  for (const p of points) max = Math.max(max, tripMetric(p, metric) ?? 0);
+  for (const p of points) if (inMapViewport(p, viewport)) max = Math.max(max, tripMetric(p, metric) ?? 0);
   if (scaleMax !== undefined) max = Math.max(max, scaleMax);
   const start = Date.parse(points[0]?.recordedAt),
     duration = Math.max(1, Date.parse(points.at(-1)?.recordedAt ?? "") - start);
@@ -53,7 +55,7 @@ export function tripPlot(
   let penDown = false;
   const step = Math.max(1, Math.ceil(points.length / 600));
   points.forEach((p, i) => {
-    const v = tripMetric(p, metric),
+    const v = inMapViewport(p, viewport) ? tripMetric(p, metric) : null,
       time = Date.parse(p.recordedAt);
     if (v === null || (previous !== null && time - previous > 60000))
       penDown = false;

@@ -60,3 +60,12 @@ test("chart scrubbing follows time rather than sample count", async () => {
   assert.equal(tripIndexAtFraction(points, 2), 3);
   assert.equal(tripIndexAtFraction([points[0]], 0.5), 0);
 });
+
+test('trip chart gaps out-of-map intervals without compressing time or scaling to hidden speeds', () => {
+  const points = Array.from({length:12}, (_,i) => ({...point(i), longitude:i % 3 === 2 ? 50 : 16, sogMps:i % 3 === 2 ? 100 : 2}));
+  const plot = tripPlot(points, 'sog', undefined, {south:-1,north:1,west:15,east:17});
+  assert.equal((plot.d.match(/M/g) ?? []).length, 4);
+  assert.equal((plot.d.match(/L/g) ?? []).length, 4);
+  assert.ok(plot.max < 4);
+  assert.match(plot.d, /M490.9,/);
+});

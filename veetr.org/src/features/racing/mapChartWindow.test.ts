@@ -20,3 +20,13 @@ test('wrapped world copies and date-line crossings select the same route', () =>
     assert.deepEqual(mapChartWindow(points, {...viewport, west, east}), {start: 0, end: 1000});
   }
 });
+
+test('visible segments preserve single fixes, separate passes and wrapped coordinates', async () => {
+  const { visibleMapSegments } = await import('./mapChartWindow');
+  const points = [point(0,15),point(1000,50),point(2000,15),point(3000,16)];
+  assert.deepEqual(visibleMapSegments(points, viewport), [[points[0]], [points[2],points[3]]]);
+  assert.deepEqual(visibleMapSegments(points, null), [points]);
+  assert.deepEqual(visibleMapSegments(points, {...viewport,south:10,north:20}), []);
+  const wrapped = [point(0,179),point(1000,0),point(2000,-179)];
+  assert.deepEqual(visibleMapSegments(wrapped, {...viewport,west:170,east:-170}), [[wrapped[0]],[wrapped[2]]]);
+});

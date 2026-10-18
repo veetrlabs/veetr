@@ -1,13 +1,14 @@
 import React, { useMemo } from 'react';
 import type { TrackPoint } from './trackCache';
 import { t } from './i18n';
+import { visibleMapSegments, type MapViewport } from './mapChartWindow';
 import { filterSpeedOutliers } from './speedOutliers';
 
 export function trackingColor(id: string, colors: Record<string, string>) {
   return colors[id] || `hsl(${Array.from(id).reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 0) % 360} 65% 40%)`;
 }
 export function speedSeries(points: TrackPoint[]) {
-  const boats = new Map<string, { id: string; name: string; readings: { at: number; knots: number | null }[]; segments: { at: number; knots: number }[][] }>();
+  const boats = new Map<string, { id: string; name: string; readings: { at: number; knots: number | null }[]; segments: { at: number; knots: number; latitude: number; longitude: number }[][] }>();
   const previous = new Map<string, TrackPoint>();
   for (const p of filterSpeedOutliers(points)) {
     const boat = boats.get(p.boatId) ?? { id: p.boatId, name: p.boatName, readings: [], segments: [] };
@@ -16,7 +17,7 @@ export function speedSeries(points: TrackPoint[]) {
     const last = previous.get(p.boatId);
     if (p.sogMps !== null) {
       if (!last || last.sogMps === null || last.sessionId !== p.sessionId || Date.parse(p.recordedAt) - Date.parse(last.recordedAt) > 60000) boat.segments.push([]);
-      boat.segments.at(-1)!.push({ at: Date.parse(p.recordedAt), knots: p.sogMps * 1.94384449 });
+      boat.segments.at(-1)!.push({ latitude: p.latitude, longitude: p.longitude, at: Date.parse(p.recordedAt), knots: p.sogMps * 1.94384449 });
     }
     previous.set(p.boatId, p);
   }
@@ -38,8 +39,9 @@ export function ReplayBoatControls({points, at, colors, hidden, toggle}: {
       </button>;
     })}</div>);
 }
-export function ReplaySpeedChart({ points, bounds: fullBounds, window, at, colors, hidden, toggle, seek, loading, hideBoatControls = false }: {
+export function ReplaySpeedChart({ points, bounds: fullBounds, window, viewport, at, colors, hidden, toggle, seek, loading, hideBoatControls = false }: {
   hideBoatControls?: boolean;
+  viewport?: MapViewport | null;
   window?: { start: number; end: number } | null;
   points: TrackPoint[]; bounds: { start: number; end: number }; at: number; colors: Record<string, string>;
   hidden: Set<string>; toggle: (id: string) => void; seek: (at: number) => void; loading: boolean;
@@ -48,8 +50,8 @@ export function ReplaySpeedChart({ points, bounds: fullBounds, window, at, color
   const bounds = window ?? fullBounds;
   // Filter before clipping: zooming must not change which readings are outliers.
   const plotted = useMemo(() => window === null ? [] : boats.map(boat => ({ ...boat,
-    segments: boat.segments.map(segment => segment.filter(p => !window || (p.at >= window.start && p.at <= window.end))).filter(segment => segment.length),
-  })), [boats, window?.start, window?.end, window === null]);
+    segments: boat.segments.flatMap(segment => visibleMapSegments(segment, viewport)).map(segment => segment.filter(p => !window || (p.at >= window.start && p.at <= window.end))).filter(segment => segment.length),
+  })), [boats, viewport, window?.start, window?.end, window === null]);
   const shown = plotted.filter(b => !hidden.has(b.id));
   const max = Math.max(1, Math.ceil(shown.reduce((max, b) => b.segments.reduce((m, s) => s.reduce((n, p) => Math.max(n, p.knots), m), max), 0)));
   const x = (stamp: number) => (stamp - bounds.start) / (bounds.end - bounds.start || 1) * 1000;

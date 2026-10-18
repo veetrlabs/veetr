@@ -261,7 +261,7 @@ function TrackingMap({ seriesId, eventId, heatId, boatIds, course }: TrackingMap
         {heatId && replay.heats.find(h=>h.id===heatId)?.start === null && <p>{t("The referee has not set this heat’s start time yet.")}</p>}
         {replay.error ? <p role="alert">{t(replay.error)} <button onClick={replay.retry}>{t("Retry")}</button></p> : !replay.bounds && <p role="status">{t(replay.loading ? "Loading replay…" : "No recording is available for this selection.")}</p>}
         {replay.bounds && <>
-          <ReplaySpeedChart hideBoatControls points={chartPoints} window={viewport ? chartWindow : undefined} bounds={replay.bounds} at={replay.at} colors={boatColors}
+          <ReplaySpeedChart hideBoatControls points={chartPoints} viewport={viewport} window={viewport ? chartWindow : undefined} bounds={replay.bounds} at={replay.at} colors={boatColors}
             hidden={hidden} toggle={id => setHidden(previous => { const next = new Set(previous); if (next.has(id)) next.delete(id); else next.add(id); return next; })}
             seek={replay.seek} loading={replay.loading} />
         </>}

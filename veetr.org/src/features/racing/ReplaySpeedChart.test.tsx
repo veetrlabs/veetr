@@ -45,3 +45,21 @@ test('zooming around a rejected spike does not restore the spike or rescale to i
   assert.match(html, /replay-chart-axis[^>]*><span>4<\/span>/);
   assert.doesNotMatch(html, /<polyline/);
 });
+
+test('four visits plot four chronological segments per boat, omitting off-map speeds', () => {
+  const points = ['one','two','three'].flatMap(boatId => Array.from({length: 12}, (_, i) => ({
+    ...point(i * 1000, i % 3 === 2 ? 3 : 2, 'session', boatId),
+    longitude: i % 3 === 2 ? 50 : 16,
+  })));
+  const props = {points, bounds:{start:0,end:11000}, window:{start:0,end:10000}, at:10000, colors:{}, hidden:new Set<string>(), toggle:()=>{}, seek:()=>{}, loading:false};
+  const viewport = {south:42,north:44,west:15,east:17};
+  const html = renderToStaticMarkup(<ReplaySpeedChart {...props} viewport={viewport}/>);
+  assert.equal((html.match(/<polyline/g) ?? []).length, 12);
+  assert.equal((html.match(/aria-pressed="true"/g) ?? []).length, 3);
+  assert.match(html, /replay-chart-axis[^>]*><span>4<\/span>/);
+  assert.match(html, /points="900.00,[^ ]+ 1000.00,/);
+  const hidden = renderToStaticMarkup(<ReplaySpeedChart {...props} viewport={viewport} hidden={new Set(['two'])}/>);
+  assert.equal((hidden.match(/<polyline/g) ?? []).length, 8);
+  const full = renderToStaticMarkup(<ReplaySpeedChart {...props}/>);
+  assert.equal((full.match(/<polyline/g) ?? []).length, 3);
+});

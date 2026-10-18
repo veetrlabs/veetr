@@ -297,12 +297,12 @@ export default function SharedTrips() {
     { key: "aws", label: tr("Apparent wind · AWS"), color: "#c084fc" },
   ] as const;
   const speedMax = trip
-    ? Math.ceil(1.1 * Math.max(1, ...speedSeries.map((s) => tripPlot(chartPoints, s.key).max)))
+    ? Math.ceil(1.1 * Math.max(1, ...speedSeries.map((s) => tripPlot(chartPoints, s.key, undefined, viewport).max)))
     : 1;
   const plots = trip
     ? speedSeries.map((s) => ({
         ...s,
-        plot: tripPlot(chartPoints, s.key, speedMax),
+        plot: tripPlot(chartPoints, s.key, speedMax, viewport),
       }))
     : [];
   const startTime = Date.parse(chartPoints[0]?.recordedAt ?? "");
