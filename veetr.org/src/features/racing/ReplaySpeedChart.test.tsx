@@ -37,3 +37,11 @@ test('map window rescales the plot and timeline without losing boat toggles', ()
   assert.doesNotMatch(empty,/role="slider"/);
   assert.equal((empty.match(/aria-pressed="true"/g)||[]).length,2);
 });
+
+test('zooming around a rejected spike does not restore the spike or rescale to it', () => {
+  const points = [2,2,2,16,2,2,2].map((speed,i)=>point(i*1000,speed));
+  const html = renderToStaticMarkup(<ReplaySpeedChart points={points} bounds={{start:0,end:6000}} window={{start:2000,end:4000}} at={3000} colors={{}} hidden={new Set()} toggle={()=>{}} seek={()=>{}} loading={false}/>);
+  assert.match(html, /—.*kn/);
+  assert.match(html, /replay-chart-axis[^>]*><span>4<\/span>/);
+  assert.doesNotMatch(html, /<polyline/);
+});

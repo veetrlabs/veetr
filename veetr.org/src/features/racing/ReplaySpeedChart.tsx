@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import type { TrackPoint } from './trackCache';
 import { t } from './i18n';
+import { filterSpeedOutliers } from './speedOutliers';
 
 export function trackingColor(id: string, colors: Record<string, string>) {
   return colors[id] || `hsl(${Array.from(id).reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 0) % 360} 65% 40%)`;
@@ -8,7 +9,7 @@ export function trackingColor(id: string, colors: Record<string, string>) {
 export function speedSeries(points: TrackPoint[]) {
   const boats = new Map<string, { id: string; name: string; readings: { at: number; knots: number | null }[]; segments: { at: number; knots: number }[][] }>();
   const previous = new Map<string, TrackPoint>();
-  for (const p of [...points].sort((a, b) => Date.parse(a.recordedAt) - Date.parse(b.recordedAt))) {
+  for (const p of filterSpeedOutliers(points)) {
     const boat = boats.get(p.boatId) ?? { id: p.boatId, name: p.boatName, readings: [], segments: [] };
     boats.set(p.boatId, boat);
     boat.readings.push({ at: Date.parse(p.recordedAt), knots: p.sogMps === null ? null : p.sogMps * 1.94384449 });
@@ -24,16 +25,31 @@ export function speedSeries(points: TrackPoint[]) {
 export function replayTimeAt(x: number, left: number, width: number, start: number, end: number) {
   return start + Math.max(0, Math.min(1, (x - left) / width)) * (end - start);
 }
-export function ReplaySpeedChart({ points, bounds: fullBounds, window, at, colors, hidden, toggle, seek, loading }: {
+export function ReplayBoatControls({points, at, colors, hidden, toggle}: {
+  points: TrackPoint[]; at: number; colors: Record<string, string>;
+  hidden: Set<string>; toggle: (id: string) => void;
+}) {
+  const boats = useMemo(() => speedSeries(points), [points]);
+  return (<div className="replay-boats">{boats.map(b => {
+      const reading = b.readings.filter(p => p.at <= at).at(-1);
+      return <button key={b.id} type="button" aria-pressed={!hidden.has(b.id)} onClick={() => toggle(b.id)}>
+        <span aria-hidden="true" style={{ color: hidden.has(b.id) ? 'currentColor' : trackingColor(b.id, colors) }}>{hidden.has(b.id) ? '○' : '●'}</span>{' '}{b.name}
+        {!hidden.has(b.id) && <span className="replay-speed-value">{reading && reading.knots !== null && at - reading.at <= 60000 ? reading.knots.toFixed(1) : '—'} kn</span>}
+      </button>;
+    })}</div>);
+}
+export function ReplaySpeedChart({ points, bounds: fullBounds, window, at, colors, hidden, toggle, seek, loading, hideBoatControls = false }: {
+  hideBoatControls?: boolean;
   window?: { start: number; end: number } | null;
   points: TrackPoint[]; bounds: { start: number; end: number }; at: number; colors: Record<string, string>;
   hidden: Set<string>; toggle: (id: string) => void; seek: (at: number) => void; loading: boolean;
 }) {
   const boats = useMemo(() => speedSeries(points), [points]);
   const bounds = window ?? fullBounds;
-  const plotted = useMemo(() => speedSeries(window === null ? [] : window ? points.filter(p => {
-    const at = Date.parse(p.recordedAt); return at >= window.start && at <= window.end;
-  }) : points), [points, window?.start, window?.end, window === null]);
+  // Filter before clipping: zooming must not change which readings are outliers.
+  const plotted = useMemo(() => window === null ? [] : boats.map(boat => ({ ...boat,
+    segments: boat.segments.map(segment => segment.filter(p => !window || (p.at >= window.start && p.at <= window.end))).filter(segment => segment.length),
+  })), [boats, window?.start, window?.end, window === null]);
   const shown = plotted.filter(b => !hidden.has(b.id));
   const max = Math.max(1, Math.ceil(shown.reduce((max, b) => b.segments.reduce((m, s) => s.reduce((n, p) => Math.max(n, p.knots), m), max), 0)));
   const x = (stamp: number) => (stamp - bounds.start) / (bounds.end - bounds.start || 1) * 1000;
@@ -47,13 +63,7 @@ export function ReplaySpeedChart({ points, bounds: fullBounds, window, at, color
     if (box.width) seek(replayTimeAt(event.clientX, box.left, box.width, bounds.start, bounds.end));
   }
   return <section className="replay-speed-chart" aria-label={t('Boat speeds')}>
-    <div className="replay-boats">{boats.map(b => {
-      const reading = b.readings.filter(p => p.at <= at).at(-1);
-      return <button key={b.id} type="button" aria-pressed={!hidden.has(b.id)} onClick={() => toggle(b.id)}>
-        <span aria-hidden="true" style={{ color: hidden.has(b.id) ? 'currentColor' : trackingColor(b.id, colors) }}>{hidden.has(b.id) ? '○' : '●'}</span>{' '}{b.name}
-        {!hidden.has(b.id) && <span className="replay-speed-value">{reading && reading.knots !== null && at - reading.at <= 60000 ? reading.knots.toFixed(1) : '—'} kn</span>}
-      </button>;
-    })}</div>
+    {!hideBoatControls && <ReplayBoatControls points={points} at={at} colors={colors} hidden={hidden} toggle={toggle} />}
     <div className="replay-chart-heading"><strong>{t('Boat speeds')}</strong><span>{t('SOG (kn)')}</span></div>
     {loading && <p role="status">{t('Loading replay…')}</p>}
     {window === null && !loading && <p>{t('No recorded positions in this map area. Zoom out to see the route.')}</p>}

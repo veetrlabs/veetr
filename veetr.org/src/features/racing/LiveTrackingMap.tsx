@@ -1,6 +1,6 @@
 import { MapChartPanel } from "./MapChartPanel";
 import { mapChartWindow, type MapViewport } from "./mapChartWindow";
-import { ReplaySpeedChart, trackingColor } from './ReplaySpeedChart';
+import { ReplaySpeedChart, ReplayBoatControls, trackingColor } from './ReplaySpeedChart';
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { LocateFixed, Minimize2, Scan, Focus } from "lucide-react";
 import type * as Leaflet from "leaflet";
@@ -246,10 +246,7 @@ function TrackingMap({ seriesId, eventId, heatId, boatIds, course }: TrackingMap
         role="region"
         aria-label={t("Recorded boat positions map")}
       />
-      <MapChartPanel><div className="replay-controls">
-        {heatId && replay.heats.find(h=>h.id===heatId)?.start === null && <p>{t("The referee has not set this heat’s start time yet.")}</p>}
-        {replay.error ? <p role="alert">{t(replay.error)} <button onClick={replay.retry}>{t("Retry")}</button></p> : !replay.bounds && <p role="status">{t(replay.loading ? "Loading replay…" : "No recording is available for this selection.")}</p>}
-        {replay.bounds && <>
+      <MapChartPanel header={replay.bounds && <>
           <div className="replay-toolbar">
             <button onClick={replay.togglePlay} disabled={!!replay.error || replay.bounds.start === replay.bounds.end}>{t(replay.playing ? "Pause replay" : "Play replay")}</button>
             <label>{t("Playback speed")} <select value={replay.speed} onChange={e => replay.setSpeed(Number(e.target.value))}>
@@ -257,7 +254,14 @@ function TrackingMap({ seriesId, eventId, heatId, boatIds, course }: TrackingMap
             </select></label>
             <output>{formatTime(replay.at)}</output>
           </div>
-          <ReplaySpeedChart points={chartPoints} window={viewport ? chartWindow : undefined} bounds={replay.bounds} at={replay.at} colors={boatColors}
+          <ReplayBoatControls points={chartPoints} at={replay.at} colors={boatColors} hidden={hidden}
+            toggle={id => setHidden(previous => { const next = new Set(previous); if (next.has(id)) next.delete(id); else next.add(id); return next; })} />
+        </>}>
+      <div className="replay-controls">
+        {heatId && replay.heats.find(h=>h.id===heatId)?.start === null && <p>{t("The referee has not set this heat’s start time yet.")}</p>}
+        {replay.error ? <p role="alert">{t(replay.error)} <button onClick={replay.retry}>{t("Retry")}</button></p> : !replay.bounds && <p role="status">{t(replay.loading ? "Loading replay…" : "No recording is available for this selection.")}</p>}
+        {replay.bounds && <>
+          <ReplaySpeedChart hideBoatControls points={chartPoints} window={viewport ? chartWindow : undefined} bounds={replay.bounds} at={replay.at} colors={boatColors}
             hidden={hidden} toggle={id => setHidden(previous => { const next = new Set(previous); if (next.has(id)) next.delete(id); else next.add(id); return next; })}
             seek={replay.seek} loading={replay.loading} />
         </>}
