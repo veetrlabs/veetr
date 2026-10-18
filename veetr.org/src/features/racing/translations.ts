@@ -366,7 +366,7 @@ export const cs: Record<string, string> = {
   "Leave the end empty while the heat is running.": "Dokud rozjížďka probíhá, nechte konec prázdný.",
   "Actual end (your local time)": "Skutečný konec (váš místní čas)",
   "Actual start (your local time)": "Skutečný start (váš místní čas)",
-  "Edit replay times": "Upravit časy záznamu",
+  "Times save automatically when you leave these fields.": "Časy se automaticky uloží po opuštění těchto polí.",
   "End heat": "Ukončit rozjížďku",
   "Start heat": "Spustit rozjížďku",
   "These times select the heat’s replay. They do not change scoring or stop phone tracking.": "Tyto časy vymezují záznam rozjížďky. Nemění výsledky ani nezastavují sledování telefonů.",
