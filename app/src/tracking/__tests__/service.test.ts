@@ -22,7 +22,7 @@ jest.mock("expo-location", () => ({
   requestBackgroundPermissionsAsync: jest.fn(async () => ({
     status: "granted",
   })),
-  Accuracy: { High: 4 },
+  Accuracy: { High: 4, BestForNavigation: 6 },
   ActivityType: { OtherNavigation: 4 },
 }));
 jest.mock("expo-task-manager", () => ({
@@ -291,6 +291,8 @@ test("background capture continues when foreground subscriptions are paused", as
   expect(Location.startLocationUpdatesAsync).toHaveBeenCalledWith(
     expect.any(String),
     expect.objectContaining({
+      accuracy: Location.Accuracy.BestForNavigation,
+      timeInterval: 1000,
       pausesUpdatesAutomatically: false,
       showsBackgroundLocationIndicator: true,
       foregroundService: expect.objectContaining({ killServiceOnDestroy: false }),

@@ -18,6 +18,10 @@ Pre-start points stay queued until activation or session completion, since sendi
 them early would cause the server to acknowledge and discard them. A delayed start
 continues local capture. Pauses stop publishing, not the disclosed local backup.
 
+GPS requests target one-second fixes (delivery cadence is controlled by Android),
+with up to ten seconds of callback batching. Timestamp-neighbour deduplication
+uses the same 900 ms window as the JavaScript recorder.
+
 Status checks and uploads run approximately every minute, with bounded request
 timeouts. GPS registration is retried after 90 seconds without callbacks. Session
 expiry and user/referee stops prevent subsequent writes. The persistent session

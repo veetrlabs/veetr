@@ -125,7 +125,7 @@ async function startForegroundGPS() {
     reportDiagnostic('gps_error', error);
   };
   const subscription = await Location.watchPositionAsync(
-    { accuracy: Location.Accuracy.High, timeInterval: 1000, distanceInterval: 0 },
+    { accuracy: Location.Accuracy.BestForNavigation, timeInterval: 1000, distanceInterval: 0 },
     (location) => {
       if (isCurrent()) void recordLocations([location], 'foreground').catch(failed).catch(() => {});
     },
@@ -185,8 +185,8 @@ async function startGPS(local = false) {
   if (Platform.OS !== "android") pauseForegroundGPS();
   // Reapply native options on resume: task registration alone does not prove the manager is running.
   await Location.startLocationUpdatesAsync(LOCATION_TASK, {
-    accuracy: Location.Accuracy.High,
-    timeInterval: 5000,
+    accuracy: Location.Accuracy.BestForNavigation,
+    timeInterval: 1000,
     distanceInterval: 0,
     deferredUpdatesInterval: 0,
     pausesUpdatesAutomatically: false,

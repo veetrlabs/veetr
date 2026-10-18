@@ -91,8 +91,8 @@ class VeetrRaceRecorderTest {
     assertEquals(0,count("tracking_outbox"));assertEquals(1,count("recording_history"))
   }
   @Test fun samplingDeduplicatesOverlappingStreamsButPreservesBackfill() {
-    call("save",listOf(fix(now),fix(now-5000),fix(now-10000),fix(now-10000),fix(now-15000,150f)))
-    call("save",listOf(fix(now),fix(now-5000)))
+    call("save",listOf(fix(now),fix(now-1000),fix(now-2000),fix(now-2000),fix(now-2100),fix(now-3000,150f)))
+    call("save",listOf(fix(now),fix(now-1000)))
     assertEquals(3,count("recording_history"));assertEquals(3,count("tracking_outbox"))
   }
   @Test fun databaseReopenRecoversOutboxWithoutJavaScriptMemory() {

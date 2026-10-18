@@ -104,8 +104,8 @@ class VeetrRaceRecorderService : Service() {
     if (subscribed) client.removeLocationUpdates(callback)
     subscribed = false
     lastRequest = System.currentTimeMillis()
-    val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000)
-      .setMinUpdateIntervalMillis(5000).setMaxUpdateDelayMillis(10000).build()
+    val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000)
+      .setMinUpdateIntervalMillis(1000).setMaxUpdateDelayMillis(10000).build()
     client.requestLocationUpdates(request, callback, worker.looper)
       .addOnSuccessListener { handler.post { guarded {
         subscribed = true
@@ -132,7 +132,7 @@ class VeetrRaceRecorderService : Service() {
           (!s.optBoolean("raceActive") && l.time < planned - 300_000) ||
           !l.hasAccuracy() || !l.accuracy.isFinite() || l.accuracy < 0 || l.accuracy > 100 || !l.latitude.isFinite() || !l.longitude.isFinite() || kotlin.math.abs(l.latitude) > 90 || kotlin.math.abs(l.longitude) > 180) continue
       val at = iso(l.time)
-      val nearby = db!!.rawQuery("SELECT 1 FROM recording_history WHERE session_id=? AND recorded_at>? AND recorded_at<? LIMIT 1", arrayOf(s.getString("id"), iso(l.time - 4500), iso(l.time + 4500))).use { it.moveToFirst() }
+      val nearby = db!!.rawQuery("SELECT 1 FROM recording_history WHERE session_id=? AND recorded_at>? AND recorded_at<? LIMIT 1", arrayOf(s.getString("id"), iso(l.time - 900), iso(l.time + 900))).use { it.moveToFirst() }
       if (nearby) continue
       val p = JSONObject().put("recordedAt", at).put("latitude", l.latitude).put("longitude", l.longitude)
         .put("accuracyM", l.accuracy.toDouble()).put("sogMps", if (l.hasSpeed() && l.speed >= 0) l.speed.toDouble() else JSONObject.NULL)
