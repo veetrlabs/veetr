@@ -731,7 +731,6 @@
   "Vane did not confirm north alignment. Check the heading; firmware 0.0.30 or later is required for confirmation.": "Vane nepotvrdil nastavení severu. Ověřte kurz; potvrzení vyžaduje firmware 0.0.30 nebo novější.",
   "Could not send the north alignment command. Check the Bluetooth connection.": "Příkaz pro nastavení severu se nepodařilo odeslat. Zkontrolujte Bluetooth.",
   "North alignment is already in progress.": "Nastavení severu již probíhá.",
-  "Retry replay availability": "Znovu ověřit dostupnost záznamu",
   "Heading": "Směr přídě",
   "Course over ground": "Kurz nad zemí",
   "Apparent wind": "Zdánlivý vítr",

@@ -721,7 +721,6 @@
   "Vane did not confirm north alignment. Check the heading; firmware 0.0.30 or later is required for confirmation.": "Vane did not confirm north alignment. Check the heading; firmware 0.0.30 or later is required for confirmation.",
   "Could not send the north alignment command. Check the Bluetooth connection.": "Could not send the north alignment command. Check the Bluetooth connection.",
   "North alignment is already in progress.": "North alignment is already in progress.",
-  "Retry replay availability": "Retry replay availability",
   "Heading": "Heading",
   "Course over ground": "Course over ground",
   "Apparent wind": "Apparent wind",

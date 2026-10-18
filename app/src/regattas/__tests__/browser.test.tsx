@@ -94,7 +94,7 @@ test("completed undated events appear under Past and open only their own results
   await waitFor(() => expect(view.getByText("Luna")).toBeTruthy());
   expect(view.getByText("2")).toBeTruthy();
   expect(view.queryByText("Series standings")).toBeNull();
-  expect(view.queryByText("Replay")).toBeNull();
+  expect(view.getByText("Replay")).toBeTruthy();
   expect(view.queryByText("Fleet map")).toBeNull();
   expect((trackingRpc as jest.Mock).mock.calls.every(call => ["public_standings", "public_replay_tracks"].includes(call[0]))).toBe(true);
   view.unmount();
@@ -177,7 +177,7 @@ test('replay belongs to its race in a multi-race series, including standings nav
   fireEvent.press(view.getByLabelText('View series Sunday sailing'));
   fireEvent.press(view.getByLabelText('View race Tuesday'));
   await waitFor(() => expect(view.getByText('Luna')).toBeTruthy());
-  expect(view.queryByText('Replay')).toBeNull();
+  expect(view.getByText('Replay')).toBeTruthy();
   fireEvent.press(view.getByText('Back'));
   fireEvent.press(view.getByLabelText('View race Monday'));
   await waitFor(() => expect(view.getByText('Replay')).toBeTruthy());
@@ -186,23 +186,32 @@ test('replay belongs to its race in a multi-race series, including standings nav
   view.unmount();
 });
 
-test('failed replay availability leaves results usable and can be retried', async () => {
-  let unavailable = true;
+test('failed availability lookup never hides the replay entry point', async () => {
   (trackingRpc as jest.Mock).mockImplementation(async (name) => {
     if (name === 'public_standings') return makeSeries();
-    if (unavailable) throw new Error('Offline');
-    return { start: row.replayStart, end: row.replayEnd, chunks: [], heats: [], points: [] };
+    throw new Error('Offline');
   });
   const view = render(<RegattaBrowser />);
   await waitFor(() => expect(view.getByLabelText('View Sunday race')).toBeTruthy());
   fireEvent.press(view.getByLabelText('View Sunday race'));
-  await waitFor(() => expect(view.getByText('Retry replay availability')).toBeTruthy());
   await waitFor(() => expect(view.getByText('Luna')).toBeTruthy());
-  expect(view.queryByText('Replay')).toBeNull();
-  unavailable = false;
-  fireEvent.press(view.getByText('Retry replay availability'));
-  await waitFor(() => expect(view.getByText('Replay')).toBeTruthy());
-  expect(view.queryByText('Retry replay availability')).toBeNull();
+  fireEvent.press(view.getByText('Replay'));
+  expect(router.push).toHaveBeenCalledWith({pathname:'/race-replay',params:{seriesId:'series',eventId:'event'}});
+  view.unmount();
+});
+
+test('upcoming race without any recorded positions still opens replay', async () => {
+  const series = makeSeries();
+  series.races[0].date = '2099-10-18';
+  (trackingClient!.rpc as jest.Mock).mockResolvedValue({data:[{...row,liveBoats:0}],error:null});
+  (trackingRpc as jest.Mock).mockImplementation(async name => name === 'public_standings' ? series :
+    {start:null,end:null,chunks:[],heats:[],points:[]});
+  const view = render(<RegattaBrowser />);
+  await waitFor(() => expect(view.getByLabelText('View Sunday race')).toBeTruthy());
+  fireEvent.press(view.getByText('Upcoming'));
+  fireEvent.press(view.getByLabelText('View Sunday race'));
+  fireEvent.press(view.getByText('Replay'));
+  expect(router.push).toHaveBeenCalledWith({pathname:'/race-replay',params:{seriesId:'series',eventId:'event'}});
   view.unmount();
 });
 

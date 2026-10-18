@@ -217,18 +217,6 @@ function Spectator({
   const r = page.kind === "race" ? page.regatta : initialRace;
   const navigate = (next:Page) => { setPages(history=>[...history,next]); setTab("Results"); };
   const [tab, setTab] = useState<"Results" | "Live">("Results");
-  const [replayAvailability, setReplayAvailability] = useState<{id: string; start?: string; end?: string; error?: boolean}>();
-  const [replayRetry, setReplayRetry] = useState(0);
-  useEffect(() => {
-    if (page.kind !== 'race') return;
-    let alive = true;
-    void raceReplayBounds(r).then(bounds => {
-      if (alive) setReplayAvailability({ id: r.id, start: bounds.replayStart, end: bounds.replayEnd });
-    }).catch(() => { if (alive) setReplayAvailability({ id: r.id, error: true }); });
-    return () => { alive = false; };
-  }, [page.kind, r.id, r.seriesId, r.eventId, replayRetry]);
-  const replay = replayAvailability?.id === r.id ? replayAvailability : undefined;
-  const hasReplay = !!(replay ? replay.start && replay.end : r.replayStart && r.replayEnd);
   const [retry, setRetry] = useState(0);
   const [positions, setPositions] = useState<TrackingPosition[]>([]),
     [error, setError] = useState(""),
@@ -315,8 +303,8 @@ function Spectator({
               {page.kind === "race" ? r.name : page.kind === "series" ? page.series.name : t("Boat details")}
             </Text>
           </View>
-          {page.kind === "race" && (hasReplay || (r.liveBoats ?? 0) > 0) && <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
-            {(["Results", ...((r.liveBoats ?? 0) > 0 ? ["Live"] : []), ...(hasReplay ? ["Replay"] : [])] as const).map((label) => (
+          {page.kind === "race" && <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
+            {(["Results", ...((r.liveBoats ?? 0) > 0 ? ["Live"] : []), "Replay"] as const).map((label) => (
               <Pressable key={label} accessibilityRole="tab" accessibilityState={{ selected: tab === label }}
                 onPress={() => { if (label === 'Replay') { close(); router.push({ pathname: '/race-replay', params: { seriesId: r.seriesId, eventId: r.eventId } }); return; } setTab(label as typeof tab); }}
                 style={{ minHeight: 44, paddingHorizontal: 18, paddingVertical: 12, borderRadius: 22, backgroundColor: tab === label ? "#006b62" : c.buttonBg }}>
@@ -324,7 +312,6 @@ function Spectator({
               </Pressable>
             ))}
           </View>}
-          {page.kind === 'race' && replay?.error && action(t("Retry replay availability"), () => setReplayRetry(v => v + 1))}
           {tab !== "Results" && error && action(t("Retry positions"), () => setRetry((v) => v + 1))}
           {tab === "Results" ? null : error ? (
             <Text accessibilityRole="alert" style={{ color: c.text }}>
