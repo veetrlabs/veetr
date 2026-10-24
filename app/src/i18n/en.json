@@ -1088,5 +1088,15 @@
   "Boat details unavailable. Pull down to try again.": "Boat details unavailable. Pull down to try again.",
   "Finish line end F1": "Finish line end F1",
   "Finish line end F2": "Finish line end F2",
-  "While sharing is enabled, reports also include recent raw and filtered GPS speeds, accuracy, motion summaries and filtering reasons. No coordinates or continuous raw motion recordings are collected for diagnostics. Turning sharing off deletes these unsent samples.": "While sharing is enabled, reports also include recent raw and filtered GPS speeds, accuracy, motion summaries and filtering reasons. No coordinates or continuous raw motion recordings are collected for diagnostics. Turning sharing off deletes these unsent samples."
+  "While sharing is enabled, reports also include recent raw and filtered GPS speeds, accuracy, motion summaries and filtering reasons. No coordinates or continuous raw motion recordings are collected for diagnostics. Turning sharing off deletes these unsent samples.": "While sharing is enabled, reports also include recent raw and filtered GPS speeds, accuracy, motion summaries and filtering reasons. No coordinates or continuous raw motion recordings are collected for diagnostics. Turning sharing off deletes these unsent samples.",
+  "Trip sections": "Trip sections",
+  "Select a point on the speed chart, then split the trip there.": "Select a point on the speed chart, then split the trip there.",
+  "Selected time": "Selected time",
+  "Split at selected time": "Split at selected time",
+  "Section": "Section",
+  "Propulsion": "Propulsion",
+  "Join with previous section": "Join with previous section",
+  "Joining keeps the previous section’s propulsion.": "Joining keeps the previous section’s propulsion.",
+  "Undo last section edit": "Undo last section edit",
+  "Motor sections are excluded from sailing comparisons. Unknown sections remain included with a warning.": "Motor sections are excluded from sailing comparisons. Unknown sections remain included with a warning."
 }

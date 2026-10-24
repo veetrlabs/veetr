@@ -1,3 +1,4 @@
+import { propulsionAt, propulsionSections } from "../tracking/propulsion";
 import type { TrackingPoint, TrackingSession } from "../tracking/model";
 import type { SailingObservation } from "../../../packages/shared/src/polar/model";
 export function tripObservations(
@@ -6,7 +7,7 @@ export function tripObservations(
 ): SailingObservation[] {
   return points.map((p) => ({
     id: `${session.id}/${p.recordedAt}`,
-    sessionId: session.id,
+    sessionId: `${session.id}/${Math.max(0, propulsionSections(session).filter(s => Date.parse(s.startedAt) <= Date.parse(p.recordedAt)).length - 1)}`,
     boatId: session.boatId,
     timestamp: Date.parse(p.recordedAt),
     tws: p.instruments?.tws ?? NaN,
@@ -17,6 +18,6 @@ export function tripObservations(
     heel: p.instruments?.heel,
     gpsValid: p.sogMps !== null,
     windValid: p.instruments?.tws != null && p.instruments?.twa != null,
-    engine: session.engineUse === "engine-used" ? true : session.engineUse === "sailing-only" ? false : undefined,
+    engine: propulsionAt(session, p.recordedAt) === "engine-used" ? true : propulsionAt(session, p.recordedAt) === "sailing-only" ? false : undefined,
   }));
 }

@@ -70,3 +70,14 @@ test('equivalent map events preserve chart zoom; moving the map resets it', () =
   expect(ui.queryByText('Selected time range')).toBeNull();
   expect(ui.getByRole('adjustable').props.accessibilityValue.max).toBe(10);
 });
+
+test('section boundaries are drawn at their times within the visible chart range',()=>{
+ const ui=render(<TripChart points={points} index={0} onSelect={jest.fn()} sections={[
+  {startedAt:points[0].recordedAt,propulsion:'sailing-only'},
+  {startedAt:new Date(5000).toISOString(),propulsion:'engine-used'},
+  {startedAt:new Date(20000).toISOString(),propulsion:'unknown'},
+ ]}/>);
+ const boundaries=ui.UNSAFE_getAllByType('Line' as any).filter(line=>line.props.strokeDasharray==='2 3');
+ expect(boundaries).toHaveLength(1);
+ expect(boundaries[0].props.x1).toBe(160);
+});

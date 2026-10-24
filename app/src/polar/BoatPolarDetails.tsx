@@ -193,14 +193,14 @@ export default function BoatPolarDetails({
                     {t("Engine use unknown. This curve may include motoring.")}
                   </Text>
                 )}
-                {session.engineUse === "engine-used" && (
+                {entry.motorOnly && (
                   <Text style={{ color: c.textMuted }}>
                     {t(
                       "Engine used. This trip is excluded from sailing comparisons.",
                     )}
                   </Text>
                 )}
-                {!entry.polar && session.engineUse !== "engine-used" && (
+                {!entry.polar && !entry.motorOnly && (
                   <Text style={{ color: c.textMuted }}>
                     {t("Not enough stable wind and speed data for a curve.")}
                   </Text>

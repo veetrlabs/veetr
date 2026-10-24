@@ -19,3 +19,18 @@ test('aggregate uses eligible trips independently of display toggles and exclude
  expect(allTripsPolar([motor],'boat')).toBeUndefined();
  expect(allTripsPolar([trip('other','other')],'boat')).toBeUndefined();
 });
+
+test('mixed trips contribute only their sailing section to the polar',()=>{
+ const mixed=trip('mixed','boat','engine-used');
+ mixed.session.propulsionSections=[
+  {startedAt:mixed.points[0].recordedAt,propulsion:'engine-used'},
+  {startedAt:mixed.points[30].recordedAt,propulsion:'sailing-only'},
+ ];
+ const observations=tripObservations(mixed.session,mixed.points);
+ expect(observations.slice(0,30).every(p=>p.engine===true)).toBe(true);
+ expect(observations.slice(30).every(p=>p.engine===false)).toBe(true);
+ const sailing={...mixed,session:{...mixed.session,propulsionSections:undefined,engineUse:'sailing-only' as const},points:mixed.points.slice(30)};
+ expect(allTripsPolar([mixed],'boat')?.points).toEqual(allTripsPolar([sailing],'boat')?.points);
+ expect(allTripsPolar([mixed],'boat')).toBeDefined();
+ expect(boatTripPolars([mixed],'boat')[0].motorOnly).toBe(false);
+});

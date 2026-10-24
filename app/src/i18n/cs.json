@@ -1098,5 +1098,15 @@
   "Boat details unavailable. Pull down to try again.": "Údaje o lodi nejsou dostupné. Zkuste to znovu tažením dolů.",
   "Finish line end F1": "Konec cílové čáry F1",
   "Finish line end F2": "Konec cílové čáry F2",
-  "While sharing is enabled, reports also include recent raw and filtered GPS speeds, accuracy, motion summaries and filtering reasons. No coordinates or continuous raw motion recordings are collected for diagnostics. Turning sharing off deletes these unsent samples.": "Při zapnutém sdílení obsahují zprávy také poslední původní a filtrované rychlosti GPS, přesnost, souhrny pohybu a důvody filtrování. Pro diagnostiku se neukládají souřadnice ani nepřetržité záznamy pohybových senzorů. Vypnutím sdílení se tyto neodeslané vzorky smažou."
+  "While sharing is enabled, reports also include recent raw and filtered GPS speeds, accuracy, motion summaries and filtering reasons. No coordinates or continuous raw motion recordings are collected for diagnostics. Turning sharing off deletes these unsent samples.": "Při zapnutém sdílení obsahují zprávy také poslední původní a filtrované rychlosti GPS, přesnost, souhrny pohybu a důvody filtrování. Pro diagnostiku se neukládají souřadnice ani nepřetržité záznamy pohybových senzorů. Vypnutím sdílení se tyto neodeslané vzorky smažou.",
+  "Trip sections": "Úseky plavby",
+  "Select a point on the speed chart, then split the trip there.": "Vyberte bod v grafu rychlosti a rozdělte v něm plavbu.",
+  "Selected time": "Vybraný čas",
+  "Split at selected time": "Rozdělit ve vybraném čase",
+  "Section": "Úsek",
+  "Propulsion": "Pohon",
+  "Join with previous section": "Spojit s předchozím úsekem",
+  "Joining keeps the previous section’s propulsion.": "Po spojení zůstane pohon předchozího úseku.",
+  "Undo last section edit": "Vrátit poslední úpravu úseků",
+  "Motor sections are excluded from sailing comparisons. Unknown sections remain included with a warning.": "Úseky s motorem se do porovnání pod plachtami nezahrnují. Úseky s neznámým pohonem zůstávají zahrnuté s upozorněním."
 }

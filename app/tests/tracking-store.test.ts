@@ -414,3 +414,24 @@ test('engine-use metadata survives archival and restart without changing recorde
   assert.equal(saved?.session.engineUse,'engine-used');assert.equal(saved?.points.length,1);assert.equal(saved?.session.boatId,'boat');
  } finally {db.close();}
 });
+
+test('propulsion boundaries survive recording, archival, editing and reopening',async()=>{
+ const db=new DatabaseSync(':memory:');
+ try {
+  const s=store(db);await s.init();await s.create({...session,mode:'local'});
+  await s.append(session.id,[point(0),point(10),point(20)]);
+  const propulsionSections: NonNullable<TrackingSession['propulsionSections']>=[
+   {startedAt:point(0).recordedAt,propulsion:'engine-used'},
+   {startedAt:point(10).recordedAt,propulsion:'sailing-only'},
+  ];
+  await s.updateTrip(session.id,{engineUse:'engine-used',propulsionSections});
+  await s.append(session.id,[point(30)]);
+  await s.patch(session.id,{phase:'stopping'});await s.archiveLocal();
+  const restarted=store(db);await restarted.init();
+  const saved=await restarted.localRecording(session.id);
+  assert.deepEqual(saved?.session.propulsionSections,propulsionSections);
+  assert.deepEqual(saved?.points.map(p=>p.recordedAt),[0,10,20,30].map(n=>point(n).recordedAt));
+  await restarted.updateTrip(session.id,{engineUse:'sailing-only',propulsionSections:[{...propulsionSections[0],propulsion:'sailing-only'}]});
+  assert.equal((await restarted.localRecording(session.id))?.session.propulsionSections?.length,1);
+ } finally {db.close();}
+});

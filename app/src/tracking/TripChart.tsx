@@ -1,3 +1,4 @@
+import type { PropulsionSection } from "./propulsion";
 import { chartEntries, zoomWindow, type TimeWindow } from "./chartWindow";
 import type { MapRegion } from '../maps/headingRay';
 import { formatNumber, locale, t, useLanguageRefresh } from '../i18n';
@@ -17,10 +18,12 @@ export default function TripChart({
   onScrubbing,
   boatTracks,
   region,
+  sections,
 }: {
   points: TrackingPoint[];
   boatTracks?: BoatTrack[];
   region?: MapRegion;
+  sections?: PropulsionSection[];
   index: number;
   onSelect: (index: number) => void;
   onScrubbing?: (active: boolean) => void;
@@ -242,6 +245,12 @@ export default function TripChart({
               strokeDasharray="3 4"
             />
           ))}
+          {sections?.slice(1).map(section => {
+            const at = Date.parse(section.startedAt);
+            if (at < start || at > end) return null;
+            const x = 320 * (at - start) / Math.max(1, end - start);
+            return <Line key={section.startedAt} x1={x} x2={x} y1={0} y2={140} stroke={c.text} strokeDasharray="2 3" strokeWidth={1} />;
+          })}
           {paths.map((s) => (
             <Path
               key={s.id}
