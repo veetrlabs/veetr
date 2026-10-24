@@ -1,4 +1,5 @@
 import TripEngineUse from "../../tracking/TripEngineUse";
+import type { MapRegion } from '../../maps/headingRay';
 import BackButton from '../../components/BackButton';
 import { formatNumber, locale, translateMessage, t, useLanguageRefresh } from '../../i18n';
 import { errorOccurredAt } from "../../tracking/errorHistory";
@@ -44,6 +45,8 @@ export default function TripDetail() {
     [busy, setBusy] = useState(false),
     [scrubbing, setScrubbing] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [mapViewport, setMapViewport] = useState<{ id: string; region: MapRegion }>();
+  const onViewportChange = useCallback((region: MapRegion) => setMapViewport({ id, region }), [id]);
   const { index, select } = useTripSelection(id, trip?.points ?? []);
   useFocusEffect(
     useCallback(() => {
@@ -205,7 +208,7 @@ export default function TripDetail() {
               overflow: "hidden",
             }}
           >
-            <TripMap key={id} course={trip.session.course} points={trip.points} selected={trip.points[index]} finished={trip.session.phase === "stopping"} />
+            <TripMap key={id} course={trip.session.course} points={trip.points} selected={trip.points[index]} finished={trip.session.phase === "stopping"} onViewportChange={onViewportChange} />
           </View>
           <View style={{ padding: 20, gap: 24 }}>
             <Text style={{color:c.textMuted,fontSize:12}}>{t("Dashed route sections are estimates across unreliable or missing GPS fixes.")}</Text>
@@ -228,6 +231,8 @@ export default function TripDetail() {
 
             <TripEngineUse session={trip.session} onSaved={session=>setTrip(previous=>previous ? {...previous,session} : previous)} />
             <TripChart
+              key={id}
+              region={mapViewport?.id === id ? mapViewport.region : undefined}
               points={trip.points}
               index={index}
               onSelect={select}

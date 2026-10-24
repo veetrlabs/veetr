@@ -58,3 +58,11 @@ test('recording uses a boat at the selected position without a finish pin', () =
   expect(finish.props.children).toBeTruthy();
   expect(finish.props.pinColor).toBeUndefined();
 });
+
+test('reports the settled map viewport for chart filtering', () => {
+  const onViewportChange = jest.fn();
+  const ui = render(<TripMap points={[]} course={course()} onViewportChange={onViewportChange} />);
+  const region = { latitude: 49, longitude: 14, latitudeDelta: .01, longitudeDelta: .01 };
+  fireEvent(ui.getByTestId('map'), 'regionChangeComplete', region);
+  expect(onViewportChange).toHaveBeenCalledWith(region);
+});

@@ -15,12 +15,14 @@ export default memo(function TripMap({
   course,
   selected,
   finished = true,
+  onViewportChange,
   thumbnail = false,
 }: {
   points: TrackingPoint[];
   course?: RaceCourse | null;
   selected?: TrackingPoint;
   finished?: boolean;
+  onViewportChange?: (region: MapRegion) => void;
   thumbnail?: boolean;
 }) {
   useLanguageRefresh();
@@ -87,7 +89,9 @@ export default memo(function TripMap({
       }}
       onMapReady={() => { ready.current = true; fit(); }}
       onRegionChangeComplete={region => {
+        setMapRegion(region);
         setViewport(`${region.latitude},${region.longitude},${region.latitudeDelta},${region.longitudeDelta}`);
+        onViewportChange?.(region);
       }}
       scrollEnabled={!thumbnail}
       zoomEnabled={!thumbnail}
