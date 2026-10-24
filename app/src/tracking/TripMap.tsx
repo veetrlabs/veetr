@@ -14,11 +14,13 @@ export default memo(function TripMap({
   points,
   course,
   selected,
+  finished = true,
   thumbnail = false,
 }: {
   points: TrackingPoint[];
   course?: RaceCourse | null;
   selected?: TrackingPoint;
+  finished?: boolean;
   thumbnail?: boolean;
 }) {
   useLanguageRefresh();
@@ -107,14 +109,18 @@ export default memo(function TripMap({
           />
         ))}
       {!thumbnail && coordinates.length > 0 && (
-        <Marker coordinate={coordinates[0]} title={t("Start")} pinColor="#008c80" />
+        <Marker coordinate={coordinates[0]} title={t("Start")} anchor={{ x: .5, y: .5 }}>
+          <View collapsable={false} style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#008c80', borderColor: 'white', borderWidth: 2 }} />
+        </Marker>
       )}
-      {!thumbnail && coordinates.length > 1 && (
+      {!thumbnail && finished && coordinates.length > 1 && (
         <Marker
           coordinate={coordinates[coordinates.length - 1]}
           title={t("Finish")}
-          pinColor="#64748b"
-        />
+          anchor={{ x: .5, y: .5 }}
+        >
+          <View collapsable={false} style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#64748b', borderColor: 'white', borderWidth: 2 }} />
+        </Marker>
       )}
       {selected && validCoordinate(selected) && (
         <BoatMarker region={mapRegion} key={viewport} coordinate={selected} reading={selected}

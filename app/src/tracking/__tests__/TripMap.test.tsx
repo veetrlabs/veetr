@@ -9,7 +9,7 @@ jest.mock('../../components/NativeMap', () => ({
     return require('react').createElement('View', {...props, testID:'map'});
   }), Marker:'View', Polyline:'View',
 }));
-jest.mock('../../maps/BoatMarker', () => () => null);
+jest.mock('../../maps/BoatMarker', () => (props: any) => require('react').createElement('View', { ...props, testID: 'boat' }));
 jest.mock('../../maps/CourseLayer', () => ({
   __esModule:true, default:()=>null, courseCoordinates:(course:any)=>course?.marks ?? [],
 }));
@@ -44,4 +44,17 @@ test('noninteractive thumbnails still fit updated contents', () => {
   fireEvent(ui.getByTestId('map'),'mapReady');
   ui.rerender(<TripMap points={[]} course={course()} thumbnail />);
   expect(mockFit).toHaveBeenCalledTimes(2);
+});
+
+test('recording uses a boat at the selected position without a finish pin', () => {
+  const points = [0, 1].map(i => ({ latitude: 49 + i * .001, longitude: 14,
+    recordedAt: new Date(i * 1000).toISOString(), accuracyM: 5, sogMps: 1, cogDeg: 90, source: 'phone' as const }));
+  const ui = render(<TripMap points={points} selected={points[1]} finished={false} />);
+  expect(ui.getByTestId('boat').props.coordinate).toEqual(points[1]);
+  expect(ui.UNSAFE_queryAllByProps({ title: 'Finish' })).toHaveLength(0);
+  ui.rerender(<TripMap points={points} selected={points[0]} finished />);
+  expect(ui.getByTestId('boat').props.coordinate).toEqual(points[0]);
+  const finish = ui.UNSAFE_getByProps({ title: 'Finish' });
+  expect(finish.props.children).toBeTruthy();
+  expect(finish.props.pinColor).toBeUndefined();
 });

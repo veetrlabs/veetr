@@ -28,6 +28,7 @@ import {
 } from "../../tracking/trip";
 import TripMap from "../../tracking/TripMap";
 import TripChart from "../../tracking/TripChart";
+import { useTripSelection } from "../../tracking/useTripSelection";
 import { recordingStatus } from "../../tracking/recordingStatus";
 import { trackingErrorMessage } from "../../tracking/errorMessage";
 export default function TripDetail() {
@@ -38,12 +39,12 @@ export default function TripDetail() {
     { height } = useWindowDimensions();
   const [trip, setTrip] = useState<Trip | null>(null),
     [now, setNow] = useState(Date.now()),
-    [index, setIndex] = useState(0),
     [loading, setLoading] = useState(true),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [scrubbing, setScrubbing] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const { index, select } = useTripSelection(id, trip?.points ?? []);
   useFocusEffect(
     useCallback(() => {
       let alive = true;
@@ -204,7 +205,7 @@ export default function TripDetail() {
               overflow: "hidden",
             }}
           >
-            <TripMap course={trip.session.course} points={trip.points} selected={trip.points[index]} />
+            <TripMap key={id} course={trip.session.course} points={trip.points} selected={trip.points[index]} finished={trip.session.phase === "stopping"} />
           </View>
           <View style={{ padding: 20, gap: 24 }}>
             <Text style={{color:c.textMuted,fontSize:12}}>{t("Dashed route sections are estimates across unreliable or missing GPS fixes.")}</Text>
@@ -229,7 +230,7 @@ export default function TripDetail() {
             <TripChart
               points={trip.points}
               index={index}
-              onSelect={setIndex}
+              onSelect={select}
               onScrubbing={setScrubbing}
             />
 
