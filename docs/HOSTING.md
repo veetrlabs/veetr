@@ -10,8 +10,13 @@ checks and deploys Supabase migrations; see DATABASE_DEPLOYMENT.md.
 | --- | --- | --- | --- | --- |
 | veetr.org, www.veetr.org | veetr-site | veetrlabs/veetr main | npm run build --workspace veetr.org | veetr.org/dist |
 | veetr.com | veetr-com | veetrlabs/veetr main, root veetr.com | exit 0 | . |
-| app.veetr.org | veetr-app | veetrlabs/veetr main | npm run build --workspace app | app/dist |
+| app.veetr.org | veetr-app | veetrlabs/veetr main | npm run build --workspace pwa | pwa/dist |
 | game.veetr.org | veetr-game | veetrlabs/veetr-game main | exit 0 | . |
+
+The former GitHub mirror repositories `veetrlabs/veetr-site` and
+`veetrlabs/veetr.com` have been deleted. The Cloudflare project `veetr-site`
+remains active and uses the main repository. Keep `veetrlabs/veetr-game`: it is
+still the source for the game deployment.
 
 The site and app builds use NODE_VERSION=22.19.0. The main site also has
 VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY configured in Cloudflare. These are

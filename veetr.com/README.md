@@ -22,11 +22,18 @@ Then visit http://localhost:8080
 
 ## Deployment
 
-This site can be deployed to:
-- GitHub Pages
-- Netlify
-- Vercel
-- Any static hosting
+Cloudflare Pages project `veetr-com` deploys directly from the `main` branch of
+`veetrlabs/veetr`:
+
+- Root directory: `veetr.com`
+- Build command: `exit 0` (the files are already static)
+- Output directory: `.`
+- Custom domain: `veetr.com`
+
+The former standalone mirror repository has been deleted. Edit the redirect
+pages in this directory; pushes to `main` trigger Cloudflare's Git integration.
+
+See [Website hosting](../docs/HOSTING.md) for the complete website map.
 
 ## Brand Consistency
 

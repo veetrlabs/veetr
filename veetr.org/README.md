@@ -14,13 +14,13 @@ The site is built with Astro so shared UI lives in components, page copy can liv
 - `src/styles/starlight.css` - site-wide light/dark theme, responsive sections, and form styles
 - `src/styles/global.css` - retained legacy stylesheet, no longer imported by website routes
 - `public/` - static assets copied directly into the built site
-- `public/CNAME` - GitHub Pages custom domain configuration
+- `public/CNAME` - legacy domain file; active custom domains are configured in Cloudflare Pages
 
 ## Local Development
 
 Use Node 22.19 or newer. With nvm, run `nvm install` and `nvm use` from
 `veetr.org/` to select the current Node 22 release specified by `.nvmrc`.
-The site deployment workflow also uses Node 22.
+Cloudflare Pages and the website checks use Node 22.
 
 From the repository root:
 
@@ -61,7 +61,8 @@ source of truth. TODOs, roadmaps, and recording scripts are not published.
 Run `npm test --workspace veetr.org` from the repository root to build and check
 the generated routes, every Markdown page's copy, metadata, shared theme,
 form destinations, documentation routes, local links, search, and image assets.
-The deployment workflow runs these checks before publishing generated files.
+The [Website checks workflow](../.github/workflows/site-checks.yml) runs these
+checks independently of Cloudflare deployment; a passing check is not a deployment gate.
 
 ## Content Editing
 
@@ -69,15 +70,17 @@ Most page copy lives in `src/content/pages/*.md`. Each file contains frontmatter
 
 ## Deployment
 
-Changes to `veetr.org/**`, `docs/**`, `package.json`, or `package-lock.json` trigger `.github/workflows/mirror-site.yml`.
+Cloudflare Pages project `veetr-site` builds directly from the `main` branch of
+`veetrlabs/veetr`, using the repository root as its build directory:
 
-The workflow:
+- Build command: `npm run build --workspace veetr.org`
+- Output directory: `veetr.org/dist`
+- Custom domains: `veetr.org` and `www.veetr.org`
 
-1. Installs Node dependencies with `npm ci`
-2. Builds the site with `npm run build --workspace veetr.org`
-3. Runs the generated-site regression checks
-4. Clones the `veetrlabs/veetr-site` repository
-5. Copies `veetr.org/dist` into that repository
-6. Commits and pushes the generated static files
+Pushes to `main` trigger Cloudflare's Git integration. Check deployment status
+in the Cloudflare Pages dashboard. The former generated-site mirror repository
+has been deleted; `veetr-site` remains the name of the Cloudflare project.
 
-GitHub Pages serves the mirrored repository at https://veetr.org.
+See [Website hosting](../docs/HOSTING.md) and
+[Deployment architecture and operations](../docs/DEPLOYMENT.md) for configuration
+and the deployment process.

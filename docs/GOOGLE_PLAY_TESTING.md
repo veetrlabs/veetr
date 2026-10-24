@@ -33,9 +33,9 @@ Password sign-in has not been independently tested.
 - Check any location/foreground-service declarations required for the release, including demonstration material if requested.
 - Configure closed-test countries and tester list, create the closed release, and send the completed setup for review.
 
-Deployment note: the website README refers to `.github/workflows/mirror-site.yml`,
-but that file is absent from both the current checkout and fetched `origin/main`.
-Confirm the current site publication mechanism before claiming these pages are live.
+Deployment note: Cloudflare Pages project `veetr-site` builds the website directly
+from `veetrlabs/veetr` on `main`; see [Website hosting](HOSTING.md). Verify the
+production deployment and public page URLs before claiming these pages are live.
 
 The Console currently requires at least 12 opted-in closed testers for at least
 14 days before applying for production access. Internal-track testers do not
