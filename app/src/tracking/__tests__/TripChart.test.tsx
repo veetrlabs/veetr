@@ -45,7 +45,8 @@ test('map zoom filters speeds and keeps separate visits disconnected with origin
   expect(ui.getByRole('adjustable').props.accessibilityValue.max).toBe(3);
   const path = ui.getAllByTestId('chart-path').find(p => p.props.fill === 'none')!.props.d;
   expect(path.match(/M/g)).toHaveLength(2);
-  expect(path).toContain('M0.00,0.00');
+  // The displayed maximum has 8% headroom; off-map spikes must not affect it.
+  expect(path).toContain('M0.00,10.37');
   fireEvent(ui.getByRole('adjustable'), 'responderRelease', { nativeEvent: { pageX: 300 } });
   expect(select).toHaveBeenLastCalledWith(5);
   ui.rerender(<TripChart points={data} index={1} onSelect={select} region={{ ...region, longitude: 30 }} />);
