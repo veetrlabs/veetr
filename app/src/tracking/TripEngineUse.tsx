@@ -83,8 +83,14 @@ export default function TripEngineUse({ session, points, index, range, onSaved }
     {editorOpen && <Modal transparent animationType="fade" onRequestClose={() => setEditorOpen(false)}>
       <View style={{ flex: 1, justifyContent: 'center', padding: 24, backgroundColor: 'rgba(0,0,0,0.45)' }}>
         <View accessibilityViewIsModal style={{ maxHeight: '85%', borderRadius: 16, backgroundColor: c.bg, padding: 16 }}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t('Close')}
+            onPress={() => setEditorOpen(false)}
+            style={({ pressed }) => ({ alignSelf: 'flex-end', width: 44, height: 44, borderRadius: 22,
+              alignItems: 'center', justifyContent: 'center', backgroundColor: c.buttonBg, opacity: pressed ? .7 : 1 })}>
+            <Text style={{ color: c.text, fontSize: 28 }}>×</Text>
+          </Pressable>
           <ScrollView contentContainerStyle={{ gap: 12 }}>
-    {sections.map((section, i) => i === activeIndex && <View key={section.startedAt} style={{ gap: 8, padding: 12, borderRadius: 8, borderWidth: 1, borderColor: c.border }}>
+    {sections.map((section, i) => i === activeIndex && <View key={section.startedAt} style={{ gap: 8 }}>
       <Text style={{ color: c.text, fontWeight: '600' }}>{t('Section')} {i + 1} · {time(i === 0 ? points[0]?.recordedAt ?? section.startedAt : section.startedAt)} – {time(sections[i + 1]?.startedAt ?? points.at(-1)?.recordedAt ?? section.startedAt)}</Text>
       <View style={{ gap: 8 }}>
         <View style={{ flexDirection: 'row', gap: 4 }}>
@@ -114,7 +120,6 @@ export default function TripEngineUse({ session, points, index, range, onSaved }
     {undo && button(t('Undo last section edit'), () => void save(undo, true))}
     <Text style={{ color: c.textMuted }}>{t('Motor sections are excluded from sailing comparisons. Unknown sections remain included with a warning.')}</Text>
     {!!error && <Text accessibilityRole="alert" style={{ color: c.text }}>{translateMessage(error)}</Text>}
-    {button(t('Close'), () => setEditorOpen(false))}
           </ScrollView>
         </View>
       </View>
