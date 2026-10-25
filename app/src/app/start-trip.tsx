@@ -95,8 +95,6 @@ export default function StartTrip() {
         <BackButton onPress={() => router.back()} />
         <Text style={{ color: c.text, fontSize: 28, fontWeight: "700" }}>
           {t("Start a trip")}</Text>
-        <Text style={{ color: c.textMuted }}>
-          {t("Choose your boat and who can watch. Private trips stay on this device.")}</Text>
         {visibility === "private" && privateBoats.length > 0 ? <View style={{ gap: 10 }}>
           <Text style={{ color: c.text, fontWeight: "600" }}>{t("Boat for this trip")}</Text>
           {Platform.OS === "ios" ? <><Pressable accessibilityRole="button" accessibilityLabel={t("Boat for this trip")}

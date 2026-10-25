@@ -88,7 +88,7 @@ export function TripOptions({
 export function TripAccountLink() {
   useLanguageRefresh();
   const c = themeColors[useTheme().theme];
-  const [signedIn, setSignedIn] = useState(false);
+  const [signedIn, setSignedIn] = useState<boolean | null>(null);
   useFocusEffect(
     useCallback(() => {
       let alive = true;
@@ -109,6 +109,7 @@ export function TripAccountLink() {
       };
     }, []),
   );
+  if (signedIn === null) return null;
   return (
     <Pressable
       accessibilityRole="button"
