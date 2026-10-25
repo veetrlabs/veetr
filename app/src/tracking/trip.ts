@@ -116,31 +116,30 @@ export function chartPath(
     end = timeBounds?.[1] ?? Date.parse(points.at(-1)?.recordedAt || "");
   let previous: number | null = null;
   const commands: string[] = [];
-  let bucket: { x: number; y: number }[] = [];
+  // One mean per four chart units: wider time intervals in the overview,
+  // narrower intervals when zoomed in. Only the rendered line is averaged.
+  const averageSpeed = metric === 'sog' || metric === 'aws' || metric === 'tws';
+  let count = 0, sumX = 0, sumY = 0;
   let column = -1;
   let newSegment = true;
   function flush() {
-    if (!bucket.length) return;
-    // Preserve first/last and both extremes in each horizontal pixel column.
-    // Full-resolution points remain available for selection and exports.
-    let low = 0, high = 0;
-    bucket.forEach((p, i) => { if (p.y < bucket[low].y) low = i; if (p.y > bucket[high].y) high = i; });
-    for (const i of [...new Set([0, low, high, bucket.length - 1])].sort((a, b) => a - b)) {
-      const p = bucket[i];
-      commands.push(`${newSegment ? "M" : "L"}${p.x.toFixed(2)},${p.y.toFixed(2)} `);
-      newSegment = false;
-    }
-    bucket = [];
+    if (!count) return;
+    commands.push(`${newSegment ? "M" : "L"}${(sumX / count).toFixed(2)},${(sumY / count).toFixed(2)} `);
+    newSegment = false;
+    count = 0; sumX = 0; sumY = 0;
   }
   for (const [index, p] of points.entries()) {
     const v = metricValue(p, metric), t = Date.parse(p.recordedAt);
     const gap = previous === null || t - previous > TRACK_GAP_MS ||
       (originalIndices && index > 0 && originalIndices[index] !== originalIndices[index - 1] + 1);
-    if (gap || v === null) { flush(); newSegment = true; }
-    if (v === null) { previous = null; continue; }
+    if (gap || v === null || !Number.isFinite(t)) { flush(); newSegment = true; }
+    if (v === null || !Number.isFinite(t)) { previous = null; continue; }
     const x = width * (t - start) / Math.max(1, end - start);
-    if (Math.floor(x) !== column) { flush(); column = Math.floor(x); }
-    bucket.push({ x, y: height - height * (v - min) / Math.max(0.001, max - min) });
+    const nextColumn = averageSpeed ? Math.floor(x / 4) : index;
+    if (nextColumn !== column) { flush(); column = nextColumn; }
+    sumX += x;
+    sumY += height - height * (v - min) / Math.max(0.001, max - min);
+    count++;
     previous = t;
   }
   flush();
