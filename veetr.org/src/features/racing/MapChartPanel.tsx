@@ -2,16 +2,19 @@ import React, { useId, useRef, useState, useEffect } from "react";
 import { ChevronDown, ChevronUp, Minimize2 } from "lucide-react";
 import { t } from "./i18n";
 
-export function MapChartPanel({ children }: { children: React.ReactNode }) {
+export function MapChartPanel({ children, header }: { children: React.ReactNode; header?: React.ReactNode }) {
   const [expanded, setExpanded] = useState(true);
   const id = useId();
   return <div className="map-chart-panel">
-    <button type="button" className="map-chart-toggle" aria-expanded={expanded} aria-controls={id}
-      onClick={() => setExpanded(value => !value)}>
-      <span>{t("Speed chart")}</span>
-      {expanded ? <ChevronDown size={20} aria-hidden="true" /> : <ChevronUp size={20} aria-hidden="true" />}
-      <span className="map-chart-sr">{t(expanded ? "Minimize chart" : "Expand chart")}</span>
-    </button>
+    <div className="map-chart-header">
+      <button type="button" className="map-chart-toggle" aria-expanded={expanded} aria-controls={id}
+        onClick={() => setExpanded(value => !value)}>
+        <span>{t("Speed chart")}</span>
+        {expanded ? <ChevronDown size={20} aria-hidden="true" /> : <ChevronUp size={20} aria-hidden="true" />}
+        <span className="map-chart-sr">{t(expanded ? "Minimize chart" : "Expand chart")}</span>
+      </button>
+      {expanded && header}
+    </div>
     <div id={id} className="map-chart-content" hidden={!expanded}>{children}</div>
   </div>;
 }

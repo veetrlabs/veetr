@@ -1,4 +1,5 @@
 export const cs: Record<string, string> = {
+  "Dashed route sections are estimates across unreliable or missing GPS fixes.": "Přerušované úseky trasy jsou odhady přes nepřesné nebo chybějící polohy GPS.",
   "The server took too long to respond. Please try again.": "Server neodpověděl včas. Zkuste to prosím znovu.",
   "Could not reach the server. Check your connection and try again.": "Nelze se spojit se serverem. Zkontrolujte připojení a zkuste to znovu.",
   "Synchronization has not finished.": "Synchronizace nebyla dokončena.",
@@ -366,7 +367,7 @@ export const cs: Record<string, string> = {
   "Leave the end empty while the heat is running.": "Dokud rozjížďka probíhá, nechte konec prázdný.",
   "Actual end (your local time)": "Skutečný konec (váš místní čas)",
   "Actual start (your local time)": "Skutečný start (váš místní čas)",
-  "Edit replay times": "Upravit časy záznamu",
+  "Times save automatically when you leave these fields.": "Časy se automaticky uloží po opuštění těchto polí.",
   "End heat": "Ukončit rozjížďku",
   "Start heat": "Spustit rozjížďku",
   "These times select the heat’s replay. They do not change scoring or stop phone tracking.": "Tyto časy vymezují záznam rozjížďky. Nemění výsledky ani nezastavují sledování telefonů.",

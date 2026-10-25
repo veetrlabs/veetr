@@ -1,3 +1,5 @@
+import { configureTripDiagnostics } from './tripRecording';
+import { qualitySnapshot, type StoredQuality } from './trackingQuality';
 import { bleDiagnostics, clearBleDiagnostics } from './ble';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState, Platform } from 'react-native';
@@ -7,7 +9,7 @@ import * as Device from 'expo-device';
 import * as Crypto from 'expo-crypto';
 import * as Location from 'expo-location';
 import { trackingStore } from '../tracking/database';
-import { nativeDiagnostics, setNativeDiagnosticsEnabled, trackingHistory } from './native';
+import { nativeDiagnostics, setNativeDiagnosticsEnabled, trackingHistory, nativeTrackingQuality } from './native';
 import { ageSeconds, diagnosticErrorCode, emptyState, enqueue, type DiagnosticEvent, type QueueState } from './queue';
 
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
@@ -43,17 +45,34 @@ export const ensureDiagnosticIdentity = () => exclusive(async () => {
   if (!state.installationId) { state.installationId = Crypto.randomUUID(); await save(state); }
   return state.installationId;
 });
-export const initializeDiagnostics = () => exclusive(async () => setNativeDiagnosticsEnabled((await read()).enabled));
+export const initializeDiagnostics = () => exclusive(async () => {
+  const enabled = (await read()).enabled;
+  await setNativeDiagnosticsEnabled(enabled);
+  await configureTripDiagnostics(enabled, await (await trackingStore()).get());
+});
 export async function setDiagnosticsEnabled(enabled: boolean) {
   // Invalidate in-progress collection immediately, even before disk I/O completes.
   revision++;
-  if (!enabled) { controller?.abort(); clearBleDiagnostics(); }
+  if (!enabled) { controller?.abort(); clearBleDiagnostics(); await configureTripDiagnostics(false, null); }
   await exclusive(async () => {
     const state = await read();
     await save(enabled ? { ...state, enabled: true, installationId: state.installationId ?? Crypto.randomUUID() } : emptyState());
     await setNativeDiagnosticsEnabled(enabled);
+    await configureTripDiagnostics(enabled, await (await trackingStore()).get());
   });
   if (enabled) reportDiagnostic('health');
+}
+
+// Lazy producer: no extended samples are even constructed without persistent opt-in.
+export function recordTrackingQuality(build: () => StoredQuality[]): void {
+  const generation = revision;
+  void exclusive(async () => {
+    const state = await read();
+    if (!state.enabled || generation !== revision) return;
+    const now = Date.now();
+    state.quality = [...(state.quality ?? []).filter(r => now - r.at <= 7 * 86400000), ...build()].slice(-120);
+    await save(state);
+  }).catch(() => {});
 }
 
 async function snapshot(event: DiagnosticEvent['event'], consent: DiagnosticEvent['consent'], installationId: string, state: string, error?: unknown): Promise<DiagnosticEvent> {
@@ -113,6 +132,12 @@ async function collect(event: DiagnosticEvent['event'], manual: boolean, error?:
   if (!manual && event === 'health' && lastHealthState === appState && Date.now() - lastHealth < 60000) return null;
   if (!manual && event === 'health') { lastHealth = Date.now(); lastHealthState = appState; }
   const item = await snapshot(event, manual ? 'manual' : 'automatic', manual ? Crypto.randomUUID() : state.installationId!, appState, error);
+  if (state.enabled) {
+    const native = await nativeTrackingQuality();
+    item.trackingQuality = [...qualitySnapshot(state.quality), ...native]
+      .sort((a, b) => b.ageSeconds - a.ageSeconds).slice(-32);
+    while (item.trackingQuality.length && utf8Bytes(JSON.stringify([item], null, 1)) > 38000) item.trackingQuality.shift();
+  }
   return exclusive(async () => {
     if (generation !== revision) return null;
     const current = await read();

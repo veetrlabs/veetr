@@ -1,10 +1,10 @@
 import type { CompassTelemetry } from '../utils/compassTelemetry';
 export const UPLOAD_INTERVAL_MS = 20_000;
-export const SAMPLE_INTERVAL_MS = 5_000;
-// Provider timestamps can arrive slightly ahead of the requested five-second cadence.
+export const SAMPLE_INTERVAL_MS = 1_000;
+// Provider timestamps can arrive slightly ahead of the requested one-second cadence.
 // Keep these fixes instead of dropping every other background update.
-export const SAMPLE_TOLERANCE_MS = 500;
-export const MAX_PENDING_POINTS = 10_000;
+export const SAMPLE_TOLERANCE_MS = 100;
+export const MAX_PENDING_POINTS = 50_000;
 export interface TrackingEntry {
   tracking?: boolean;
   open?: boolean;
@@ -22,6 +22,7 @@ export interface TripSharing {
   uploaded: number; finished?: boolean; error?: string;
 }
 export interface TrackingSession extends TrackingEntry {
+  propulsionSections?: import("./propulsion").PropulsionSection[];
   engineUse?: "unknown" | "sailing-only" | "engine-used";
   course?: import("../../../veetr.org/src/features/racing/course").RaceCourse | null;
   sharing?: TripSharing;
@@ -85,6 +86,10 @@ export interface LocationFix {
     longitude: number;
     accuracy: number | null;
     speed: number | null;
+    speedAccuracy?: number | null;
+    headingAccuracy?: number | null;
+    altitude?: number | null;
+    altitudeAccuracy?: number | null;
     heading: number | null;
   };
 }

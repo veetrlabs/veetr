@@ -1,3 +1,4 @@
+import { routeGeometry } from "./routeGeometry";
 import { MapChartPanel, TripMapFrame } from "./MapChartPanel";
 import { mapChartWindow, type MapViewport } from "./mapChartWindow";
 import { t as tr } from "./i18n";
@@ -22,6 +23,7 @@ type Instruments = {
   heading?: number | null;
 };
 type Point = {
+  accuracyM?: number | null;
   seq: number;
   recordedAt: string;
   latitude: number;
@@ -108,18 +110,9 @@ function Map({
       g = layer.current;
     if (!ready || !L || !m || !g) return;
     g.clearLayers();
-    const lines: Leaflet.LatLngTuple[][] = [];
-    let previous: Point | undefined;
-    for (const p of points) {
-      if (
-        !previous ||
-        Date.parse(p.recordedAt) - Date.parse(previous.recordedAt) > 60000
-      )
-        lines.push([]);
-      lines.at(-1)!.push([p.latitude, p.longitude]);
-      previous = p;
+    for (const section of routeGeometry(points)) {
+      L.polyline(section.points.map(p => [p.latitude, p.longitude] as Leaflet.LatLngTuple), {color, weight:3, dashArray:section.estimated ? "6 6" : undefined}).addTo(g);
     }
-    for (const line of lines) L.polyline(line, { color, weight: 3 }).addTo(g);
     if (selected) {
       const { heading, windFrom, courseOnly } = boatOrientation(selected);
       const safeColor = /^#[0-9a-f]{6}$/i.test(color) ? color : "#008c83";
@@ -297,12 +290,12 @@ export default function SharedTrips() {
     { key: "aws", label: tr("Apparent wind · AWS"), color: "#c084fc" },
   ] as const;
   const speedMax = trip
-    ? Math.ceil(1.1 * Math.max(1, ...speedSeries.map((s) => tripPlot(chartPoints, s.key).max)))
+    ? Math.ceil(1.1 * Math.max(1, ...speedSeries.map((s) => tripPlot(chartPoints, s.key, undefined, viewport).max)))
     : 1;
   const plots = trip
     ? speedSeries.map((s) => ({
         ...s,
-        plot: tripPlot(chartPoints, s.key, speedMax),
+        plot: tripPlot(chartPoints, s.key, speedMax, viewport),
       }))
     : [];
   const startTime = Date.parse(chartPoints[0]?.recordedAt ?? "");
@@ -483,6 +476,7 @@ export default function SharedTrips() {
           )}
           </MapChartPanel>
           </TripMapFrame>
+      <p>{tr("Dashed route sections are estimates across unreliable or missing GPS fixes.")}</p>
           <p className="trip-map-key">
             {tr("Boat points along heading; amber arrow shows true wind blowing toward it. Without heading, the boat uses COG and the wind arrow is hidden. Heading is magnetic; COG is true.")}
           </p>

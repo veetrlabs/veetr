@@ -1,6 +1,7 @@
+import { routeGeometry } from "../../../veetr.org/src/features/racing/routeGeometry";
 import CourseLayer, { courseCoordinates, type RaceCourse } from "../maps/CourseLayer";
 import type { MapRegion } from "../maps/headingRay";
-import { routeSegments } from "../tracking/trip";
+
 import type { BoatTrack } from "../replay/boatTracks";
 import BoatMarker from "../maps/BoatMarker";
 import { Text, View } from 'react-native';
@@ -77,8 +78,8 @@ export default function FleetMap({
         maximumZ={22}
         tileSize={256}
       />
-      {routes.flatMap(track => routeSegments(track.points).filter(segment => segment.length > 1).map((segment, i) =>
-        <Polyline key={track.id + ":overview:" + i} coordinates={segment} strokeColor={track.color} strokeWidth={2} />))}
+      {routes.flatMap(track => routeGeometry(track.points).filter(section => section.points.length > 1).map((section, i) =>
+        <Polyline key={track.id + ":overview:" + i} coordinates={section.points} lineDashPattern={section.estimated ? [6, 6] : undefined} strokeColor={track.color} strokeWidth={2} />))}
       {positions.map((p) => (
         <BoatMarker region={mapRegion ?? initialRegion}
           key={p.boatId}
@@ -95,7 +96,7 @@ export default function FleetMap({
           }
         />
       ))}
-      {positions.flatMap((p) =>
+      {positions.filter(p => !routes.some(track => track.id === p.boatId)).flatMap((p) =>
         (p.trailSegments ?? [p.trail])
           .filter((s) => s.length > 1)
           .map((segment, i) => (

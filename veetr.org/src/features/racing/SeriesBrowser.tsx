@@ -1,3 +1,4 @@
+import { HeatTrackingTimes } from "./HeatTrackingTimes";
 import { eventIsPublished, setEventPublished } from "./eventDefaults";
 import { CourseEditor } from "./CourseEditor";
 import { EditEntityButton } from "./EditEntityButton";
@@ -389,6 +390,7 @@ export function Editor({
   const [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const submitting = useRef(false);
+  const timeSaveBlocked = useRef(false);
   const courseDraft = useRef<{ prepare: () => (series: Series) => void }>(null);
   return (
     <form
@@ -400,7 +402,7 @@ export function Editor({
       }
       onSubmit={async (e) => {
         e.preventDefault();
-        if (submitting.current) return;
+        if (submitting.current || timeSaveBlocked.current) return;
         const d = new FormData(e.currentTarget);
         submitting.current = true;
         setBusy(true);
@@ -521,6 +523,7 @@ export function Editor({
               <input name="date" type="date" defaultValue={heat.date} />
             </label>
             <small>{t("Visibility is set for the whole race in race settings.")}</small>
+            {!creating && <HeatTrackingTimes key={heat.id} heatId={heat.id} editor onSaveState={blocked => { timeSaveBlocked.current = blocked; }} />}
           </>
         )}
         {event && <label>

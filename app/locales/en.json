@@ -5,7 +5,7 @@
     "NSLocationWhenInUseUsageDescription": "Use your location to show your position, speed and course while Veetr is open. Recording and sharing start only when you choose them.",
     "NSLocationAlwaysAndWhenInUseUsageDescription": "Use your location for active tracking or anchor monitoring, including while the screen is locked.",
     "NSLocationAlwaysUsageDescription": "Use your location for active tracking or anchor monitoring, including while the screen is locked.",
-    "NSMotionUsageDescription": "Use motion sensors to reduce GPS speed drift when your phone is stationary.",
+    "NSMotionUsageDescription": "Use motion sensors to improve speed quality and, when diagnostics are enabled, record motion measurements locally with your trips.",
     "NSAlarmKitUsageDescription": "Sound an alarm if your boat leaves the anchor area or reliable GPS updates stop."
   }
 }

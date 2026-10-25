@@ -1,3 +1,4 @@
+jest.mock('../tripRecording', () => ({ tripDiagnosticEvent: jest.fn() }));
 jest.mock('react-native', () => ({ Platform: { OS: 'android' } }));
 const mockSnapshot = jest.fn();
 const mockHistory = jest.fn();

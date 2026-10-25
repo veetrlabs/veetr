@@ -88,7 +88,7 @@
       [
         "expo-sensors",
         {
-          "motionPermission": "Use motion sensors to reduce GPS speed drift when your phone is stationary."
+          "motionPermission": "Use motion sensors to improve speed quality and, when diagnostics are enabled, record motion measurements locally with your trips."
         }
       ],
       "./plugins/with-ios-pod-targets",

@@ -1,6 +1,7 @@
+jest.mock('../../diagnostics/tripRecording', () => ({ configureTripDiagnostics: jest.fn(async () => {}), recordTripDiagnostic: jest.fn(), diagnosticFix: jest.fn(), tripDiagnosticEvent: jest.fn(), deleteTripDiagnostics: jest.fn(async () => {}) }));
 jest.mock('../nativeRaceRecorder', () => ({ usesNativeRaceRecorder: jest.fn(() => false), startNativeRaceRecorder: jest.fn(async () => {}), wakeNativeRaceRecorder: jest.fn(async () => {}), stopNativeRaceRecorder: jest.fn(async () => {}) }));
 jest.mock('../../diagnostics/native', () => ({ markTrackingDiagnostic: jest.fn(async () => {}) }));
-jest.mock('../../diagnostics/service', () => ({ reportDiagnostic: jest.fn() }));
+jest.mock('../../diagnostics/service', () => ({ diagnosticsEnabled: jest.fn(async () => false), reportDiagnostic: jest.fn(), recordTrackingQuality: jest.fn() }));
 jest.mock('../locationDisclosure', () => ({ confirmTrackingLocationUse: jest.fn(async () => {}) }));
 jest.mock("@react-native-async-storage/async-storage", () => ({
   getItem: jest.fn(async (key: string) => key.endsWith(":last") ? null : "device-secret"),
@@ -22,7 +23,7 @@ jest.mock("expo-location", () => ({
   requestBackgroundPermissionsAsync: jest.fn(async () => ({
     status: "granted",
   })),
-  Accuracy: { High: 4 },
+  Accuracy: { High: 4, BestForNavigation: 6 },
   ActivityType: { OtherNavigation: 4 },
 }));
 jest.mock("expo-task-manager", () => ({
@@ -291,6 +292,8 @@ test("background capture continues when foreground subscriptions are paused", as
   expect(Location.startLocationUpdatesAsync).toHaveBeenCalledWith(
     expect.any(String),
     expect.objectContaining({
+      accuracy: Location.Accuracy.BestForNavigation,
+      timeInterval: 1000,
       pausesUpdatesAutomatically: false,
       showsBackgroundLocationIndicator: true,
       foregroundService: expect.objectContaining({ killServiceOnDestroy: false }),

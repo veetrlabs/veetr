@@ -11,9 +11,9 @@ export function heatTimeValues(start: string, end: string) {
   if (!Number.isFinite(a) || a>Date.now() || (b!==null && (!Number.isFinite(b) || b<=a || b>Date.now()))) throw new Error('Choose valid past heat times');
   return {p_start:new Date(a).toISOString(),p_end:b===null ? null : new Date(b).toISOString()};
 }
-export function HeatTrackingTimes({heatId,onChange}: {heatId:string;onChange?:()=>void}) {
+export function HeatTrackingTimes({heatId,onChange,editor=false,onSaveState}: {heatId:string;onChange?:()=>void;editor?:boolean;onSaveState?:(blocked:boolean)=>void}) {
   const [times,setTimes]=useState<{start:string|null;end:string|null}|null>(null);
-  const [editing,setEditing]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');
+  const [busy,setBusy]=useState(false),[error,setError]=useState('');
   const [start,setStart]=useState(''),[end,setEnd]=useState('');
   async function refresh() {
     const {data,error}=await supabase!.rpc('public_heat_tracking_times',{p_heat:heatId});
@@ -23,13 +23,13 @@ export function HeatTrackingTimes({heatId,onChange}: {heatId:string;onChange?:()
   }
   useEffect(()=>{void refresh().catch(()=>setError('Heat times are unavailable.'));},[heatId]);
   async function act(action:'start'|'end'|'save') {
-    setBusy(true);setError('');
+    setBusy(true);setError('');onSaveState?.(true);
     try {
       const result= action==='save'
         ? await supabase!.rpc('set_heat_tracking_times',{p_heat:heatId,...heatTimeValues(start,end)})
         : await supabase!.rpc('mark_heat_tracking',{p_heat:heatId,p_action:action});
       if(result.error) throw result.error;
-      await refresh();setEditing(false);onChange?.();
+      await refresh();onChange?.();onSaveState?.(false);
     } catch {setError('Could not save heat times. Check the times and try again.');}
     finally {setBusy(false);}
   }
@@ -37,17 +37,21 @@ export function HeatTrackingTimes({heatId,onChange}: {heatId:string;onChange?:()
     <h3>{t('Time range on the heat map')}</h3>
     <p>{t('The heat map and speed chart show only this time range. The whole-race map keeps the complete recording. These times do not change results or stop phone tracking.')}</p>
     {times?.start && <p>{t('Start')}: {new Date(times.start).toLocaleString()} · {t('End')}: {times.end?new Date(times.end).toLocaleString():t('In progress')}</p>}
-    {!editing && <div className="replay-toolbar">
+    {!editor && <div className="replay-toolbar">
       {!times?.start && <button disabled={busy||!times} onClick={()=>act('start')}>{t('Start heat')}</button>}
       {times?.start&&!times.end&&<button disabled={busy} onClick={()=>act('end')}>{t('End heat')}</button>}
-      <button disabled={busy||!times} onClick={()=>setEditing(true)}>{t('Edit replay times')}</button>
     </div>}
-    {editing && <form onSubmit={e=>{e.preventDefault();void act('save');}}>
-      <label>{t('Actual start (your local time)')}<input required type="datetime-local" step="1" value={start} onChange={e=>setStart(e.target.value)}/></label>
+    {editor && <fieldset disabled={busy||!times} onBlur={e=>{
+      if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+      if (!times) return;
+      if (start!==localDateTime(times.start) || end!==localDateTime(times.end)) void act('save');
+      else { setError(''); onSaveState?.(false); }
+    }}>
+      <label>{t('Actual start (your local time)')}<input type="datetime-local" step="1" value={start} onChange={e=>setStart(e.target.value)}/></label>
       <label>{t('Actual end (your local time)')}<input type="datetime-local" step="1" value={end} onChange={e=>setEnd(e.target.value)}/></label>
       <p>{t('Leave the end empty while the heat is running.')}</p>
-      <div className="replay-toolbar"><button disabled={busy}>{t('Save times')}</button><button type="button" disabled={busy} onClick={()=>setEditing(false)}>{t('Cancel')}</button></div>
-    </form>}
+      <small>{t('Times save automatically when you leave these fields.')}</small>
+    </fieldset>}
     {error&&<p role="alert">{t(error)}</p>}
   </section>;
 }

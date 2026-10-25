@@ -1,5 +1,5 @@
 import type { TrackingPoint } from "./model";
-import { chartPath, metricValue, TRACK_GAP_MS, type Metric } from "./trip";
+import { chartPath, chartSamples, chartMaximum, metricValue, TRACK_GAP_MS, type Metric } from "./trip";
 import { chartEntries, type TimeWindow } from "./chartWindow";
 import type { BoatTrack } from "../replay/boatTracks";
 
@@ -32,7 +32,7 @@ export function fleetChartSeries(tracks: BoatTrack[], bounds: TimeWindow, at: nu
         point,
       }));
   });
-  const max = series.reduce((max, s) => s.points.reduce((max, point) => Math.max(max, metricValue(point, s.key) ?? 0), max), 1);
+  const max = chartMaximum(series.flatMap(s => chartSamples(s.points, s.key, 320, s.indices, bounds)));
   return {
     max,
     series: series.map(s => ({

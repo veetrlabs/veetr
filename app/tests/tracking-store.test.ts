@@ -73,7 +73,7 @@ test("SQLite outbox survives restart and only acknowledges the submitted batch",
       /previous tracking/,
     );
     await Promise.all([
-      s.append(session.id, [point(0), point(2), point(5)]),
+      s.append(session.id, [point(0), point(0.2), point(5)]),
       s.append(session.id, [point(10), point(5)]),
     ]);
     assert.equal(
@@ -280,7 +280,7 @@ test("slightly early background fixes retain their cadence across callbacks and 
     let s = store(db);
     await s.init();
     await s.create(session);
-    const fixes = [0, 4.7, 9.4, 14.3, 19.4].map(point);
+    const fixes = [0, 0.95, 1.9, 2.85, 3.8].map(point);
     await s.append(session.id, fixes.slice(0, 2));
     s = store(db);
     await s.init();
@@ -297,12 +297,12 @@ test("sampling tolerance still thins fast fixes and rejects overlapping callback
     const s = store(db);
     await s.init();
     await s.create(session);
-    await s.append(session.id, [0, 1, 2, 3, 4, 4.499, 4.5].map(point));
+    await s.append(session.id, [0, 0.2, 0.4, 0.6, 0.8, 0.899, 0.9].map(point));
     await Promise.all([
-      s.append(session.id, [4.5, 5, 6, 7, 8, 8.999, 9].map(point)),
-      s.append(session.id, [0, 4.5, 9].map(point)),
+      s.append(session.id, [0.9, 1, 1.2, 1.4, 1.6, 1.799, 1.8].map(point)),
+      s.append(session.id, [0, 0.9, 1.8].map(point)),
     ]);
-    assert.deepEqual((await s.batch(session.id)).map(p => p.recordedAt), [0, 4.5, 9].map(s => point(s).recordedAt));
+    assert.deepEqual((await s.batch(session.id)).map(p => p.recordedAt), [0, 0.9, 1.8].map(s => point(s).recordedAt));
   } finally { db.close(); }
 });
 
@@ -345,7 +345,7 @@ test("backfill respects neighbouring samples, session boundaries and stop", asyn
     const s = store(db);
     await s.init(); await s.create(session);
     assert.equal(await s.append(session.id, [point(0), point(20)]), 2);
-    assert.equal(await s.append(session.id, [-61, 3, 5, 10, 17, 43201].map(point)), 2);
+    assert.equal(await s.append(session.id, [-61, 0.3, 5, 10, 19.7, 43201].map(point)), 2);
     assert.deepEqual((await s.points(session.id)).map(p => p.recordedAt), [0, 5, 10, 20].map(t => point(t).recordedAt));
     await s.patch(session.id, { phase: 'stopping' });
     assert.equal(await s.append(session.id, [point(15)]), 0);
@@ -412,5 +412,26 @@ test('engine-use metadata survives archival and restart without changing recorde
   await s.updateTrip(session.id,{engineUse:'engine-used'});
   const restarted=store(db);await restarted.init();const saved=await restarted.localRecording(session.id);
   assert.equal(saved?.session.engineUse,'engine-used');assert.equal(saved?.points.length,1);assert.equal(saved?.session.boatId,'boat');
+ } finally {db.close();}
+});
+
+test('propulsion boundaries survive recording, archival, editing and reopening',async()=>{
+ const db=new DatabaseSync(':memory:');
+ try {
+  const s=store(db);await s.init();await s.create({...session,mode:'local'});
+  await s.append(session.id,[point(0),point(10),point(20)]);
+  const propulsionSections: NonNullable<TrackingSession['propulsionSections']>=[
+   {startedAt:point(0).recordedAt,propulsion:'engine-used'},
+   {startedAt:point(10).recordedAt,propulsion:'sailing-only'},
+  ];
+  await s.updateTrip(session.id,{engineUse:'engine-used',propulsionSections});
+  await s.append(session.id,[point(30)]);
+  await s.patch(session.id,{phase:'stopping'});await s.archiveLocal();
+  const restarted=store(db);await restarted.init();
+  const saved=await restarted.localRecording(session.id);
+  assert.deepEqual(saved?.session.propulsionSections,propulsionSections);
+  assert.deepEqual(saved?.points.map(p=>p.recordedAt),[0,10,20,30].map(n=>point(n).recordedAt));
+  await restarted.updateTrip(session.id,{engineUse:'sailing-only',propulsionSections:[{...propulsionSections[0],propulsion:'sailing-only'}]});
+  assert.equal((await restarted.localRecording(session.id))?.session.propulsionSections?.length,1);
  } finally {db.close();}
 });

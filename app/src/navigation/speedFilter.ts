@@ -9,18 +9,20 @@ export function createMotionWindow() {
   return {
     reset() { samples = []; },
     add(x: number, y: number, z: number, at: number) {
+      if (!Number.isFinite(at)) return;
       const magnitude = Math.hypot(x, y, z); // m/s², including gravity
       if (!Number.isFinite(magnitude) || magnitude < 7 || magnitude > 13) {
         samples = [];
         return;
       }
       if (samples.length && at <= samples[samples.length - 1].at) return;
-      samples = [...samples.filter(s => at - s.at <= 3000), { at, magnitude }];
+      samples = [...samples.filter(s => at - s.at <= 30000), { at, magnitude }].slice(-300);
     },
     state(at: number): MotionState {
       const recent = samples.filter(s => at >= s.at && at - s.at <= 3000);
       if (recent.length < 10 || at - recent[recent.length - 1].at > 600 ||
-          recent[recent.length - 1].at - recent[0].at < 2000) return 'unknown';
+          recent[recent.length - 1].at - recent[0].at < 2000 ||
+          recent.some((s, i) => i > 0 && s.at - recent[i - 1].at > 600)) return 'unknown';
       const mean = recent.reduce((sum, s) => sum + s.magnitude, 0) / recent.length;
       const variance = recent.reduce((sum, s) => sum + (s.magnitude - mean) ** 2, 0) / recent.length;
       const range = Math.max(...recent.map(s => s.magnitude)) - Math.min(...recent.map(s => s.magnitude));

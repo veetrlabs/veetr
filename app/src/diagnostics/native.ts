@@ -1,3 +1,5 @@
+import { tripDiagnosticEvent } from './tripRecording';
+import { sanitizeQuality } from './trackingQuality';
 import { Platform } from 'react-native';
 import { requireOptionalNativeModule } from 'expo-modules-core';
 
@@ -5,7 +7,7 @@ export const nativeStages = ['registered', 'requestAccepted', 'requestFailed', '
 export const nativeBooleans = ['enabled', 'serviceRunning', 'screenInteractive', 'powerSave', 'deviceIdle', 'batteryExempt', 'gpsProviderEnabled', 'networkProviderEnabled'] as const;
 export const nativeNumbers = ['windowAgeSeconds', 'lastFixDelayMs', 'pendingJobs', 'quotaBlockedJobs', ...nativeStages.flatMap(stage => [`${stage}Count`, `${stage}ScreenOffCount`, `${stage}AgeSeconds`])];
 export type NativeDiagnostics = Record<string, number | boolean | null>;
-type Bridge = { setVeetrDiagnosticsEnabled?: (value: boolean) => Promise<void>; getVeetrDiagnostics?: () => Promise<unknown>; getVeetrTrackingHistory?: () => Promise<unknown>; recordVeetrDiagnostic?: (event: string, count: number) => Promise<void> };
+type Bridge = { getVeetrTrackingQuality?: () => Promise<unknown>; setVeetrDiagnosticsEnabled?: (value: boolean) => Promise<void>; getVeetrDiagnostics?: () => Promise<unknown>; getVeetrTrackingHistory?: () => Promise<unknown>; recordVeetrDiagnostic?: (event: string, count: number) => Promise<void> };
 const bridge = (): Bridge | null => Platform.OS === 'android' ? requireOptionalNativeModule<Bridge>('ExpoLocation') : null;
 export async function setNativeDiagnosticsEnabled(value: boolean) {
   await bridge()?.setVeetrDiagnosticsEnabled?.(value);
@@ -44,6 +46,12 @@ export async function trackingHistory(): Promise<TrackingHistoryEntry[]> {
   } catch { return []; }
 }
 export async function markTrackingDiagnostic(event: 'tripStarted' | 'tripStopped' | 'resume' | 'recovery' | 'jsForeground' | 'jsTask' | 'saved' | 'storageFailed', count = 1): Promise<void> {
+  tripDiagnosticEvent(event, {count});
   // Native consent gates persistence, including headless task invocations. Older builds are safe no-ops.
   try { await bridge()?.recordVeetrDiagnostic?.(event, boundedNumber(count) ?? 0); } catch { /* Never fail recording for telemetry. */ }
+}
+
+export async function nativeTrackingQuality() {
+  try { return sanitizeQuality(await bridge()?.getVeetrTrackingQuality?.()); }
+  catch { return []; }
 }

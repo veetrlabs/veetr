@@ -1,3 +1,4 @@
+import { routeGeometry } from "../../../veetr.org/src/features/racing/routeGeometry";
 import CourseLayer, { courseCoordinates, type RaceCourse } from "../maps/CourseLayer";
 import type { MapRegion } from "../maps/headingRay";
 import BoatMarker from "../maps/BoatMarker";
@@ -6,18 +7,22 @@ import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { View, Text } from "react-native";
 import { MapView, Marker, Polyline } from "../components/NativeMap";
 import type { TrackingPoint } from "./model";
-import { routeSegments, validCoordinate } from "./trip";
+import { validCoordinate } from "./trip";
 import { useTheme } from "../context/ThemeContext";
 import { themeColors } from "../constants/colors";
 export default memo(function TripMap({
   points,
   course,
   selected,
+  finished = true,
+  onViewportChange,
   thumbnail = false,
 }: {
   points: TrackingPoint[];
   course?: RaceCourse | null;
   selected?: TrackingPoint;
+  finished?: boolean;
+  onViewportChange?: (region: MapRegion) => void;
   thumbnail?: boolean;
 }) {
   useLanguageRefresh();
@@ -28,7 +33,8 @@ export default memo(function TripMap({
   const ready = useRef(false);
   const fitted = useRef(false);
   const [viewport, setViewport] = useState("");
-  const segments = useMemo(() => routeSegments(points), [points]);
+  const sections = useMemo(() => routeGeometry(points), [points]);
+  const segments = useMemo(() => sections.map(s => s.points), [sections]);
   const coordinates = useMemo(() => segments.flat(), [segments]);
   const bounds = useMemo(() => [...coordinates, ...courseCoordinates(course)], [coordinates, course]);
   function fit() {
@@ -83,7 +89,9 @@ export default memo(function TripMap({
       }}
       onMapReady={() => { ready.current = true; fit(); }}
       onRegionChangeComplete={region => {
+        setMapRegion(region);
         setViewport(`${region.latitude},${region.longitude},${region.latitudeDelta},${region.longitudeDelta}`);
+        onViewportChange?.(region);
       }}
       scrollEnabled={!thumbnail}
       zoomEnabled={!thumbnail}
@@ -93,25 +101,30 @@ export default memo(function TripMap({
       liteMode={thumbnail}
     >
       <CourseLayer course={course} />
-      {segments
-        .filter((s) => s.length > 1)
-        .map((segment, i) => (
+      {sections
+        .filter((s) => s.points.length > 1)
+        .map((section, i) => (
           <Polyline
             key={i}
-            coordinates={segment}
+            coordinates={section.points}
+            lineDashPattern={section.estimated ? [6, 6] : undefined}
             strokeColor="#008c80"
             strokeWidth={thumbnail ? 3 : 4}
           />
         ))}
       {!thumbnail && coordinates.length > 0 && (
-        <Marker coordinate={coordinates[0]} title={t("Start")} pinColor="#008c80" />
+        <Marker coordinate={coordinates[0]} title={t("Start")} anchor={{ x: .5, y: .5 }}>
+          <View collapsable={false} style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#008c80', borderColor: 'white', borderWidth: 2 }} />
+        </Marker>
       )}
-      {!thumbnail && coordinates.length > 1 && (
+      {!thumbnail && finished && coordinates.length > 1 && (
         <Marker
           coordinate={coordinates[coordinates.length - 1]}
           title={t("Finish")}
-          pinColor="#64748b"
-        />
+          anchor={{ x: .5, y: .5 }}
+        >
+          <View collapsable={false} style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: '#64748b', borderColor: 'white', borderWidth: 2 }} />
+        </Marker>
       )}
       {selected && validCoordinate(selected) && (
         <BoatMarker region={mapRegion} key={viewport} coordinate={selected} reading={selected}

@@ -1,3 +1,4 @@
+import { tripDiagnosticEvent } from '../diagnostics/tripRecording';
 import { syncPendingPolars } from "../polar/sync";
 import { syncPendingTrips } from "./tripSharing";
 import { useEffect } from "react";
@@ -26,6 +27,7 @@ export default function TrackingRuntime() {
       void resumeTracking().catch(() => {});
     };
     const active = () => {
+      tripDiagnosticEvent("app_state");
       reportDiagnostic("app_state");
       void flushDiagnostics().catch(() => {});
       void syncPendingTrips().catch(() => {});

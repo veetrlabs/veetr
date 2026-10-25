@@ -97,7 +97,7 @@ export class TrackingStore {
       }),
     );
   }
-  updateTrip(id: string, patch: Pick<Partial<TrackingSession>, "boatId" | "boatName" | "userId" | "sharing" | "tripTitle" | "engineUse">) {
+  updateTrip(id: string, patch: Pick<Partial<TrackingSession>, "boatId" | "boatName" | "userId" | "sharing" | "tripTitle" | "engineUse" | "propulsionSections">) {
     return this.exclusive(() => this.transaction(async () => {
       const current = await this.read();
       const row = await this.db.getFirstAsync<{body:string}>("SELECT body FROM recording_sessions WHERE id=?", id);

@@ -1,3 +1,4 @@
+import { propulsionSections } from "../tracking/propulsion";
 import { polarRepository } from "./repository";
 import { boatPolarCurves } from "../../../packages/shared/src/polar/repository";
 import type { Trip } from "../tracking/trip";
@@ -25,7 +26,7 @@ export function boatTripPolars(trips: Trip[], boatId: string) {
     )
     .map((trip, index) => {
       const learned = buildLearnedPoints(
-        tripObservations(trip.session, trip.points),
+        tripObservations(trip.session, trip.points).filter(p => !p.engine),
         boatId,
       );
       const usable = learned.points.some(
@@ -47,8 +48,9 @@ export function boatTripPolars(trips: Trip[], boatId: string) {
         trip,
         polar,
         dash: tripDashPatterns[index % tripDashPatterns.length],
+        motorOnly: propulsionSections(trip.session).every(s => s.propulsion === "engine-used"),
         unknown:
-          !trip.session.engineUse || trip.session.engineUse === "unknown",
+          propulsionSections(trip.session).some(s => s.propulsion === "unknown"),
       };
     });
 }
@@ -59,11 +61,10 @@ export function allTripsPolar(
   const included = trips.filter(
     (t) =>
       t.session.boatId === boatId &&
-      t.session.phase === "stopping" &&
-      t.session.engineUse !== "engine-used",
+      t.session.phase === "stopping",
   );
   const learned = buildLearnedPoints(
-    included.flatMap((t) => tripObservations(t.session, t.points)),
+    included.flatMap((t) => tripObservations(t.session, t.points).filter(p => !p.engine)),
     boatId,
   );
   if (!learned.points.some((p) => p.confidence?.level !== "unknown")) return;

@@ -1,3 +1,5 @@
+import { writeTripExport } from '../diagnostics/tripExport';
+import { deleteTripDiagnostics } from '../diagnostics/tripRecording';
 import { formatNumber, locale, translateMessage, t, useLanguageRefresh } from '../i18n';
 import { useEffect, useState } from "react";
 import { Alert, Pressable, Text, View } from "react-native";
@@ -147,7 +149,12 @@ export default function RecordingHistory({
     if (!record && !timeline.length) return;
     const file = new File(Paths.cache, `veetr-recording-${record?.session.id ?? Date.now()}.json`);
     try {
-      file.write(JSON.stringify(record ?? {points: timeline}, null, 2));
+      if (record) {
+        file.create({ overwrite: true });
+        const handle = file.open(), encoder = new TextEncoder();
+        try { await writeTripExport(record, chunk => handle.writeBytes(encoder.encode(chunk))); }
+        finally { handle.close(); }
+      } else file.write(JSON.stringify({points: timeline}, null, 2));
       await Sharing.shareAsync(file.uri, {
         mimeType: "application/json",
         UTI: "public.json",
@@ -240,6 +247,7 @@ export default function RecordingHistory({
                       onPress: () =>
                         void trackingStore()
                           .then((s) => s.deleteArchivedLocal(record.session.id))
+                          .then(() => deleteTripDiagnostics(record.session.id))
                           .then(() =>
                             setRecords((rows) =>
                               rows.filter(

@@ -1,4 +1,5 @@
 {
+  "Dashed route sections are estimates across unreliable or missing GPS fixes.": "Přerušované úseky trasy jsou odhady přes nepřesné nebo chybějící polohy GPS.",
   "Preferences": "Předvolby",
   "Data": "Data",
   "Map": "Mapa",
@@ -1096,5 +1097,26 @@
   "Loading boat details…": "Načítání údajů o lodi…",
   "Boat details unavailable. Pull down to try again.": "Údaje o lodi nejsou dostupné. Zkuste to znovu tažením dolů.",
   "Finish line end F1": "Konec cílové čáry F1",
-  "Finish line end F2": "Konec cílové čáry F2"
+  "Finish line end F2": "Konec cílové čáry F2",
+  "While sharing is enabled, reports also include recent raw and filtered GPS speeds, accuracy, motion summaries and filtering reasons. No coordinates or continuous raw motion recordings are collected for diagnostics. Turning sharing off deletes these unsent samples.": "Při zapnutém sdílení obsahují zprávy také poslední původní a filtrované rychlosti GPS, přesnost, souhrny pohybu a důvody filtrování. Pro diagnostiku se neukládají souřadnice ani nepřetržité záznamy pohybových senzorů. Vypnutím sdílení se tyto neodeslané vzorky smažou.",
+  "Trip sections": "Úseky plavby",
+  "Select a point on the speed chart, then split the trip there.": "Vyberte bod v grafu rychlosti a rozdělte v něm plavbu.",
+  "Selected time": "Vybraný čas",
+  "Split at selected time": "Rozdělit ve vybraném čase",
+  "Section": "Úsek",
+  "Propulsion": "Pohon",
+  "Join with previous section": "Spojit s předchozím úsekem",
+  "Joining keeps the previous section’s propulsion.": "Po spojení zůstane pohon předchozího úseku.",
+  "Undo last section edit": "Vrátit poslední úpravu úseků",
+  "Motor sections are excluded from sailing comparisons. Unknown sections remain included with a warning.": "Úseky s motorem se do porovnání pod plachtami nezahrnují. Úseky s neznámým pohonem zůstávají zahrnuté s upozorněním.",
+  "Tap a section to edit it. Green: sailing · Grey: motor · Amber: unknown.": "Klepnutím vyberte úsek k úpravě. Zelená: plachty · Šedá: motor · Oranžová: neznámé.",
+  "← Join left": "← Spojit vlevo",
+  "Join right →": "Spojit vpravo →",
+  "Joining keeps the selected section’s propulsion.": "Spojený úsek převezme pohon vybraného úseku.",
+  "Min": "Min",
+  "Max": "Max",
+  "Average": "Průměr",
+  "While enabled, detailed GPS and motion measurements are also saved locally with your trips and included when you export a trip. These detailed logs are not uploaded in diagnostic reports. Turning this off deletes the local diagnostic logs; your trips remain.": "Při zapnutí se s plavbami ukládají také podrobná měření GPS a pohybových snímačů. Zahrnou se do exportu plavby, ale neposílají se v diagnostických hlášeních. Vypnutím se místní diagnostické záznamy smažou; plavby zůstanou.",
+  "Whole trip": "Celá plavba",
+  "Time": "Čas"
 }

@@ -1,4 +1,9 @@
+import { writeTripExport } from '../../diagnostics/tripExport';
+import { deleteTripDiagnostics } from '../../diagnostics/tripRecording';
+import TripStatistics from "../../tracking/TripStatistics";
+import TripBoat from "../../tracking/TripBoat";
 import TripEngineUse from "../../tracking/TripEngineUse";
+import type { MapRegion } from '../../maps/headingRay';
 import BackButton from '../../components/BackButton';
 import { formatNumber, locale, translateMessage, t, useLanguageRefresh } from '../../i18n';
 import { errorOccurredAt } from "../../tracking/errorHistory";
@@ -28,6 +33,7 @@ import {
 } from "../../tracking/trip";
 import TripMap from "../../tracking/TripMap";
 import TripChart from "../../tracking/TripChart";
+import { useTripSelection } from "../../tracking/useTripSelection";
 import { recordingStatus } from "../../tracking/recordingStatus";
 import { trackingErrorMessage } from "../../tracking/errorMessage";
 export default function TripDetail() {
@@ -38,12 +44,15 @@ export default function TripDetail() {
     { height } = useWindowDimensions();
   const [trip, setTrip] = useState<Trip | null>(null),
     [now, setNow] = useState(Date.now()),
-    [index, setIndex] = useState(0),
     [loading, setLoading] = useState(true),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [scrubbing, setScrubbing] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [headerBottom, setHeaderBottom] = useState(0);
+  const [mapViewport, setMapViewport] = useState<{ id: string; region: MapRegion }>();
+  const onViewportChange = useCallback((region: MapRegion) => setMapViewport({ id, region }), [id]);
+  const { index, select } = useTripSelection(id, trip?.points ?? []);
   useFocusEffect(
     useCallback(() => {
       let alive = true;
@@ -79,6 +88,10 @@ export default function TripDetail() {
       };
     }, [id]),
   );
+  function leaveTrip() {
+    if (router.canGoBack()) router.back();
+    else router.replace("/(tabs)/tracking");
+  }
   async function exportTrip() {
     if (!trip) return;
     setBusy(true);
@@ -87,7 +100,10 @@ export default function TripDetail() {
       if (!(await Sharing.isAvailableAsync()))
         throw new Error("Sharing is unavailable on this device.");
       file = new File(Paths.cache, `veetr-trip-${trip.session.id}.json`);
-      file.write(JSON.stringify(trip, null, 2));
+      file.create({ overwrite: true });
+      const handle = file.open(), encoder = new TextEncoder();
+      try { await writeTripExport(trip, chunk => handle.writeBytes(encoder.encode(chunk))); }
+      finally { handle.close(); }
       await Sharing.shareAsync(file.uri, {
         mimeType: "application/json",
         UTI: "public.json",
@@ -124,7 +140,8 @@ export default function TripDetail() {
                   );
                 await discardStoppedTracking();
               }
-              router.back();
+              await deleteTripDiagnostics(trip.session.id);
+              leaveTrip();
             })()
               .catch((e) => setError(String(e)))
               .finally(() => setBusy(false));
@@ -138,6 +155,7 @@ export default function TripDetail() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
       <View
+        onLayout={({ nativeEvent: { layout } }) => setHeaderBottom(layout.y + layout.height)}
         style={{
           zIndex: 10,
           paddingHorizontal: 16,
@@ -147,7 +165,7 @@ export default function TripDetail() {
           gap: 16,
         }}
       >
-        <BackButton onPress={() => router.back()} />
+        <BackButton onPress={leaveTrip} />
         <View style={{ flex: 1 }}>
           <Text style={{ color: c.text, fontWeight: "600", fontSize: 16 }}>
             {trip
@@ -177,8 +195,13 @@ export default function TripDetail() {
           </Pressable>
         </View>}
       </View>
-      {trip && menuOpen && <View accessibilityLabel={t("Trip options")} onAccessibilityEscape={() => setMenuOpen(false)}
-        style={{ marginHorizontal: 16, marginBottom: 12, alignSelf: 'flex-end', width: 260, padding: 6, borderRadius: 14, backgroundColor: c.panelBg }}>
+      {trip && menuOpen && <View pointerEvents="box-none"
+        style={{ position: 'absolute', top: headerBottom, right: 0, bottom: 0, left: 0, zIndex: 20 }}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t("Close")}
+          onPress={() => setMenuOpen(false)}
+          style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }} />
+      <View accessibilityLabel={t("Trip options")} onAccessibilityEscape={() => setMenuOpen(false)}
+        style={{ position: 'absolute', top: 0, right: 16, width: 260, maxWidth: '90%', padding: 6, borderRadius: 14, backgroundColor: c.panelBg, elevation: 8, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } }}>
         {(trip.session.mode === "local" || trip.session.phase === "stopping") && <Pressable accessibilityRole="button"
           onPress={() => { setMenuOpen(false); router.push({pathname: '/trip-sharing', params: {id: trip.session.id}}); }} style={{ padding: 14 }}>
           <Text style={{ color: c.text }}>{trip.session.phase === 'recording' ? t("Live sharing") : t("Publish / manage sharing")}</Text>
@@ -190,23 +213,41 @@ export default function TripDetail() {
           onPress={() => { setMenuOpen(false); deleteTrip(); }} style={{ padding: 14 }}>
           <Text style={{ color: '#c45c55' }}>{t("Delete trip")}</Text>
         </Pressable>}
+      </View>
       </View>}
       {trip ? (
         <ScrollView
           scrollEnabled={!scrubbing}
           contentContainerStyle={{ paddingBottom: 24 }}
         >
+          <View style={{ paddingHorizontal: 20, paddingBottom: 16 }}>
+            <TripBoat key={`boat:${id}`} session={trip.session}
+              onSaved={session => setTrip(previous => previous ? { ...previous, session: { ...previous.session, boatId: session.boatId, boatName: session.boatName, userId: session.userId } } : previous)} />
+          </View>
           <View
             style={{
               height: Math.max(200, Math.min(340, height * 0.35)),
               marginHorizontal: 16,
-              borderRadius: 18,
+              borderTopLeftRadius: 18,
+              borderTopRightRadius: 18,
               overflow: "hidden",
             }}
           >
-            <TripMap course={trip.session.course} points={trip.points} selected={trip.points[index]} />
+            <TripMap key={id} course={trip.session.course} points={trip.points} selected={trip.points[index]} finished={trip.session.phase === "stopping"} onViewportChange={onViewportChange} />
           </View>
-          <View style={{ padding: 20, gap: 24 }}>
+          <View style={{ paddingHorizontal: 16, paddingBottom: 20, gap: 24 }}>
+            <TripChart
+              key={id}
+              region={mapViewport?.id === id ? mapViewport.region : undefined}
+              sections={trip.session.propulsionSections}
+              renderSections={range => (<TripEngineUse key={id} session={trip.session} points={trip.points} index={index} range={range}
+              onSaved={session => setTrip(previous => previous ? { ...previous, session: { ...previous.session, engineUse: session.engineUse, propulsionSections: session.propulsionSections } } : previous)} />)}
+              points={trip.points}
+              index={index}
+              onSelect={select}
+              onScrubbing={setScrubbing}
+            />
+            <TripStatistics points={trip.points} />
             {trip.session.phase === "recording" && (
               (trip.session.error || trip.session.lastTaskError || recordingStatus(trip.session, now) !== t("Recording")) && (
                 <Pressable accessibilityRole={warning?.settings === false ? undefined : "button"} disabled={warning?.settings === false} onPress={() => router.push("/settings")}>
@@ -223,15 +264,6 @@ export default function TripDetail() {
             {trip.session.mode === 'race' && trip.session.eventId && <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/race-replay', params: { seriesId: trip.session.seriesId, eventId: trip.session.eventId!, tripId: trip.session.id } })} style={{ padding: 14, backgroundColor: c.buttonBg, borderRadius: 12 }}>
               <Text style={{ color: c.text }}>{t("Replay race · show competitors")}</Text>
             </Pressable>}
-
-            <TripEngineUse session={trip.session} onSaved={session=>setTrip(previous=>previous ? {...previous,session} : previous)} />
-            <TripChart
-              points={trip.points}
-              index={index}
-              onSelect={setIndex}
-              onScrubbing={setScrubbing}
-            />
-
           </View>
         </ScrollView>
       ) : (

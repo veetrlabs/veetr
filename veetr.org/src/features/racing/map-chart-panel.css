@@ -56,3 +56,13 @@
 .is-fullscreen .replay-chart-plot { height: clamp(80px, 19dvh, 190px); }
 .is-fullscreen .replay-chart-help { display: none; }
 .is-fullscreen .map-chart-content { padding: .5rem .75rem; }
+
+/* One wrapping control row shares space with the chart disclosure. */
+.map-chart-header { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; padding: .35rem .75rem; }
+.map-chart-header .map-chart-toggle { width: auto; flex: 0 0 auto; border-radius: 6px; }
+.map-chart-header .replay-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: 0; }
+.map-chart-header .replay-toolbar label { display: flex; align-items: center; gap: .4rem; margin: 0; }
+.map-chart-header .replay-toolbar output { white-space: nowrap; }
+.map-chart-header .replay-boats { display: flex; flex-wrap: wrap; gap: .5rem; margin: 0; }
+.map-chart-header button, .map-chart-header select { margin: 0; min-height: 44px; }
+.map-chart-panel .replay-speed-chart { border: 0; padding: 0; margin: 0; }

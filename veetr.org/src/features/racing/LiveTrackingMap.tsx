@@ -1,6 +1,7 @@
+import { routeGeometry } from "./routeGeometry";
 import { MapChartPanel } from "./MapChartPanel";
 import { mapChartWindow, type MapViewport } from "./mapChartWindow";
-import { ReplaySpeedChart, trackingColor } from './ReplaySpeedChart';
+import { ReplaySpeedChart, ReplayBoatControls, trackingColor } from './ReplaySpeedChart';
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { LocateFixed, Minimize2, Scan, Focus } from "lucide-react";
 import type * as Leaflet from "leaflet";
@@ -118,9 +119,12 @@ function TrackingMap({ seriesId, eventId, heatId, boatIds, course }: TrackingMap
     for (const p of positions) {
       const stale = positionAge(p, displayTime) > 60,
         color = trackingColor(p.boatId, boatColors);
-      for (const trail of p.trailSegments ?? [p.trail])
-        if (trail.length > 1)
-          L.polyline(trail, { color, weight: 3, opacity: 0.5 }).addTo(group);
+      const history = chartPoints.filter(point => point.boatId === p.boatId && Date.parse(point.recordedAt) <= displayTime);
+      if (history.length) {
+        for (const section of routeGeometry(history)) if (section.points.length > 1)
+          L.polyline(section.points.map(point => [point.latitude, point.longitude] as Leaflet.LatLngTuple), {color, weight:3, opacity:0.5, dashArray:section.estimated ? "6 6" : undefined}).addTo(group);
+      } else for (const trail of p.trailSegments ?? [p.trail]) if (trail.length > 1)
+        L.polyline(trail, {color, weight:3, opacity:0.5}).addTo(group);
       const label = document.createElement("span");
       label.textContent =
         p.boatName +
@@ -157,7 +161,7 @@ function TrackingMap({ seriesId, eventId, heatId, boatIds, course }: TrackingMap
       animation = requestAnimationFrame(animate);
     }
     return () => cancelAnimationFrame(animation);
-  }, [boatColors, positions, staleIds, mapReady, displayTime, replay.playing, replay.following, replay.speed, course]);
+  }, [chartPoints, boatColors, positions, staleIds, mapReady, displayTime, replay.playing, replay.following, replay.speed, course]);
   useEffect(() => {
     if (!mapReady || !map.current || !leaflet.current) return;
     setSeamarkError(false);
@@ -246,10 +250,7 @@ function TrackingMap({ seriesId, eventId, heatId, boatIds, course }: TrackingMap
         role="region"
         aria-label={t("Recorded boat positions map")}
       />
-      <MapChartPanel><div className="replay-controls">
-        {heatId && replay.heats.find(h=>h.id===heatId)?.start === null && <p>{t("The referee has not set this heat’s start time yet.")}</p>}
-        {replay.error ? <p role="alert">{t(replay.error)} <button onClick={replay.retry}>{t("Retry")}</button></p> : !replay.bounds && <p role="status">{t(replay.loading ? "Loading replay…" : "No recording is available for this selection.")}</p>}
-        {replay.bounds && <>
+      <MapChartPanel header={replay.bounds && <>
           <div className="replay-toolbar">
             <button onClick={replay.togglePlay} disabled={!!replay.error || replay.bounds.start === replay.bounds.end}>{t(replay.playing ? "Pause replay" : "Play replay")}</button>
             <label>{t("Playback speed")} <select value={replay.speed} onChange={e => replay.setSpeed(Number(e.target.value))}>
@@ -257,7 +258,14 @@ function TrackingMap({ seriesId, eventId, heatId, boatIds, course }: TrackingMap
             </select></label>
             <output>{formatTime(replay.at)}</output>
           </div>
-          <ReplaySpeedChart points={chartPoints} window={viewport ? chartWindow : undefined} bounds={replay.bounds} at={replay.at} colors={boatColors}
+          <ReplayBoatControls points={chartPoints} at={replay.at} colors={boatColors} hidden={hidden}
+            toggle={id => setHidden(previous => { const next = new Set(previous); if (next.has(id)) next.delete(id); else next.add(id); return next; })} />
+        </>}>
+      <div className="replay-controls">
+        {heatId && replay.heats.find(h=>h.id===heatId)?.start === null && <p>{t("The referee has not set this heat’s start time yet.")}</p>}
+        {replay.error ? <p role="alert">{t(replay.error)} <button onClick={replay.retry}>{t("Retry")}</button></p> : !replay.bounds && <p role="status">{t(replay.loading ? "Loading replay…" : "No recording is available for this selection.")}</p>}
+        {replay.bounds && <>
+          <ReplaySpeedChart hideBoatControls points={chartPoints} viewport={viewport} window={viewport ? chartWindow : undefined} bounds={replay.bounds} at={replay.at} colors={boatColors}
             hidden={hidden} toggle={id => setHidden(previous => { const next = new Set(previous); if (next.has(id)) next.delete(id); else next.add(id); return next; })}
             seek={replay.seek} loading={replay.loading} />
         </>}
@@ -268,6 +276,7 @@ function TrackingMap({ seriesId, eventId, heatId, boatIds, course }: TrackingMap
           "Grey markers have not reported for over 60 seconds. GPS tracks are not official finish results.",
         )}
       </p>
+      <p>{t("Dashed route sections are estimates across unreliable or missing GPS fixes.")}</p>
       <div className="table-scroll">
         <table>
           <caption>{t("Latest reported boat positions")}</caption>

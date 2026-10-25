@@ -1,3 +1,6 @@
+import { configureTripDiagnostics, recordTripDiagnostic, diagnosticFix, tripDiagnosticEvent, deleteTripDiagnostics } from '../diagnostics/tripRecording';
+import { diagnosticsEnabled, recordTrackingQuality } from '../diagnostics/service';
+import { qualitySample } from '../diagnostics/trackingQuality';
 import { validSpeedMps } from './speed';
 import { usesNativeRaceRecorder, startNativeRaceRecorder, wakeNativeRaceRecorder, stopNativeRaceRecorder } from './nativeRaceRecorder';
 import { t } from '../i18n';
@@ -107,6 +110,8 @@ async function owner(session: TrackingSession) {
     );
 }
 async function stopGPS() {
+  tripDiagnosticEvent('gps_stop_requested');
+  await configureTripDiagnostics(await diagnosticsEnabled(), null).catch(() => {});
   pauseForegroundGPS();
   await stopNativeRaceRecorder();
   if (await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK))
@@ -125,7 +130,7 @@ async function startForegroundGPS() {
     reportDiagnostic('gps_error', error);
   };
   const subscription = await Location.watchPositionAsync(
-    { accuracy: Location.Accuracy.High, timeInterval: 1000, distanceInterval: 0 },
+    { accuracy: Location.Accuracy.BestForNavigation, timeInterval: 1000, distanceInterval: 0 },
     (location) => {
       if (isCurrent()) void recordLocations([location], 'foreground').catch(failed).catch(() => {});
     },
@@ -135,6 +140,8 @@ async function startForegroundGPS() {
   else foreground = subscription;
 }
 async function startGPS(local = false) {
+  await configureTripDiagnostics(await diagnosticsEnabled(), await (await trackingStore()).get()).catch(() => {});
+  tripDiagnosticEvent('gps_start_requested');
   const background =
     (await Location.getBackgroundPermissionsAsync()).status === "granted";
   const store = await trackingStore();
@@ -185,8 +192,8 @@ async function startGPS(local = false) {
   if (Platform.OS !== "android") pauseForegroundGPS();
   // Reapply native options on resume: task registration alone does not prove the manager is running.
   await Location.startLocationUpdatesAsync(LOCATION_TASK, {
-    accuracy: Location.Accuracy.High,
-    timeInterval: 5000,
+    accuracy: Location.Accuracy.BestForNavigation,
+    timeInterval: 1000,
     distanceInterval: 0,
     deferredUpdatesInterval: 0,
     pausesUpdatesAutomatically: false,
@@ -506,6 +513,7 @@ async function discardInternal() {
   if (session.mode === "local") {
     await stopGPS();
     await store.clear(session.id);
+    await deleteTripDiagnostics(session.id);
     return;
   }
   await owner(session);
@@ -523,6 +531,8 @@ export async function recordLocations(locations: LocationFix[], via: 'foreground
     session = await store.get();
   if (!session || session.phase !== "recording") return;
   if (usesNativeRaceRecorder(session)) return;
+  // A background location task can recreate JS without mounting the app runtime.
+  await configureTripDiagnostics(await diagnosticsEnabled(), session).catch(() => {});
   if (locations.length) await store.patch(session.id, {
     lastLocationCallbackAt: new Date().toISOString(),
     lastReportedAccuracyM: locations[locations.length - 1].coords.accuracy,
@@ -552,12 +562,20 @@ export async function recordLocations(locations: LocationFix[], via: 'foreground
       speedFilterSession = session.id;
       filterPhoneSpeed = createSpeedFilter();
     }
+    const quality: (() => ReturnType<typeof qualitySample>)[] = [];
     const points = [...locations].sort((a, b) => a.timestamp - b.timestamp)
       .map((f) => {
         const point = normalizeFix(f);
-        return preferredRecordingPoint(point ? filterPhoneSpeed(point, phoneMotion.state(f.timestamp)) : null);
+        const motion = phoneMotion.state(f.timestamp);
+        const filtered = point ? filterPhoneSpeed(point, motion) : null;
+        const deliveredAt = Date.now();
+        quality.push(() => qualitySample(f, filtered, motion, deliveredAt));
+        const recorded = preferredRecordingPoint(filtered);
+        recordTripDiagnostic(session.id, () => diagnosticFix(f, filtered, recorded, motion, via, deliveredAt));
+        return recorded;
       })
       .filter((p): p is NonNullable<typeof p> => p !== null);
+    recordTrackingQuality(() => quality.map(build => build()));
     if (points.length) {
       try {
         const saved = await store.append(session.id, points);
@@ -621,6 +639,7 @@ export async function recordDevicePoint(
   if (Date.now() >= Date.parse(session.expiresAt))
     return stopTracking("expired");
   if (!raceCaptureAllowed(session)) return;
+  recordTripDiagnostic(session.id, () => ({ type:'instrument', atMs:Date.parse(point.recordedAt), receivedAtMs:Date.now(), raw:point }));
   await store.append(session.id, [point]);
   await syncTracking();
 }

@@ -1,10 +1,12 @@
+import type { PropulsionSection } from "./propulsion";
 import { chartEntries, zoomWindow, type TimeWindow } from "./chartWindow";
+import type { MapRegion } from '../maps/headingRay';
 import { formatNumber, locale, t, useLanguageRefresh } from '../i18n';
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { View, Text, Pressable } from "react-native";
 import Svg, { Circle, Line, Path } from "react-native-svg";
 import type { TrackingPoint } from "./model";
-import { chartPath, metricValue, nearestPoint } from "./trip";
+import { chartPath, chartSamples, chartMaximum, metricValue, nearestPoint } from "./trip";
 import { useTheme } from "../context/ThemeContext";
 import { themeColors } from "../constants/colors";
 import { chartMetrics as series, fleetChartSeries } from "./chartSeries";
@@ -15,17 +17,29 @@ export default function TripChart({
   onSelect: selectOriginal,
   onScrubbing,
   boatTracks,
+  region,
+  sections,
+  renderSections,
 }: {
   points: TrackingPoint[];
   boatTracks?: BoatTrack[];
+  region?: MapRegion;
+  sections?: PropulsionSection[];
+  renderSections?: (range: [number, number]) => ReactNode;
   index: number;
   onSelect: (index: number) => void;
   onScrubbing?: (active: boolean) => void;
 }) {
   useLanguageRefresh();
-  const [window, setWindow] = useState<TimeWindow>();
-  const bounds: TimeWindow = [Date.parse(allPoints[0]?.recordedAt || ""), Date.parse(allPoints.at(-1)?.recordedAt || "")];
-  const entries = useMemo(() => chartEntries(allPoints, window), [allPoints, window]);
+  // Equivalent MapKit callbacks must not cancel a chart pinch zoom.
+  const regionKey = region ? [region.latitude, region.longitude, region.latitudeDelta, region.longitudeDelta].map(n => n.toFixed(6)).join(',') : '';
+  const [zoom, setZoom] = useState<{ regionKey: string; window: TimeWindow }>();
+  useEffect(() => setZoom(undefined), [regionKey]);
+  const window = zoom?.regionKey === regionKey ? zoom.window : undefined;
+  const setWindow = (window: TimeWindow | undefined) => setZoom(window ? { regionKey, window } : undefined);
+  const available = useMemo(() => chartEntries(allPoints, undefined, region), [allPoints, region]);
+  const bounds: TimeWindow = [Date.parse(available[0]?.point.recordedAt || ""), Date.parse(available.at(-1)?.point.recordedAt || "")];
+  const entries = useMemo(() => chartEntries(allPoints, window, region), [allPoints, window, region]);
   const points = useMemo(() => entries.map(e => e.point), [entries]);
   const originalIndices = useMemo(() => entries.map(e => e.index), [entries]);
   const index = originalIndices.indexOf(selectedIndex);
@@ -53,8 +67,8 @@ export default function TripChart({
   );
   const singleMax = useMemo(
     () =>
-      points.reduce((largest, p) => active.reduce((value, s) => Math.max(value, metricValue(p, s.key) ?? 0), largest), 1),
-    [points, active],
+      chartMaximum(active.flatMap(s => chartSamples(points, s.key, 320, originalIndices, window))),
+    [points, active, originalIndices, window],
   );
   const start = window?.[0] ?? Date.parse(points[0]?.recordedAt),
     end = window?.[1] ?? Date.parse(points.at(-1)?.recordedAt || "");
@@ -77,7 +91,7 @@ export default function TripChart({
       nearestPoint(
         points,
         start +
-          Math.max(0, Math.min(1, (locationX - 32) / Math.max(1, width - 44))) *
+          Math.max(0, Math.min(1, locationX / Math.max(1, width))) *
             (end - start),
       ),
     );
@@ -90,53 +104,7 @@ export default function TripChart({
     });
   return (
     <View style={{ gap: 12 }}>
-      {window && <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-        <Text style={{ color: c.textMuted, flex: 1 }}>{t("Selected time range")}</Text>
-        {window && <Pressable accessibilityRole="button" onPress={() => setWindow(undefined)} style={{ padding: 12 }}><Text style={{ color: "#008c80" }}>{t("Reset chart")}</Text></Pressable>}
-      </View>}
-      {boatTracks?.length === 0 && <Text style={{ color: c.textMuted }}>{t("Turn on a boat to compare its instruments.")}</Text>}
-      {!points.length && <Text style={{ color: c.textMuted }}>{t("No recorded positions in this time range.")}</Text>}
-
-
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "baseline",
-        }}
-      >
-        <Text style={{ color: c.text, fontWeight: "600" }}>{t("Speed & wind")}</Text>
-        <Text style={{ color: c.textMuted, fontSize: 12 }}>{"knots"}</Text>
-      </View>
-      {boatTracks ? (
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 16 }}>
-          {series.filter(metric => paths.some(path => path.key === metric.key)).map(metric => (
-            <Text key={metric.key} style={{ color: c.textMuted, fontSize: 12 }}>
-              {metric.dash ? metric.key === "aws" ? "┄" : "┈" : "━"} {metric.label}
-            </Text>
-          ))}
-        </View>
-      ) : <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 22 }}>
-        {paths.map((s) => (
-          <View key={s.id} style={{ gap: 4 }}>
-            <Text style={{ color: s.color, fontSize: 12, fontWeight: "600" }}>
-              {s.dash ? "┄" : "●"} {s.label}
-            </Text>
-            <Text
-              style={{
-                color: c.text,
-                fontSize: 23,
-                fontWeight: "600",
-                fontVariant: ["tabular-nums"],
-              }}
-            >
-              {s.value !== null
-                ? formatNumber(s.value, 1)
-                : "—"}
-            </Text>
-          </View>
-        ))}
-      </View>}
+      <View>
       <View
         ref={chartRef}
         onLayout={(e) => {
@@ -161,10 +129,10 @@ export default function TripChart({
           const touches = e.nativeEvent.touches || [];
           if (touches.length >= 2) {
             const distance = Math.hypot(touches[1].pageX - touches[0].pageX, touches[1].pageY - touches[0].pageY);
-            if (allPoints.length < 2 || !distance) return;
+            if (available.length < 2 || !distance) return;
             wasPinching.current = true;
             if (!pinch.current) pinch.current = { distance, window: window || bounds,
-              anchor: Math.max(0, Math.min(1, ((touches[0].pageX + touches[1].pageX) / 2 - chartLeft.current - 32) / Math.max(1, width - 44))) };
+              anchor: Math.max(0, Math.min(1, ((touches[0].pageX + touches[1].pageX) / 2 - chartLeft.current) / Math.max(1, width))) };
             setWindow(zoomWindow(bounds, pinch.current.window, distance / pinch.current.distance, pinch.current.anchor));
           } else if (!wasPinching.current) select(e.nativeEvent.pageX - chartLeft.current);
         }}
@@ -199,27 +167,13 @@ export default function TripChart({
             ),
           )
         }
-        style={{ height: 180, paddingLeft: 32, paddingRight: 12 }}
+        style={{ height: 140 }}
       >
-        {[0, 0.5, 1].map((t) => (
-          <Text
-            key={t}
-            style={{
-              position: "absolute",
-              left: 0,
-              top: 10 + t * 140 - 7,
-              color: c.textMuted,
-              fontSize: 10,
-            }}
-          >
-            {formatNumber((max - (max - min) * t), max < 2 ? 1 : 0)}
-          </Text>
-        ))}
         <Svg
           pointerEvents="none"
           width="100%"
-          height={160}
-          viewBox="0 -10 320 160"
+          height={140}
+          viewBox="0 0 320 140"
           preserveAspectRatio="none"
         >
           {[0, 70, 140].map((y) => (
@@ -233,6 +187,12 @@ export default function TripChart({
               strokeDasharray="3 4"
             />
           ))}
+          {sections?.slice(1).map(section => {
+            const at = Date.parse(section.startedAt);
+            if (at < start || at > end) return null;
+            const x = 320 * (at - start) / Math.max(1, end - start);
+            return <Line key={section.startedAt} x1={x} x2={x} y1={0} y2={140} stroke={c.text} strokeDasharray="2 3" strokeWidth={1} />;
+          })}
           {paths.map((s) => (
             <Path
               key={s.id}
@@ -256,7 +216,7 @@ export default function TripChart({
           {point &&
             paths.map(
               (s) =>
-                s.value !== null && (
+                s.value !== null && s.value <= max && (
                   <Circle
                     key={s.id}
                     cx={x}
@@ -267,15 +227,57 @@ export default function TripChart({
                 ),
             )}
         </Svg>
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+      </View>
+      {renderSections?.([start, end])}
+        {!renderSections && <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
           <Text style={{ color: c.textMuted, fontSize: 10 }}>
             {points.length ? time(new Date(start).toISOString()) : ""}
           </Text>
           <Text style={{ color: c.textMuted, fontSize: 10 }}>
             {points.length ? time(new Date(end).toISOString()) : ""}
           </Text>
-        </View>
+        </View>}
       </View>
+      {window && <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+        <Text style={{ color: c.textMuted, flex: 1 }}>{t("Selected time range")}</Text>
+        {window && <Pressable accessibilityRole="button" onPress={() => setWindow(undefined)} style={{ padding: 12 }}><Text style={{ color: "#008c80" }}>{t("Reset chart")}</Text></Pressable>}
+      </View>}
+      {boatTracks?.length === 0 && <Text style={{ color: c.textMuted }}>{t("Turn on a boat to compare its instruments.")}</Text>}
+      {!points.length && <Text style={{ color: c.textMuted }}>{t(region ? "No recorded positions in this view. Zoom out or fit the whole trip." : "No recorded positions in this time range.")}</Text>}
+
+
+      {!renderSections && <>
+      <Text style={{ color: c.textMuted, fontSize: 12, textAlign: 'right' }}>{"knots"}</Text>
+      {boatTracks ? (
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 16 }}>
+          {series.filter(metric => paths.some(path => path.key === metric.key)).map(metric => (
+            <Text key={metric.key} style={{ color: c.textMuted, fontSize: 12 }}>
+              {metric.dash ? metric.key === "aws" ? "┄" : "┈" : "━"} {metric.label}
+            </Text>
+          ))}
+        </View>
+      ) : <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 22 }}>
+        {paths.map((s) => (
+          <View key={s.id} style={{ gap: 4 }}>
+            <Text style={{ color: s.color, fontSize: 12, fontWeight: "600" }}>
+              {s.dash ? "┄" : "●"} {s.label}
+            </Text>
+            <Text
+              style={{
+                color: c.text,
+                fontSize: 23,
+                fontWeight: "600",
+                fontVariant: ["tabular-nums"],
+              }}
+            >
+              {s.value !== null
+                ? formatNumber(s.value, 1)
+                : "—"}
+            </Text>
+          </View>
+        ))}
+      </View>}
+      </>}
       <Text
         style={{
           color: c.text,
@@ -284,9 +286,9 @@ export default function TripChart({
           fontVariant: ["tabular-nums"],
         }}
       >
-        {point ? time(point.recordedAt) : t("No recorded positions")}
+        {!renderSections && (point ? time(point.recordedAt) : t("No recorded positions"))}
         {point && !boatTracks
-          ? ` · ${formatNumber(point.latitude, 5)}, ${formatNumber(point.longitude, 5)}`
+          ? `${renderSections ? '' : ' · '}${formatNumber(point.latitude, 5)}, ${formatNumber(point.longitude, 5)}`
           : ""}
       </Text>
       <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 16 }}>
@@ -305,11 +307,6 @@ export default function TripChart({
           </View>
         ))}
       </View>
-      <Text style={{ color: c.textMuted, fontSize: 12, textAlign: "center" }}>
-        {t("Heading is magnetic; course is true. Wind wedges require a recorded heading.")}
-      </Text>
-      <Text style={{ color: c.textMuted, fontSize: 12, textAlign: "center" }}>
-        {t("Pinch to zoom the chart. Slide to explore your trip.")}</Text>
       {(boatTracks ? boatTracks.length > 0 && !boatTracks.some(boat => boat.points.some(p => series.some(s => metricValue(p, s.key) !== null)))
         : !points.some(p => active.some(s => metricValue(p, s.key) !== null))) && (
         <Text style={{ color: c.textMuted, fontSize: 13 }}>

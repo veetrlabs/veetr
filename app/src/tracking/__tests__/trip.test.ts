@@ -1,5 +1,7 @@
 import {
   chartPath,
+  chartSamples,
+  chartMaximum,
   distanceNm,
   durationLabel,
   metricValue,
@@ -90,10 +92,36 @@ test('invalid saved Vane speed does not stretch the chart or become a false zero
   expect(metricValue(point(0, { sogMps: 745.6872231584739 }), 'sog')).toBeNull();
   expect(metricValue(point(0, { sogMps: 4 }), 'sog')).toBeCloseTo(7.7754);
 });
-test('long charts bound SVG complexity while retaining narrow peaks', () => {
+test('long charts average dense samples without altering recorded peaks', () => {
   const data = Array.from({ length: 10000 }, (_, i) => point(i * 5, { sogMps: i === 5001 ? 10 : 2 }));
   const path = chartPath(data, 'sog', 10 * 1.94384449);
-  expect(path.match(/[ML]/g)!.length).toBeLessThanOrEqual(4 * 321);
-  expect(path).toContain(',0.00');
+  expect(path.match(/[ML]/g)!.length).toBeLessThanOrEqual(81);
+  expect(path).not.toContain(',0.00');
+  expect(data[5001].sogMps).toBe(10);
   expect(path.match(/M/g)).toHaveLength(1);
+  const samples = chartSamples(data, 'sog');
+  const max = chartMaximum(samples);
+  expect(max).toBeLessThan(3 * 1.94384449);
+  expect(Math.max(...samples.map(p => p.value)) / max).toBeCloseTo(1 / 1.08);
+  expect(chartMaximum([])).toBe(1);
+  expect(chartMaximum([{value: 0}])).toBe(1);
 });
+
+ test('zoom reveals individual speed samples instead of averaging the whole trip', () => {
+  const data = [point(0, {sogMps:0}), point(1, {sogMps:2}), point(2, {sogMps:4})];
+  const snapshot = JSON.stringify(data);
+  expect(chartPath(data, 'sog', 4 * 1.94384449, 320, 140, 0, undefined, [at, at + 1000000]))
+    .toBe('M0.32,70.00 ');
+  expect(chartPath(data, 'sog', 4 * 1.94384449)).toBe('M0.00,140.00 L160.00,70.00 L320.00,0.00 ');
+  expect(JSON.stringify(data)).toBe(snapshot);
+ });
+ test('averages wind speeds including real zeroes and never averages across missing samples or separate visits', () => {
+  const data = [point(0, {instruments:{aws:0,tws:2}}), point(1, {instruments:{aws:10,tws:6}})];
+  const bounds: [number,number] = [at, at + 1000000];
+  expect(chartPath(data, 'aws', 10, 320, 140, 0, undefined, bounds)).toBe('M0.16,70.00 ');
+  expect(chartPath(data, 'tws', 8, 320, 140, 0, undefined, bounds)).toBe('M0.16,70.00 ');
+  expect(chartPath(data, 'aws', 10, 320, 140, 0, [0,2], bounds).match(/M/g)).toHaveLength(2);
+  const missing = [data[0], point(.5, {instruments:{aws:null,tws:null}}), data[1]];
+  expect(chartPath(missing, 'aws', 10, 320, 140, 0, undefined, bounds).match(/M/g)).toHaveLength(2);
+  expect(chartPath([data[0], point(120, {instruments:{aws:10,tws:6}})], 'aws', 10, 320, 140, 0, undefined, [at,at+100000000]).match(/M/g)).toHaveLength(2);
+ });
