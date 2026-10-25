@@ -13,7 +13,7 @@ import {
   type TripVisibility,
   type TripBoat,
 } from "../tracking/tripSharing";
-import { TripOptions, TripAccountLink } from "../tracking/TripOptions";
+import { TripOptions } from "../tracking/TripOptions";
 import { trackingStore } from "../tracking/database";
 import { rememberTripBoat } from "../tracking/recentTripBoats";
 import { privateFleet, type PrivateBoat } from "../boats/privateBoats";
@@ -156,7 +156,6 @@ export default function StartTrip() {
                   : t("Start recording · share by link")}
           </Text>
         </Pressable>
-        <TripAccountLink />
         {!!error && (
           <Text accessibilityRole="alert" style={{ color: c.text }}>
             {translateMessage(error)}

@@ -12,7 +12,7 @@ import {
   tripLink,
   type TripVisibility,
 } from "../tracking/tripSharing";
-import { TripOptions, TripAccountLink } from "../tracking/TripOptions";
+import { TripOptions } from "../tracking/TripOptions";
 import TripBoatPicker from "../tracking/TripBoatPicker";
 import type { Trip } from "../tracking/trip";
 import { useTheme } from "../context/ThemeContext";
@@ -245,7 +245,6 @@ export default function TripSharingPage() {
             {translateMessage(error)}
           </Text>
         )}
-        <TripAccountLink />
       </ScrollView>
     </SafeAreaView>
   );

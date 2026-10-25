@@ -21,6 +21,7 @@ export function TripOptions({
 }) {
   useLanguageRefresh();
   const c = themeColors[useTheme().theme];
+  const signedIn = useTripSignedIn();
   return (
     <View style={{ gap: 12 }}>
       <Text style={{ color: c.text, fontWeight: "600" }}>{t("Trip title")}</Text>
@@ -56,9 +57,9 @@ export function TripOptions({
           key={value}
           accessibilityRole="radio"
           accessibilityLabel={label}
-          accessibilityState={{ checked: visibility === value, disabled }}
-          disabled={disabled}
-          onPress={() => onVisibility(value)}
+          accessibilityState={{ checked: visibility === value, disabled: disabled || (value !== "private" && signedIn !== true) }}
+          disabled={disabled || (value !== "private" && signedIn !== true)}
+          onPress={() => { if (!disabled && (value === "private" || signedIn === true)) onVisibility(value); }}
           style={{
             padding: 14,
             minHeight: 48,
@@ -66,6 +67,7 @@ export function TripOptions({
             borderWidth: 2,
             borderColor: visibility === value ? "#008c80" : "transparent",
             backgroundColor: c.buttonBg,
+            opacity: value !== "private" && signedIn !== true ? 0.45 : 1,
             gap: 4,
           }}
         >
@@ -78,6 +80,7 @@ export function TripOptions({
           </Text>
         </Pressable>
       ))}
+      {signedIn === false && <TripAccountLink />}
       {visibility !== "private" && (
         <Text style={{ color: c.textMuted, fontSize: 13 }}>
           {t("Shares your route and recorded instruments. Live sharing starts after the first GPS position. When you end the trip, the same link shows the finished route.")}</Text>
@@ -85,19 +88,18 @@ export function TripOptions({
     </View>
   );
 }
-export function TripAccountLink() {
-  useLanguageRefresh();
-  const c = themeColors[useTheme().theme];
+function useTripSignedIn() {
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   useFocusEffect(
     useCallback(() => {
       let alive = true;
-      void trackingClient?.auth
+      if (!trackingClient) { setSignedIn(false); return; }
+      void trackingClient.auth
         .getSession()
         .then(({ data }) => {
           if (alive) setSignedIn(!!data.session);
         })
-        .catch(() => {});
+        .catch(() => { if (alive) setSignedIn(false); });
       const subscription = trackingClient?.auth.onAuthStateChange(
         (_event, session) => {
           if (alive) setSignedIn(!!session);
@@ -109,7 +111,12 @@ export function TripAccountLink() {
       };
     }, []),
   );
-  if (signedIn === null) return null;
+  return signedIn;
+}
+
+export function TripAccountLink() {
+  useLanguageRefresh();
+  const c = themeColors[useTheme().theme];
   return (
     <Pressable
       accessibilityRole="button"
@@ -117,7 +124,7 @@ export function TripAccountLink() {
       style={{ minHeight: 44, justifyContent: "center" }}
     >
       <Text style={{ color: c.text }}>
-        {signedIn ? t("Account settings") : t("Sign in to share trips")} ›
+        {t("Sign in to share trips")} ›
       </Text>
     </Pressable>
   );
