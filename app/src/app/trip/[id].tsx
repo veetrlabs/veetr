@@ -230,7 +230,7 @@ export default function TripDetail() {
               <Text style={{ color: c.text }}>{t("Replay race · show competitors")}</Text>
             </Pressable>}
 
-            <TripBoat key={id} session={trip.session}
+            <TripBoat key={`boat:${id}`} session={trip.session}
               onSaved={session => setTrip(previous => previous ? { ...previous, session: { ...previous.session, boatId: session.boatId, boatName: session.boatName, userId: session.userId } } : previous)} />
             <TripChart
               key={id}
