@@ -83,5 +83,9 @@ route/session IDs or raw IMU streams enter this store. It retains 120 recent
 technical samples for up to seven days, returns at most 32 per report, and reporting
 uses the existing anonymous diagnostic endpoint and retention rules. This is a
 recent troubleshooting window, not an exhaustive log of a background race.
+Full local GPS and motion logs now live separately in `veetr-trip-diagnostics.db`.
+They are included only in explicit trip exports, not anonymous reports. See
+[`veetr-trip-diagnostics`](../modules/veetr-trip-diagnostics/README.md) for capture,
+consent, storage limits and platform limitations.
 The matching server migration must be approved and deployed before distributing
 an app that sends the new report field. No production schema is changed by tests.

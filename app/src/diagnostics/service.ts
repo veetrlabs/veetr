@@ -1,3 +1,4 @@
+import { configureTripDiagnostics } from './tripRecording';
 import { qualitySnapshot, type StoredQuality } from './trackingQuality';
 import { bleDiagnostics, clearBleDiagnostics } from './ble';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -44,15 +45,20 @@ export const ensureDiagnosticIdentity = () => exclusive(async () => {
   if (!state.installationId) { state.installationId = Crypto.randomUUID(); await save(state); }
   return state.installationId;
 });
-export const initializeDiagnostics = () => exclusive(async () => setNativeDiagnosticsEnabled((await read()).enabled));
+export const initializeDiagnostics = () => exclusive(async () => {
+  const enabled = (await read()).enabled;
+  await setNativeDiagnosticsEnabled(enabled);
+  await configureTripDiagnostics(enabled, await (await trackingStore()).get());
+});
 export async function setDiagnosticsEnabled(enabled: boolean) {
   // Invalidate in-progress collection immediately, even before disk I/O completes.
   revision++;
-  if (!enabled) { controller?.abort(); clearBleDiagnostics(); }
+  if (!enabled) { controller?.abort(); clearBleDiagnostics(); await configureTripDiagnostics(false, null); }
   await exclusive(async () => {
     const state = await read();
     await save(enabled ? { ...state, enabled: true, installationId: state.installationId ?? Crypto.randomUUID() } : emptyState());
     await setNativeDiagnosticsEnabled(enabled);
+    await configureTripDiagnostics(enabled, await (await trackingStore()).get());
   });
   if (enabled) reportDiagnostic('health');
 }

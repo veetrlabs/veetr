@@ -1,3 +1,4 @@
+jest.mock('../tripRecording', () => ({ configureTripDiagnostics: jest.fn(async () => {}) }));
 import { recordBleDiagnostic } from '../ble';
 process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://diagnostics.example.test';
 process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY = 'public-key';

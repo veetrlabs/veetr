@@ -1105,5 +1105,6 @@
   "Joining keeps the selected section’s propulsion.": "Joining keeps the selected section’s propulsion.",
   "Min": "Min",
   "Max": "Max",
-  "Average": "Average"
+  "Average": "Average",
+  "While enabled, detailed GPS and motion measurements are also saved locally with your trips and included when you export a trip. These detailed logs are not uploaded in diagnostic reports. Turning this off deletes the local diagnostic logs; your trips remain.": "While enabled, detailed GPS and motion measurements are also saved locally with your trips and included when you export a trip. These detailed logs are not uploaded in diagnostic reports. Turning this off deletes the local diagnostic logs; your trips remain."
 }

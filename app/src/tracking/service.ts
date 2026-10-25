@@ -1,4 +1,5 @@
-import { recordTrackingQuality } from '../diagnostics/service';
+import { configureTripDiagnostics, recordTripDiagnostic, diagnosticFix, tripDiagnosticEvent, deleteTripDiagnostics } from '../diagnostics/tripRecording';
+import { diagnosticsEnabled, recordTrackingQuality } from '../diagnostics/service';
 import { qualitySample } from '../diagnostics/trackingQuality';
 import { validSpeedMps } from './speed';
 import { usesNativeRaceRecorder, startNativeRaceRecorder, wakeNativeRaceRecorder, stopNativeRaceRecorder } from './nativeRaceRecorder';
@@ -109,6 +110,8 @@ async function owner(session: TrackingSession) {
     );
 }
 async function stopGPS() {
+  tripDiagnosticEvent('gps_stop_requested');
+  await configureTripDiagnostics(await diagnosticsEnabled(), null).catch(() => {});
   pauseForegroundGPS();
   await stopNativeRaceRecorder();
   if (await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK))
@@ -137,6 +140,8 @@ async function startForegroundGPS() {
   else foreground = subscription;
 }
 async function startGPS(local = false) {
+  await configureTripDiagnostics(await diagnosticsEnabled(), await (await trackingStore()).get()).catch(() => {});
+  tripDiagnosticEvent('gps_start_requested');
   const background =
     (await Location.getBackgroundPermissionsAsync()).status === "granted";
   const store = await trackingStore();
@@ -508,6 +513,7 @@ async function discardInternal() {
   if (session.mode === "local") {
     await stopGPS();
     await store.clear(session.id);
+    await deleteTripDiagnostics(session.id);
     return;
   }
   await owner(session);
@@ -525,6 +531,8 @@ export async function recordLocations(locations: LocationFix[], via: 'foreground
     session = await store.get();
   if (!session || session.phase !== "recording") return;
   if (usesNativeRaceRecorder(session)) return;
+  // A background location task can recreate JS without mounting the app runtime.
+  await configureTripDiagnostics(await diagnosticsEnabled(), session).catch(() => {});
   if (locations.length) await store.patch(session.id, {
     lastLocationCallbackAt: new Date().toISOString(),
     lastReportedAccuracyM: locations[locations.length - 1].coords.accuracy,
@@ -562,7 +570,9 @@ export async function recordLocations(locations: LocationFix[], via: 'foreground
         const filtered = point ? filterPhoneSpeed(point, motion) : null;
         const deliveredAt = Date.now();
         quality.push(() => qualitySample(f, filtered, motion, deliveredAt));
-        return preferredRecordingPoint(filtered);
+        const recorded = preferredRecordingPoint(filtered);
+        recordTripDiagnostic(session.id, () => diagnosticFix(f, filtered, recorded, motion, via, deliveredAt));
+        return recorded;
       })
       .filter((p): p is NonNullable<typeof p> => p !== null);
     recordTrackingQuality(() => quality.map(build => build()));
@@ -629,6 +639,7 @@ export async function recordDevicePoint(
   if (Date.now() >= Date.parse(session.expiresAt))
     return stopTracking("expired");
   if (!raceCaptureAllowed(session)) return;
+  recordTripDiagnostic(session.id, () => ({ type:'instrument', atMs:Date.parse(point.recordedAt), receivedAtMs:Date.now(), raw:point }));
   await store.append(session.id, [point]);
   await syncTracking();
 }

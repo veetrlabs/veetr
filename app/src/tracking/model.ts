@@ -86,6 +86,10 @@ export interface LocationFix {
     longitude: number;
     accuracy: number | null;
     speed: number | null;
+    speedAccuracy?: number | null;
+    headingAccuracy?: number | null;
+    altitude?: number | null;
+    altitudeAccuracy?: number | null;
     heading: number | null;
   };
 }

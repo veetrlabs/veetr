@@ -1,3 +1,4 @@
+import { tripDiagnosticEvent } from './tripRecording';
 import { sanitizeQuality } from './trackingQuality';
 import { Platform } from 'react-native';
 import { requireOptionalNativeModule } from 'expo-modules-core';
@@ -45,6 +46,7 @@ export async function trackingHistory(): Promise<TrackingHistoryEntry[]> {
   } catch { return []; }
 }
 export async function markTrackingDiagnostic(event: 'tripStarted' | 'tripStopped' | 'resume' | 'recovery' | 'jsForeground' | 'jsTask' | 'saved' | 'storageFailed', count = 1): Promise<void> {
+  tripDiagnosticEvent(event, {count});
   // Native consent gates persistence, including headless task invocations. Older builds are safe no-ops.
   try { await bridge()?.recordVeetrDiagnostic?.(event, boundedNumber(count) ?? 0); } catch { /* Never fail recording for telemetry. */ }
 }

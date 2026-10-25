@@ -1,3 +1,5 @@
+import { writeTripExport } from '../../diagnostics/tripExport';
+import { deleteTripDiagnostics } from '../../diagnostics/tripRecording';
 import TripBoat from "../../tracking/TripBoat";
 import TripEngineUse from "../../tracking/TripEngineUse";
 import type { MapRegion } from '../../maps/headingRay';
@@ -92,7 +94,10 @@ export default function TripDetail() {
       if (!(await Sharing.isAvailableAsync()))
         throw new Error("Sharing is unavailable on this device.");
       file = new File(Paths.cache, `veetr-trip-${trip.session.id}.json`);
-      file.write(JSON.stringify(trip, null, 2));
+      file.create({ overwrite: true });
+      const handle = file.open(), encoder = new TextEncoder();
+      try { await writeTripExport(trip, chunk => handle.writeBytes(encoder.encode(chunk))); }
+      finally { handle.close(); }
       await Sharing.shareAsync(file.uri, {
         mimeType: "application/json",
         UTI: "public.json",
@@ -129,6 +134,7 @@ export default function TripDetail() {
                   );
                 await discardStoppedTracking();
               }
+              await deleteTripDiagnostics(trip.session.id);
               router.back();
             })()
               .catch((e) => setError(String(e)))

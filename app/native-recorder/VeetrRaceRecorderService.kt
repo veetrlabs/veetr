@@ -107,6 +107,7 @@ class VeetrRaceRecorderService : Service() {
     }
     patch { it.put("nativeRecorderHeartbeatAt", stamp()) }
     val recording = session()?.optString("phase") == "recording"
+    if (!recording) try { TripDiagnosticStore.finish(this,s.getString("id")) } catch (_:Exception) { }
     if (recording) startMotion() else stopMotion()
     if (recording && (!subscribed || System.currentTimeMillis() - maxOf(lastFix, lastRequest) > 90_000)) requestGPS()
     if (!recording && subscribed) { client.removeLocationUpdates(callback); subscribed = false }
@@ -163,7 +164,7 @@ class VeetrRaceRecorderService : Service() {
       }
       val at = iso(l.time)
       val nearby = db!!.rawQuery("SELECT 1 FROM recording_history WHERE session_id=? AND recorded_at>? AND recorded_at<? LIMIT 1", arrayOf(s.getString("id"), iso(l.time - 900), iso(l.time + 900))).use { it.moveToFirst() }
-      if (nearby) continue
+      if (nearby) { recordQuality(l, null, "duplicate_fix"); continue }
       // Location and SensorEvent share Android's monotonic clock, including batched fixes.
       val rawSpeed = if (l.hasSpeed() && l.speed.isFinite() && l.speed >= 0) l.speed.toDouble() else null
       val reliableSpeed = if (Build.VERSION.SDK_INT >= 26 && l.hasSpeedAccuracy() &&
@@ -197,6 +198,26 @@ class VeetrRaceRecorderService : Service() {
     write(s)
   }
   private fun recordQuality(l: Location, speed: Double?, reason: String) {
+    try {
+      val id = config?.optString("sessionId")
+      if (id != null && TripDiagnosticStore.active(this) == id) {
+        fun finite(value: Double?): Any = if(value != null && value.isFinite()) value else JSONObject.NULL
+        val raw = JSONObject().put("latitude",finite(l.latitude)).put("longitude",finite(l.longitude))
+          .put("accuracy",finite(if(l.hasAccuracy()) l.accuracy.toDouble() else null))
+          .put("altitude",finite(if(l.hasAltitude()) l.altitude else null))
+          .put("speed",finite(if(l.hasSpeed()) l.speed.toDouble() else null))
+          .put("heading",finite(if(l.hasBearing()) l.bearing.toDouble() else null))
+          .put("speedAccuracy",finite(if(Build.VERSION.SDK_INT>=26 && l.hasSpeedAccuracy()) l.speedAccuracyMetersPerSecond.toDouble() else null))
+          .put("headingAccuracy",finite(if(Build.VERSION.SDK_INT>=26 && l.hasBearingAccuracy()) l.bearingAccuracyDegrees.toDouble() else null))
+          .put("altitudeAccuracy",finite(if(Build.VERSION.SDK_INT>=26 && l.hasVerticalAccuracy()) l.verticalAccuracyMeters.toDouble() else null))
+        TripDiagnosticStore.append(this,id,JSONArray().put(JSONObject().put("type","gps").put("via","native_race")
+          .put("atMs",l.time).put("receivedAtMs",System.currentTimeMillis()).put("monotonicMs",l.elapsedRealtimeNanos/1000000)
+          .put("raw",raw).put("filteredSpeedMps",finite(speed)).put("estimated",false).put("confidence",JSONObject.NULL)
+          .put("filteredCourseDeg",finite(if(speed != null && speed >= 0.5 && l.hasBearing()) l.bearing.toDouble() else null))
+          .put("reason",reason).put("filterVersion","android-phone-speed-v1").put("motion",motion.state(l.elapsedRealtimeNanos/1000000))))
+      }
+    } catch (_:Exception) { }
+
     VeetrTrackingQuality.record(this) {
       fun bounded(value: Double?, max: Double): Any = if (value != null && value.isFinite() && value >= 0) minOf(value, max) else JSONObject.NULL
       JSONObject().put("version", 1).put("rawSpeedMps", bounded(if (l.hasSpeed()) l.speed.toDouble() else null, 1000.0))
@@ -222,6 +243,7 @@ class VeetrRaceRecorderService : Service() {
       it.remove("nativeRecorderError")
     }
     s = session() ?: return
+    if (s.optString("phase") == "stopping") try { TripDiagnosticStore.finish(this,s.getString("id")) } catch (_:Exception) { }
     if (s.optString("phase") == "stopping") rpc("stop_race_phone", JSONObject().put("p_session", s.getString("id")).put("stopped_at", s.optString("stoppedAt", stamp())))
     // Never upload pre-start points early: the server would acknowledge and discard them.
     // Once active (or finished), its official windows filter pre-start / paused positions.

@@ -418,3 +418,49 @@ diff --git a/node_modules/expo-location/android/src/main/java/expo/modules/locat
      } else {
        callback.onFinished(null)
      }
+diff --git a/node_modules/expo-location/ios/LocationUtils.swift b/node_modules/expo-location/ios/LocationUtils.swift
+--- a/node_modules/expo-location/ios/LocationUtils.swift
++++ b/node_modules/expo-location/ios/LocationUtils.swift
+@@ -28,7 +28,9 @@
+       "accuracy": location.horizontalAccuracy,
+       "altitudeAccuracy": location.verticalAccuracy,
+       "heading": location.course,
+-      "speed": location.speed
++      "speed": location.speed,
++      "speedAccuracy": location.speedAccuracy,
++      "headingAccuracy": location.courseAccuracy
+     ],
+     "timestamp": location.timestamp.timeIntervalSince1970 * 1000
+   ]
+diff --git a/node_modules/expo-location/android/src/main/java/expo/modules/location/records/LocationResults.kt b/node_modules/expo-location/android/src/main/java/expo/modules/location/records/LocationResults.kt
+--- a/node_modules/expo-location/android/src/main/java/expo/modules/location/records/LocationResults.kt
++++ b/node_modules/expo-location/android/src/main/java/expo/modules/location/records/LocationResults.kt
+@@ -110,7 +110,9 @@
+   @Field var accuracy: Double? = null,
+   @Field var altitudeAccuracy: Double? = null,
+   @Field var heading: Double? = null,
+-  @Field var speed: Double? = null
++  @Field var speed: Double? = null,
++  @Field var speedAccuracy: Double? = null,
++  @Field var headingAccuracy: Double? = null
+ ) : Record, Serializable {
+   constructor(location: Location) : this(
+     latitude = location.latitude,
+@@ -123,5 +125,7 @@
+       null
+     },
+     heading = location.bearing.toDouble(),
+-    speed = location.speed.toDouble()
++    speed = if (location.hasSpeed()) location.speed.toDouble() else null,
++    speedAccuracy = if (Build.VERSION.SDK_INT >= 26 && location.hasSpeedAccuracy()) location.speedAccuracyMetersPerSecond.toDouble() else null,
++    headingAccuracy = if (Build.VERSION.SDK_INT >= 26 && location.hasBearingAccuracy()) location.bearingAccuracyDegrees.toDouble() else null
+   )
+@@ -141,6 +145,8 @@
+       altitudeAccuracy?.let { putDouble("altitudeAccuracy", it) }
+       heading?.let { putDouble("heading", it) }
+       speed?.let { putDouble("speed", it) }
++      speedAccuracy?.let { putDouble("speedAccuracy", it) }
++      headingAccuracy?.let { putDouble("headingAccuracy", it) }
+     }
+     return bundle
+   }
