@@ -18,12 +18,13 @@ test('split, change propulsion, join and undo persist without changing recorded 
  }
  const ui=render(<Screen/>);
  expect(ui.queryByRole('combobox')).toBeNull();
- fireEvent.press(ui.getAllByRole('button',{name:/^Section /})[0]);
  fireEvent.press(ui.getByText('Split at selected time'));
  await waitFor(()=>expect(ui.getAllByRole('button', {name: /^Section /})).toHaveLength(2));
  expect(saved.mock.calls[0][0].propulsionSections).toEqual([
   {startedAt:points[0].recordedAt,propulsion:'sailing-only'},
   {startedAt:points[2].recordedAt,propulsion:'sailing-only'}]);
+ expect(ui.queryByRole('combobox')).toBeNull();
+ fireEvent.press(ui.getAllByRole('button',{name:/^Section /})[1]);
  fireEvent.press(ui.getByRole('combobox'));
  fireEvent.press(ui.getByText('Engine used'));
  await waitFor(()=>expect(saved).toHaveBeenCalledTimes(2));
@@ -39,11 +40,10 @@ test('failed save leaves sections intact and reports the failure',async()=>{
  mockUpdate.mockRejectedValueOnce(new Error('Storage unavailable'));
  const saved=jest.fn();
  const ui=render(<TripEngineUse session={session} points={points} index={2} onSaved={saved}/>);
- fireEvent.press(ui.getAllByRole('button',{name:/^Section /})[0]);
  fireEvent.press(ui.getByText('Split at selected time'));
  await waitFor(()=>expect(ui.getByRole('alert')).toBeTruthy());
  expect(saved).not.toHaveBeenCalled();
- expect(ui.getAllByRole('combobox')).toHaveLength(1);
+ expect(ui.queryByRole('combobox')).toBeNull();
 });
 
 test('cannot split at either end or at an existing boundary',()=>{

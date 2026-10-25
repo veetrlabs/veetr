@@ -281,14 +281,14 @@ export default function TripChart({
         </Svg>
       </View>
       {renderSections?.([start, end])}
-        <View style={{ marginLeft: 32, marginRight: 12, flexDirection: "row", justifyContent: "space-between" }}>
+        {!renderSections && <View style={{ marginLeft: 32, marginRight: 12, flexDirection: "row", justifyContent: "space-between" }}>
           <Text style={{ color: c.textMuted, fontSize: 10 }}>
             {points.length ? time(new Date(start).toISOString()) : ""}
           </Text>
           <Text style={{ color: c.textMuted, fontSize: 10 }}>
             {points.length ? time(new Date(end).toISOString()) : ""}
           </Text>
-        </View>
+        </View>}
       </View>
       <Text
         style={{

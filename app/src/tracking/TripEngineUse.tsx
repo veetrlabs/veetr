@@ -32,7 +32,7 @@ export default function TripEngineUse({ session, points, index, range, onSaved }
   const end = range?.[1] ?? Date.parse(points.at(-1)?.recordedAt ?? session.startedAt);
   const label = (propulsion: Propulsion) => t(propulsion === 'sailing-only' ? 'Sailing only' : propulsion === 'engine-used' ? 'Engine used' : 'Unknown');
   const canSplit = index > 0 && index < points.length - 1 && selected &&
-    !sections.some(s => s.startedAt === selected.recordedAt) && chartSection === sections[activeIndex]?.startedAt;
+    !sections.some(s => s.startedAt === selected.recordedAt);
   const time = (stamp: string) => new Date(stamp).toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   async function save(next: PropulsionSection[], isUndo = false, focus?: string) {
     if (saving.current) return;
@@ -54,7 +54,7 @@ export default function TripEngineUse({ session, points, index, range, onSaved }
       <Text style={{ color: c.text }}>{label}</Text>
     </Pressable>
   );
-  return <View style={{ gap: 12 }}>
+  return <View>
     <View accessibilityLabel={t('Trip sections')} style={{ marginLeft: 32, marginRight: 12, flexDirection: 'row', height: 22, gap: 2 }}>
       {sections.map((section, i) => {
         const from = Math.max(start, i === 0 ? start : Date.parse(section.startedAt));
@@ -70,12 +70,20 @@ export default function TripEngineUse({ session, points, index, range, onSaved }
         </Pressable>;
       })}
     </View>
+    <View style={{ marginLeft: 32, marginRight: 12, flexDirection: 'row', justifyContent: 'space-between' }}>
+      <Text style={{ color: c.textMuted, fontSize: 10 }}>{Number.isFinite(start) ? time(new Date(start).toISOString()) : ''}</Text>
+      <Text style={{ color: c.textMuted, fontSize: 10 }}>{Number.isFinite(end) ? time(new Date(end).toISOString()) : ''}</Text>
+    </View>
+    <View style={{ gap: 12, marginTop: 12 }}>
+    {selected && <Text style={{ color: c.text }}>{t('Selected time')} · {time(selected.recordedAt)}</Text>}
+    {button(t('Split at selected time'), () => { if (canSplit) void save(splitPropulsion(session, selected.recordedAt), false, selected.recordedAt); }, !canSplit)}
+      {!editorOpen && undo && button(t('Undo last section edit'), () => void save(undo, true))}
+      {!editorOpen && !!error && <Text accessibilityRole="alert" style={{ color: c.text }}>{translateMessage(error)}</Text>}
+    </View>
     {editorOpen && <Modal transparent animationType="fade" onRequestClose={() => setEditorOpen(false)}>
       <View style={{ flex: 1, justifyContent: 'center', padding: 24, backgroundColor: 'rgba(0,0,0,0.45)' }}>
         <View accessibilityViewIsModal style={{ maxHeight: '85%', borderRadius: 16, backgroundColor: c.bg, padding: 16 }}>
           <ScrollView contentContainerStyle={{ gap: 12 }}>
-    {selected && <Text style={{ color: c.text }}>{t('Selected time')} · {time(selected.recordedAt)}</Text>}
-    {button(t('Split at selected time'), () => { if (canSplit) void save(splitPropulsion(session, selected.recordedAt), false, selected.recordedAt); }, !canSplit)}
     {sections.map((section, i) => i === activeIndex && <View key={section.startedAt} style={{ gap: 8, padding: 12, borderRadius: 8, borderWidth: 1, borderColor: c.border }}>
       <Text style={{ color: c.text, fontWeight: '600' }}>{t('Section')} {i + 1} · {time(i === 0 ? points[0]?.recordedAt ?? section.startedAt : section.startedAt)} – {time(sections[i + 1]?.startedAt ?? points.at(-1)?.recordedAt ?? section.startedAt)}</Text>
       <View style={{ gap: 8 }}>
