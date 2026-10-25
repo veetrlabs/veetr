@@ -1,5 +1,5 @@
 import React from 'react';
-import {render,fireEvent,waitFor} from '@testing-library/react-native';
+import {act,render,fireEvent,waitFor} from '@testing-library/react-native';
 import TripEngineUse from '../TripEngineUse';
 import type {TrackingSession, TrackingPoint} from '../model';
 const mockUpdate=jest.fn();
@@ -18,21 +18,21 @@ test('split, change propulsion, join and undo persist without changing recorded 
  }
  const ui=render(<Screen/>);
  expect(ui.queryByRole('combobox')).toBeNull();
- fireEvent.press(ui.getByText('Split at selected time'));
+ await act(async () => { fireEvent.press(ui.getByText('Split at selected time')); });
  await waitFor(()=>expect(ui.getAllByRole('button', {name: /^Section /})).toHaveLength(2));
  expect(saved.mock.calls[0][0].propulsionSections).toEqual([
   {startedAt:points[0].recordedAt,propulsion:'sailing-only'},
   {startedAt:points[2].recordedAt,propulsion:'sailing-only'}]);
  expect(ui.queryByRole('combobox')).toBeNull();
- fireEvent.press(ui.getAllByRole('button',{name:/^Section /})[1]);
- fireEvent.press(ui.getByRole('combobox'));
- fireEvent.press(ui.getByText('Engine used'));
+ await act(async () => { fireEvent.press(ui.getAllByRole('button',{name:/^Section /})[1]); });
+ await act(async () => { fireEvent.press(ui.getByRole('combobox')); });
+ await act(async () => { fireEvent.press(ui.getByText('Engine used')); });
  await waitFor(()=>expect(saved).toHaveBeenCalledTimes(2));
  expect(saved.mock.calls[1][0].engineUse).toBe('engine-used');
  await waitFor(()=>expect(ui.getByRole('button',{name:'← Join left'}).props.accessibilityState.disabled).toBe(false));
- fireEvent.press(ui.getByText('← Join left'));
+ await act(async () => { fireEvent.press(ui.getByText('← Join left')); });
  await waitFor(()=>expect(ui.getAllByRole('button', {name: /^Section /})).toHaveLength(1));
- fireEvent.press(ui.getByText('Undo last section edit'));
+ await act(async () => { fireEvent.press(ui.getByText('Undo last section edit')); });
  await waitFor(()=>expect(ui.getAllByRole('button', {name: /^Section /})).toHaveLength(2));
  expect(saved.mock.calls[3][0].propulsionSections[1].propulsion).toBe('engine-used');
 });
