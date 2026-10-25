@@ -1,3 +1,4 @@
+import TripBoat from "../../tracking/TripBoat";
 import TripEngineUse from "../../tracking/TripEngineUse";
 import type { MapRegion } from '../../maps/headingRay';
 import BackButton from '../../components/BackButton';
@@ -229,18 +230,19 @@ export default function TripDetail() {
               <Text style={{ color: c.text }}>{t("Replay race · show competitors")}</Text>
             </Pressable>}
 
+            <TripBoat key={id} session={trip.session}
+              onSaved={session => setTrip(previous => previous ? { ...previous, session: { ...previous.session, boatId: session.boatId, boatName: session.boatName, userId: session.userId } } : previous)} />
             <TripChart
               key={id}
               region={mapViewport?.id === id ? mapViewport.region : undefined}
               sections={trip.session.propulsionSections}
+              renderSections={range => (<TripEngineUse key={id} session={trip.session} points={trip.points} index={index} range={range}
+              onSaved={session => setTrip(previous => previous ? { ...previous, session: { ...previous.session, engineUse: session.engineUse, propulsionSections: session.propulsionSections } } : previous)} />)}
               points={trip.points}
               index={index}
               onSelect={select}
               onScrubbing={setScrubbing}
             />
-            <TripEngineUse key={id} session={trip.session} points={trip.points} index={index}
-              onSaved={session => setTrip(previous => previous ? { ...previous, session: { ...previous.session, engineUse: session.engineUse, propulsionSections: session.propulsionSections } } : previous)} />
-
           </View>
         </ScrollView>
       ) : (

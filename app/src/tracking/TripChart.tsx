@@ -2,7 +2,7 @@ import type { PropulsionSection } from "./propulsion";
 import { chartEntries, zoomWindow, type TimeWindow } from "./chartWindow";
 import type { MapRegion } from '../maps/headingRay';
 import { formatNumber, locale, t, useLanguageRefresh } from '../i18n';
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { View, Text, Pressable } from "react-native";
 import Svg, { Circle, Line, Path } from "react-native-svg";
 import type { TrackingPoint } from "./model";
@@ -19,11 +19,13 @@ export default function TripChart({
   boatTracks,
   region,
   sections,
+  renderSections,
 }: {
   points: TrackingPoint[];
   boatTracks?: BoatTrack[];
   region?: MapRegion;
   sections?: PropulsionSection[];
+  renderSections?: (range: [number, number]) => ReactNode;
   index: number;
   onSelect: (index: number) => void;
   onScrubbing?: (active: boolean) => void;
@@ -294,6 +296,7 @@ export default function TripChart({
           </Text>
         </View>
       </View>
+      {renderSections?.([start, end])}
       <Text
         style={{
           color: c.text,

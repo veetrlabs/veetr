@@ -1108,5 +1108,6 @@
   "Join with previous section": "Spojit s předchozím úsekem",
   "Joining keeps the previous section’s propulsion.": "Po spojení zůstane pohon předchozího úseku.",
   "Undo last section edit": "Vrátit poslední úpravu úseků",
-  "Motor sections are excluded from sailing comparisons. Unknown sections remain included with a warning.": "Úseky s motorem se do porovnání pod plachtami nezahrnují. Úseky s neznámým pohonem zůstávají zahrnuté s upozorněním."
+  "Motor sections are excluded from sailing comparisons. Unknown sections remain included with a warning.": "Úseky s motorem se do porovnání pod plachtami nezahrnují. Úseky s neznámým pohonem zůstávají zahrnuté s upozorněním.",
+  "Tap a section to edit it. Green: sailing · Grey: motor · Amber: unknown.": "Klepnutím vyberte úsek k úpravě. Zelená: plachty · Šedá: motor · Oranžová: neznámé."
 }

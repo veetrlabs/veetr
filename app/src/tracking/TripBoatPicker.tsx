@@ -8,8 +8,12 @@ import { recentTripBoats, orderTripBoats } from "./recentTripBoats";
 export default function TripBoatPicker({
   selected,
   onSelect,
+  selectedName,
+  enabled = true,
 }: {
   selected?: string;
+  selectedName?: string;
+  enabled?: boolean;
   onSelect: (boat: TripBoat) => void;
 }) {
   useLanguageRefresh();
@@ -63,7 +67,7 @@ export default function TripBoatPicker({
         />
         <Pressable
           accessibilityRole="button"
-          disabled={busy || !name.trim()}
+          disabled={!enabled || busy || !name.trim()}
           style={button}
           onPress={() => {
             setBusy(true);
@@ -82,7 +86,7 @@ export default function TripBoatPicker({
         </Pressable>
         <Pressable
           accessibilityRole="button"
-          disabled={busy}
+          disabled={!enabled || busy}
           onPress={() => setCreating(false)}
           style={button}
         >
@@ -99,11 +103,11 @@ export default function TripBoatPicker({
     <View style={{ gap: 10 }}>
       <Text style={{ color: c.text, fontWeight: "600" }}>
         {t("Boat for this trip")}</Text>
-      <Pressable accessibilityRole="button" accessibilityLabel={t("Boat for this trip")}
-        accessibilityState={{ expanded, disabled: loading }} disabled={loading}
+      <Pressable accessibilityRole="combobox" accessibilityLabel={t("Boat for this trip")}
+        accessibilityState={{ expanded, disabled: loading || !enabled }} disabled={loading || !enabled}
         onPress={() => { setExpanded(!expanded); setQuery(""); }}
-        style={{ ...button, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Text style={{ color: c.text, flex: 1 }}>{boats.find(b => b.id === selected)?.name ?? t(loading ? "Loading boats…" : "Choose a boat")}</Text>
+        style={({ pressed }) => ({ ...button, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', opacity: loading || !enabled ? .5 : pressed ? .7 : 1 })}>
+        <Text style={{ color: c.text, flex: 1 }}>{boats.find(b => b.id === selected)?.name ?? selectedName ?? t(loading ? "Loading boats…" : "Choose a boat")}</Text>
         <Text style={{ color: c.text }} accessibilityElementsHidden>{expanded ? '▴' : '▾'}</Text>
       </Pressable>
       {expanded && <View style={{ borderWidth: 1, borderColor: c.border, borderRadius: 12, padding: 6, gap: 6 }}>
@@ -115,7 +119,8 @@ export default function TripBoatPicker({
         <Pressable
           key={b.id}
           accessibilityRole="radio"
-          accessibilityState={{ checked: selected === b.id }}
+          accessibilityState={{ checked: selected === b.id, disabled: !enabled }}
+          disabled={!enabled}
           onPress={() => { onSelect(b); setExpanded(false); setQuery(""); }}
           style={{
             ...button,
@@ -139,6 +144,7 @@ export default function TripBoatPicker({
       ) : (
         <Pressable
           accessibilityRole="button"
+          disabled={!enabled}
           onPress={() => setCreating(true)}
           style={button}
         >

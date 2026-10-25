@@ -18,18 +18,18 @@ test('split, change propulsion, join and undo persist without changing recorded 
  }
  const ui=render(<Screen/>);
  fireEvent.press(ui.getByText('Split at selected time'));
- await waitFor(()=>expect(ui.getAllByRole('combobox')).toHaveLength(2));
+ await waitFor(()=>expect(ui.getAllByRole('button', {name: /^Section /})).toHaveLength(2));
  expect(saved.mock.calls[0][0].propulsionSections).toEqual([
   {startedAt:points[0].recordedAt,propulsion:'sailing-only'},
   {startedAt:points[2].recordedAt,propulsion:'sailing-only'}]);
- fireEvent.press(ui.getAllByRole('combobox')[1]);
+ fireEvent.press(ui.getByRole('combobox'));
  fireEvent.press(ui.getByText('Engine used'));
  await waitFor(()=>expect(saved).toHaveBeenCalledTimes(2));
  expect(saved.mock.calls[1][0].engineUse).toBe('engine-used');
  fireEvent.press(ui.getByText('Join with previous section'));
- await waitFor(()=>expect(ui.getAllByRole('combobox')).toHaveLength(1));
+ await waitFor(()=>expect(ui.getAllByRole('button', {name: /^Section /})).toHaveLength(1));
  fireEvent.press(ui.getByText('Undo last section edit'));
- await waitFor(()=>expect(ui.getAllByRole('combobox')).toHaveLength(2));
+ await waitFor(()=>expect(ui.getAllByRole('button', {name: /^Section /})).toHaveLength(2));
  expect(saved.mock.calls[3][0].propulsionSections[1].propulsion).toBe('engine-used');
 });
 test('failed save leaves sections intact and reports the failure',async()=>{
@@ -54,4 +54,24 @@ test('cannot split at either end or at an existing boundary',()=>{
  ]}}/>);
  expect(ui.getByRole('button',{name:'Split at selected time'}).props.accessibilityState.disabled).toBe(true);
  expect(ui.getAllByRole('button',{name:'Join with previous section'})).toHaveLength(1);
+});
+
+test('the proportional bar selects one editor and clips to the chart time range',()=>{
+ const mixed={...session,propulsionSections:[
+  {startedAt:points[0].recordedAt,propulsion:'engine-used' as const},
+  {startedAt:points[1].recordedAt,propulsion:'sailing-only' as const},
+ ]};
+ const ui=render(<TripEngineUse session={mixed} points={points} index={2} onSaved={jest.fn()}/>);
+ const bars=ui.getAllByRole('button',{name:/^Section /});
+ expect(bars).toHaveLength(2);
+ expect(bars[0].props.style({pressed:false}).backgroundColor).toBe('#64748b');
+ expect(bars[1].props.style({pressed:false}).backgroundColor).toBe('#008c80');
+ expect(bars[1].props.style({pressed:false}).flex).toBe(2*bars[0].props.style({pressed:false}).flex);
+ expect(ui.getAllByRole('combobox')).toHaveLength(1);
+ fireEvent.press(bars[0]);
+ expect(ui.getByRole('combobox').props.accessibilityValue.text).toBe('Engine used');
+ fireEvent.press(bars[1]);
+ expect(ui.getByRole('combobox').props.accessibilityValue.text).toBe('Sailing only');
+ ui.rerender(<TripEngineUse session={mixed} points={points} index={2} range={[15000,30000]} onSaved={jest.fn()}/>);
+ expect(ui.getAllByRole('button',{name:/^Section /})).toHaveLength(1);
 });
