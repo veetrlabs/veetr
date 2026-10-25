@@ -26,7 +26,7 @@ test('split, change propulsion, join and undo persist without changing recorded 
  fireEvent.press(ui.getByText('Engine used'));
  await waitFor(()=>expect(saved).toHaveBeenCalledTimes(2));
  expect(saved.mock.calls[1][0].engineUse).toBe('engine-used');
- fireEvent.press(ui.getByText('Join with previous section'));
+ fireEvent.press(ui.getByText('← Join left'));
  await waitFor(()=>expect(ui.getAllByRole('button', {name: /^Section /})).toHaveLength(1));
  fireEvent.press(ui.getByText('Undo last section edit'));
  await waitFor(()=>expect(ui.getAllByRole('button', {name: /^Section /})).toHaveLength(2));
@@ -53,7 +53,7 @@ test('cannot split at either end or at an existing boundary',()=>{
   {startedAt:points[2].recordedAt,propulsion:'engine-used'},
  ]}}/>);
  expect(ui.getByRole('button',{name:'Split at selected time'}).props.accessibilityState.disabled).toBe(true);
- expect(ui.getAllByRole('button',{name:'Join with previous section'})).toHaveLength(1);
+ expect(ui.getAllByRole('button',{name:'← Join left'})).toHaveLength(1);
 });
 
 test('the proportional bar selects one editor and clips to the chart time range',()=>{
@@ -74,4 +74,29 @@ test('the proportional bar selects one editor and clips to the chart time range'
  expect(ui.getByRole('combobox').props.accessibilityValue.text).toBe('Sailing only');
  ui.rerender(<TripEngineUse session={mixed} points={points} index={2} range={[15000,30000]} onSaved={jest.fn()}/>);
  expect(ui.getAllByRole('button',{name:/^Section /})).toHaveLength(1);
+});
+
+test.each(['← Join left', 'Join right →'])('%s preserves selected propulsion and can be undone',async(direction)=>{
+ const initial={...session,propulsionSections:[
+  {startedAt:points[0].recordedAt,propulsion:'engine-used' as const},
+  {startedAt:points[1].recordedAt,propulsion:'sailing-only' as const},
+  {startedAt:points[2].recordedAt,propulsion:'unknown' as const},
+ ]};
+ const saved=jest.fn();
+ function Screen(){
+  const [value,setValue]=React.useState<TrackingSession>(initial);
+  return <TripEngineUse session={value} points={points} index={1} onSaved={s=>{saved(s);setValue(s)}}/>;
+ }
+ const ui=render(<Screen/>);
+ expect(ui.getByRole('button',{name:'← Join left'})).toBeTruthy();
+ expect(ui.getByRole('button',{name:'Join right →'})).toBeTruthy();
+ fireEvent.press(ui.getByRole('button',{name:direction}));
+ await waitFor(()=>expect(saved).toHaveBeenCalledTimes(1));
+ expect(saved.mock.calls[0][0].propulsionSections).toEqual(direction==='← Join left' ? [
+  {...initial.propulsionSections[0],propulsion:'sailing-only'}, initial.propulsionSections[2],
+ ] : [initial.propulsionSections[0],initial.propulsionSections[1]]);
+ expect(ui.queryByRole('button',{name:direction})).toBeNull();
+ fireEvent.press(ui.getByRole('button',{name:'Undo last section edit'}));
+ await waitFor(()=>expect(saved).toHaveBeenCalledTimes(2));
+ expect(saved.mock.calls[1][0].propulsionSections).toEqual(initial.propulsionSections);
 });

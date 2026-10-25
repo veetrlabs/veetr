@@ -50,7 +50,7 @@ export default function TripEngineUse({ session, points, index, range, onSaved }
     </Pressable>
   );
   return <View style={{ gap: 12 }}>
-    <View accessibilityLabel={t('Trip sections')} style={{ marginLeft: 32, marginRight: 12, flexDirection: 'row', height: 44, gap: 2 }}>
+    <View accessibilityLabel={t('Trip sections')} style={{ marginLeft: 32, marginRight: 12, flexDirection: 'row', height: 22, gap: 2 }}>
       {sections.map((section, i) => {
         const from = Math.max(start, i === 0 ? start : Date.parse(section.startedAt));
         const to = Math.min(end, Date.parse(sections[i + 1]?.startedAt ?? points.at(-1)?.recordedAt ?? session.startedAt));
@@ -61,12 +61,10 @@ export default function TripEngineUse({ session, points, index, range, onSaved }
           style={({ pressed }) => ({ flex: Math.max(1, to - from), borderRadius: 5, borderWidth: i === activeIndex ? 3 : 1,
             borderColor: i === activeIndex ? c.text : c.bg, backgroundColor: section.propulsion === 'sailing-only' ? '#008c80' : section.propulsion === 'engine-used' ? '#64748b' : '#b7791f',
             alignItems: 'center', justifyContent: 'center', overflow: 'hidden', opacity: pressed ? .65 : 1 })}>
-          <Text numberOfLines={1} style={{ color: 'white', fontWeight: '600' }}>{i + 1}</Text>
+          <Text numberOfLines={1} style={{ color: 'white', fontWeight: '600', fontSize: 12 }}>{i + 1}</Text>
         </Pressable>;
       })}
     </View>
-    <Text style={{ color: c.textMuted }}>{t('Tap a section to edit it. Green: sailing · Grey: motor · Amber: unknown.')}</Text>
-    <Text style={{ color: c.textMuted }}>{t('Select a point on the speed chart, then split the trip there.')}</Text>
     {selected && <Text style={{ color: c.text }}>{t('Selected time')} · {time(selected.recordedAt)}</Text>}
     {button(t('Split at selected time'), () => { if (canSplit) void save(splitPropulsion(session, selected.recordedAt), false, selected.recordedAt); }, !canSplit)}
     {sections.map((section, i) => i === activeIndex && <View key={section.startedAt} style={{ gap: 8, padding: 12, borderRadius: 8, borderWidth: 1, borderColor: c.border }}>
@@ -77,9 +75,15 @@ export default function TripEngineUse({ session, points, index, range, onSaved }
         <Picker.Item value="sailing-only" label={t('Sailing only')} />
         <Picker.Item value="engine-used" label={t('Engine used')} />
       </Picker>
-      {i > 0 && button(t('Join with previous section'), () => void save(sections.filter((_, n) => n !== i), false, sections[i - 1].startedAt))}
+      {sections.length > 1 && <View style={{ flexDirection: 'row', gap: 8 }}>
+        <View style={{ flex: 1 }}>{i > 0 && button(t('← Join left'), () => void save(
+          sections.filter((_, n) => n !== i).map((s, n) => n === i - 1 ? { ...s, propulsion: section.propulsion } : s),
+          false, sections[i - 1].startedAt))}</View>
+        <View style={{ flex: 1 }}>{i < sections.length - 1 && button(t('Join right →'), () => void save(
+          sections.filter((_, n) => n !== i + 1), false, section.startedAt))}</View>
+      </View>}
     </View>)}
-    {sections.length > 1 && <Text style={{ color: c.textMuted }}>{t('Joining keeps the previous section’s propulsion.')}</Text>}
+    {sections.length > 1 && <Text style={{ color: c.textMuted }}>{t('Joining keeps the selected section’s propulsion.')}</Text>}
     {undo && button(t('Undo last section edit'), () => void save(undo, true))}
     <Text style={{ color: c.textMuted }}>{t('Motor sections are excluded from sailing comparisons. Unknown sections remain included with a warning.')}</Text>
     {!!error && <Text accessibilityRole="alert" style={{ color: c.text }}>{translateMessage(error)}</Text>}
