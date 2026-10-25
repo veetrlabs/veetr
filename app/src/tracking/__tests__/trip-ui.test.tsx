@@ -62,7 +62,7 @@ test("stopped recording leaves export and deletion in trip detail", () => {
       run={jest.fn()}
     />,
   );
-  expect(ui.getByText("Start private recording")).toBeTruthy();
+  expect(ui.getByText("Start recording")).toBeTruthy();
   expect(ui.queryByText("Stop recording")).toBeNull();
   expect(ui.queryByText("Delete recording")).toBeNull();
 });

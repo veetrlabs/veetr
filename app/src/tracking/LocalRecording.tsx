@@ -78,31 +78,11 @@ export default function LocalRecording({
         gap: 14,
       }}
     >
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <Text style={{ color: active ? "#008c80" : c.text, fontWeight: "600" }}>
-          {active && session ? `● ${recordingStatus(session, now)}` : t("Ready to sail")}
+      {active && session && (
+        <Text style={{ color: "#008c80", fontWeight: "600" }}>
+          {`● ${recordingStatus(session, now)}`}
         </Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t("Recording privacy and screen lock help")}
-          onPress={() => setHelp(help === 4 ? null : 4)}
-          style={{
-            flexDirection: "row",
-            gap: 5,
-            padding: 8,
-            alignItems: "center",
-          }}
-        >
-          <TrackingIcon name="lock" color={c.textMuted} size={15} />
-          <Text style={{ color: c.textMuted, fontSize: 12 }}>{session?.sharing?.pendingVisibility === "private" ? t("Stopping sharing…") : session?.sharing?.visibility && session.sharing.visibility !== "private" ? t("Sharing live") : t("Private")}</Text>
-        </Pressable>
-      </View>
+      )}
       {active && (
         <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
           {metrics.map((m, i) => (
@@ -144,7 +124,7 @@ export default function LocalRecording({
           ))}
         </View>
       )}
-      {help !== null && (help === 4 || active) && (
+      {help !== null && active && (
         <View
           accessibilityLiveRegion="polite"
           style={{
@@ -155,14 +135,12 @@ export default function LocalRecording({
           }}
         >
           <Text style={{ color: c.text, fontWeight: "600" }}>
-            {help === 4 ? t("Private recording") : metrics[help]?.label}
+            {metrics[help]?.label}
           </Text>
           <Text
             style={{ color: c.textSecondary, fontSize: 13, lineHeight: 19 }}
           >
-            {help === 4
-              ? t("Trips stay on this phone unless you choose to share them. {{v0}}", { v0: active ? (session?.backgroundEnabled ? t("Recording can continue with the screen locked.") : t("Keep Veetr open. Enable background recording in Settings → Location & tracking to record with the screen locked.")) : t("Allow background location when starting to record with the screen locked.") })
-              : metrics[help]?.help}
+            {metrics[help]?.help}
           </Text>
         </View>
       )}
@@ -208,7 +186,7 @@ export default function LocalRecording({
             ? t("Working…")
             : active
               ? t("Stop recording")
-              : t("Start private recording")}
+              : t("Start recording")}
         </Text>
       </Pressable>
     </View>

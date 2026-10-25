@@ -152,7 +152,7 @@ export default function StartTrip() {
             {busy
               ? t("Starting…")
               : visibility === "private"
-                ? t("Start private recording")
+                ? t("Start recording")
                 : visibility === "public"
                   ? t("Start recording · share publicly")
                   : t("Start recording · share by link")}
