@@ -151,6 +151,7 @@ export default function TripChart({
           </View>
         ))}
       </View>}
+      <View>
       <View
         ref={chartRef}
         onLayout={(e) => {
@@ -213,7 +214,7 @@ export default function TripChart({
             ),
           )
         }
-        style={{ height: 180, paddingLeft: 32, paddingRight: 12 }}
+        style={{ height: 150, paddingLeft: 32, paddingRight: 12 }}
       >
         {[0, 0.5, 1].map((t) => (
           <Text
@@ -232,8 +233,8 @@ export default function TripChart({
         <Svg
           pointerEvents="none"
           width="100%"
-          height={160}
-          viewBox="0 -10 320 160"
+          height={150}
+          viewBox="0 -10 320 150"
           preserveAspectRatio="none"
         >
           {[0, 70, 140].map((y) => (
@@ -287,7 +288,9 @@ export default function TripChart({
                 ),
             )}
         </Svg>
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+      </View>
+      {renderSections?.([start, end])}
+        <View style={{ marginLeft: 32, marginRight: 12, flexDirection: "row", justifyContent: "space-between" }}>
           <Text style={{ color: c.textMuted, fontSize: 10 }}>
             {points.length ? time(new Date(start).toISOString()) : ""}
           </Text>
@@ -296,7 +299,6 @@ export default function TripChart({
           </Text>
         </View>
       </View>
-      {renderSections?.([start, end])}
       <Text
         style={{
           color: c.text,

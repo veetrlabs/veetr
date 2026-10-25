@@ -3,7 +3,7 @@ import {render,fireEvent,waitFor} from '@testing-library/react-native';
 import TripEngineUse from '../TripEngineUse';
 import type {TrackingSession, TrackingPoint} from '../model';
 const mockUpdate=jest.fn();
-jest.mock('react-native',()=>({Text:'Text',View:'View',Pressable:({children,...props}:any)=>require('react').createElement('View',{accessible:true,...props},children),StyleSheet:{flatten:(s:unknown)=>s}}));
+jest.mock('react-native',()=>({Text:'Text',View:'View',Modal:'Modal',ScrollView:'ScrollView',Pressable:({children,...props}:any)=>require('react').createElement('View',{accessible:true,...props},children),StyleSheet:{flatten:(s:unknown)=>s}}));
 jest.mock('../../context/ThemeContext',()=>({useTheme:()=>({theme:'light'})}));
 jest.mock('../database',()=>({trackingStore:async()=>({updateTrip:mockUpdate})}));
 jest.mock('../../i18n',()=>({t:(s:string)=>s,translateMessage:(s:string)=>s,locale:()=> 'en'}));
@@ -17,6 +17,8 @@ test('split, change propulsion, join and undo persist without changing recorded 
   return <TripEngineUse session={value} points={points} index={2} onSaved={s=>{saved(s);setValue(s)}}/>;
  }
  const ui=render(<Screen/>);
+ expect(ui.queryByRole('combobox')).toBeNull();
+ fireEvent.press(ui.getAllByRole('button',{name:/^Section /})[0]);
  fireEvent.press(ui.getByText('Split at selected time'));
  await waitFor(()=>expect(ui.getAllByRole('button', {name: /^Section /})).toHaveLength(2));
  expect(saved.mock.calls[0][0].propulsionSections).toEqual([
@@ -36,6 +38,7 @@ test('failed save leaves sections intact and reports the failure',async()=>{
  mockUpdate.mockRejectedValueOnce(new Error('Storage unavailable'));
  const saved=jest.fn();
  const ui=render(<TripEngineUse session={session} points={points} index={2} onSaved={saved}/>);
+ fireEvent.press(ui.getAllByRole('button',{name:/^Section /})[0]);
  fireEvent.press(ui.getByText('Split at selected time'));
  await waitFor(()=>expect(ui.getByRole('alert')).toBeTruthy());
  expect(saved).not.toHaveBeenCalled();
@@ -45,6 +48,7 @@ test('failed save leaves sections intact and reports the failure',async()=>{
 test('cannot split at either end or at an existing boundary',()=>{
  const props={session,points,onSaved:jest.fn()};
  const ui=render(<TripEngineUse {...props} index={0}/>);
+ fireEvent.press(ui.getAllByRole('button',{name:/^Section /})[0]);
  expect(ui.getByRole('button',{name:'Split at selected time'}).props.accessibilityState.disabled).toBe(true);
  ui.rerender(<TripEngineUse {...props} index={3}/>);
  expect(ui.getByRole('button',{name:'Split at selected time'}).props.accessibilityState.disabled).toBe(true);
@@ -53,6 +57,7 @@ test('cannot split at either end or at an existing boundary',()=>{
   {startedAt:points[2].recordedAt,propulsion:'engine-used'},
  ]}}/>);
  expect(ui.getByRole('button',{name:'Split at selected time'}).props.accessibilityState.disabled).toBe(true);
+ fireEvent.press(ui.getAllByRole('button',{name:/^Section /})[1]);
  expect(ui.getAllByRole('button',{name:'← Join left'})).toHaveLength(1);
 });
 
@@ -67,7 +72,7 @@ test('the proportional bar selects one editor and clips to the chart time range'
  expect(bars[0].props.style({pressed:false}).backgroundColor).toBe('#64748b');
  expect(bars[1].props.style({pressed:false}).backgroundColor).toBe('#008c80');
  expect(bars[1].props.style({pressed:false}).flex).toBe(2*bars[0].props.style({pressed:false}).flex);
- expect(ui.getAllByRole('combobox')).toHaveLength(1);
+ expect(ui.queryByRole('combobox')).toBeNull();
  fireEvent.press(bars[0]);
  expect(ui.getByRole('combobox').props.accessibilityValue.text).toBe('Engine used');
  fireEvent.press(bars[1]);
@@ -88,6 +93,7 @@ test.each(['← Join left', 'Join right →'])('%s preserves selected propulsion
   return <TripEngineUse session={value} points={points} index={1} onSaved={s=>{saved(s);setValue(s)}}/>;
  }
  const ui=render(<Screen/>);
+ fireEvent.press(ui.getAllByRole('button',{name:/^Section /})[1]);
  expect(ui.getByRole('button',{name:'← Join left'})).toBeTruthy();
  expect(ui.getByRole('button',{name:'Join right →'})).toBeTruthy();
  fireEvent.press(ui.getByRole('button',{name:direction}));
@@ -99,4 +105,15 @@ test.each(['← Join left', 'Join right →'])('%s preserves selected propulsion
  fireEvent.press(ui.getByRole('button',{name:'Undo last section edit'}));
  await waitFor(()=>expect(saved).toHaveBeenCalledTimes(2));
  expect(saved.mock.calls[1][0].propulsionSections).toEqual(initial.propulsionSections);
+});
+
+test('section editor opens only on tap and closes without changing the trip',()=>{
+ const saved=jest.fn();
+ const ui=render(<TripEngineUse session={session} points={points} index={2} onSaved={saved}/>);
+ expect(ui.queryByRole('combobox')).toBeNull();
+ fireEvent.press(ui.getByRole('button',{name:/^Section 1/}));
+ expect(ui.getByRole('combobox')).toBeTruthy();
+ fireEvent.press(ui.getByRole('button',{name:'Close'}));
+ expect(ui.queryByRole('combobox')).toBeNull();
+ expect(saved).not.toHaveBeenCalled();
 });
