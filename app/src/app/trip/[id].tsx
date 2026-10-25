@@ -48,6 +48,7 @@ export default function TripDetail() {
     [busy, setBusy] = useState(false),
     [scrubbing, setScrubbing] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [headerBottom, setHeaderBottom] = useState(0);
   const [mapViewport, setMapViewport] = useState<{ id: string; region: MapRegion }>();
   const onViewportChange = useCallback((region: MapRegion) => setMapViewport({ id, region }), [id]);
   const { index, select } = useTripSelection(id, trip?.points ?? []);
@@ -149,6 +150,7 @@ export default function TripDetail() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
       <View
+        onLayout={({ nativeEvent: { layout } }) => setHeaderBottom(layout.y + layout.height)}
         style={{
           zIndex: 10,
           paddingHorizontal: 16,
@@ -188,8 +190,13 @@ export default function TripDetail() {
           </Pressable>
         </View>}
       </View>
-      {trip && menuOpen && <View accessibilityLabel={t("Trip options")} onAccessibilityEscape={() => setMenuOpen(false)}
-        style={{ marginHorizontal: 16, marginBottom: 12, alignSelf: 'flex-end', width: 260, padding: 6, borderRadius: 14, backgroundColor: c.panelBg }}>
+      {trip && menuOpen && <View pointerEvents="box-none"
+        style={{ position: 'absolute', top: headerBottom, right: 0, bottom: 0, left: 0, zIndex: 20 }}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t("Close")}
+          onPress={() => setMenuOpen(false)}
+          style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }} />
+      <View accessibilityLabel={t("Trip options")} onAccessibilityEscape={() => setMenuOpen(false)}
+        style={{ position: 'absolute', top: 0, right: 16, width: 260, maxWidth: '90%', padding: 6, borderRadius: 14, backgroundColor: c.panelBg, elevation: 8, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } }}>
         {(trip.session.mode === "local" || trip.session.phase === "stopping") && <Pressable accessibilityRole="button"
           onPress={() => { setMenuOpen(false); router.push({pathname: '/trip-sharing', params: {id: trip.session.id}}); }} style={{ padding: 14 }}>
           <Text style={{ color: c.text }}>{trip.session.phase === 'recording' ? t("Live sharing") : t("Publish / manage sharing")}</Text>
@@ -201,6 +208,7 @@ export default function TripDetail() {
           onPress={() => { setMenuOpen(false); deleteTrip(); }} style={{ padding: 14 }}>
           <Text style={{ color: '#c45c55' }}>{t("Delete trip")}</Text>
         </Pressable>}
+      </View>
       </View>}
       {trip ? (
         <ScrollView
