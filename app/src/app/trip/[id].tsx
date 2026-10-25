@@ -88,6 +88,10 @@ export default function TripDetail() {
       };
     }, [id]),
   );
+  function leaveTrip() {
+    if (router.canGoBack()) router.back();
+    else router.replace("/(tabs)/tracking");
+  }
   async function exportTrip() {
     if (!trip) return;
     setBusy(true);
@@ -137,7 +141,7 @@ export default function TripDetail() {
                 await discardStoppedTracking();
               }
               await deleteTripDiagnostics(trip.session.id);
-              router.back();
+              leaveTrip();
             })()
               .catch((e) => setError(String(e)))
               .finally(() => setBusy(false));
@@ -161,7 +165,7 @@ export default function TripDetail() {
           gap: 16,
         }}
       >
-        <BackButton onPress={() => router.back()} />
+        <BackButton onPress={leaveTrip} />
         <View style={{ flex: 1 }}>
           <Text style={{ color: c.text, fontWeight: "600", fontSize: 16 }}>
             {trip
