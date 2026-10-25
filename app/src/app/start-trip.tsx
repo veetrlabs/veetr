@@ -25,7 +25,7 @@ export default function StartTrip() {
   useLanguageRefresh();
   const c = themeColors[useTheme().theme];
   const [boat, setBoat] = useState<TripBoat>(),
-    [title, setTitle] = useState(t("My sailing trip")),
+    [title, setTitle] = useState(""),
     [visibility, setVisibility] = useState<TripVisibility>("private"),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
@@ -65,7 +65,7 @@ export default function StartTrip() {
       startedId = await startLocalTracking(visibility === "private" && privateBoats.length ? (privateBoat ? { ...privateBoat, localOnly: true } : undefined) : boat);
       await (
         await trackingStore()
-      ).updateTrip(startedId, { tripTitle: title.trim() || t("My sailing trip") });
+      ).updateTrip(startedId, { tripTitle: title.trim() });
       if (visibility !== "private")
         await setTripSharing(startedId, visibility, title);
       const auth = await trackingClient?.auth.getSession();

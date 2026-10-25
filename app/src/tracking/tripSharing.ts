@@ -1,3 +1,4 @@
+import { locale } from "../i18n";
 import * as Crypto from "expo-crypto";
 import { trackingClient, trackingRpc } from "./client";
 import { trackingStore } from "./database";
@@ -86,7 +87,7 @@ export const setTripSharing = (
       ...previous,
       id: previous?.id ?? Crypto.randomUUID(),
       userId,
-      title: title.trim() || "My sailing trip",
+      title: title.trim() || new Date(trip.session.startedAt).toLocaleDateString(locale(), { month: "long", day: "numeric", year: "numeric" }),
       visibility: previous?.visibility ?? "private",
       uploaded: previous?.uploaded ?? 0,
       pendingVisibility: visibility,

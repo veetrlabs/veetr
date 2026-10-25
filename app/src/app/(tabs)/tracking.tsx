@@ -171,7 +171,7 @@ export default function TrackingScreen() {
               style={{ flex: 1, padding: 13, gap: 7, justifyContent: "center" }}
             >
               <Text style={{ color: c.text, fontWeight: "600", fontSize: 15 }}>
-                {trip.session.mode === 'race' ? `${trip.session.raceName || trip.session.seriesName} · ${trip.session.boatName}` : new Date(trip.session.startedAt).toLocaleDateString(locale(), { month: "short", day: "numeric", year: "numeric" })}
+                {trip.session.tripTitle?.trim() || (trip.session.mode === 'race' ? `${trip.session.raceName || trip.session.seriesName} · ${trip.session.boatName}` : new Date(trip.session.startedAt).toLocaleDateString(locale(), { month: "short", day: "numeric", year: "numeric" }))}
               </Text>
               <Text style={{ color: c.textMuted, fontSize: 12 }}>
                 {new Date(trip.session.startedAt).toLocaleTimeString(locale(), {

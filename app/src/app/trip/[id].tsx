@@ -169,7 +169,7 @@ export default function TripDetail() {
         <View style={{ flex: 1 }}>
           <Text style={{ color: c.text, fontWeight: "600", fontSize: 16 }}>
             {trip
-              ? new Date(trip.session.startedAt).toLocaleDateString(locale(), {
+              ? trip.session.tripTitle?.trim() || new Date(trip.session.startedAt).toLocaleDateString(locale(), {
                   month: "long",
                   day: "numeric",
                   year: "numeric",

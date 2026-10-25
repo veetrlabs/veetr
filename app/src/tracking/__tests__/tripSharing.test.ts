@@ -167,3 +167,10 @@ test('late GPS backfill gets new upload sequences without changing earlier uploa
   expect(batches[1]).toEqual([{ ...late, seq: 3 }]);
   expect(trip.session.sharing?.uploaded).toBe(3);
 });
+
+test("empty titles share the trip date without filling the local title", async () => {
+  trip.session.tripTitle = "";
+  await setTripSharing("local", "public", "   ");
+  expect(trip.session.tripTitle).toBe("");
+  expect(trip.session.sharing?.title).toBe("24 September 2026");
+});

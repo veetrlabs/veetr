@@ -42,9 +42,9 @@ export default function TripSharingPage() {
         .then((recording) => {
           if (alive) {
             setTitle(
-              recording?.session.sharing?.title ??
-                recording?.session.tripTitle ??
-                t("My sailing trip"),
+              recording?.session.tripTitle ??
+                recording?.session.sharing?.title ??
+                "",
             );
             setVisibility(
               recording?.session.sharing?.pendingVisibility ??
@@ -155,7 +155,7 @@ export default function TripSharingPage() {
                   await (
                     await trackingStore()
                   ).updateTrip(id, {
-                    tripTitle: title.trim() || t("My sailing trip"),
+                    tripTitle: title.trim(),
                   });
                   if (visibility !== "private" || sh)
                     await setTripSharing(id, visibility, title);

@@ -82,7 +82,7 @@ test("missing boat directs the user to selection, then allows publishing after s
     expect(setTripSharing).toHaveBeenCalledWith(
       "trip",
       "public",
-      "My sailing trip",
+      "",
     ),
   );
   ui.unmount();
