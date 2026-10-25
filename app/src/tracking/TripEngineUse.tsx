@@ -1,4 +1,5 @@
 import { sectionStatistics } from './sectionStatistics';
+import TripReadings from './TripReadings';
 import { useMemo, useRef, useState } from "react";
 import { Modal, ScrollView, Pressable, Text, View } from "react-native";
 import { PolarSelect as Picker } from "../polar/PolarSelect";
@@ -75,7 +76,7 @@ export default function TripEngineUse({ session, points, index, range, onSaved }
       <Text style={{ color: c.textMuted, fontSize: 10 }}>{Number.isFinite(end) ? time(new Date(end).toISOString()) : ''}</Text>
     </View>
     <View style={{ gap: 12, marginTop: 12 }}>
-    {selected && <Text style={{ color: c.text }}>{t('Selected time')} · {time(selected.recordedAt)}</Text>}
+    <TripReadings point={selected} />
     {button(t('Split at selected time'), () => { if (canSplit) void save(splitPropulsion(session, selected.recordedAt), false, selected.recordedAt); }, !canSplit)}
       {!editorOpen && undo && button(t('Undo last section edit'), () => void save(undo, true))}
       {!editorOpen && !!error && <Text accessibilityRole="alert" style={{ color: c.text }}>{translateMessage(error)}</Text>}

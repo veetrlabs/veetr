@@ -1107,5 +1107,6 @@
   "Max": "Max",
   "Average": "Average",
   "While enabled, detailed GPS and motion measurements are also saved locally with your trips and included when you export a trip. These detailed logs are not uploaded in diagnostic reports. Turning this off deletes the local diagnostic logs; your trips remain.": "While enabled, detailed GPS and motion measurements are also saved locally with your trips and included when you export a trip. These detailed logs are not uploaded in diagnostic reports. Turning this off deletes the local diagnostic logs; your trips remain.",
-  "Whole trip": "Whole trip"
+  "Whole trip": "Whole trip",
+  "Time": "Time"
 }

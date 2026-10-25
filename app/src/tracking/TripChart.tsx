@@ -246,6 +246,7 @@ export default function TripChart({
       {!points.length && <Text style={{ color: c.textMuted }}>{t(region ? "No recorded positions in this view. Zoom out or fit the whole trip." : "No recorded positions in this time range.")}</Text>}
 
 
+      {!renderSections && <>
       <Text style={{ color: c.textMuted, fontSize: 12, textAlign: 'right' }}>{"knots"}</Text>
       {boatTracks ? (
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 16 }}>
@@ -276,6 +277,7 @@ export default function TripChart({
           </View>
         ))}
       </View>}
+      </>}
       <Text
         style={{
           color: c.text,
@@ -284,9 +286,9 @@ export default function TripChart({
           fontVariant: ["tabular-nums"],
         }}
       >
-        {point ? time(point.recordedAt) : t("No recorded positions")}
+        {!renderSections && (point ? time(point.recordedAt) : t("No recorded positions"))}
         {point && !boatTracks
-          ? ` · ${formatNumber(point.latitude, 5)}, ${formatNumber(point.longitude, 5)}`
+          ? `${renderSections ? '' : ' · '}${formatNumber(point.latitude, 5)}, ${formatNumber(point.longitude, 5)}`
           : ""}
       </Text>
       <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 16 }}>
