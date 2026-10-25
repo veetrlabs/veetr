@@ -209,13 +209,25 @@ export default function TripDetail() {
             style={{
               height: Math.max(200, Math.min(340, height * 0.35)),
               marginHorizontal: 16,
-              borderRadius: 18,
+              borderTopLeftRadius: 18,
+              borderTopRightRadius: 18,
               overflow: "hidden",
             }}
           >
             <TripMap key={id} course={trip.session.course} points={trip.points} selected={trip.points[index]} finished={trip.session.phase === "stopping"} onViewportChange={onViewportChange} />
           </View>
-          <View style={{ padding: 20, gap: 24 }}>
+          <View style={{ paddingHorizontal: 20, paddingBottom: 20, gap: 24 }}>
+            <TripChart
+              key={id}
+              region={mapViewport?.id === id ? mapViewport.region : undefined}
+              sections={trip.session.propulsionSections}
+              renderSections={range => (<TripEngineUse key={id} session={trip.session} points={trip.points} index={index} range={range}
+              onSaved={session => setTrip(previous => previous ? { ...previous, session: { ...previous.session, engineUse: session.engineUse, propulsionSections: session.propulsionSections } } : previous)} />)}
+              points={trip.points}
+              index={index}
+              onSelect={select}
+              onScrubbing={setScrubbing}
+            />
             {trip.session.phase === "recording" && (
               (trip.session.error || trip.session.lastTaskError || recordingStatus(trip.session, now) !== t("Recording")) && (
                 <Pressable accessibilityRole={warning?.settings === false ? undefined : "button"} disabled={warning?.settings === false} onPress={() => router.push("/settings")}>
@@ -232,18 +244,6 @@ export default function TripDetail() {
             {trip.session.mode === 'race' && trip.session.eventId && <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/race-replay', params: { seriesId: trip.session.seriesId, eventId: trip.session.eventId!, tripId: trip.session.id } })} style={{ padding: 14, backgroundColor: c.buttonBg, borderRadius: 12 }}>
               <Text style={{ color: c.text }}>{t("Replay race · show competitors")}</Text>
             </Pressable>}
-
-            <TripChart
-              key={id}
-              region={mapViewport?.id === id ? mapViewport.region : undefined}
-              sections={trip.session.propulsionSections}
-              renderSections={range => (<TripEngineUse key={id} session={trip.session} points={trip.points} index={index} range={range}
-              onSaved={session => setTrip(previous => previous ? { ...previous, session: { ...previous.session, engineUse: session.engineUse, propulsionSections: session.propulsionSections } } : previous)} />)}
-              points={trip.points}
-              index={index}
-              onSelect={select}
-              onScrubbing={setScrubbing}
-            />
           </View>
         </ScrollView>
       ) : (

@@ -104,44 +104,6 @@ export default function TripChart({
     });
   return (
     <View style={{ gap: 12 }}>
-      {window && <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-        <Text style={{ color: c.textMuted, flex: 1 }}>{t("Selected time range")}</Text>
-        {window && <Pressable accessibilityRole="button" onPress={() => setWindow(undefined)} style={{ padding: 12 }}><Text style={{ color: "#008c80" }}>{t("Reset chart")}</Text></Pressable>}
-      </View>}
-      {boatTracks?.length === 0 && <Text style={{ color: c.textMuted }}>{t("Turn on a boat to compare its instruments.")}</Text>}
-      {!points.length && <Text style={{ color: c.textMuted }}>{t(region ? "No recorded positions in this view. Zoom out or fit the whole trip." : "No recorded positions in this time range.")}</Text>}
-
-
-      <Text style={{ color: c.textMuted, fontSize: 12, textAlign: 'right' }}>{"knots"}</Text>
-      {boatTracks ? (
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 16 }}>
-          {series.filter(metric => paths.some(path => path.key === metric.key)).map(metric => (
-            <Text key={metric.key} style={{ color: c.textMuted, fontSize: 12 }}>
-              {metric.dash ? metric.key === "aws" ? "┄" : "┈" : "━"} {metric.label}
-            </Text>
-          ))}
-        </View>
-      ) : <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 22 }}>
-        {paths.map((s) => (
-          <View key={s.id} style={{ gap: 4 }}>
-            <Text style={{ color: s.color, fontSize: 12, fontWeight: "600" }}>
-              {s.dash ? "┄" : "●"} {s.label}
-            </Text>
-            <Text
-              style={{
-                color: c.text,
-                fontSize: 23,
-                fontWeight: "600",
-                fontVariant: ["tabular-nums"],
-              }}
-            >
-              {s.value !== null
-                ? formatNumber(s.value, 1)
-                : "—"}
-            </Text>
-          </View>
-        ))}
-      </View>}
       <View>
       <View
         ref={chartRef}
@@ -205,7 +167,7 @@ export default function TripChart({
             ),
           )
         }
-        style={{ height: 150, paddingLeft: 32, paddingRight: 12 }}
+        style={{ height: 140, paddingLeft: 32, paddingRight: 12 }}
       >
         {[0, 0.5, 1].map((t) => (
           <Text
@@ -213,7 +175,7 @@ export default function TripChart({
             style={{
               position: "absolute",
               left: 0,
-              top: 10 + t * 140 - 7,
+              top: Math.max(0, t * 140 - 7),
               color: c.textMuted,
               fontSize: 10,
             }}
@@ -224,8 +186,8 @@ export default function TripChart({
         <Svg
           pointerEvents="none"
           width="100%"
-          height={150}
-          viewBox="0 -10 320 150"
+          height={140}
+          viewBox="0 0 320 140"
           preserveAspectRatio="none"
         >
           {[0, 70, 140].map((y) => (
@@ -290,6 +252,44 @@ export default function TripChart({
           </Text>
         </View>}
       </View>
+      {window && <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+        <Text style={{ color: c.textMuted, flex: 1 }}>{t("Selected time range")}</Text>
+        {window && <Pressable accessibilityRole="button" onPress={() => setWindow(undefined)} style={{ padding: 12 }}><Text style={{ color: "#008c80" }}>{t("Reset chart")}</Text></Pressable>}
+      </View>}
+      {boatTracks?.length === 0 && <Text style={{ color: c.textMuted }}>{t("Turn on a boat to compare its instruments.")}</Text>}
+      {!points.length && <Text style={{ color: c.textMuted }}>{t(region ? "No recorded positions in this view. Zoom out or fit the whole trip." : "No recorded positions in this time range.")}</Text>}
+
+
+      <Text style={{ color: c.textMuted, fontSize: 12, textAlign: 'right' }}>{"knots"}</Text>
+      {boatTracks ? (
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 16 }}>
+          {series.filter(metric => paths.some(path => path.key === metric.key)).map(metric => (
+            <Text key={metric.key} style={{ color: c.textMuted, fontSize: 12 }}>
+              {metric.dash ? metric.key === "aws" ? "┄" : "┈" : "━"} {metric.label}
+            </Text>
+          ))}
+        </View>
+      ) : <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 22 }}>
+        {paths.map((s) => (
+          <View key={s.id} style={{ gap: 4 }}>
+            <Text style={{ color: s.color, fontSize: 12, fontWeight: "600" }}>
+              {s.dash ? "┄" : "●"} {s.label}
+            </Text>
+            <Text
+              style={{
+                color: c.text,
+                fontSize: 23,
+                fontWeight: "600",
+                fontVariant: ["tabular-nums"],
+              }}
+            >
+              {s.value !== null
+                ? formatNumber(s.value, 1)
+                : "—"}
+            </Text>
+          </View>
+        ))}
+      </View>}
       <Text
         style={{
           color: c.text,
