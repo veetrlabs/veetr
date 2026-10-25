@@ -112,16 +112,7 @@ export default function TripChart({
       {!points.length && <Text style={{ color: c.textMuted }}>{t(region ? "No recorded positions in this view. Zoom out or fit the whole trip." : "No recorded positions in this time range.")}</Text>}
 
 
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "baseline",
-        }}
-      >
-        <Text style={{ color: c.text, fontWeight: "600" }}>{t("Speed & wind")}</Text>
-        <Text style={{ color: c.textMuted, fontSize: 12 }}>{"knots"}</Text>
-      </View>
+      <Text style={{ color: c.textMuted, fontSize: 12, textAlign: 'right' }}>{"knots"}</Text>
       {boatTracks ? (
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 16 }}>
           {series.filter(metric => paths.some(path => path.key === metric.key)).map(metric => (
@@ -328,11 +319,6 @@ export default function TripChart({
           </View>
         ))}
       </View>
-      <Text style={{ color: c.textMuted, fontSize: 12, textAlign: "center" }}>
-        {t("Heading is magnetic; course is true. Wind wedges require a recorded heading.")}
-      </Text>
-      <Text style={{ color: c.textMuted, fontSize: 12, textAlign: "center" }}>
-        {t("Pinch to zoom the chart. Slide to explore your trip.")}</Text>
       {(boatTracks ? boatTracks.length > 0 && !boatTracks.some(boat => boat.points.some(p => series.some(s => metricValue(p, s.key) !== null)))
         : !points.some(p => active.some(s => metricValue(p, s.key) !== null))) && (
         <Text style={{ color: c.textMuted, fontSize: 13 }}>

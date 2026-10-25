@@ -201,6 +201,10 @@ export default function TripDetail() {
           scrollEnabled={!scrubbing}
           contentContainerStyle={{ paddingBottom: 24 }}
         >
+          <View style={{ paddingHorizontal: 20, paddingBottom: 16 }}>
+            <TripBoat key={`boat:${id}`} session={trip.session}
+              onSaved={session => setTrip(previous => previous ? { ...previous, session: { ...previous.session, boatId: session.boatId, boatName: session.boatName, userId: session.userId } } : previous)} />
+          </View>
           <View
             style={{
               height: Math.max(200, Math.min(340, height * 0.35)),
@@ -212,7 +216,6 @@ export default function TripDetail() {
             <TripMap key={id} course={trip.session.course} points={trip.points} selected={trip.points[index]} finished={trip.session.phase === "stopping"} onViewportChange={onViewportChange} />
           </View>
           <View style={{ padding: 20, gap: 24 }}>
-            <Text style={{color:c.textMuted,fontSize:12}}>{t("Dashed route sections are estimates across unreliable or missing GPS fixes.")}</Text>
             {trip.session.phase === "recording" && (
               (trip.session.error || trip.session.lastTaskError || recordingStatus(trip.session, now) !== t("Recording")) && (
                 <Pressable accessibilityRole={warning?.settings === false ? undefined : "button"} disabled={warning?.settings === false} onPress={() => router.push("/settings")}>
@@ -230,8 +233,6 @@ export default function TripDetail() {
               <Text style={{ color: c.text }}>{t("Replay race · show competitors")}</Text>
             </Pressable>}
 
-            <TripBoat key={`boat:${id}`} session={trip.session}
-              onSaved={session => setTrip(previous => previous ? { ...previous, session: { ...previous.session, boatId: session.boatId, boatName: session.boatName, userId: session.userId } } : previous)} />
             <TripChart
               key={id}
               region={mapViewport?.id === id ? mapViewport.region : undefined}

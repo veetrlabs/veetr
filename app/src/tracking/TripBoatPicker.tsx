@@ -138,7 +138,7 @@ export default function TripBoatPicker({
         </ScrollView>
       </View>}
       {!!error ? (
-        <Text accessibilityRole="alert" style={{ color: c.text }}>
+        expanded && <Text accessibilityRole="alert" style={{ color: c.text }}>
           {translateMessage(error)}
         </Text>
       ) : (
