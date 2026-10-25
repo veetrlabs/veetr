@@ -102,31 +102,28 @@ export function metricValue(p: TrackingPoint, metric: Metric): number | null {
       : p.instruments?.[metric];
   return v != null && Number.isFinite(v) && ((metric === "awa" || metric === "twa") ? Math.abs(v) <= 180 : v >= 0) ? v : null;
 }
-export function chartPath(
+export function chartSamples(
   points: TrackingPoint[],
   metric: Metric,
-  max: number,
   width = 320,
-  height = 140,
-  min = 0,
   originalIndices?: number[],
   timeBounds?: [number, number],
 ) {
   const start = timeBounds?.[0] ?? Date.parse(points[0]?.recordedAt),
     end = timeBounds?.[1] ?? Date.parse(points.at(-1)?.recordedAt || "");
   let previous: number | null = null;
-  const commands: string[] = [];
+  const samples: { x: number; value: number; move: boolean }[] = [];
   // One mean per four chart units: wider time intervals in the overview,
   // narrower intervals when zoomed in. Only the rendered line is averaged.
   const averageSpeed = metric === 'sog' || metric === 'aws' || metric === 'tws';
-  let count = 0, sumX = 0, sumY = 0;
+  let count = 0, sumX = 0, sumValue = 0;
   let column = -1;
   let newSegment = true;
   function flush() {
     if (!count) return;
-    commands.push(`${newSegment ? "M" : "L"}${(sumX / count).toFixed(2)},${(sumY / count).toFixed(2)} `);
+    samples.push({ x: sumX / count, value: sumValue / count, move: newSegment });
     newSegment = false;
-    count = 0; sumX = 0; sumY = 0;
+    count = 0; sumX = 0; sumValue = 0;
   }
   for (const [index, p] of points.entries()) {
     const v = metricValue(p, metric), t = Date.parse(p.recordedAt);
@@ -138,10 +135,21 @@ export function chartPath(
     const nextColumn = averageSpeed ? Math.floor(x / 4) : index;
     if (nextColumn !== column) { flush(); column = nextColumn; }
     sumX += x;
-    sumY += height - height * (v - min) / Math.max(0.001, max - min);
+    sumValue += v;
     count++;
     previous = t;
   }
   flush();
-  return commands.join("");
+  return samples;
+}
+
+/** Scale to the averaged line actually drawn, with a little room above its peak. */
+export function chartMaximum(samples: { value: number }[]) {
+  const peak = samples.reduce((max, sample) => Math.max(max, sample.value), 0);
+  return peak > 0 ? peak * 1.08 : 1;
+}
+export function chartPath(points: TrackingPoint[], metric: Metric, max: number, width = 320, height = 140,
+  min = 0, originalIndices?: number[], timeBounds?: [number, number]) {
+  return chartSamples(points, metric, width, originalIndices, timeBounds).map(sample =>
+    `${sample.move ? "M" : "L"}${sample.x.toFixed(2)},${(height - height * (sample.value - min) / Math.max(0.001, max - min)).toFixed(2)} `).join("");
 }

@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { View, Text, Pressable } from "react-native";
 import Svg, { Circle, Line, Path } from "react-native-svg";
 import type { TrackingPoint } from "./model";
-import { chartPath, metricValue, nearestPoint } from "./trip";
+import { chartPath, chartSamples, chartMaximum, metricValue, nearestPoint } from "./trip";
 import { useTheme } from "../context/ThemeContext";
 import { themeColors } from "../constants/colors";
 import { chartMetrics as series, fleetChartSeries } from "./chartSeries";
@@ -67,8 +67,8 @@ export default function TripChart({
   );
   const singleMax = useMemo(
     () =>
-      points.reduce((largest, p) => active.reduce((value, s) => Math.max(value, metricValue(p, s.key) ?? 0), largest), 1),
-    [points, active],
+      chartMaximum(active.flatMap(s => chartSamples(points, s.key, 320, originalIndices, window))),
+    [points, active, originalIndices, window],
   );
   const start = window?.[0] ?? Date.parse(points[0]?.recordedAt),
     end = window?.[1] ?? Date.parse(points.at(-1)?.recordedAt || "");
@@ -91,7 +91,7 @@ export default function TripChart({
       nearestPoint(
         points,
         start +
-          Math.max(0, Math.min(1, (locationX - 32) / Math.max(1, width - 44))) *
+          Math.max(0, Math.min(1, locationX / Math.max(1, width))) *
             (end - start),
       ),
     );
@@ -132,7 +132,7 @@ export default function TripChart({
             if (available.length < 2 || !distance) return;
             wasPinching.current = true;
             if (!pinch.current) pinch.current = { distance, window: window || bounds,
-              anchor: Math.max(0, Math.min(1, ((touches[0].pageX + touches[1].pageX) / 2 - chartLeft.current - 32) / Math.max(1, width - 44))) };
+              anchor: Math.max(0, Math.min(1, ((touches[0].pageX + touches[1].pageX) / 2 - chartLeft.current) / Math.max(1, width))) };
             setWindow(zoomWindow(bounds, pinch.current.window, distance / pinch.current.distance, pinch.current.anchor));
           } else if (!wasPinching.current) select(e.nativeEvent.pageX - chartLeft.current);
         }}
@@ -167,22 +167,8 @@ export default function TripChart({
             ),
           )
         }
-        style={{ height: 140, paddingLeft: 32, paddingRight: 12 }}
+        style={{ height: 140 }}
       >
-        {[0, 0.5, 1].map((t) => (
-          <Text
-            key={t}
-            style={{
-              position: "absolute",
-              left: 0,
-              top: Math.max(0, t * 140 - 7),
-              color: c.textMuted,
-              fontSize: 10,
-            }}
-          >
-            {formatNumber((max - (max - min) * t), max < 2 ? 1 : 0)}
-          </Text>
-        ))}
         <Svg
           pointerEvents="none"
           width="100%"
@@ -230,7 +216,7 @@ export default function TripChart({
           {point &&
             paths.map(
               (s) =>
-                s.value !== null && (
+                s.value !== null && s.value <= max && (
                   <Circle
                     key={s.id}
                     cx={x}
@@ -243,7 +229,7 @@ export default function TripChart({
         </Svg>
       </View>
       {renderSections?.([start, end])}
-        {!renderSections && <View style={{ marginLeft: 32, marginRight: 12, flexDirection: "row", justifyContent: "space-between" }}>
+        {!renderSections && <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
           <Text style={{ color: c.textMuted, fontSize: 10 }}>
             {points.length ? time(new Date(start).toISOString()) : ""}
           </Text>

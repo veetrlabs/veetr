@@ -12,6 +12,10 @@ export function sectionStatistics(points: TrackingPoint[], sections: PropulsionS
     const at = Date.parse(p.recordedAt);
     return Number.isFinite(at) && at >= start && at < end;
   });
+  return speedStatistics(samples);
+}
+
+export function speedStatistics(samples: TrackingPoint[]) {
   return (['sog', 'aws', 'tws'] as const).map(metric => {
     let min = Infinity, max = -Infinity, sum = 0, count = 0;
     for (const point of samples) {

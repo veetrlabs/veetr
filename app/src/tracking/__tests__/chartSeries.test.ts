@@ -17,7 +17,7 @@ test("boats share axes but keep separate paths, metrics and recording gaps", () 
   expect(chart.series[2].color).toBe("blue");
   expect(chart.series[2].value).toBeCloseTo(4 * 1.94384449);
   expect(chart.series[1].value).toBe(6);
-  expect(chart.max).toBeCloseTo(5 * 1.94384449);
+  expect(chart.max).toBeCloseTo(5 * 1.94384449 * 1.08);
 });
 test("future and stale values are absent and hidden boats do not affect scale", () => {
   const boat = { id: "b", name: "Beta", color: "blue", points: [point(20, 1), point(120, 50)] };
@@ -25,6 +25,6 @@ test("future and stale values are absent and hidden boats do not affect scale", 
   expect(fleetChartSeries([boat], [0, 120000], 90000).series[0].value).toBeNull();
   expect(fleetChartSeries([], [0, 120000], 20000)).toEqual({ max: 1, series: [] });
   const zoomed = fleetChartSeries([boat], [0, 30000], 20000);
-  expect(zoomed.max).toBeCloseTo(1.94384449);
+  expect(zoomed.max).toBeCloseTo(1.94384449 * 1.08);
   expect(zoomed.series[0].path).not.toContain("L");
 });

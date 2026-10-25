@@ -1,5 +1,6 @@
 import { writeTripExport } from '../../diagnostics/tripExport';
 import { deleteTripDiagnostics } from '../../diagnostics/tripRecording';
+import TripStatistics from "../../tracking/TripStatistics";
 import TripBoat from "../../tracking/TripBoat";
 import TripEngineUse from "../../tracking/TripEngineUse";
 import type { MapRegion } from '../../maps/headingRay';
@@ -230,7 +231,7 @@ export default function TripDetail() {
           >
             <TripMap key={id} course={trip.session.course} points={trip.points} selected={trip.points[index]} finished={trip.session.phase === "stopping"} onViewportChange={onViewportChange} />
           </View>
-          <View style={{ paddingHorizontal: 20, paddingBottom: 20, gap: 24 }}>
+          <View style={{ paddingHorizontal: 16, paddingBottom: 20, gap: 24 }}>
             <TripChart
               key={id}
               region={mapViewport?.id === id ? mapViewport.region : undefined}
@@ -242,6 +243,7 @@ export default function TripDetail() {
               onSelect={select}
               onScrubbing={setScrubbing}
             />
+            <TripStatistics points={trip.points} />
             {trip.session.phase === "recording" && (
               (trip.session.error || trip.session.lastTaskError || recordingStatus(trip.session, now) !== t("Recording")) && (
                 <Pressable accessibilityRole={warning?.settings === false ? undefined : "button"} disabled={warning?.settings === false} onPress={() => router.push("/settings")}>

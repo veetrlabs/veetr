@@ -1,9 +1,16 @@
-import { sectionStatistics } from '../sectionStatistics';
+import { sectionStatistics, speedStatistics } from '../sectionStatistics';
 import type { TrackingPoint } from '../model';
 const stamp = (n: number) => new Date(n * 1000).toISOString();
 const point = (at: number, sogMps: number | null, aws: number | null, tws: number | null) =>
   ({ recordedAt: stamp(at), sogMps, instruments: { aws, tws } } as TrackingPoint);
 const sections = [0, 10].map(at => ({ startedAt: stamp(at), propulsion: 'unknown' as const }));
+test('whole-trip statistics preserve raw peaks and average only available readings', () => {
+  const rows = speedStatistics([point(0, 0, 4, null), point(5, 10, null, null), point(20, null, 8, null)]);
+  expect(rows[0].max).toBeCloseTo(10 * 1.94384449);
+  expect(rows[0].average).toBeCloseTo(5 * 1.94384449);
+  expect(rows[1].average).toBe(6);
+  expect(rows[2].average).toBeNull();
+});
 test('uses whole section, assigns boundary to the right and includes the final sample', () => {
   const points = [point(0, 0, 2, 4), point(5, 2, 6, 8), point(10, 10, 20, 30), point(20, 20, 40, 50)];
   const first = sectionStatistics(points, sections, 0);

@@ -1116,5 +1116,6 @@
   "Min": "Min",
   "Max": "Max",
   "Average": "Průměr",
-  "While enabled, detailed GPS and motion measurements are also saved locally with your trips and included when you export a trip. These detailed logs are not uploaded in diagnostic reports. Turning this off deletes the local diagnostic logs; your trips remain.": "Při zapnutí se s plavbami ukládají také podrobná měření GPS a pohybových snímačů. Zahrnou se do exportu plavby, ale neposílají se v diagnostických hlášeních. Vypnutím se místní diagnostické záznamy smažou; plavby zůstanou."
+  "While enabled, detailed GPS and motion measurements are also saved locally with your trips and included when you export a trip. These detailed logs are not uploaded in diagnostic reports. Turning this off deletes the local diagnostic logs; your trips remain.": "Při zapnutí se s plavbami ukládají také podrobná měření GPS a pohybových snímačů. Zahrnou se do exportu plavby, ale neposílají se v diagnostických hlášeních. Vypnutím se místní diagnostické záznamy smažou; plavby zůstanou.",
+  "Whole trip": "Celá plavba"
 }

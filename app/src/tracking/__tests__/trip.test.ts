@@ -1,5 +1,7 @@
 import {
   chartPath,
+  chartSamples,
+  chartMaximum,
   distanceNm,
   durationLabel,
   metricValue,
@@ -97,6 +99,12 @@ test('long charts average dense samples without altering recorded peaks', () => 
   expect(path).not.toContain(',0.00');
   expect(data[5001].sogMps).toBe(10);
   expect(path.match(/M/g)).toHaveLength(1);
+  const samples = chartSamples(data, 'sog');
+  const max = chartMaximum(samples);
+  expect(max).toBeLessThan(3 * 1.94384449);
+  expect(Math.max(...samples.map(p => p.value)) / max).toBeCloseTo(1 / 1.08);
+  expect(chartMaximum([])).toBe(1);
+  expect(chartMaximum([{value: 0}])).toBe(1);
 });
 
  test('zoom reveals individual speed samples instead of averaging the whole trip', () => {

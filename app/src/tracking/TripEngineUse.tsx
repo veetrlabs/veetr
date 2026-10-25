@@ -55,7 +55,7 @@ export default function TripEngineUse({ session, points, index, range, onSaved }
     </Pressable>
   );
   return <View>
-    <View accessibilityLabel={t('Trip sections')} style={{ marginLeft: 32, marginRight: 12, flexDirection: 'row', height: 22, gap: 2 }}>
+    <View accessibilityLabel={t('Trip sections')} style={{ flexDirection: 'row', height: 22, gap: 2 }}>
       {sections.map((section, i) => {
         const from = Math.max(start, i === 0 ? start : Date.parse(section.startedAt));
         const to = Math.min(end, Date.parse(sections[i + 1]?.startedAt ?? points.at(-1)?.recordedAt ?? session.startedAt));
@@ -70,7 +70,7 @@ export default function TripEngineUse({ session, points, index, range, onSaved }
         </Pressable>;
       })}
     </View>
-    <View style={{ marginLeft: 32, marginRight: 12, flexDirection: 'row', justifyContent: 'space-between' }}>
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
       <Text style={{ color: c.textMuted, fontSize: 10 }}>{Number.isFinite(start) ? time(new Date(start).toISOString()) : ''}</Text>
       <Text style={{ color: c.textMuted, fontSize: 10 }}>{Number.isFinite(end) ? time(new Date(end).toISOString()) : ''}</Text>
     </View>
