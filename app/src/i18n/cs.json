@@ -1112,5 +1112,8 @@
   "Tap a section to edit it. Green: sailing · Grey: motor · Amber: unknown.": "Klepnutím vyberte úsek k úpravě. Zelená: plachty · Šedá: motor · Oranžová: neznámé.",
   "← Join left": "← Spojit vlevo",
   "Join right →": "Spojit vpravo →",
-  "Joining keeps the selected section’s propulsion.": "Spojený úsek převezme pohon vybraného úseku."
+  "Joining keeps the selected section’s propulsion.": "Spojený úsek převezme pohon vybraného úseku.",
+  "Min": "Min",
+  "Max": "Max",
+  "Average": "Průměr"
 }

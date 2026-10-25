@@ -1102,5 +1102,8 @@
   "Tap a section to edit it. Green: sailing · Grey: motor · Amber: unknown.": "Tap a section to edit it. Green: sailing · Grey: motor · Amber: unknown.",
   "← Join left": "← Join left",
   "Join right →": "Join right →",
-  "Joining keeps the selected section’s propulsion.": "Joining keeps the selected section’s propulsion."
+  "Joining keeps the selected section’s propulsion.": "Joining keeps the selected section’s propulsion.",
+  "Min": "Min",
+  "Max": "Max",
+  "Average": "Average"
 }

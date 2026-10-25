@@ -1,10 +1,11 @@
-import { useRef, useState } from "react";
+import { sectionStatistics } from './sectionStatistics';
+import { useMemo, useRef, useState } from "react";
 import { Modal, ScrollView, Pressable, Text, View } from "react-native";
 import { PolarSelect as Picker } from "../polar/PolarSelect";
 import { trackingStore } from "./database";
 import type { TrackingPoint, TrackingSession } from "./model";
 import { propulsionPatch, propulsionSections, splitPropulsion, type Propulsion, type PropulsionSection } from './propulsion';
-import { locale, t, translateMessage } from "../i18n";
+import { formatNumber, locale, t, translateMessage } from "../i18n";
 import { useTheme } from "../context/ThemeContext";
 import { themeColors } from "../constants/colors";
 export default function TripEngineUse({ session, points, index, range, onSaved }: {
@@ -24,6 +25,9 @@ export default function TripEngineUse({ session, points, index, range, onSaved }
   const [activeStart, setActiveStart] = useState<string>();
   const chartSection = sections.filter(s => Date.parse(s.startedAt) <= Date.parse(selected?.recordedAt ?? '')).at(-1)?.startedAt;
   const activeIndex = Math.max(0, sections.findIndex(s => s.startedAt === (activeStart ?? chartSection)));
+  const sectionStart = sections[activeIndex]?.startedAt;
+  const sectionEnd = sections[activeIndex + 1]?.startedAt;
+  const statistics = useMemo(() => sectionStatistics(points, sections, activeIndex), [points, activeIndex, sectionStart, sectionEnd]);
   const start = range?.[0] ?? Date.parse(points[0]?.recordedAt ?? session.startedAt);
   const end = range?.[1] ?? Date.parse(points.at(-1)?.recordedAt ?? session.startedAt);
   const label = (propulsion: Propulsion) => t(propulsion === 'sailing-only' ? 'Sailing only' : propulsion === 'engine-used' ? 'Engine used' : 'Unknown');
@@ -74,6 +78,16 @@ export default function TripEngineUse({ session, points, index, range, onSaved }
     {button(t('Split at selected time'), () => { if (canSplit) void save(splitPropulsion(session, selected.recordedAt), false, selected.recordedAt); }, !canSplit)}
     {sections.map((section, i) => i === activeIndex && <View key={section.startedAt} style={{ gap: 8, padding: 12, borderRadius: 8, borderWidth: 1, borderColor: c.border }}>
       <Text style={{ color: c.text, fontWeight: '600' }}>{t('Section')} {i + 1} · {time(i === 0 ? points[0]?.recordedAt ?? section.startedAt : section.startedAt)} – {time(sections[i + 1]?.startedAt ?? points.at(-1)?.recordedAt ?? section.startedAt)}</Text>
+      <View style={{ gap: 8 }}>
+        <View style={{ flexDirection: 'row', gap: 4 }}>
+          <Text style={{ flex: 1, color: c.textMuted, fontSize: 12 }}>knots</Text>
+          {['Min', 'Max', 'Average'].map(title => <Text key={title} style={{ flex: 1, textAlign: 'right', color: c.textMuted, fontSize: 12 }}>{t(title)}</Text>)}
+        </View>
+        {statistics.map(row => <View key={row.metric} style={{ flexDirection: 'row', gap: 4 }}>
+          <Text style={{ flex: 1, color: c.text, fontWeight: '600' }}>{row.metric.toUpperCase()}</Text>
+          {[row.min, row.max, row.average].map((value, n) => <Text key={n} style={{ flex: 1, textAlign: 'right', color: c.text, fontVariant: ['tabular-nums'] }}>{value === null ? '—' : formatNumber(value, 1)}</Text>)}
+        </View>)}
+      </View>
       <Picker accessibilityLabel={`${t('Propulsion')} · ${t('Section')} ${i + 1}`} selectedValue={section.propulsion} enabled={!busy}
         onValueChange={value => void save(sections.map((s, n) => n === i ? { ...s, propulsion: value as Propulsion } : s))}>
         <Picker.Item value="unknown" label={t('Unknown')} />

@@ -6,7 +6,7 @@ const mockUpdate=jest.fn();
 jest.mock('react-native',()=>({Text:'Text',View:'View',Modal:'Modal',ScrollView:'ScrollView',Pressable:({children,...props}:any)=>require('react').createElement('View',{accessible:true,...props},children),StyleSheet:{flatten:(s:unknown)=>s}}));
 jest.mock('../../context/ThemeContext',()=>({useTheme:()=>({theme:'light'})}));
 jest.mock('../database',()=>({trackingStore:async()=>({updateTrip:mockUpdate})}));
-jest.mock('../../i18n',()=>({t:(s:string)=>s,translateMessage:(s:string)=>s,locale:()=> 'en'}));
+jest.mock('../../i18n',()=>({formatNumber:(n:number,d:number)=>n.toFixed(d),t:(s:string)=>s,translateMessage:(s:string)=>s,locale:()=> 'en'}));
 const points = [0,1,2,3].map(i=>({recordedAt:new Date(i*10000).toISOString()} as TrackingPoint));
 const session = {id:'trip',startedAt:points[0].recordedAt,engineUse:'sailing-only'} as TrackingSession;
 beforeEach(()=>mockUpdate.mockReset());
@@ -28,6 +28,7 @@ test('split, change propulsion, join and undo persist without changing recorded 
  fireEvent.press(ui.getByText('Engine used'));
  await waitFor(()=>expect(saved).toHaveBeenCalledTimes(2));
  expect(saved.mock.calls[1][0].engineUse).toBe('engine-used');
+ await waitFor(()=>expect(ui.getByRole('button',{name:'← Join left'}).props.accessibilityState.disabled).toBe(false));
  fireEvent.press(ui.getByText('← Join left'));
  await waitFor(()=>expect(ui.getAllByRole('button', {name: /^Section /})).toHaveLength(1));
  fireEvent.press(ui.getByText('Undo last section edit'));
