@@ -8,13 +8,12 @@ let pending: Promise<unknown> = Promise.resolve();
 export function useAccountLanguage(
   userId: string,
   language: Language,
-  administration: boolean,
 ) {
   const [error, setError] = useState("");
   useEffect(() => {
     let active = true;
     setError("");
-    if (!userId || !administration || !supabase) return;
+    if (!userId || !supabase) return;
     const auth = supabase.auth;
     const save = () => {
       pending = pending
@@ -38,6 +37,6 @@ export function useAccountLanguage(
       active = false;
       window.removeEventListener("online", save);
     };
-  }, [userId, language, administration]);
+  }, [userId, language]);
   return error;
 }

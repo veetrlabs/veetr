@@ -1,7 +1,7 @@
 import type { Language } from "./i18n";
 
 // Metadata is a communication preference only; never use it for permissions.
-export async function rememberAccountLanguage(
+async function writeAccountLanguage(
   auth: {
     getUser: () => Promise<{
       data: {
@@ -28,4 +28,13 @@ export async function rememberAccountLanguage(
     data: { preferred_language: language },
   });
   if (result.error) throw result.error;
+}
+
+// Header changes, login effects, and account settings share one write queue.
+let pending: Promise<void> = Promise.resolve();
+export function rememberAccountLanguage(
+  ...args: Parameters<typeof writeAccountLanguage>
+): Promise<void> {
+  pending = pending.catch(() => {}).then(() => writeAccountLanguage(...args));
+  return pending;
 }

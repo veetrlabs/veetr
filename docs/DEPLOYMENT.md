@@ -257,8 +257,9 @@ invitation with at least a minute between attempts. Boat invitations retain thei
 existing requirement to use the invited email address.
 
 Account metadata stores `preferred_language` (`en` or `cs`) when a signed-in
-person uses administration or changes its language. Registration stores the
-initial language too. This is a communication preference, never an authorization
+person signs in or changes language. Registration stores the initial language
+too. Account settings provide an autosaving language selector; the website
+header also saves explicit choices for signed-in users before navigation. This is a communication preference, never an authorization
 claim. Boat and tracking invitation email preparation reads the recipient's
 stored preference; missing or unsupported values fall back to English. Series-team
 invitations use the explicitly selected language and default to English, since

@@ -1,4 +1,4 @@
-import {useLanguage} from "./i18n";
+import {AccountLanguageSettings} from "./AccountLanguageSettings";
 import {SeriesInvitationAcceptance} from "./SeriesInvitationAcceptance";
 import { UserManagement } from "./UserManagement";
 import { MySeries } from "./MySeries";
@@ -27,7 +27,6 @@ export function AccountPanel({
   onRecovered,
   seriesId,
 }: Props) {
-  const language=useLanguage();
   const editUserId = new URLSearchParams(window.location.search).get("edit-user") || undefined;
   const [tab, setTab] = useState<AccountTab>(currentTab);
   const [isAdmin, setAdmin] = useState(false);
@@ -93,7 +92,6 @@ export function AccountPanel({
             <div>
               <strong>{email || "Signed-in account"}</strong>
               <small>{t("Signed in")}</small>
-              <small>{t("Email language follows your administration language: {language}.",{language:language === "cs" ? "Čeština" : "English"})}</small>
             </div>
             <button
               disabled={busy}
@@ -107,6 +105,7 @@ export function AccountPanel({
             </button>
           </div>
       )}
+      {supabase && userId && !recovery && !editUserId && <AccountLanguageSettings userId={userId} />}
       {supabase && !recovery && !editUserId && <SeriesInvitationAcceptance key={`team-${userId}`} userId={userId} email={email} onAccepted={()=>{setSeriesRefresh(n=>n+1);selectTab("series");}}
         onAuthenticate={mode=>{setAuthMode(previous=>({mode,request:previous.request+1}));document.getElementById("account-auth")?.scrollIntoView({behavior:"smooth",block:"start"});}} />}
       {supabase && !recovery && !editUserId && (

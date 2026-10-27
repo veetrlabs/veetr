@@ -316,7 +316,7 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
   )) : [];
   const record = visible.find(r => r.series.id === location.seriesId);
   const canEdit = Boolean(record);
-  const languageSaveError=useAccountLanguage(user,language,accountPage || canEdit || newSeriesPage);
+  const languageSaveError=useAccountLanguage(user,language);
   const [adminScope, setAdminScope] = useState("");
   const canDelete = adminScope === `${user}/${location.seriesId}`;
   useEffect(() => {

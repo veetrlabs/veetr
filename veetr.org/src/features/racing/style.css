@@ -1244,3 +1244,5 @@ section.entity-details { padding: 0; border: 0; border-radius: 0; background: tr
 .series-invitation blockquote { overflow-wrap: anywhere; margin-inline: 0; padding-inline: 1rem; border-left: 3px solid currentColor; }
 .series-invitation { display: block; }
 .series-team-editor form .notice { display: block; }
+.account-language-settings { margin-block: 1.5rem; max-width: 32rem; }
+.account-language-settings select { width: 100%; }
