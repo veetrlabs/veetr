@@ -1,3 +1,4 @@
+import {useAccountLanguage} from "./useAccountLanguage";
 import { requestErrorMessage } from "./request";
 import { PublicNotFound, isPublicNotFound } from "./PublicNotFound";
 import {CourseDetails} from "./CourseDetails";
@@ -315,6 +316,7 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
   )) : [];
   const record = visible.find(r => r.series.id === location.seriesId);
   const canEdit = Boolean(record);
+  const languageSaveError=useAccountLanguage(user,language,accountPage || canEdit || newSeriesPage);
   const [adminScope, setAdminScope] = useState("");
   const canDelete = adminScope === `${user}/${location.seriesId}`;
   useEffect(() => {
@@ -482,6 +484,7 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
         </div>
       </header>}
       <div className="race-main">
+        {languageSaveError && <p className="notice" role="status">{t(languageSaveError)}</p>}
         {integrated && (!online || (user && records.some(r => r.owner === user && r.pending))) && <div className="portal-toolbar">
           {!online && <span role="status">{t("Offline · saved here")}</span>}
           {user && records.some(r => r.owner === user && r.pending) && <button onClick={sync} disabled={busy || !online}>{t("Sync now")}</button>}

@@ -3,9 +3,10 @@ import { accountCallbackPath, siteLanguage } from "../../i18n/site";
 import { useEffect, useState } from 'react';
 import { supabase } from './api';
 import { integrated } from './routes';
-import { t } from './i18n';
+import { t, useLanguage } from './i18n';
 
 export function PasswordAuth({ recovery = false, onRecovered, initialMode = "signin" }: { initialMode?: "signin" | "signup"; recovery?: boolean; onRecovered: () => void }) {
+  const language=useLanguage();
   const [mode, setMode] = useState<'signin' | 'signup' | 'reset'>(initialMode);
   useEffect(() => { setMode(initialMode); }, [initialMode]);
   const [busy, setBusy] = useState(false);
@@ -38,7 +39,7 @@ export function PasswordAuth({ recovery = false, onRecovered, initialMode = "sig
           if (error) throw error;
           setMessage('If an account exists, a password reset link has been sent.');
         } else if (mode === 'signup') {
-          const { error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: redirectTo } });
+          const { error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: redirectTo, data: {preferred_language: language} } });
           if (error) throw error;
           form.reset();
           setMessage('Check your email to confirm your account before signing in.');

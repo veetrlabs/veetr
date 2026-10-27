@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { t, useLanguage } from "./i18n";
+import { t } from "./i18n";
 import { updateTeamMember } from "./api";
 import {
   checkTeammate,
@@ -15,13 +15,12 @@ export function SeriesInviteForm({
   seriesId: string;
   onChanged: () => Promise<void>;
 }) {
-  const language = useLanguage();
   const [email, setEmail] = useState(""),
     [role, setRole] = useState<"official" | "admin">("official");
   const [known, setKnown] = useState<boolean | null>(null),
     [busy, setBusy] = useState(false),
     [notice, setNotice] = useState("");
-  const [emailLanguage, setEmailLanguage] = useState<"en" | "cs">(language),
+  const [emailLanguage, setEmailLanguage] = useState<"en" | "cs">("en"),
     [message, setMessage] = useState("");
   return (
     <form

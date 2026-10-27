@@ -215,3 +215,10 @@ test("series invitations email one series link through the authorised series RPC
   assert.ok(message.text.includes(`/join/${token}/`));
   assert.ok(calls[2].url.endsWith('mark_series_invitation_sent'));
 });
+
+test('recipient language selects Czech messages and localized account links',async()=>{
+ const messages=[];
+ const handler=createInvitationHandler({SUPABASE_URL:'https://db.test',SUPABASE_SERVICE_ROLE_KEY:'service',PORTAL_URL:'https://veetr.org'},async url=>url.includes('prepare_')?Response.json({email:'recipient@example.test',token:'test-token',boat:'Luna',language:'cs',role:'crew',granted:true}):Response.json({}),async message=>{messages.push(message);return Response.json({});});
+ const response=await handler(new Request('https://edge.test',{method:'POST',headers:{authorization:'Bearer user'},body:JSON.stringify({invitationId:'11111111-1111-4111-8111-111111111111',language:'en'})}));
+ assert.equal(response.status,200);assert.match(messages[0].subject,/přístup udělen/);assert.match(messages[0].text,/člen posádky/);assert.match(messages[0].text,/https:\/\/veetr.org\/cs\/account\/#boats/);
+});

@@ -12,7 +12,7 @@ test("series invitation authorization, alternate account acceptance, lifecycle a
   const db = new PGlite();
   try {
     await db.exec(`create role service_role;create role anon;create role authenticated;create schema auth;
-   create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz);
+   create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz, raw_user_meta_data jsonb default '{}');
    create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;`);
     const dir = new URL("../migrations/", import.meta.url);
     for (const file of (await readdir(dir))
@@ -25,11 +25,16 @@ test("series invitation authorization, alternate account acceptance, lifecycle a
       manager = randomUUID(),
       unverified = randomUUID();
     for (const id of [owner, recipient, other, manager, unverified])
-      await db.query("insert into auth.users values($1,$2,$3)", [
+      await db.query("insert into auth.users(id,email,email_confirmed_at) values($1,$2,$3)", [
         id,
         `${id}@example.org`,
         id === unverified ? null : new Date().toISOString(),
       ]);
+    assert.equal((await db.query("select private.account_email_language('missing@example.org') value")).rows[0].value,'en');
+    await db.query("update auth.users set raw_user_meta_data=$1 where id=$2",[{preferred_language:'cs'},recipient]);
+    assert.equal((await db.query("select private.account_email_language($1) value",[`${recipient}@example.org`])).rows[0].value,'cs');
+    await db.query("update auth.users set raw_user_meta_data=$1 where id=$2",[{preferred_language:'unsupported'},recipient]);
+    assert.equal((await db.query("select private.account_email_language($1) value",[`${recipient}@example.org`])).rows[0].value,'en');
     await db.query("insert into public.series_creators values($1)", [owner]);
     async function as(id, role = "authenticated") {
       await db.exec("reset role");
@@ -90,6 +95,7 @@ test("series invitation authorization, alternate account acceptance, lifecycle a
     assert.equal(t.length, 72);
     await assert.rejects(invite("unknown@example.org"), /Wait a minute/);
     await as(other);
+    await assert.rejects(db.query("select private.account_email_language('private@example.org')"),/permission denied/);
     for (const sql of [
       "series_teammate_exists($1,'x@y.z')",
       "series_team_invitations($1)",

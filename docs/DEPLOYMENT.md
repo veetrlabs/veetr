@@ -256,6 +256,15 @@ limited to 50 invitations per series per day; email retries are limited to ten p
 invitation with at least a minute between attempts. Boat invitations retain their
 existing requirement to use the invited email address.
 
+Account metadata stores `preferred_language` (`en` or `cs`) when a signed-in
+person uses administration or changes its language. Registration stores the
+initial language too. This is a communication preference, never an authorization
+claim. Boat and tracking invitation email preparation reads the recipient's
+stored preference; missing or unsupported values fall back to English. Series-team
+invitations use the explicitly selected language and default to English, since
+new recipients have no account preference yet. Authentication confirmation and
+password-reset messages continue to use the configured Supabase Auth templates.
+
 For local testing, run `PORTAL_URL=http://127.0.0.1:4323 sh supabase/scripts/serve-local-functions.sh`
 with the local Supabase stack. Email is captured locally and never delivered
 externally. Use a preview origin listed in `supabase/config.toml` for signup

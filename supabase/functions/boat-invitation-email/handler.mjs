@@ -102,13 +102,15 @@ export function createInvitationHandler(env, fetcher = fetch, localSend) {
         );
       }
       const invitation = await prepared.json();
+      const recipientPortal =
+        portal + (invitation.language === "cs" ? "/cs" : "");
       const link = team
-        ? `${portal}${invitation.language === "cs" ? "/cs" : ""}/account/?series-invite=${encodeURIComponent(invitation.token)}`
+        ? `${recipientPortal}/account/?series-invite=${encodeURIComponent(invitation.token)}`
         : invitation.granted
-          ? `${portal}/account/#boats`
+          ? `${recipientPortal}/account/#boats`
           : race
-            ? `${portal}/join/${encodeURIComponent(invitation.token)}/`
-            : `${portal}/account/?invite=${encodeURIComponent(invitation.token)}`;
+            ? `${recipientPortal}/join/${encodeURIComponent(invitation.token)}/`
+            : `${recipientPortal}/account/?invite=${encodeURIComponent(invitation.token)}`;
       const role =
         invitation.role === "manager"
           ? "skipper"
@@ -141,13 +143,15 @@ export function createInvitationHandler(env, fetcher = fetch, localSend) {
               : `Veetr: series team invitation · ${invitation.series}`
             : race
               ? `Veetr: ${invitation.boat} · ${series ? invitation.series : invitation.race}`
-              : `Veetr: ${invitation.granted ? "access granted" : "invitation"} for ${invitation.boat}`,
+              : invitation.language === "cs"
+                ? `Veetr: ${invitation.granted ? "přístup udělen" : "pozvánka"} · ${invitation.boat}`
+                : `Veetr: ${invitation.granted ? "access granted" : "invitation"} for ${invitation.boat}`,
           text: team
             ? seriesTeamEmail(invitation, link)
-            : series
-              ? `Pozvánka / Invitation: ${invitation.boat} · ${invitation.series}\n\nTento odkaz propojí telefon s lodí pro celý seriál. V aplikaci Veetr pak vyberte závod a potvrďte připravenost. Účet není potřeba.\n\nPair your phone once for this series. In Veetr, choose a race and press Ready to race. No account needed. Location sharing starts only after you confirm and the referee enables tracking for that race.\n${link}\n\nKeep this link private. It works for this series until the organiser cancels it or removes the boat.`
-              : race
-                ? `Pozvánka / Invitation: ${invitation.boat} · ${series ? invitation.series : invitation.race}\n\nOtevřete odkaz v aplikaci Veetr a potvrďte připravenost k závodu. Účet není potřeba. Sdílení polohy začne až po potvrzení v aplikaci a spuštění rozhodčím.\n\nOpen this link in Veetr and press Ready to race. No account needed. Location sharing starts only after you confirm and the referee enables tracking.\n${link}\n\nAktuální čas startu najdete v pozvánce. / Open the invitation for the current start time.`
+            : race
+              ? trackingInvitationEmail(invitation, link, series)
+              : invitation.language === "cs"
+                ? czechBoatInvitationEmail(invitation, link)
                 : accessText,
         }),
       };
@@ -209,4 +213,24 @@ export function seriesTeamEmail(invitation, link) {
   return cs
     ? `Pozvánka do týmu seriálu ${invitation.series} v aplikaci Veetr. Role: ${role}.${message}\n\nOtevřete pozvánku, přihlaste se nebo si vytvořte účet a potvrďte přijetí. Můžete použít svůj stávající účet i s jinou e-mailovou adresou. Přístup se propojí s účtem, ve kterém pozvánku přijmete.\n${link}\n\nPozvánka platí 7 dní od vytvoření. Odkaz nepřeposílejte: kdokoli s ním může pozvánku přijmout. Pokud pozvánku neočekáváte, ignorujte ji.`
     : `You are invited to the ${invitation.series} series team in Veetr as a ${role}.${message}\n\nOpen the invitation, sign in or create an account, then confirm acceptance. You can use your existing account with a different email address. Access will be linked to the account you accept with.\n${link}\n\nThis invitation expires 7 days after creation. Keep this link private: anyone with it can accept. If you were not expecting this invitation, ignore it.`;
+}
+
+export function trackingInvitationEmail(invitation, link, series) {
+  const title = `${invitation.boat} · ${series ? invitation.series : invitation.race}`;
+  if (invitation.language === "cs")
+    return series
+      ? `Pozvánka: ${title}\n\nTento odkaz propojí telefon s lodí pro celý seriál. V aplikaci Veetr pak vyberte závod a potvrďte připravenost. Účet není potřeba. Sdílení polohy začne až po vašem potvrzení a povolení rozhodčím.\n${link}\n\nOdkaz nepřeposílejte. Platí pro tento seriál, dokud jej pořadatel nezruší nebo neodstraní loď.`
+      : `Pozvánka: ${title}\n\nOtevřete odkaz v aplikaci Veetr a potvrďte připravenost k závodu. Účet není potřeba. Sdílení polohy začne až po vašem potvrzení a spuštění rozhodčím.\n${link}\n\nAktuální čas startu najdete v pozvánce.`;
+  return series
+    ? `Invitation: ${title}\n\nPair your phone once for this series. In Veetr, choose a race and press Ready to race. No account needed. Location sharing starts only after you confirm and the referee enables tracking for that race.\n${link}\n\nKeep this link private. It works for this series until the organiser cancels it or removes the boat.`
+    : `Invitation: ${title}\n\nOpen this link in Veetr and press Ready to race. No account needed. Location sharing starts only after you confirm and the referee enables tracking.\n${link}\n\nOpen the invitation for the current start time.`;
+}
+export function czechBoatInvitationEmail(invitation, link) {
+  const role = invitation.role === "crew" ? "člen posádky" : "kapitán";
+  const scope = invitation.series ? ` v seriálu ${invitation.series}` : "";
+  if (invitation.handover)
+    return `Pozvánka k převzetí odpovědnosti za loď ${invitation.boat} v aplikaci Veetr.\n\nPřijetím se stanete odpovědným kapitánem s právem spravovat profil a posádku. Předchozí správce ztratí přístup k lodi; jeho oprávnění k seriálům se nezmění. Jde o správu záznamu v aplikaci Veetr, nikoli o právní vlastnictví lodi.\n\nPřihlaste se nebo si vytvořte účet s touto e-mailovou adresou, ověřte ji a poté si převzetí prohlédněte a potvrďte:\n${link}\n\nPozvánka platí 7 dní. Do přijetí se přístup nemění. Pokud pozvánku neočekáváte, ignorujte ji.`;
+  if (invitation.granted)
+    return `Máte přístup k lodi ${invitation.boat}${scope}. Role: ${role}.\n\nPřihlaste se s touto e-mailovou adresou:\n${link}\n\nTím se nespouští sdílení polohy ani nepřevádí vlastnictví lodi.`;
+  return `Pozvánka k lodi ${invitation.boat}${scope}. Role: ${role}.\n\nPřihlaste se nebo si vytvořte účet s touto e-mailovou adresou, ověřte ji a poté pozvánku přijměte:\n${link}\n\nPozvánka platí 7 dní a nepřevádí vlastnictví lodi. Sdílení polohy začne pouze po vašem souhlasu. Pokud pozvánku neočekáváte, ignorujte ji.`;
 }

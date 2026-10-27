@@ -1,4 +1,6 @@
 export const cs: Record<string, string> = {
+ "Email language follows your administration language: {language}.": "Jazyk e-mailů se řídí jazykem administrace: {language}.",
+ "Could not save your language preference. It will be retried when you reconnect.": "Jazyk se nepodařilo uložit. Po obnovení připojení to zkusíme znovu.",
   "Series you own or help manage. Open a series to manage races and entries.": "Seriály, které vlastníte nebo pomáháte spravovat. Otevřete seriál a spravujte závody a přihlášky.",
   "You do not have access to any series yet.": "Zatím nemáte přístup k žádnému seriálu.",
   "Message from the organiser": "Zpráva od pořadatele",
