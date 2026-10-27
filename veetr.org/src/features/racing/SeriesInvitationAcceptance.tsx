@@ -1,3 +1,4 @@
+import {formatDateTime} from "./timezone";
 import React, { useEffect, useState } from "react";
 import {
   acceptTeamInvitation,
@@ -78,7 +79,7 @@ export function SeriesInvitationAcceptance({
               </p>
               <p>
                 {t("Expires")}:{" "}
-                {new Date(preview.expiresAt).toLocaleDateString()}
+                {formatDateTime(preview.expiresAt, "date")}
               </p>
               {userId ? (
                 <>

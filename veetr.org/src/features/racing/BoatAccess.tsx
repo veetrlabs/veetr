@@ -1,3 +1,4 @@
+import {formatDateTime} from "./timezone";
 import { ChevronDown } from "lucide-react";
 import RacePhones from "./RacePhones";
 import { useEffect, useLayoutEffect, useRef, useId, useState, type ReactNode } from "react";
@@ -344,7 +345,7 @@ export function TrackingWindow({ seriesId }: { seriesId: string }) {
           <p role="status">
             {t(state.open ? "Tracking open" : "Tracking closed")}
             {state.open && state.until
-              ? ` · ${new Date(state.until).toLocaleString()}`
+              ? ` · ${formatDateTime(state.until, "full")}`
               : ""}
           </p>
           <button

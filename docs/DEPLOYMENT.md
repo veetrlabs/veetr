@@ -292,3 +292,18 @@ interrupted sends consume an attempt. Requests remain in the admin review list
 when delivery is unavailable; review them there rather than resetting retry
 counters (which could resend an already delivered message). Apply
 `202609150005_request_email_limits.sql` before deploying the email function.
+
+
+### Website timezone preferences
+
+Account → Preferences contains autosaving language and timezone selectors.
+`preferred_timezone` in account metadata stores an IANA zone or `auto`; it is
+never used for authorization. Automatic uses the current browser timezone.
+Anonymous visitors can choose a timezone in the website header (inside the
+navigation menu on smaller screens); their selection stays in browser storage.
+Race and heat inputs convert wall-clock times to UTC, and website timestamps
+render in the viewer's selected zone. Existing date-only fields stay unchanged.
+An open time editor keeps its displayed timezone until reopened, protecting
+unsaved input if the header preference changes. Nonexistent or ambiguous new
+wall-clock times show an error; UTC can be selected to enter an exact instant.
+No database migration is required for this preference.

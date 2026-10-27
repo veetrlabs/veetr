@@ -1,3 +1,4 @@
+import {formatDateTime} from "./timezone";
 import React, { useEffect, useState } from "react";
 import { CourseMap } from "./CourseMap";
 import { courseFor, startGeometry, finishGeometry, hasSeparateFinish, coursePoints, type RaceCourse } from "./course";
@@ -44,7 +45,7 @@ export function CourseDescription({ course }: { course: RaceCourse }) {
             metres: Math.round(course.startLive.accuracyMetres),
           })}{" "}
           · {t("Last update")}:{" "}
-          {new Date(course.startLive.updatedAt).toLocaleTimeString()}
+          {formatDateTime(course.startLive.updatedAt, "time")}
         </p>
       )}
       {(course.marks.length > 0 || endpoints.length > 0) && (

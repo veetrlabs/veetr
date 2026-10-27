@@ -1,3 +1,4 @@
+import {localDateTime} from "./timezone";
 import { eventEntries, eventsFor, id, type ControlRace, type Series } from "./domain";
 
 export function eventIsPublished(series: Series, eventId: string) {
@@ -6,8 +7,7 @@ export function eventIsPublished(series: Series, eventId: string) {
 export function eventDate(series: Series, eventId: string) {
   const start = eventsFor(series).find(e => e.id === eventId)?.scheduledStart;
   if (start) {
-    const date = new Date(start);
-    return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    return localDateTime(start).slice(0,10);
   }
   return series.races.find(r => (r.eventId ?? r.id) === eventId && r.date)?.date ?? "";
 }

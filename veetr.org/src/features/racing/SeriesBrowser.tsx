@@ -1,3 +1,4 @@
+import {localDateTime,utcDateTime,currentTimezone} from "./timezone";
 import { HeatTrackingTimes } from "./HeatTrackingTimes";
 import { eventIsPublished, setEventPublished } from "./eventDefaults";
 import { CourseEditor } from "./CourseEditor";
@@ -79,7 +80,7 @@ function raceDate(series: Series, event: RaceEvent): string {
   if (event.scheduledStart) {
     const start = new Date(event.scheduledStart);
     if (Number.isFinite(start.getTime())) {
-      return `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-${String(start.getDate()).padStart(2, "0")}`;
+      return localDateTime(event.scheduledStart).slice(0,10);
     }
   }
   return series.races
@@ -413,6 +414,7 @@ export function Editor({
   onCancel: () => void;
   save: (fn: (s: Series) => void) => void | Promise<void>;
 }) {
+  const [inputTimezone] = useState(currentTimezone);
   const [rules, setRules] = useState(event?.discards ?? series.discards ?? []);
   const [categories, setCategories] = useState(series.categories);
   const target = heat ?? event ?? series;
@@ -438,7 +440,7 @@ export function Editor({
         setError("");
         try {
           const heatDetails = heat ? heatDetailsFromForm(d) : undefined;
-          const eventDetails = event ? raceEventDetails(d, rules) : undefined;
+          const eventDetails = event ? raceEventDetails(d, rules, inputTimezone, event.scheduledStart) : undefined;
           const applyCourse = courseDraft.current?.prepare();
           await save((s) => {
             materializeEvents(s);
@@ -562,19 +564,13 @@ export function Editor({
         </label>}
         {event && (
           <label>
-            {t("Race start (your local time)")}
+            {t("Race start (your local time)")} · {inputTimezone}
             <input
               name="scheduledStart"
               type="datetime-local"
               defaultValue={
                 event.scheduledStart
-                  ? new Date(
-                      Date.parse(event.scheduledStart) -
-                        new Date(event.scheduledStart).getTimezoneOffset() *
-                          60000,
-                    )
-                      .toISOString()
-                      .slice(0, 16)
+                  ? localDateTime(event.scheduledStart,inputTimezone).slice(0,16)
                   : ""
               }
             />
@@ -658,6 +654,8 @@ export function Editor({
 export function raceEventDetails(
   data: FormData,
   discards: RaceEvent["discards"],
+  timezone = currentTimezone(),
+  originalStart?: string,
 ) {
   const name = String(data.get("name") ?? "").trim();
   const startingPoints = Number(data.get("startingPoints") ?? 0);
@@ -672,7 +670,7 @@ export function raceEventDetails(
     name,
     weight: 1,
     startingPoints,
-    scheduledStart: start ? new Date(start).toISOString() : undefined,
+    scheduledStart: start ? (originalStart && start===localDateTime(originalStart,timezone).slice(0,16) ? originalStart : utcDateTime(start,timezone)) : undefined,
     completed: data.get("completed") === "on",
     discards,
   };

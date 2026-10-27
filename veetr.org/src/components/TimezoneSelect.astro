@@ -1,0 +1,26 @@
+---
+import {siteLanguage} from '../i18n/site';
+const cs=siteLanguage(Astro.url.pathname)==='cs';
+---
+<label class="site-timezone"><span>{cs?'Časové pásmo':'Timezone'}</span><select data-timezone aria-label={cs?'Časové pásmo':'Timezone'}></select><small data-timezone-error role="status"></small></label>
+<style>
+.site-timezone{display:flex;flex-direction:column;font-size:.75rem;min-width:0;max-width:14rem}
+select{width:100%;min-height:2.75rem;padding:.5rem;border:1px solid var(--sl-color-hairline,#344451);border-radius:.5rem;background:var(--sl-color-bg-nav,#0b1722);color:var(--sl-color-white,#e9eff5);font:inherit}
+</style>
+<script>
+import {timezoneOptions,timezonePreference,browserTimezone} from '../features/racing/timezone';
+import {initializeAccountTimezone,saveTimezonePreference} from '../features/racing/accountTimezone';
+initializeAccountTimezone();
+for(const select of document.querySelectorAll<HTMLSelectElement>('[data-timezone]')) {
+ const cs=location.pathname.startsWith('/cs/');
+ select.add(new Option(`${cs?'Automaticky (podle prohlížeče)':'Automatic (browser timezone)'} · ${browserTimezone()}`,'auto'));
+ for(const zone of timezoneOptions()) select.add(new Option(zone.replaceAll('_',' '),zone));
+ const sync=()=>{const value=timezonePreference();if(!Array.from(select.options).some(option=>option.value===value)) select.add(new Option(value.replaceAll('_',' '),value));select.value=value;};sync();window.addEventListener('veetr-timezone',sync);window.addEventListener('storage',sync);
+ select.addEventListener('change',async()=>{
+  const error=select.parentElement!.querySelector<HTMLElement>('[data-timezone-error]')!;
+  select.disabled=true;error.textContent='';
+  try {await saveTimezonePreference(select.value);} catch {sync();error.textContent=cs?'Časové pásmo se nepodařilo uložit. Zkuste to znovu.':'Could not save timezone. Please try again.';}
+  finally {select.disabled=false;}
+ });
+}
+</script>

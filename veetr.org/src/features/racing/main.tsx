@@ -1,3 +1,5 @@
+import {formatDateTime} from "./timezone";
+import {useTimezone} from "./useTimezone";
 import {useAccountLanguage} from "./useAccountLanguage";
 import { requestErrorMessage } from "./request";
 import { PublicNotFound, isPublicNotFound } from "./PublicNotFound";
@@ -84,6 +86,7 @@ function readRoute(): Location {
 }
 export default function App({ updateAvailable = false, updateServiceWorker = async (_reload?: boolean) => {} }: {updateAvailable?: boolean; updateServiceWorker?: (reload?: boolean) => Promise<void>}) {
   const language = useLanguage();
+  useTimezone();
   const [newSeriesPage, setNewSeriesPage] = useState(isNewSeriesPage);
   const [records, setRecords] = useState<LocalRecord[]>([]),
     [page, setPage] = useState(window.location.hash.startsWith("#tracking") && readRoute().eventId ? "tracking" : readRoute().heatId ? "finish" : "manage"),
@@ -773,9 +776,7 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
                                       }
                                       {result.finishedAt
                                         ? " · " +
-                                          new Date(
-                                            result.finishedAt,
-                                          ).toLocaleTimeString()
+                                          formatDateTime(result.finishedAt, "time")
                                         : ""}
                                     </small>
                                   </div>
@@ -1040,7 +1041,7 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
                     <small>
                       {t("Local save:")}{" "}
                       {record
-                        ? new Date(record.savedAt).toLocaleString(language)
+                        ? formatDateTime(record.savedAt, "full", language)
                         : ""}{" "}
                       · {busy ? t("Saving…") : t("Ready")}
                     </small>

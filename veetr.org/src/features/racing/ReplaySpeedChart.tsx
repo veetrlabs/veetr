@@ -1,3 +1,4 @@
+import {formatDateTime} from "./timezone";
 import React, { useMemo } from 'react';
 import type { TrackPoint } from './trackCache';
 import { t } from './i18n';
@@ -59,7 +60,7 @@ export function ReplaySpeedChart({ points, bounds: fullBounds, window, viewport,
   const lines = useMemo(() => shown.flatMap(b => b.segments.map((segment, i) => segment.length === 1
           ? <circle key={`${b.id}:${i}`} cx={x(segment[0].at)} cy={y(segment[0].knots)} r="2" fill={trackingColor(b.id, colors)} />
           : <polyline key={`${b.id}:${i}`} points={segment.map(p => `${x(p.at).toFixed(2)},${y(p.knots).toFixed(2)}`).join(' ')} fill="none" stroke={trackingColor(b.id, colors)} strokeWidth="2" vectorEffect="non-scaling-stroke" />)), [plotted, hidden, colors, bounds.start, bounds.end, max]);
-  const time = (stamp: number) => new Date(stamp).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const time = (stamp: number) => formatDateTime(stamp, "time", undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   function pick(event: React.PointerEvent<SVGSVGElement>) {
     const box = event.currentTarget.getBoundingClientRect();
     if (box.width) seek(replayTimeAt(event.clientX, box.left, box.width, bounds.start, bounds.end));
@@ -74,7 +75,7 @@ export function ReplaySpeedChart({ points, bounds: fullBounds, window, viewport,
       <div className="replay-chart-axis" aria-hidden="true"><span>{max}</span><span>{(max / 2).toFixed(1)}</span><span>0</span></div>
       <svg viewBox="0 0 1000 190" preserveAspectRatio="none" role="slider" tabIndex={0}
         aria-label={t('Replay time')} aria-valuemin={bounds.start} aria-valuemax={bounds.end} aria-valuenow={Math.max(bounds.start, Math.min(bounds.end, at))}
-        aria-valuetext={new Date(Math.max(bounds.start, Math.min(bounds.end, at))).toLocaleString()} aria-describedby="replay-chart-help"
+        aria-valuetext={formatDateTime(Math.max(bounds.start, Math.min(bounds.end, at)), "full")} aria-describedby="replay-chart-help"
         onPointerDown={e => { e.currentTarget.setPointerCapture(e.pointerId); pick(e); }}
         onPointerMove={e => { if (e.currentTarget.hasPointerCapture(e.pointerId)) pick(e); }}
         onPointerUp={e => { if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId); }}

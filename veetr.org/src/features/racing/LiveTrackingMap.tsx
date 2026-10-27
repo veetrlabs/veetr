@@ -1,3 +1,4 @@
+import {formatDateTime} from "./timezone";
 import { routeGeometry } from "./routeGeometry";
 import { MapChartPanel } from "./MapChartPanel";
 import { mapChartWindow, type MapViewport } from "./mapChartWindow";
@@ -37,7 +38,7 @@ function TrackingMap({ seriesId, eventId, heatId, boatIds, course }: TrackingMap
   const [viewport, setViewport] = useState<MapViewport | null>(null);
   const chartWindow = useMemo(() => mapChartWindow(chartPoints.filter(p => !hidden.has(p.boatId)), viewport), [chartPoints, hidden, viewport]);
   const displayTime = replay.shownAt;
-  const formatTime = (stamp: number) => new Date(stamp).toLocaleString(document.documentElement.lang || undefined);
+  const formatTime = (stamp: number) => formatDateTime(stamp, "full", document.documentElement.lang || undefined);
   const [located, setLocated] = useState(false);
   const [mapError, setMapError] = useState(false);
   const [mapReady, setMapReady] = useState(false),
@@ -306,7 +307,7 @@ function TrackingMap({ seriesId, eventId, heatId, boatIds, course }: TrackingMap
                 </td>
                 <td>{p.cogDeg === null ? "—" : p.cogDeg.toFixed(0)}</td>
                 <td>
-                  {new Date(p.recordedAt).toLocaleTimeString()}
+                  {formatDateTime(p.recordedAt, "time")}
                   {positionAge(p, displayTime) > 60 ? ` · ${t("stale")}` : ""}
                 </td>
                 <td>

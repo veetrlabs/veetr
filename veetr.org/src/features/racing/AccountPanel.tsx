@@ -1,3 +1,4 @@
+import {AccountTimezoneSettings} from "./AccountTimezoneSettings";
 import {AccountLanguageSettings} from "./AccountLanguageSettings";
 import {SeriesInvitationAcceptance} from "./SeriesInvitationAcceptance";
 import { UserManagement } from "./UserManagement";
@@ -15,11 +16,11 @@ interface Props {
   userId: string;
   seriesId?: string;
 }
-type AccountTab = "series" | "boats" | "users" | "requests";
+type AccountTab = "series" | "boats" | "preferences" | "users" | "requests";
 function currentTab(): AccountTab {
   const hash = window.location.hash.slice(1);
   if (hash === "users-title") return "users";
-  return ["boats", "users", "requests"].includes(hash) ? hash as AccountTab : "series";
+  return ["boats", "preferences", "users", "requests"].includes(hash) ? hash as AccountTab : "series";
 }
 export function AccountPanel({
   userId,
@@ -45,6 +46,7 @@ export function AccountPanel({
   }, [userId]);
   const tabs: {id: AccountTab; label: string}[] = [
     {id: "series", label: "My series"}, {id: "boats", label: "My boats"},
+    {id: "preferences", label: "Preferences"},
     ...(isAdmin ? [{id: "users" as const, label: "Users"}, {id: "requests" as const, label: "Requests"}] : []),
   ];
   const activeTab = tabs.some(item => item.id === tab) ? tab : "series";
@@ -105,7 +107,6 @@ export function AccountPanel({
             </button>
           </div>
       )}
-      {supabase && userId && !recovery && !editUserId && <AccountLanguageSettings userId={userId} />}
       {supabase && !recovery && !editUserId && <SeriesInvitationAcceptance key={`team-${userId}`} userId={userId} email={email} onAccepted={()=>{setSeriesRefresh(n=>n+1);selectTab("series");}}
         onAuthenticate={mode=>{setAuthMode(previous=>({mode,request:previous.request+1}));document.getElementById("account-auth")?.scrollIntoView({behavior:"smooth",block:"start"});}} />}
       {supabase && !recovery && !editUserId && (
@@ -142,6 +143,7 @@ export function AccountPanel({
           <div className="account-tab-panel" role="tabpanel" id={`account-panel-${activeTab}`} aria-labelledby={`account-tab-${activeTab}`}>
             {activeTab === "series" && <MySeries key={`series-${userId}-${seriesRefresh}`} userId={userId} />}
             {activeTab === "boats" && <MyBoats key={userId} refreshKey={boatRefresh} />}
+            {activeTab === "preferences" && <><h2>{t("Preferences")}</h2><AccountLanguageSettings userId={userId} /><AccountTimezoneSettings /></>}
             {activeTab === "users" && <UserManagement key={`admin-${userId}`} />}
             {activeTab === "requests" && <CreationAccess key={userId} />}
           </div>

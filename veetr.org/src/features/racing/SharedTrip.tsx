@@ -1,3 +1,5 @@
+import {formatDateTime} from "./timezone";
+import {useTimezone} from "./useTimezone";
 import { routeGeometry } from "./routeGeometry";
 import { MapChartPanel, TripMapFrame } from "./MapChartPanel";
 import { mapChartWindow, type MapViewport } from "./mapChartWindow";
@@ -166,6 +168,7 @@ function Map({
   );
 }
 export default function SharedTrips() {
+  useTimezone();
   const [viewport, setViewport] = useState<MapViewport | null>(null);
   const [token, setToken] = useState(
       () => new URLSearchParams(location.hash.slice(1)).get("trip") ?? "",
@@ -336,7 +339,7 @@ export default function SharedTrips() {
                   <span className={`trip-badge ${t.live ? "is-live" : ""}`}>{t.live ? tr("● Active · Live") : tr("Past trip")}</span>
                   <h2>{t.title}</h2>
                   <p className="trip-card-boat">{t.boat}</p>
-                  <time dateTime={t.startedAt}>{new Date(t.startedAt).toLocaleDateString(locale, {day:"numeric",month:"short",year:"numeric"})} · {new Date(t.startedAt).toLocaleTimeString(locale,{hour:"2-digit",minute:"2-digit"})}</time>
+                  <time dateTime={t.startedAt}>{formatDateTime(t.startedAt, "date", locale, {day:"numeric",month:"short",year:"numeric"})} · {formatDateTime(t.startedAt, "time", locale,{hour:"2-digit",minute:"2-digit"})}</time>
                   <p className="trip-card-details"><span title={tr("Approximate country at the first recorded position")}>{tr("Start: {country}", {country: countryLabel(countries[t.token])})}</span><span>{tr("{distance} nm recorded", {distance: t.distanceNm.toLocaleString(locale, {minimumFractionDigits:2,maximumFractionDigits:2})})}</span></p>
                 </a>
               </li>)}
@@ -352,7 +355,7 @@ export default function SharedTrips() {
       {trip && (
         <>
           <p>
-            {trip.boatSlug ? <a href={href(`/boats/${encodeURIComponent(trip.boatSlug)}/`)}>{trip.boat}</a> : trip.boat} · {new Date(trip.startedAt).toLocaleString(locale)}
+            {trip.boatSlug ? <a href={href(`/boats/${encodeURIComponent(trip.boatSlug)}/`)}>{trip.boat}</a> : trip.boat} · {formatDateTime(trip.startedAt, "full", locale)}
           </p>
           <p role="status">
             {trip.live
@@ -404,7 +407,7 @@ export default function SharedTrips() {
                 aria-valuemin={chartRange.offset}
                 aria-valuemax={chartEnd}
                 aria-valuenow={Math.max(chartRange.offset, Math.min(chartEnd, index ?? chartEnd))}
-                aria-valuetext={new Date(trip.points[Math.max(chartRange.offset, Math.min(chartEnd, index ?? chartEnd))].recordedAt).toLocaleString(locale)}
+                aria-valuetext={formatDateTime(trip.points[Math.max(chartRange.offset, Math.min(chartEnd, index ?? chartEnd))].recordedAt, "full", locale)}
                 aria-describedby="trip-chart-help"
                 onPointerDown={e => {
                   if (e.button !== 0) return;
@@ -464,9 +467,9 @@ export default function SharedTrips() {
               <circle cx={Math.max(5, Math.min(595, cursor))} cy="132" r="5" fill="currentColor" /></>}
               </svg>
               <div className="trip-chart-times">
-                <span>{new Date(startTime).toLocaleTimeString(locale)}</span>
+                <span>{formatDateTime(startTime, "time", locale)}</span>
                 <span>
-                  {new Date(startTime + duration).toLocaleTimeString(locale)}
+                  {formatDateTime(startTime + duration, "time", locale)}
                 </span>
               </div>
               {!plots.some((s) => s.plot.d) && (
@@ -483,7 +486,7 @@ export default function SharedTrips() {
           {trip.points.length > 0 && (
             <>
               <p id="trip-chart-help" className="trip-map-key">{tr("Zoom or pan the map to focus the chart. Drag across the chart to explore the route. Use arrow keys when focused.")}</p>
-              <p className="trip-selected-time">{p ? new Date(p.recordedAt).toLocaleString(locale) : ""}</p>
+              <p className="trip-selected-time">{p ? formatDateTime(p.recordedAt, "full", locale) : ""}</p>
               {trip.live && index !== null && (
                 <button onClick={() => setIndex(null)}>{tr("Back to live")}</button>
               )}

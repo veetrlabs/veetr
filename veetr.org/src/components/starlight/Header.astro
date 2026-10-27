@@ -1,5 +1,6 @@
 ---
 import LanguageSelect from '../LanguageSelect.astro';
+import TimezoneSelect from '../TimezoneSelect.astro';
 import {siteLanguage, localizedPath, unlocalizedPath} from '../../i18n/site';
 const cs = siteLanguage(Astro.url.pathname) === 'cs';
 const hrefFor = (path: string) => localizedPath(path, cs ? 'cs' : 'en');
@@ -38,7 +39,7 @@ const isCurrent = (href: string) => pathname === href || (['/docs/', '/races/'].
     <div id="veetr-account-controls" class="account-menu-item"><a href={hrefFor("/account/")} aria-current={isCurrent('/account/') ? 'page' : undefined}>{cs ? "Účet" : "Account"}</a></div>
   </nav>
   <div class="header-controls">
-    <LanguageSelect />
+    <LanguageSelect /><div class="desktop-timezone"><TimezoneSelect /></div>
     <Search />
     <details class="mobile-menu">
       <summary aria-label={cs ? "Navigace webu" : "Site navigation"}>
@@ -46,6 +47,7 @@ const isCurrent = (href: string) => pathname === href || (['/docs/', '/races/'].
         <Icon class="close-icon" name="close" size="1.25rem" />
       </summary>
       <nav aria-label={cs ? "Mobilní navigace" : "Mobile navigation"}>
+        <TimezoneSelect />
         {navigationGroups.map((group) => (
           <details class:list={['nav-group', { active: group.links.some(({ href }) => pathname.startsWith(href)) }]}>
             <summary>{group.label} <span class="chevron" aria-hidden="true">⌄</span></summary>
@@ -66,6 +68,7 @@ const isCurrent = (href: string) => pathname === href || (['/docs/', '/races/'].
 </div>
 
 <style>
+  .desktop-timezone {width: 13rem;flex-shrink:0;}
   .veetr-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; height: 100%; max-width: 76rem; margin-inline: auto; }
   .veetr-header :global(.site-title) { flex-shrink: 0; white-space: nowrap; overflow: visible; gap: .6rem; color: var(--sl-color-white); font-size: 1.4rem; font-weight: 750; }
   .veetr-header :global(.site-title img) { height: 2.25rem; width: 2.25rem; }
@@ -85,7 +88,7 @@ const isCurrent = (href: string) => pathname === href || (['/docs/', '/races/'].
   .mobile-menu { display: none; }
   :global(.veetr-header a:focus-visible), summary:focus-visible { outline: 2px solid var(--sl-color-text-accent); outline-offset: 4px; }
   @media (max-width: 76rem) {
-    .desktop-links { display: none; }
+    .desktop-links, .desktop-timezone { display: none; }
     .mobile-menu { display: block; }
     .mobile-menu > summary { display: grid; place-items: center; list-style: none; width: 2.75rem; height: 2.75rem; border: 1px solid var(--sl-color-hairline); border-radius: .6rem; cursor: pointer; color: var(--sl-color-white); }
     .mobile-menu > summary::-webkit-details-marker { display: none; }

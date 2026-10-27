@@ -1,4 +1,13 @@
 export const cs: Record<string, string> = {
+"Timezone": "Časové pásmo",
+"Automatic (browser timezone)": "Automaticky (podle prohlížeče)",
+"Times are shown and entered in this timezone. Changes save automatically.": "Časy se zobrazují a zadávají v tomto časovém pásmu. Změny se ukládají automaticky.",
+"Could not save timezone. Please try again.": "Časové pásmo se nepodařilo uložit. Zkuste to znovu.",
+"Choose a valid date and time": "Vyberte platné datum a čas",
+"This time does not exist because the clocks change. Choose another time.": "Tento čas kvůli změně času neexistuje. Vyberte jiný čas.",
+"This time occurs twice because the clocks change. Select UTC in Preferences to enter the exact time.": "Tento čas se kvůli změně času vyskytuje dvakrát. Pro zadání přesného času vyberte v předvolbách UTC.",
+
+ "Preferences": "Předvolby",
  "Language preference": "Jazyk účtu",
  "Used for administration and invitation emails. Changes save automatically.": "Používá se pro administraci a e-maily s pozvánkami. Změny se ukládají automaticky.",
  "Language saved": "Jazyk uložen",

@@ -1,3 +1,4 @@
+import {formatDateTime} from "./timezone";
 import { useEffect, useState, useRef, useId } from "react";
 import { supabase } from "./api";
 import { appHref } from "./routes";
@@ -189,7 +190,7 @@ export function UserManagement({editUserId}: {editUserId?: string}) {
       {!editUserId && <>
       <details><summary>{t("Access audit history")}</summary>
         <ul>{audit.map(item => <li key={item.id}>
-          <strong>{new Date(item.occurred_at).toLocaleString()} · {item.actor_email ?? t("System")}</strong>
+          <strong>{formatDateTime(item.occurred_at, "full")} · {item.actor_email ?? t("System")}</strong>
           <p>{item.action} · {item.entity_table}</p>
           <details><summary>{t("Change details")}</summary><pre>{JSON.stringify({target: item.entity_key, before: item.old_values, after: item.new_values}, null, 2)}</pre></details>
         </li>)}</ul>
