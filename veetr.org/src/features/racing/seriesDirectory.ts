@@ -5,7 +5,7 @@ export function mergeSeriesDirectory(published: PublicSeriesSummary[], accessibl
   const merged = new Map(published.map(s => [s.id, s]));
   for (const s of accessible) merged.set(s.id, {
     id: s.id, name: s.name, year: s.year, description: s.description,
-    status: s.status, raceCount: eventsFor(s).length, boatCount: s.boats.length,
+    status: s.status, ...(s.visibility ? {visibility:s.visibility} : {}), raceCount: eventsFor(s).length, boatCount: s.boats.length,
   });
   return [...merged.values()];
 }

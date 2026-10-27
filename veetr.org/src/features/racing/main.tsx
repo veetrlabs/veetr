@@ -1,4 +1,5 @@
 import { requestErrorMessage } from "./request";
+import { PublicNotFound, isPublicNotFound } from "./PublicNotFound";
 import {CourseDetails} from "./CourseDetails";
 import {SeriesTeam} from "./SeriesTeam";
 import {HeatCreation} from "./HeatCreation";
@@ -37,6 +38,8 @@ import {
   type Series,
   type ControlRace,
   validateSeries,
+  setSeriesVisibility,
+  type SeriesVisibility,
 } from "./domain";
 import {
   loadLocal,
@@ -75,6 +78,7 @@ function readRoute(): Location {
     newRace: params.has("new-race"),
     newHeat: params.has("new-heat"),
     editRace: params.has("edit-race") || params.has("edit-course"),
+    editTab: params.get("edit-tab") === "team" ? "team" : "settings",
   };
 }
 export default function App({ updateAvailable = false, updateServiceWorker = async (_reload?: boolean) => {} }: {updateAvailable?: boolean; updateServiceWorker?: (reload?: boolean) => Promise<void>}) {
@@ -93,6 +97,7 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
     if (next.newRace) params.set("new-race", "");
     if (next.newHeat) params.set("new-heat", "");
     if (next.editRace || next.editCourse) params.set("edit-race", "");
+    if (next.editRace && next.editTab) params.set("edit-tab", next.editTab);
     window.history.pushState(
       null,
       "",
@@ -130,6 +135,7 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
     [publicData, setPublicData] = useState<Series>();
   useEffect(() => setEditingResults(false), [location.heatId, user]);
   const [access, setAccess] = useState<{user: string; ids: string[]}>({user: "", ids: []});
+  const [publicRequest, setPublicRequest] = useState<{id: string; state: "ready" | "missing" | "error"}>();
   const [creator, setCreator] = useState("");
   const canCreate = Boolean(user && creator === user);
   const current = useRef(records);
@@ -185,6 +191,12 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
       await chain.current;
       const authorized = await listRemote();
       if (identity.current !== account) return;
+      // Private slugs are absent from public routes; resolve them only from
+      // the series this signed-in account is allowed to read.
+      setLocation(previous => {
+        const match = authorized.find(row => row.slug === previous.seriesId);
+        return match ? {...previous, seriesId: match.document.id} : previous;
+      });
       setAccess({user: account, ids: authorized.map(r => r.document.id)});
       for (const record of current.current.filter(
         (r) => r.pending && r.owner === account && (r.revision === 0 || authorized.some(a => a.document.id === r.series.id)),
@@ -283,9 +295,17 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
   useEffect(() => {
     let alive = true;
     setPublicData(undefined);
+    setPublicRequest(undefined);
     const sid = location.seriesId;
     if (!sid) return;
-    const refresh = () => publicSeries(sid).then(s => {if (alive) setPublicData(s);}).catch(() => {if (alive) setPublicData(undefined);});
+    const refresh = () => publicSeries(sid).then(s => {
+      if (alive) { setPublicData(s); setPublicRequest({id: sid, state: "ready"}); }
+    }).catch(error => {
+      if (alive) {
+        setPublicData(undefined);
+        setPublicRequest({id: sid, state: isPublicNotFound(error) ? "missing" : "error"});
+      }
+    });
     void refresh();
     const timer = setInterval(refresh, 2000);
     return () => {alive = false; clearInterval(timer);};
@@ -307,7 +327,7 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
     const timer = setInterval(refresh, 5000);
     return () => {alive = false; clearInterval(timer);};
   }, [user, location.seriesId, record?.revision]);
-  const source = record?.series ?? (publicData?.id === location.seriesId ? publicData : undefined);
+  const source = record?.series ?? (publicRequest?.id === location.seriesId && publicRequest?.state === "ready" ? publicData : undefined);
   const invalidRoute = Boolean(source && (
     (location.eventId && !eventsFor(source).some(e => e.id === location.eventId)) ||
     (location.heatId && !source.races.some(r => r.id === location.heatId && (!location.eventId || (r.eventId ?? r.id) === location.eventId)))
@@ -359,6 +379,23 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
           s,
         ),
       );
+  };
+  const saveVisibility = async (visibility: SeriesVisibility) => {
+    if (!navigator.onLine) throw new Error("Connect to the internet to change visibility.");
+    if (syncing.current) throw new Error("Wait for synchronization to finish and try again.");
+    syncing.current = true;
+    const task = chain.current.then(async () => {
+      requireAccount(identity.current, user);
+      const old = current.current.find(r => r.series.id === location.seriesId);
+      if (!old || !canEdit) throw new Error("Series editing access required");
+      const series = structuredClone(old.series);
+      setSeriesVisibility(series, visibility);
+      const pending = stageChange(old, series);
+      const revision = await pushRemote(pending);
+      await persist(acknowledge(pending, pending, revision));
+    });
+    chain.current = task.catch(() => {});
+    try { await task; } finally { syncing.current = false; }
   };
   const create = (s: Series): Promise<void> => {
     const task = chain.current.then(async () => {
@@ -502,6 +539,7 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
             ) : <>
             {location.seriesId && series && (
               <EntityDetails
+                onVisibilityChange={saveVisibility}
                 team={!location.eventId && !location.heatId && canDelete ? (
                   <SeriesTeam
                     key={`${user}/${series.id}`}
@@ -590,7 +628,11 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
                 <button className={page === "tracking" ? "selected" : ""} aria-current={page === "tracking" ? "page" : undefined} onClick={() => {window.history.replaceState(null, "", window.location.pathname + window.location.search + "#tracking"); setPage("tracking");}}>{t("Map & replay")}</button>
               </nav>
             )}
-            {location.seriesId && !series ? <p role="status">{t("Series unavailable or still loading.")}</p> : series && page === "manage" ? (
+            {location.seriesId && !series ? (
+              invalidRoute || (authReady && (!user || access.user === user) && publicRequest?.id === location.seriesId && publicRequest.state === "missing")
+                ? <PublicNotFound />
+                : <p role="status">{t(publicRequest?.id === location.seriesId && publicRequest.state === "error" ? "Unable to load this series. Check your connection and try again." : "Loading series…")}</p>
+            ) : series && page === "manage" ? (
               <SeriesBrowser key={`${series.id}/${location.eventId ?? ""}`} seriesList={[series]} location={location} navigate={navigate} edit={canEdit ? edit : undefined} />
             ) : series ? (
               <>
@@ -924,6 +966,7 @@ export default function App({ updateAvailable = false, updateServiceWorker = asy
                               r.id = id();
                               r.status = "draft";
                             });
+                            setSeriesVisibility(restored, "draft");
                             requireAccount(identity.current, user);
                             if (!canCreate) throw new Error("Organizer approval required to create a series");
                             await persist({

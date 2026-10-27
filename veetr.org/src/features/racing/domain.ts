@@ -46,6 +46,7 @@ export interface ControlRace extends Race {
   results: Result[];
 }
 export interface Series {
+  visibility?: "public" | "unlisted" | "draft";
   courses?: Record<string, RaceCourse>;
   id: string;
   name: string;
@@ -58,6 +59,19 @@ export interface Series {
   events?: RaceEvent[];
   discards?: DiscardRule[];
   pointsStart?: 0 | 1;
+}
+export type SeriesVisibility = NonNullable<Series["visibility"]>;
+export function seriesVisibility(series: {visibility?: SeriesVisibility; status: string}): SeriesVisibility {
+  return series.visibility ?? (series.status === "draft" ? "draft" : "public");
+}
+export function visibilityLabel(series: {visibility?: SeriesVisibility; status: string}): string {
+  return {public: "Public", unlisted: "Unlisted", draft: "Draft"}[seriesVisibility(series)];
+}
+export function setSeriesVisibility(series: Series, visibility: SeriesVisibility) {
+  if (!["public", "unlisted", "draft"].includes(visibility)) throw new Error("Choose a valid visibility.");
+  series.visibility = visibility;
+  // Retain the legacy wire format for installed app versions.
+  series.status = visibility === "draft" ? "draft" : "active";
 }
 export const id = () => crypto.randomUUID();
 export function newSeries(
@@ -123,6 +137,8 @@ export function validateDiscardRules(rules: DiscardRule[] = []) {
     );
 }
 export function validateSeries(s: Series): void {
+  if (s.visibility !== undefined && (!["public", "unlisted", "draft"].includes(s.visibility) ||
+      (s.visibility === "draft") !== (s.status === "draft"))) throw new Error("Choose a valid visibility.");
   validateDiscardRules(s.discards);
   if (s.pointsStart !== undefined && s.pointsStart !== 0 && s.pointsStart !== 1) throw new Error("Invalid points start");
   if (s.events) {

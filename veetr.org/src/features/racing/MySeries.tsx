@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { listOwnedSeries, type OwnedSeries } from "./api";
+import { listManagedSeries, type OwnedSeries } from "./api";
 import { appHref } from "./routes";
 import { t } from "./i18n";
 
@@ -10,7 +10,7 @@ export function MySeries({ userId }: { userId: string }) {
     let active = true;
     const refresh = async () => {
       try {
-        const rows = await listOwnedSeries(userId);
+        const rows = await listManagedSeries();
         if (active) { setSeries(rows); setError(""); }
       } catch (e) {
         if (active) setError((e as Error).message);
@@ -22,8 +22,8 @@ export function MySeries({ userId }: { userId: string }) {
   }, [userId]);
   return <section className="my-series" aria-labelledby="my-series-title">
     <h2 id="my-series-title">{t("My series")}</h2>
-    <p>{t("Series you own. Open a series to manage its fleet and invite skippers.")}</p>
-    {error ? <p role="alert">{t(error)}</p> : series === null ? <p role="status">{t("Loading your series…")}</p> : !series.length ? <p>{t("You do not own any series yet.")}</p> :
+    <p>{t("Series you own or help manage. Open a series to manage races and entries.")}</p>
+    {error ? <p role="alert">{t(error)}</p> : series === null ? <p role="status">{t("Loading your series…")}</p> : !series.length ? <p>{t("You do not have access to any series yet.")}</p> :
       <ul className="team-list">{series.map(s => <li key={s.id}>
         <a href={appHref(`?series=${s.id}`)}>{s.name}</a>
         <span>{s.year}</span>

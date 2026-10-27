@@ -1,5 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { getTeam, updateTeamMember, type TeamMember } from "./api";
+import { SeriesInviteForm } from "./SeriesInviteForm";
+import {
+  getTeamInvitations,
+  revokeTeamInvitation,
+  sendTeamInvitation,
+  type TeamInvitation,
+} from "./seriesInvitations";
 import { t } from "./i18n";
 
 export function SeriesTeam({
@@ -21,18 +28,27 @@ export function SeriesTeam({
     [message, setMessage] = useState("");
   const [team, setTeam] = useState<TeamMember[] | null>(null),
     [teamError, setTeamError] = useState("");
+  const [invitations, setInvitations] = useState<TeamInvitation[]>([]);
   const refresh = async () => {
     if (!seriesId) return;
-    setTeam(await getTeam(seriesId));
+    const [members, invites] = await Promise.all([
+      getTeam(seriesId),
+      getTeamInvitations(seriesId),
+    ]);
+    setTeam(members);
+    setInvitations(invites);
   };
   useEffect(() => {
     let cancelled = false;
     setTeam(null);
     setTeamError("");
     if (userId && cloudSaved && seriesId)
-      void getTeam(seriesId)
-        .then((rows) => {
-          if (!cancelled) setTeam(rows);
+      void Promise.all([getTeam(seriesId), getTeamInvitations(seriesId)])
+        .then(([rows, invites]) => {
+          if (!cancelled) {
+            setTeam(rows);
+            setInvitations(invites);
+          }
         })
         .catch((e) => {
           if (!cancelled) setTeamError(e.message);
@@ -132,42 +148,71 @@ export function SeriesTeam({
               </li>
             ))}
           </ul>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              const data = new FormData(e.currentTarget);
-              void run(async () => {
-                await updateTeamMember(
-                  seriesId,
-                  String(data.get("email")),
-                  String(data.get("role")) as "official" | "admin",
-                );
-                await refresh();
-                setMessage("Team access saved");
-              });
-            }}
-          >
-            <h3>{t("Add a teammate or change their role")}</h3>
-            <label>
-              {t("Teammate’s email")}
-              <input type="email" name="email" required autoComplete="off" />
-            </label>
-            <label>
-              {t("Role")}
-              <select name="role">
-                <option value="official">{t("Referee")}</option>
-                <option value="admin">{t("Series manager")}</option>
-              </select>
-            </label>
-            <p className="help">
-              {t(
-                "Teammates must sign in once before you can add them. This saves access immediately; it does not send an invitation email.",
-              )}
-            </p>
-            <button className="primary" disabled={busy}>
-              {t("Save team access")}
-            </button>
-          </form>
+          <SeriesInviteForm seriesId={seriesId} onChanged={refresh} />
+          {invitations.length > 0 && (
+            <section aria-label={t("Invitations")}>
+              <h3>{t("Invitations")}</h3>
+              <ul className="team-list">
+                {invitations.map((invite) => (
+                  <li key={invite.id}>
+                    <div>
+                      <strong>{invite.email}</strong>
+                      <small>
+                        {t(
+                          invite.role === "admin"
+                            ? "Series manager"
+                            : "Referee",
+                        )}{" "}
+                        ·{" "}
+                        {t(
+                          invite.status === "pending"
+                            ? invite.sent
+                              ? "Invitation sent"
+                              : "Email not sent"
+                            : invite.status === "accepted"
+                              ? "Accepted"
+                              : invite.status === "expired"
+                                ? "Expired"
+                                : "Cancelled",
+                        )}
+                        {invite.status === "accepted" &&
+                          invite.acceptedEmail &&
+                          ` · ${invite.acceptedEmail}`}
+                      </small>
+                    </div>
+                    {invite.status === "pending" && (
+                      <div className="actions">
+                        <button
+                          disabled={busy}
+                          onClick={() =>
+                            void run(async () => {
+                              await sendTeamInvitation(invite.id);
+                              await refresh();
+                              setMessage("Invitation sent");
+                            })
+                          }
+                        >
+                          {t(invite.sent ? "Resend email" : "Retry email")}
+                        </button>
+                        <button
+                          disabled={busy}
+                          onClick={() =>
+                            void run(async () => {
+                              await revokeTeamInvitation(invite.id);
+                              await refresh();
+                              setMessage("Invitation cancelled");
+                            })
+                          }
+                        >
+                          {t("Cancel invitation")}
+                        </button>
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
         </>
       )}
       {message && (

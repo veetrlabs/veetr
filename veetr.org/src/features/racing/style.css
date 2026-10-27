@@ -875,6 +875,15 @@ a.directory-create { display: inline-flex; align-items: center; min-height: 44px
 .entity-header .entity-edit-button:hover { background: var(--surface); }
 
 .series-team-editor { margin-top: 2rem; }
+.entity-editor-back { display: inline-block; margin-bottom: 1rem; }
+.entity-editor-tabs { display: flex; gap: .25rem; margin: 1.25rem 0 0; border-bottom: 1px solid var(--line); }
+.entity-editor-tabs a { display: inline-flex; align-items: center; min-height: 44px; padding: .65rem 1rem; border-bottom: 3px solid transparent; color: var(--muted); text-decoration: none; font-weight: 600; }
+.entity-editor-tabs a[aria-current="page"] { border-bottom-color: currentColor; color: var(--ink); }
+.entity-editor-tabs a:hover { background: var(--surface); }
+.entity-editor-tabs a:focus-visible { outline: 2px solid currentColor; outline-offset: -3px; }
+.entity-editor-panel { min-width: 0; }
+.entity-editor-panel[hidden] { display: none; }
+.entity-editor-panel > .series-team-editor { margin: 0; padding: 1.25rem 0; border: 0; border-radius: 0; background: transparent; }
 .series-team-editor form { display: grid; gap: 1rem; }
 .series-team-editor label { display: grid; gap: .5rem; }
 .series-team-editor input { width: 100%; box-sizing: border-box; }
@@ -1227,3 +1236,11 @@ section.entity-details { padding: 0; border: 0; border-radius: 0; background: tr
 
 .course-editor .course-finish-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
 @media (max-width: 600px) { .course-editor .course-finish-fields { grid-template-columns: 1fr; } }
+
+.series-team-editor form fieldset { display: grid; gap: .75rem; min-width: 0; }
+.series-team-editor form fieldset label { min-width: 0; }
+.series-team-editor form fieldset button { margin-bottom: 0; }
+.series-team-editor .team-list .actions { flex-wrap: wrap; }
+.series-invitation blockquote { overflow-wrap: anywhere; margin-inline: 0; padding-inline: 1rem; border-left: 3px solid currentColor; }
+.series-invitation { display: block; }
+.series-team-editor form .notice { display: block; }

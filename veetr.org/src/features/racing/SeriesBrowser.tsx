@@ -4,6 +4,8 @@ import { CourseEditor } from "./CourseEditor";
 import { EditEntityButton } from "./EditEntityButton";
 import { DeleteSection } from "./DeleteAction";
 import { t } from "./i18n";
+import { appHref } from "./routes";
+import { SeriesVisibilitySelect } from "./SeriesVisibility";
 import React, { useRef, useState, useEffect } from "react";
 import {
   type Series,
@@ -14,11 +16,15 @@ import {
   materializeEvents,
   eventEntries,
   validateDiscardRules,
+  setSeriesVisibility,
+  visibilityLabel,
+  type SeriesVisibility,
 } from "./domain";
 import { Discards } from "./EventScoring";
 export interface Location {
   editCourse?: boolean;
   editRace?: boolean;
+  editTab?: "settings" | "team";
   seriesId?: string;
   eventId?: string;
   heatId?: string;
@@ -127,7 +133,7 @@ export function SeriesBrowser({
           id: s.id,
           name: s.name,
           detail: String(s.year),
-          status: t(s.status),
+          status: t(visibilityLabel(s)),
           count: eventsFor(s).length,
           kind: "series",
         }));
@@ -295,6 +301,7 @@ export function SeriesBrowser({
   );
 }
 export function EntityDetails({
+  onVisibilityChange,
   onEditingChange,
   navigate,
   saveDetails,
@@ -304,6 +311,7 @@ export function EntityDetails({
   edit,
   onDelete,
 }: {
+  onVisibilityChange?: (value: SeriesVisibility) => Promise<void>;
   onEditingChange?: (value: boolean) => void;
   navigate?: (location: Location) => void;
   saveDetails?: (fn: (s: Series) => void) => Promise<void>;
@@ -320,13 +328,16 @@ export function EntityDetails({
   const changeEditing = (value: boolean) => {
     setEditing(value);
     onEditingChange?.(value);
-    if (event && !heat) navigate?.({ ...location, editRace: value, editCourse: false });
+    if (!heat) navigate?.({ ...location, editRace: value, editCourse: false, editTab: undefined });
   };
   const event = eventsFor(series).find((e) => e.id === location.eventId);
   const heat = series.races.find((r) => r.id === location.heatId);
   const entity = heat ?? event ?? series;
+  const seriesEditor = !event && !heat;
+  const teamSelected = seriesEditor && Boolean(team) && location.editTab === "team";
   return (
     <section className="entity-details">
+      {editing && seriesEditor && <a className="entity-editor-back" href={appHref(`?series=${series.id}`)} onClick={e => {e.preventDefault(); changeEditing(false);}}>← {t("Back to series")}</a>}
       {editing && event && !heat && <button type="button" onClick={() => changeEditing(false)}>← {t("Back to race")}</button>}
       <div className="section-title entity-header">
         <h1>{entity.name}</h1>
@@ -340,8 +351,23 @@ export function EntityDetails({
       )}
       {edit && editing && (
         <>
+        {seriesEditor && team && <nav className="entity-editor-tabs" aria-label={t("Series settings")}>
+          {([['settings', 'Settings'], ['team', 'Team access']] as const).map(([tab, label]) => <a
+            key={tab}
+            href={appHref(`?series=${series.id}&edit-race=&edit-tab=${tab}`)}
+            aria-current={(tab === 'team') === teamSelected ? 'page' : undefined}
+            onClick={e => {if (navigate && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {e.preventDefault(); navigate({...location, editRace: true, editTab: tab});}}}
+          >{t(label)}</a>)}
+        </nav>}
+        <div className="entity-editor-panel" hidden={teamSelected}>
         <Editor
           series={series}
+          saveVisibility={seriesEditor ? async value => {
+            if (onVisibilityChange) return onVisibilityChange(value);
+            const change = (s: Series) => setSeriesVisibility(s, value);
+            if (saveDetails) await saveDetails(change);
+            else edit(change, series.id);
+          } : undefined}
           event={heat ? undefined : event}
           heat={heat}
           onCancel={() => changeEditing(false)}
@@ -351,7 +377,6 @@ export function EntityDetails({
             changeEditing(false);
           }}
         />
-        {!event && !heat && team}
         {onDelete && (
           <DeleteSection
             onDelete={onDelete}
@@ -364,12 +389,15 @@ export function EntityDetails({
             )}
           />
         )}
+        </div>
+        {seriesEditor && team && <div className="entity-editor-panel" hidden={!teamSelected}>{team}</div>}
         </>
       )}
     </section>
   );
 }
 export function Editor({
+  saveVisibility,
   creating = false,
   series,
   event,
@@ -377,6 +405,7 @@ export function Editor({
   onCancel,
   save,
 }: {
+  saveVisibility?: (value: SeriesVisibility) => Promise<void>;
   creating?: boolean;
   series: Series;
   event?: RaceEvent;
@@ -434,11 +463,11 @@ export function Editor({
               );
               setEventPublished(s, event.id, d.get("visibility") === "published");
             } else {
+              setSeriesVisibility(s, String(d.get("visibility")) as SeriesVisibility);
               Object.assign(s, {
                 name: String(d.get("name")),
                 year: Number(d.get("year")),
                 description: String(d.get("description")),
-                status: String(d.get("status")),
                 discards: rules,
                 categories,
               });
@@ -482,14 +511,11 @@ export function Editor({
               {t("Description")}
               <textarea name="description" defaultValue={series.description} />
             </label>
-            <label>
-              {t("Status")}
-              <select name="status" defaultValue={series.status}>
-                <option value="draft">{t("draft")}</option>
-                <option value="active">{t("active")}</option>
-                <option value="completed">{t("completed")}</option>
-              </select>
-            </label>
+            <SeriesVisibilitySelect series={series} save={saveVisibility ? async value => {
+              setBusy(true);
+              try { await saveVisibility(value); }
+              finally { setBusy(false); }
+            } : undefined} />
           </>
         ) : !heat && event ? (
           <label>

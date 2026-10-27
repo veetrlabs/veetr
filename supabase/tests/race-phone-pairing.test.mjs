@@ -167,7 +167,7 @@ test("race phone capabilities enforce pairing, readiness, activation, privacy an
   assert.equal(replay.positions[0].boatId, bid);
   assert.equal(Date.parse(replay.start), Date.parse(live.recordedAt));
   assert.equal(Date.parse(replay.end), Date.parse(live.recordedAt));
-  assert.equal((await rpc("public_heat_replay", [id()])).start, null);
+  await assert.rejects(rpc("public_heat_replay", [id()]), e => e.code === "PT404");
   const otherHeat = doc.races.find(r => r.eventId !== eventId);
   assert.equal((await rpc("public_heat_replay", [otherHeat.id])).positions.length, 0);
   await assert.rejects(rpc("heat_replay_points", [heatId]), /permission denied/);

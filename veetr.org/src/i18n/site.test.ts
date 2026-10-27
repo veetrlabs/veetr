@@ -28,3 +28,10 @@ test('account callback retains language, invitation and recovery fragment on the
  assert.equal(localizedAccountReturn(new URL('https://veetr.org/races/?lang=cs')),null);
  assert.equal(localizedAccountReturn(new URL('https://veetr.org/cs/account/')),null);
 });
+
+
+test('series invitations survive signup callbacks and Czech localization',()=>{
+ const callback=accountCallbackPath('cs',null,'series-token');
+ assert.equal(callback,'/account/?lang=cs&series-invite=series-token');
+ assert.equal(localizedAccountReturn(new URL('https://veetr.org'+callback+'#access_token=test')), '/cs/account/?series-invite=series-token#access_token=test');
+});

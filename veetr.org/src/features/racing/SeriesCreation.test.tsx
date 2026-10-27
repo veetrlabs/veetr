@@ -11,7 +11,7 @@ function details(overrides: Record<string, string> = {}) {
     name: "  Autumn Cup  ",
     year: "2026",
     description: "  Club racing  ",
-    status: "draft",
+    visibility: "draft",
     categories: "Dinghies\nKeelboats",
     ...overrides,
   }))
@@ -64,7 +64,7 @@ test("invalid and placeholder-free empty inputs cannot create a series", () => {
     { year: "2201" },
     { categories: "\n " },
     { categories: "Fleet\n Fleet " },
-    { status: "invalid" },
+    { visibility: "invalid" },
   ];
   for (const overrides of invalid) {
     assert.throws(() => seriesFromForm(details(overrides)));

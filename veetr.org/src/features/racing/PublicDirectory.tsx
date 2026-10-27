@@ -2,7 +2,7 @@ import { appHref } from "./routes";
 import { t } from "./i18n";
 import React, { useEffect, useState } from "react";
 import { listPublicSeries, type PublicSeriesSummary } from "./api";
-import { eventsFor, type Series } from "./domain";
+import { eventsFor, visibilityLabel, type Series } from "./domain";
 export function PublicDirectory({editableSeries = [], signedIn = false}: {editableSeries?: Series[]; signedIn?: boolean}) {
   const [series, setSeries] = useState<PublicSeriesSummary[]>([]),
     [loading, setLoading] = useState(true),
@@ -68,7 +68,7 @@ export function PublicDirectory({editableSeries = [], signedIn = false}: {editab
                 key={s.id}
               >
                 <span className="eyebrow">
-                  {s.year} · {t(s.status)}
+                  {s.year} · {t(visibilityLabel(s))}
                 </span>
                 <h2>{s.name}</h2>
                 <p>{s.description || t("Sailing series")}</p>

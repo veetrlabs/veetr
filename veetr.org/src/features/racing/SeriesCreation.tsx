@@ -1,5 +1,6 @@
 import React, { useRef, useState } from "react";
-import { id, newSeries, validateSeries, type Series } from "./domain";
+import { id, newSeries, setSeriesVisibility, validateSeries, type Series, type SeriesVisibility } from "./domain";
+import { SeriesVisibilitySelect } from "./SeriesVisibility";
 import { t } from "./i18n";
 import { appHref } from "./routes";
 
@@ -20,9 +21,9 @@ export function seriesFromForm(data: FormData): Series {
   const series = {
     ...newSeries(name, year),
     description: String(data.get("description") ?? "").trim(),
-    status: String(data.get("status")) as Series["status"],
     categories: names.map((name) => ({ id: id(), name })),
   };
+  setSeriesVisibility(series, String(data.get("visibility") ?? "draft") as SeriesVisibility);
   validateSeries(series);
   return series;
 }
@@ -78,14 +79,7 @@ export function SeriesCreation({
             {t("Description")}
             <textarea name="description" rows={3} />
           </label>
-          <label>
-            {t("Status")}
-            <select name="status" defaultValue="draft">
-              <option value="draft">{t("draft")}</option>
-              <option value="active">{t("active")}</option>
-              <option value="completed">{t("completed")}</option>
-            </select>
-          </label>
+          <SeriesVisibilitySelect series={newSeries()} />
           <label>
             {t("Categories (one per line)")}
             <textarea name="categories" rows={3} required />

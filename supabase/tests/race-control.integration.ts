@@ -96,9 +96,10 @@ test("real Supabase Auth, RLS, published fixture, and versioned saves", async ()
     mutation_id: crypto.randomUUID(),
   });
   assert.match(stale.error?.message ?? "", /SYNC_CONFLICT/);
-  const { data: unpublished } = await anon.rpc("public_standings", {
+  const { data: unpublished, error: unpublishedError } = await anon.rpc("public_standings", {
     series_id: draft.id,
   });
   assert.equal(unpublished, null);
+  assert.equal(unpublishedError?.code, "PT404");
   await client.auth.signOut();
 });

@@ -7,7 +7,7 @@
     "dev": "astro dev",
     "build": "astro build && node scripts/build-racing-sw.mjs",
     "preview": "astro preview",
-    "test": "npm run build && node --test scripts/site.test.mjs"
+    "test": "npm run build && node --test scripts/*.test.mjs"
   },
   "engines": {
     "node": ">=22.19.0",

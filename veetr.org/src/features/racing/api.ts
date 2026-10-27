@@ -19,12 +19,12 @@ supabase?.auth.onAuthStateChange(event => {
   if (event === "PASSWORD_RECOVERY") passwordRecoveryRequested = true;
 });
 export async function listRemote(): Promise<
-  { document: Series; revision: number; owner_id: string }[]
+  { document: Series; revision: number; owner_id: string; slug: string }[]
 > {
   if (!supabase) return [];
   const { data, error } = await supabase
     .from("series")
-    .select("document,revision,owner_id");
+    .select("document,revision,owner_id,slug");
   if (error) throw error;
   return (data ?? []).map((row) => {
     const document = row.document as unknown as Series;
@@ -45,8 +45,8 @@ export async function pushRemote(record: LocalRecord): Promise<number> {
 export async function publicSeries(id: string): Promise<Series> {
   if (!supabase)
     throw new Error("Configure Supabase to view published results");
-  const { data, error } = await supabase.rpc("public_standings", {
-    series_id: id,
+  const { data, error } = await supabase.rpc("public_series_by_route", {
+    series_route: id,
   });
   if (error) throw error;
   if (!data) throw new Error("No published results for this series");
@@ -89,6 +89,7 @@ export async function signOutAccount(): Promise<void> {
 }
 
 export interface PublicSeriesSummary {
+  visibility?: Series["visibility"];
   id: string;
   name: string;
   year: number;
@@ -192,5 +193,14 @@ export async function listOwnedSeries(userId: string): Promise<OwnedSeries[]> {
     .select("id,name,year").eq("owner_id", userId)
     .order("year", { ascending: false }).order("name");
   if (error) throw error;
+  return data ?? [];
+}
+
+export async function listManagedSeries(): Promise<OwnedSeries[]> {
+  if (!supabase) throw new Error("Cloud is not configured");
+  // RLS limits this to series the current account can manage, including ownership.
+  const {data,error}=await supabase.from("series").select("id,name,year")
+    .order("year",{ascending:false}).order("name");
+  if(error) throw error;
   return data ?? [];
 }

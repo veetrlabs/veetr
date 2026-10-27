@@ -13,6 +13,7 @@ test('public, editable and legacy links use one canonical series route and prese
   assert.equal(appHref('?series=series-id&event=event-id&new-heat='),'/races/?series=series-id&event=event-id&new-heat=');
   assert.equal(appHref('?series=series-id&event=event-id&heat=heat-id&edit-course='),route+'&edit-course=');
   assert.equal(appHref('?public=series-id&event=event-id&edit-race='), '/races/?series=series-id&event=event-id&edit-race=');
+  assert.equal(appHref('?series=series-id&edit-race=&edit-tab=team'), '/races/?series=series-id&edit-race=&edit-tab=team');
   assert.equal(appHref('?account&edit-user=user-id'),'/account/?edit-user=user-id');
   assert.equal(appHref('?account'),'/account/');
   assert.equal(appHref('?boats'),'/races/');

@@ -1,3 +1,4 @@
+import {SeriesInvitationAcceptance} from "./SeriesInvitationAcceptance";
 import { UserManagement } from "./UserManagement";
 import { MySeries } from "./MySeries";
 import { InvitationAcceptance, MyBoats } from "./BoatAccess";
@@ -49,6 +50,7 @@ export function AccountPanel({
   const selectTab = (id: AccountTab) => {setTab(id); window.location.hash = id;};
   const [authMode, setAuthMode] = useState<{mode:"signin" | "signup";request:number}>({mode:"signin",request:0});
   const [boatRefresh, setBoatRefresh] = useState(0);
+  const [seriesRefresh, setSeriesRefresh] = useState(0);
   const [email, setEmail] = useState(""),
     [busy, setBusy] = useState(false),
     [message, setMessage] = useState("");
@@ -102,6 +104,8 @@ export function AccountPanel({
             </button>
           </div>
       )}
+      {supabase && !recovery && !editUserId && <SeriesInvitationAcceptance key={`team-${userId}`} userId={userId} email={email} onAccepted={()=>{setSeriesRefresh(n=>n+1);selectTab("series");}}
+        onAuthenticate={mode=>{setAuthMode(previous=>({mode,request:previous.request+1}));document.getElementById("account-auth")?.scrollIntoView({behavior:"smooth",block:"start"});}} />}
       {supabase && !recovery && !editUserId && (
         <InvitationAcceptance
           key={userId}
@@ -134,7 +138,7 @@ export function AccountPanel({
               }}>{t(item.label)}</button>)}
           </nav>
           <div className="account-tab-panel" role="tabpanel" id={`account-panel-${activeTab}`} aria-labelledby={`account-tab-${activeTab}`}>
-            {activeTab === "series" && <MySeries key={`series-${userId}`} userId={userId} />}
+            {activeTab === "series" && <MySeries key={`series-${userId}-${seriesRefresh}`} userId={userId} />}
             {activeTab === "boats" && <MyBoats key={userId} refreshKey={boatRefresh} />}
             {activeTab === "users" && <UserManagement key={`admin-${userId}`} />}
             {activeTab === "requests" && <CreationAccess key={userId} />}

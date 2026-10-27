@@ -24,8 +24,17 @@ flowchart TD
     Gmail --> ResendSMTP[Resend SMTP: Gmail sending identities]
 ```
 
-Cloudflare serves the static frontend. The browser connects directly to Supabase
-for accounts and race data; there is no application server running inside Pages.
+Cloudflare serves the static frontend. A Pages Worker checks series and race
+URLs against the public Supabase API and returns HTTP 404 for unavailable
+content. These responses are not cached; API outages return 503. The normal
+application shell still lets organizers restore their session and edit private
+series. The browser connects directly to Supabase for accounts and race data.
+Series visibility has three choices: Public is discoverable, Unlisted is
+accessible only through a supplied link, and Draft is organizer-only. Public
+directories and boat histories exclude Unlisted and Draft series. Exact links
+resolve through `public_series_by_route`; it does not enumerate unlisted URLs.
+Unlisted page responses carry `noindex`. Existing Active and Completed series
+map to Public; legacy status values remain in the wire format for installed apps.
 The device app at `app.veetr.org` is the sailing instrument dashboard. Race
 management is integrated into the main website, not hosted in that device app.
 
@@ -62,7 +71,10 @@ step. The main site uses Astro with embedded React race-management screens at
 The site and device app use `NODE_VERSION=22.19.0`. The `veetr-site` build also
 needs `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`, configured in Pages for
 production and previews. These are public browser configuration for Regatta.
-An administrative or service-role key must never be used in the frontend.
+The Pages Worker uses these same public variables at runtime. An administrative
+or service-role key must never be used in the frontend or this public visibility
+check. The site build includes `_worker.js` and `_routes.json`; only race paths
+invoke the Worker.
 
 ## What happens when code changes
 
@@ -224,11 +236,30 @@ the app or its public API.
 
 ### Share an entity
 
-On a series page, an owner/admin opens **Series team**, enters a teammate's email,
-and chooses **Race official** or **Series admin**. On a boat page, its owner opens
-**Boat crew** and adds an editor by email. Teammates must already have signed in to
-Veetr once. Changes take effect immediately on the server; this does not send an
-invitation email. Remove a teammate in the same panel to revoke access.
+On a series page, an owner or manager opens **Edit series → Team access**, enters
+an email, selects **Referee** or **Series manager**, and chooses **Check email**.
+Known accounts can receive access directly. Unknown addresses reveal an optional
+personal message and English/Czech email selector before **Send invitation**.
+
+Series-team invitations use the existing `boat-invitation-email` Edge Function
+and its server-only Resend configuration. Deploy the `series_team_invitations`
+migration before deploying the updated function and website. The email links to
+`/account/?series-invite=…` (or `/cs/account/`), and signup callbacks retain the token.
+Recipients can sign in or register with a different verified email, review the
+series and role, and explicitly accept into their chosen account. These are
+private bearer links: possession permits acceptance. They expire after seven days,
+are single-use, and cannot downgrade an existing manager or replace the owner.
+Losing management access or suspending the inviter invalidates their pending invitations.
+Managers can inspect delivery/acceptance status, resend pending email, or cancel
+an invitation. Remove accepted teammates through the team roster. Creation is
+limited to 50 invitations per series per day; email retries are limited to ten per
+invitation with at least a minute between attempts. Boat invitations retain their
+existing requirement to use the invited email address.
+
+For local testing, run `PORTAL_URL=http://127.0.0.1:4323 sh supabase/scripts/serve-local-functions.sh`
+with the local Supabase stack. Email is captured locally and never delivered
+externally. Use a preview origin listed in `supabase/config.toml` for signup
+callbacks; restart the local stack after changing that configuration.
 
 The database enforces these rules even if someone bypasses the visible buttons.
 Cached private series are shown only after the current session's access has been

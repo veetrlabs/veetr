@@ -307,6 +307,7 @@ export type Database = {
         Row: {
           created_at: string
           description: string
+          slug: string
           document: Json
           id: string
           name: string
@@ -320,6 +321,7 @@ export type Database = {
         Insert: {
           created_at?: string
           description?: string
+          slug?: string
           document: Json
           id: string
           name: string
@@ -333,6 +335,7 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string
+          slug?: string
           document?: Json
           id?: string
           name?: string
@@ -447,6 +450,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      series_teammate_exists: { Args: {sid: string; recipient: string}; Returns: boolean }
+      invite_series_teammate: { Args: {sid: string; recipient: string; member_role: string; email_language: string; custom_message: string}; Returns: string }
+      series_team_invitations: { Args: {sid: string}; Returns: Json }
+      revoke_series_team_invitation: { Args: {invitation_id: string}; Returns: undefined }
+      series_team_invitation_preview: { Args: {invite_token: string}; Returns: Json }
+      accept_series_team_invitation: { Args: {invite_token: string}; Returns: string }
+
       admin_user: { Args: { target_user: string }; Returns: Json };
       boat_specifications: { Args: { bid: string }; Returns: Json };
       save_boat_specifications: { Args: { bid: string; details: Json; expected: Json }; Returns: Json };
@@ -536,6 +546,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      public_series_by_route: {
+        Args: { series_route: string };
+        Returns: Json;
+      };
       public_standings: {
         Args: {
           series_id: string

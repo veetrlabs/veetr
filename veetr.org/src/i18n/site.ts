@@ -8,10 +8,11 @@ export function localizedPath(path: string, language: SiteLanguage) {
 }
 
 // Reuse the existing allow-listed callback path, carrying language as a preference.
-export function accountCallbackPath(language: SiteLanguage, invite?: string | null) {
+export function accountCallbackPath(language: SiteLanguage, invite?: string | null, seriesInvite?: string | null) {
   const params = new URLSearchParams();
   if (language === 'cs') params.set('lang', 'cs');
   if (invite) params.set('invite', invite);
+  if (seriesInvite) params.set('series-invite', seriesInvite);
   return '/account/' + (params.size ? `?${params}` : '');
 }
 export function localizedAccountReturn(current: URL): string | null {

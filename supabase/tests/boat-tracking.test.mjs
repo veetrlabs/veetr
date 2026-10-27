@@ -176,7 +176,7 @@ test("tracking enforces consent, ownership, one reporter, idempotency, timestamp
       race,
     ]);
     await login(null, "anon");
-    assert.deepEqual(await feed(), []);
+    await assert.rejects(feed(), e => e.code === "PT404");
     await login(owner);
     await assert.rejects(send([point(5)]), /no longer public/);
     await db.exec("reset role");
@@ -242,7 +242,7 @@ test("tracking enforces consent, ownership, one reporter, idempotency, timestamp
       race,
     ]);
     await login(null, "anon");
-    assert.deepEqual(await replay(), []);
+    await assert.rejects(replay(), e => e.code === "PT404");
     assert.deepEqual(
       (await db.query("select public.public_regatta_directory() value")).rows[0]
         .value,

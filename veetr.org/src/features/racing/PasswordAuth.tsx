@@ -1,3 +1,4 @@
+import {pendingTeamToken} from "./seriesInvitations";
 import { accountCallbackPath, siteLanguage } from "../../i18n/site";
 import { useEffect, useState } from 'react';
 import { supabase } from './api';
@@ -25,7 +26,8 @@ export function PasswordAuth({ recovery = false, onRecovered, initialMode = "sig
       setBusy(true); setMessage('');
       let invite = new URLSearchParams(location.search).get('invite');
       try { invite ||= sessionStorage.getItem('veetr.boat-invite'); } catch {}
-      const redirectTo = location.origin + (integrated ? accountCallbackPath(siteLanguage(location.pathname), invite) : '/?account' + (invite ? `&invite=${encodeURIComponent(invite)}` : ''));
+      const teamToken=pendingTeamToken();
+      const redirectTo = location.origin + (integrated ? accountCallbackPath(siteLanguage(location.pathname), invite, teamToken) : '/?account' + (invite ? `&invite=${encodeURIComponent(invite)}` : '') + (teamToken ? `&series-invite=${encodeURIComponent(teamToken)}` : ''));
       try {
         if (recovery) {
           const { error } = await supabase.auth.updateUser({ password });
