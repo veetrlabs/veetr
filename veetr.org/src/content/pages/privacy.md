@@ -12,7 +12,7 @@ Identification number (ICO): 75412551
 
 City: Praha 6 - Ruzyne
 
-Contact email: veetr@linhart.email
+Contact email: hello@veetr.org
 
 This policy covers the Veetr mobile app and veetr.org.
 
@@ -44,7 +44,7 @@ We use service providers including DigitalOcean for the self-hosted Mautic insta
 
 You have the right to access, rectify, erase, restrict, or object to processing, and the right to data portability where applicable. You can also withdraw consent at any time where processing is based on consent.
 
-To exercise your rights, contact us at veetr@linhart.email.
+To exercise your rights, contact us at hello@veetr.org.
 
 ## 8. Security
 
@@ -68,7 +68,7 @@ We process these reports based on your consent. Automatic reports use a random d
 
 Reports are removed from the active diagnostic database after 30 days by an hourly cleanup. Unsent reports are limited to 100 on the phone and expire after seven days. Native Android counters summarize up to 24 hours of activity and are collected only while automatic reporting is enabled. Turning off automatic reporting stops future automatic reports, cancels pending uploads where possible, and clears unsent reports, native counters, and the local automatic diagnostic identifier. Reports already received are subject to the retention period; turning off reporting does not recall them. Infrastructure logs and backups follow the hosting provider's separate retention and security controls.
 
-You can withdraw consent without affecting GPS tracking. For access or deletion requests, contact veetr@linhart.email and include the report ID shown after a one-off submission, if available. No reports are used for advertising or automated decisions about you.
+You can withdraw consent without affecting GPS tracking. For access or deletion requests, contact hello@veetr.org and include the report ID shown after a one-off submission, if available. No reports are used for advertising or automated decisions about you.
 
 ## Sharing sailing trips
 
@@ -88,4 +88,4 @@ Map displays use third-party map services, including Google Maps on Android and 
 
 ## Account and data deletion
 
-You can request deletion of your account and associated personal data through our [account deletion page](/legal/delete-account/) or by emailing veetr@linhart.email. We verify ownership before acting. You can also request deletion of particular uploaded data without deleting your account. The deletion page explains the scope, local recordings, separately identified diagnostics, and possible retention exceptions. Signing out or uninstalling the app does not delete your online account.
+You can request deletion of your account and associated personal data through our [account deletion page](/legal/delete-account/) or by emailing hello@veetr.org. We verify ownership before acting. You can also request deletion of particular uploaded data without deleting your account. The deletion page explains the scope, local recordings, separately identified diagnostics, and possible retention exceptions. Signing out or uninstalling the app does not delete your online account.

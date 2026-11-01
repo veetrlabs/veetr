@@ -7,7 +7,7 @@ Status checked 2026-09-26. Package: `com.veetr.app`.
 - Reviewer sign-in details and instructions.
 - No ads, no government affiliation, no financial features.
 - Target audience: 13–15, 16–17, and 18+ (confirmed by Jan).
-- App category: Sports. Support: veetr@linhart.email. Website: https://veetr.org.
+- App category: Sports. Support: hello@veetr.org. Website: https://veetr.org.
 - English short/full store descriptions saved as a draft; visual assets remain missing.
 - IARC terms accepted with Jan's explicit approval; content rating saved for review. Generated ratings include PEGI 3 and ESRB Everyone, with Shares Location. Target audience remains 13+.
 

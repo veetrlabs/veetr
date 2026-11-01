@@ -12,7 +12,7 @@ Identification number (ICO): 75412551
 
 City: Praha 6 - Ruzyne
 
-Contact email: veetr@linhart.email
+Contact email: hello@veetr.org
 
 ## 2. Scope
 
@@ -32,4 +32,4 @@ Site content is provided for general information. It is not legal, regulatory, e
 
 ## 6. Contact
 
-For questions, contact veetr@linhart.email or use the community links on the site.
+For questions, contact hello@veetr.org or use the community links on the site.

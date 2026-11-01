@@ -14,7 +14,7 @@ IČO: 75412551
 
 Město: Praha 6 – Ruzyně
 
-Kontaktní e-mail: veetr@linhart.email
+Kontaktní e-mail: hello@veetr.org
 
 ## 2. Rozsah
 
@@ -36,13 +36,13 @@ Doprava byla zdarma. Uváděná dodací lhůta byla 6–12 týdnů, pokud při p
 
 Jste-li spotřebitel v EU, máte právo odstoupit od smlouvy do 14 dnů od převzetí zboží, pokud se neuplatní zákonná výjimka, například zboží vyrobené podle vašich požadavků. Pokud se na objednávku vztahuje výjimka, informujeme vás před jejím potvrzením.
 
-Pro odstoupení napište na veetr@linhart.email číslo objednávky a jednoznačné prohlášení o odstoupení. Potvrdíme přijetí a zašleme pokyny k vrácení.
+Pro odstoupení napište na hello@veetr.org číslo objednávky a jednoznačné prohlášení o odstoupení. Potvrdíme přijetí a zašleme pokyny k vrácení.
 
 Pokud zboží není vadné, hradíte náklady na jeho vrácení. Kupní cenu a případně uhrazenou standardní dopravu k zákazníkovi vrátíme do 14 dnů od přijetí vráceného zboží nebo dokladu o jeho odeslání, podle toho, co nastane dříve.
 
 ## 7. Vadné zboží a záruka
 
-Máte zákonná práva z vadného plnění. Pro spotřebitele činí zákonná doba odpovědnosti za soulad zboží 24 měsíců od dodání. Vadu nahlaste na veetr@linhart.email spolu s číslem objednávky a popisem problému.
+Máte zákonná práva z vadného plnění. Pro spotřebitele činí zákonná doba odpovědnosti za soulad zboží 24 měsíců od dodání. Vadu nahlaste na hello@veetr.org spolu s číslem objednávky a popisem problému.
 
 ## 8. Reklamace a mimosoudní řešení sporů
 

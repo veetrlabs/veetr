@@ -12,7 +12,7 @@ IČO: 75412551
 
 Město: Praha 6 – Ruzyně
 
-Kontaktní e-mail: veetr@linhart.email
+Kontaktní e-mail: hello@veetr.org
 
 Tyto zásady se vztahují na mobilní aplikaci Veetr a web veetr.org.
 
@@ -44,7 +44,7 @@ Využíváme poskytovatele služeb včetně DigitalOcean pro vlastní instanci M
 
 Máte právo na přístup, opravu, výmaz, omezení zpracování, námitku proti zpracování a v příslušných případech na přenositelnost údajů. Pokud je zpracování založeno na souhlasu, můžete jej kdykoli odvolat.
 
-Pro uplatnění práv nás kontaktujte na veetr@linhart.email.
+Pro uplatnění práv nás kontaktujte na hello@veetr.org.
 
 ## 8. Zabezpečení
 
@@ -68,7 +68,7 @@ Tyto zprávy zpracováváme na základě vašeho souhlasu. Automatické zprávy 
 
 Zprávy se z aktivní diagnostické databáze odstraňují po 30 dnech pomocí úklidu spouštěného každou hodinu. Neodeslané zprávy jsou v telefonu omezené na 100 záznamů a vyprší po sedmi dnech. Nativní čítače Androidu shrnují nejvýše 24 hodin činnosti a sbírají se pouze při zapnutém automatickém hlášení. Vypnutí automatického hlášení zastaví další automatické zprávy, kde je to možné zruší čekající nahrávání a vymaže neodeslané zprávy, nativní čítače a místní automatický diagnostický identifikátor. Již přijaté zprávy podléhají uvedené době uchování; vypnutí je neodvolá. Protokoly infrastruktury a zálohy podléhají samostatným pravidlům uchování a zabezpečení poskytovatele hostingu.
 
-Souhlas můžete odvolat bez dopadu na záznam GPS. Pro přístup k údajům nebo žádost o výmaz kontaktujte veetr@linhart.email a pokud jej máte, přiložte ID zprávy zobrazené po jednorázovém odeslání. Zprávy se nepoužívají pro reklamu ani automatizované rozhodování o vás.
+Souhlas můžete odvolat bez dopadu na záznam GPS. Pro přístup k údajům nebo žádost o výmaz kontaktujte hello@veetr.org a pokud jej máte, přiložte ID zprávy zobrazené po jednorázovém odeslání. Zprávy se nepoužívají pro reklamu ani automatizované rozhodování o vás.
 
 ## Sdílení plaveb
 
@@ -88,4 +88,4 @@ Mapy využívají služby třetích stran, například Google Maps na Androidu a
 
 ## Smazání účtu a dat
 
-O smazání účtu a souvisejících osobních údajů můžete požádat prostřednictvím [stránky pro smazání účtu](/cs/legal/delete-account/) nebo e-mailem na veetr@linhart.email. Před provedením ověříme vlastnictví účtu. Můžete také požádat o smazání konkrétních nahraných dat bez smazání účtu. Stránka pro smazání vysvětluje rozsah, místní záznamy, samostatně identifikovanou diagnostiku a případné výjimky z výmazu. Odhlášení nebo odinstalování aplikace váš online účet nesmaže.
+O smazání účtu a souvisejících osobních údajů můžete požádat prostřednictvím [stránky pro smazání účtu](/cs/legal/delete-account/) nebo e-mailem na hello@veetr.org. Před provedením ověříme vlastnictví účtu. Můžete také požádat o smazání konkrétních nahraných dat bez smazání účtu. Stránka pro smazání vysvětluje rozsah, místní záznamy, samostatně identifikovanou diagnostiku a případné výjimky z výmazu. Odhlášení nebo odinstalování aplikace váš online účet nesmaže.

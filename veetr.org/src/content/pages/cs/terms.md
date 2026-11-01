@@ -12,7 +12,7 @@ IČO: 75412551
 
 Město: Praha 6 – Ruzyně
 
-Kontaktní e-mail: veetr@linhart.email
+Kontaktní e-mail: hello@veetr.org
 
 ## 2. Rozsah
 
@@ -32,4 +32,4 @@ Obsah webu slouží k obecnému informování. Nejde o právní, regulatorní, t
 
 ## 6. Kontakt
 
-S dotazy pište na veetr@linhart.email nebo využijte komunitní odkazy na webu.
+S dotazy pište na hello@veetr.org nebo využijte komunitní odkazy na webu.

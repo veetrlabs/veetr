@@ -48,7 +48,7 @@ export default function AccountSettings({ onBack }: { onBack: () => void }) {
     </>}
     <Pressable accessibilityRole="button" style={({ pressed }) => [actionStyle, { opacity: pressed ? 0.5 : 1 }]} onPress={() => {
       const site = (process.env.EXPO_PUBLIC_SITE_URL || "https://veetr.org").replace(/\/$/, "");
-      void Linking.openURL(`${site}/legal/delete-account/`).catch(() => setError("Could not open the deletion page. Contact veetr@linhart.email to request account deletion."));
+      void Linking.openURL(`${site}/legal/delete-account/`).catch(() => setError("Could not open the deletion page. Contact hello@veetr.org to request account deletion."));
     }}><Text style={text}>{t("Request account deletion")}</Text></Pressable>
     {!!error && <Text accessibilityRole="alert" style={text}>{translateMessage(error)}</Text>}
   </ScrollView>;

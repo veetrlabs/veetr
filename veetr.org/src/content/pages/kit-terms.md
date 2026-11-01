@@ -14,7 +14,7 @@ Identification number (IČO): 75412551
 
 City: Praha 6 - Ruzyne
 
-Contact email: veetr@linhart.email
+Contact email: hello@veetr.org
 
 ## 2. Scope
 
@@ -36,13 +36,13 @@ Shipping was free. The stated lead time was 6–12 weeks unless otherwise commun
 
 If you are a consumer in the EU, you have the right to withdraw from the contract within 14 days of receiving the goods, unless a statutory exception applies, for example goods made to your specifications. If an exception applies to an order, we will inform you before confirming the order.
 
-To withdraw, email veetr@linhart.email with your order number and a clear statement of withdrawal. We will confirm receipt and provide return instructions.
+To withdraw, email hello@veetr.org with your order number and a clear statement of withdrawal. We will confirm receipt and provide return instructions.
 
 Unless the goods are defective, you are responsible for return shipping costs. We will refund the purchase price and the standard outbound shipping, if paid, within 14 days of receiving the returned goods or proof of return, whichever is earlier.
 
 ## 7. Defective goods and warranty
 
-You have statutory rights regarding defective goods. For consumers, the legal conformity period is 24 months from delivery. To report a defect, contact veetr@linhart.email with your order number and a description of the issue.
+You have statutory rights regarding defective goods. For consumers, the legal conformity period is 24 months from delivery. To report a defect, contact hello@veetr.org with your order number and a description of the issue.
 
 ## 8. Complaints and alternative dispute resolution (ADR)
 

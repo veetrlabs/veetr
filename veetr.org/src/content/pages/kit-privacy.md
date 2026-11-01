@@ -14,7 +14,7 @@ Identification number (IČO): 75412551
 
 City: Praha 6 - Ruzyne
 
-Contact email: veetr@linhart.email
+Contact email: hello@veetr.org
 
 ## 2. What data we process
 
@@ -68,7 +68,7 @@ The former storefront named the following processors and service providers:
 
 You have the right to access, rectify, erase, restrict, or object to processing, and the right to data portability where applicable. You can also withdraw consent at any time where processing is based on consent.
 
-To exercise your rights, contact us at veetr@linhart.email.
+To exercise your rights, contact us at hello@veetr.org.
 
 You also have the right to lodge a complaint with a supervisory authority in your EU country of residence or in the Czech Republic.
 
