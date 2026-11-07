@@ -66,3 +66,18 @@ test('reports the settled map viewport for chart filtering', () => {
   fireEvent(ui.getByTestId('map'), 'regionChangeComplete', region);
   expect(onViewportChange).toHaveBeenCalledWith(region);
 });
+
+test('estimated bridges are thinner and lighter than recorded routes after zooming', () => {
+  const points = [0, 1000, 100000].map(at => ({ latitude: 49, longitude: 14 + at / 100000,
+    recordedAt: new Date(at).toISOString(), accuracyM: 5, sogMps: 1, cogDeg: 90, source: 'phone' as const }));
+  const ui = render(<TripMap points={points} />);
+  for (const delta of [1, .01, 10]) {
+    fireEvent(ui.getByTestId('map'), 'regionChangeComplete', { latitude: 49, longitude: 14, latitudeDelta: delta, longitudeDelta: delta });
+    const lines = ui.UNSAFE_getAllByType('View' as any).filter(view => view.props.coordinates);
+    const dashed = lines.find(line => line.props.lineDashPattern)!;
+    const solid = lines.find(line => !line.props.lineDashPattern)!;
+    expect(dashed.props.strokeWidth).toBeLessThan(solid.props.strokeWidth);
+    expect(dashed.props.strokeColor).toBe('rgba(0, 140, 128, 0.5)');
+    expect(dashed.props.lineCap).toBe('butt');
+  }
+});

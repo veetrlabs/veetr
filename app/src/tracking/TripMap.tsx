@@ -105,11 +105,13 @@ export default memo(function TripMap({
         .filter((s) => s.points.length > 1)
         .map((section, i) => (
           <Polyline
-            key={i}
+            // Recreate dashed overlays after zooming so MapKit redraws their stroke at the settled scale.
+            key={section.estimated ? `${i}:${viewport}` : i}
             coordinates={section.points}
             lineDashPattern={section.estimated ? [6, 6] : undefined}
-            strokeColor="#008c80"
-            strokeWidth={thumbnail ? 3 : 4}
+            lineCap={section.estimated ? "butt" : "round"}
+            strokeColor={section.estimated ? "rgba(0, 140, 128, 0.5)" : "#008c80"}
+            strokeWidth={section.estimated ? 2 : thumbnail ? 3 : 4}
           />
         ))}
       {!thumbnail && coordinates.length > 0 && (

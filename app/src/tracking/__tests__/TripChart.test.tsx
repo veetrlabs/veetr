@@ -82,3 +82,20 @@ test('section boundaries are drawn at their times within the visible chart range
  expect(boundaries).toHaveLength(1);
  expect(boundaries[0].props.x1).toBe(160);
 });
+
+test('landing speeds occupy only their time span after a visible estimated approach', () => {
+  const data = [
+    { ...points[0], longitude: 25, sogMps: null, recordedAt: new Date(0).toISOString() },
+    { ...points[0], recordedAt: new Date(1000000).toISOString() },
+    { ...points[0], recordedAt: new Date(1100000).toISOString() },
+  ];
+  const renderSections = jest.fn(() => null);
+  const ui = render(<TripChart points={data} index={1} onSelect={jest.fn()}
+    region={{ latitude: 43, longitude: 15, latitudeDelta: 2, longitudeDelta: 4 }} renderSections={renderSections} />);
+  expect(renderSections).toHaveBeenLastCalledWith([800000, 1100000]);
+  const path = ui.getAllByTestId('chart-path').find(p => p.props.fill === 'none')!.props.d;
+  expect(path).toContain('M213.33,');
+  expect(path).toContain('M320.00,');
+  const cursor = ui.UNSAFE_getAllByType('Line' as any).find(line => line.props.strokeDasharray === '3 3')!;
+  expect(cursor.props.x1).toBeCloseTo(213.333);
+});

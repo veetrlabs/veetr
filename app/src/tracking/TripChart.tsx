@@ -1,5 +1,5 @@
 import type { PropulsionSection } from "./propulsion";
-import { chartEntries, zoomWindow, type TimeWindow } from "./chartWindow";
+import { chartEntries, chartTimeBounds, zoomWindow, type TimeWindow } from "./chartWindow";
 import type { MapRegion } from '../maps/headingRay';
 import { formatNumber, locale, t, useLanguageRefresh } from '../i18n';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -38,7 +38,8 @@ export default function TripChart({
   const window = zoom?.regionKey === regionKey ? zoom.window : undefined;
   const setWindow = (window: TimeWindow | undefined) => setZoom(window ? { regionKey, window } : undefined);
   const available = useMemo(() => chartEntries(allPoints, undefined, region), [allPoints, region]);
-  const bounds: TimeWindow = [Date.parse(available[0]?.point.recordedAt || ""), Date.parse(available.at(-1)?.point.recordedAt || "")];
+  const bounds = useMemo(() => chartTimeBounds(allPoints, region), [allPoints, region]);
+  const displayedBounds = window ?? bounds;
   const entries = useMemo(() => chartEntries(allPoints, window, region), [allPoints, window, region]);
   const points = useMemo(() => entries.map(e => e.point), [entries]);
   const originalIndices = useMemo(() => entries.map(e => e.index), [entries]);
@@ -67,19 +68,18 @@ export default function TripChart({
   );
   const singleMax = useMemo(
     () =>
-      chartMaximum(active.flatMap(s => chartSamples(points, s.key, 320, originalIndices, window))),
-    [points, active, originalIndices, window],
+      chartMaximum(active.flatMap(s => chartSamples(points, s.key, 320, originalIndices, displayedBounds))),
+    [points, active, originalIndices, displayedBounds],
   );
-  const start = window?.[0] ?? Date.parse(points[0]?.recordedAt),
-    end = window?.[1] ?? Date.parse(points.at(-1)?.recordedAt || "");
+  const [start, end] = displayedBounds;
   const fleet = useMemo(() => boatTracks ? fleetChartSeries(boatTracks, [start, end], Date.parse(allPoints[selectedIndex]?.recordedAt)) : undefined,
     [boatTracks, start, end, allPoints, selectedIndex]);
   const max = fleet?.max ?? singleMax;
   const paths = useMemo(() => fleet?.series ?? active.map(s => ({
     ...s, id: s.key, dash: undefined,
     value: points[index] ? metricValue(points[index], s.key) : null,
-    path: chartPath(points, s.key, max, 320, 140, min, originalIndices, window),
-  })), [fleet, active, points, index, max, min, originalIndices, window]);
+    path: chartPath(points, s.key, max, 320, 140, min, originalIndices, displayedBounds),
+  })), [fleet, active, points, index, max, min, originalIndices, displayedBounds]);
   const point = points[index],
     x = point
       ? (320 * (Date.parse(point.recordedAt) - start)) /
@@ -231,10 +231,10 @@ export default function TripChart({
       {renderSections?.([start, end])}
         {!renderSections && <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
           <Text style={{ color: c.textMuted, fontSize: 10 }}>
-            {points.length ? time(new Date(start).toISOString()) : ""}
+            {Number.isFinite(start) ? time(new Date(start).toISOString()) : ""}
           </Text>
           <Text style={{ color: c.textMuted, fontSize: 10 }}>
-            {points.length ? time(new Date(end).toISOString()) : ""}
+            {Number.isFinite(end) ? time(new Date(end).toISOString()) : ""}
           </Text>
         </View>}
       </View>
