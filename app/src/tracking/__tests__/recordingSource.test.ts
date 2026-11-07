@@ -74,6 +74,11 @@ test('retains compass diagnostics with both device and contemporaneous phone fix
 });
 
 test('keeps Vane position but rejects a corrupt speed before recording', () => {
-  const p = setDeviceRecordingSource({ gpsValid: true, lat: 43.7497, lon: 15.72957, gpsSpeed: 1449.5 }, now);
+  const p = setDeviceRecordingSource({ gpsValid: true, lat: 43.7497, lon: 15.72957, gpsSpeed: -1 }, now);
   expect(p).toMatchObject({ latitude: 43.7497, longitude: 15.72957, sogMps: null, source: 'veetr' });
+});
+
+test('preserves a finite high Vane speed before recording', () => {
+  const p = setDeviceRecordingSource({ gpsValid: true, lat: 43.7497, lon: 15.72957, gpsSpeed: 450 }, now);
+  expect(p?.sogMps).toBeCloseTo(450 / 1.94384449);
 });

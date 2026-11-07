@@ -42,3 +42,10 @@ test("heat maps include only entered boats, including an empty heat", () => {
   assert.deepEqual(positionsForHeat(positions, []), []);
   assert.deepEqual(positionsForHeat(positions, ['missing']), []);
 });
+
+test('accepts finite high speeds while rejecting malformed speeds', () => {
+  for (const sogMps of [0, 100, 231.120357, 1200])
+    assert.equal(parseTrackingPositions([{ ...point, sogMps }])[0].sogMps, sogMps);
+  for (const sogMps of [-1, NaN, Infinity, -Infinity, '231'])
+    assert.throws(() => parseTrackingPositions([{ ...point, sogMps }]), /Invalid tracking/);
+});

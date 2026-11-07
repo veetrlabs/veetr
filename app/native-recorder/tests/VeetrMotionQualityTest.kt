@@ -4,6 +4,14 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class VeetrMotionQualityTest {
+  @Test fun finiteHighSpeedsArePreserved() {
+    for (speed in listOf(100.0, 100.01, 231.120357, 1200.0)) {
+      assertEquals(speed, VeetrPhoneSpeedQuality().speed(1000, 49.0, 14.0, 4.0, speed, true)!!, 0.000001)
+    }
+    for (speed in listOf(-1.0, Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY)) {
+      assertNull(VeetrPhoneSpeedQuality().speed(1000, 49.0, 14.0, 4.0, speed, true))
+    }
+  }
   @Test fun delayedBatchesUseMotionAtFixTime() {
     val motion = VeetrMotionQuality()
     for (t in 0L..12000L step 200) motion.add(t, 0.0, 0.0, if (t <= 3000) 9.81 else if (t % 400 == 0L) 11.0 else 9.0)

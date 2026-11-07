@@ -618,17 +618,17 @@ test('Android native race capture does not depend on JavaScript GPS delivery or 
   } finally { (usesNativeRaceRecorder as jest.Mock).mockReturnValue(false); }
 });
 
-test('an invalid speed in an existing race outbox cannot block valid positions', async () => {
+test.each([-1, 231.120357, 1200])('race uploads preserve valid speed %s and discard invalid values', async speed => {
   session = { ...base(), mode: 'race', userId: '', raceLinkId: 'link', raceActive: true };
-  const corrupt = { ...point(1), sogMps: 745.6872231584739 };
-  points = [corrupt, point(2)];
+  const sample = { ...point(1), sogMps: speed };
+  points = [sample, point(2)];
   (trackingRpc as jest.Mock).mockImplementation(async (name, args) =>
     name === 'race_phone_status' ? { valid: true, eligible: true, active: true, ready: true }
     : name === 'ingest_race_phone_points' ? args.p_points.length : undefined);
   await syncTracking(true);
   const call = (trackingRpc as jest.Mock).mock.calls.find(([name]) => name === 'ingest_race_phone_points');
-  expect(call[1].p_points[0]).toMatchObject({ seq: 1, latitude: corrupt.latitude, longitude: corrupt.longitude, sogMps: null });
-  expect(corrupt.sogMps).toBe(745.6872231584739);
+  expect(call[1].p_points[0]).toMatchObject({ seq: 1, latitude: sample.latitude, longitude: sample.longitude, sogMps: speed < 0 ? null : speed });
+  expect(sample.sogMps).toBe(speed);
   expect(points).toHaveLength(0);
 });
 

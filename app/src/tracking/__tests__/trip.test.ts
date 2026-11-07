@@ -89,7 +89,7 @@ test('wind angle charts preserve port/starboard and genuine zero',()=>{
 });
 
 test('invalid saved Vane speed does not stretch the chart or become a false zero', () => {
-  expect(metricValue(point(0, { sogMps: 745.6872231584739 }), 'sog')).toBeNull();
+  expect(metricValue(point(0, { sogMps: Infinity }), 'sog')).toBeNull();
   expect(metricValue(point(0, { sogMps: 4 }), 'sog')).toBeCloseTo(7.7754);
 });
 test('long charts average dense samples without altering recorded peaks', () => {

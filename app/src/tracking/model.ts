@@ -115,8 +115,7 @@ export function normalizeFix(
   const speed =
     c.speed !== null &&
     Number.isFinite(c.speed) &&
-    c.speed >= 0 &&
-    c.speed <= 100
+    c.speed >= 0
       ? c.speed
       : null;
   return {

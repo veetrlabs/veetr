@@ -36,7 +36,7 @@ export function parseTrackingPositions(value: unknown): TrackingPosition[] {
       (p.source === "phone" && p.accuracyM === null) ||
       (p.accuracyM !== null &&
         (!coordinate(p.accuracyM, 100) || p.accuracyM < 0)) ||
-      (p.sogMps !== null && (!coordinate(p.sogMps, 100) || p.sogMps < 0)) ||
+      (p.sogMps !== null && (typeof p.sogMps !== "number" || !Number.isFinite(p.sogMps) || p.sogMps < 0)) ||
       (p.cogDeg !== null &&
         (!coordinate(p.cogDeg, 360) || p.cogDeg < 0 || p.cogDeg >= 360)) ||
       (p.source !== "phone" && p.source !== "veetr") ||

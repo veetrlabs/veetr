@@ -44,7 +44,7 @@ internal class VeetrPhoneSpeedQuality {
     val displaced = anchor != null && span >= 5000 && distance > max(3.0, accuracy + anchor.accuracy)
     history.addLast(Fix(at, lat, lon, accuracy))
     return when {
-      speed == null || !speed.isFinite() || speed < 0 || speed > 100 -> null
+      speed == null || !speed.isFinite() || speed < 0 -> null
       !displaced && speed < 0.15 -> 0.0
       !displaced && span >= 5000 && quiet && speed < (if (accuracy <= 25) 0.3 else 0.6) -> 0.0
       accuracy > 25 -> null

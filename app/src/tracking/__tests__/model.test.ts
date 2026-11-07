@@ -36,3 +36,12 @@ test("invalid and future timestamps rejected", () => {
   expect(normalizeFix({ ...fix, timestamp: NaN }, now)).toBeNull();
   expect(normalizeFix({ ...fix, timestamp: now + 31000 }, now)).toBeNull();
 });
+
+test.each([100, 100.01, 231.120357, 1200])('preserves valid speed %s and its course', speed => {
+  expect(normalizeFix({ ...fix, coords: { ...fix.coords, speed } }, now))
+    .toMatchObject({ sogMps: speed, cogDeg: 90 });
+});
+test.each([null, -1, NaN, Infinity, -Infinity])('keeps invalid speed %s unknown', speed => {
+  expect(normalizeFix({ ...fix, coords: { ...fix.coords, speed } }, now))
+    .toMatchObject({ sogMps: null, cogDeg: null });
+});
