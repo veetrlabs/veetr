@@ -48,12 +48,42 @@ The first bench assembly may use USB/battery and leave the network-power module 
 
 ## Comparison
 
-| Candidate | Input → output | Current / efficiency evidence | Assembly and gaps | Disposition |
-| --- | --- | --- | --- | --- |
-| USB VBUS, current PoC | USB 5 V → wind 5 V | No battery conversion | Existing connection works with USB present | Bench baseline; does not meet battery-only requirement |
-| Pololu 2562 U1V11F5 | 0.5–5.5 V → 5 V, ±4% | 1.2 A is input/switch capability, not guaranteed 5 V output; use output curves. Typical idle below 1 mA, true shutdown; 70–90% efficiency range | 2.54 mm holes; assembler fits headers. No lithium undervoltage cutoff or reverse-polarity protection; whole-board thermal qualification open | First wind evaluation candidate |
-| Pololu 4085 S13V20F5 | 2.8–22 V → 5 V | Advertised 2 A depends on input/thermal conditions; typical 10–20 mA no-load penalty | 2.54 mm holes; no reverse-voltage protection; no enable input | Higher-load CAN/combined-rail comparison, not automatically needed alongside 2562 |
-| Unspecified high-current boost / custom converter | Depends on measured requirements | No exact part selected | Adds design/qualification work | Select only if measured load excludes the ready-made candidates |
+**★** = best documented fit for the row; **▼** = disadvantage for this v2 design; **?** = not established. Unmarked values are neutral or not directly comparable. Unknown evidence is not a failure.
+
+Prices are **EUR excluding VAT**, unless marked otherwise. See the [supplier register](SOURCING_AND_EVIDENCE.md#price-and-quantity-snapshot) for dated quotes, conversions and stock. “Yes” in a compliance row applies only to the stated board, not the assembled Veetr product.
+
+| Criterion | USB VBUS, current PoC | Pololu U1V11F5 | Pololu S13V20F5 |
+| --- | --- | --- | --- |
+| **Decision** | Bench baseline | **★ First wind candidate** | Higher-load comparison |
+| Board | Existing RLCD | 2562 | 4085 |
+| **Price, EUR net** | Included with RLCD | **★ €8.14** | €16.33 |
+| **EU seller** | See [controller](CONTROLLER.md) | [Botland][power-2562-eu] | Botland catalogue; exact quote needed |
+| **US seller** | ? | [Pololu][power-2562] | [Pololu][power-4085] |
+| **Listed stock** | Owned | Count ? | Count ? |
+| Supply status | Existing board | Active and Preferred | Active and Preferred |
+| **Quality evidence** | Working USB wind supply | Manufacturer load/efficiency curves | Manufacturer load/efficiency curves |
+| **Input → output** | USB 5 V → 5 V | 0.5–5.5 V → 5 V ±4% | 2.8–22 V → 5 V |
+| **Battery-only wind** | ▼ No | Yes; protected battery path needed | Yes; protected battery path needed |
+| **Output current** | Shared USB budget | Read load curves¹ | Up to ≈2 A near 5 V input¹ |
+| **Idle current** | No converter | **★ <1 mA typical** | ▼ 10–20 mA typical |
+| Efficiency | No conversion | 70–90% typical | Input/load-dependent; see curves |
+| **Enable / shutdown** | No wind branch control | **★ Yes; <100 µA shutdown** | ▼ No enable input |
+| Cell undervoltage protection | Board battery circuit | ▼ None; external protection needed | External protected battery required |
+| Reverse-polarity protection | System review | No | No |
+| **Galvanic isolation** | No | No | No |
+| **Board operating temperature** | ? | ? | ? |
+| **Connections / assembly** | Existing P1 wiring | 2.54 mm holes; fit headers | 2.54 mm holes; fit headers |
+| **CE / EU DoC — board** | Unknown | Unknown | Unknown |
+| **RoHS — board** | Unknown | Unknown; supplier claim² | Unknown |
+| **REACH / FCC — board** | Unknown / Unknown | Unknown / Unknown | Unknown / Unknown |
+| **Hardware license** | ? | ? | ? |
+| Host software | None for conversion | None | None |
+| **V1 / PoC lesson** | USB removal stops wind | Resolve protected battery access | Higher idle draw affects runtime |
+| Deciding test | Reference wind operation | Low-battery startup and temperature | Combined wind/CAN load margin |
+
+¹ The 2562’s 1.2 A figure is input/switch capability, not guaranteed 5 V output. The 4085’s headline output also depends on input voltage and thermal conditions. Compare both at the same battery voltage and load. Neither supplies isolated NMEA network power.
+
+² A supplier RoHS claim for 2562 is recorded in the register; an exact-board manufacturer declaration has not been verified. “Unknown” describes that evidence gap. A custom converter remains a fallback if measured loads exclude these boards.
 
 Manufacturer evidence: [2562](https://www.pololu.com/product/2562), [4085](https://www.pololu.com/product/4085). Both are listed Active and Preferred; this is not a guaranteed delivery period. Their published curves are more useful than a single headline amp rating. No complete-board ambient operating range or Veetr-enclosed thermal margin has been established here.
 
@@ -90,3 +120,7 @@ With network power fitted, test 9–16 V operation, depleted-battery charging pl
 Record wind startup at minimum battery voltage, all-load peaks, converter temperature, output ripple and cable-end voltage. Repeat with SD writes, both radios, CAN traffic and lighting. Verify heading with the converter running. Test USB removal/reconnection, charging transitions, low-battery cutoff, off-state drain and recovery without corrupting logs or losing wind acquisition.
 
 The winner is the lowest installed-cost converter/power-path combination that passes those tests with margin. Converter price, header assembly and protection components belong in the total. Supplier links, current prices and license/compliance gaps are in the [supplier register](SOURCING_AND_EVIDENCE.md).
+
+[power-2562]: https://www.pololu.com/product/2562
+[power-4085]: https://www.pololu.com/product/4085
+[power-2562-eu]: https://botland.store/converters-step-up/1893-step-up-voltage-regulator-u1v11f5-5v-12a-pololu-2562-5904422308230.html

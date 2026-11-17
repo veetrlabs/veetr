@@ -6,12 +6,20 @@
 
 Use short **Qwiic/STEMMA QT cables** in the next prototype. SparkFun GPS-18037 and Adafruit 4754 connect directly using fitted connectors. A single custom carrier supplies the shared 3.3 V bus. No individual adapter PCB or identification EEPROM is required for these two boards.
 
-| Option | Assembly and service | Mechanical consequence | Decision |
-| --- | --- | --- | --- |
-| Qwiic/QT cables | No sensor header soldering; replace a board by unplugging a cable | Each board still needs support; retain cables against vibration and chafing | Prototype choice; three short sensor cables initially |
-| Board-specific header sockets | Compact mating assembly; assembler fits headers | Still requires exact footprint, height, orientation and mounting support for each board | Compare assembly time and retention before final carrier freeze |
-| mikroBUS / ClickID | Common socket form and supported board identification | Larger standard footprint and more expensive modules; not all boards fit the required signals/configuration | Premium not justified for this prototype |
-| Own adapters with ID EEPROM | Could normalize arbitrary boards and encode part/revision | Adapter PCB, EEPROM programming, soldering and stock tracking for each type | Rejected for present scale and cost goal |
+**★** = best documented fit for the row; **▼** = disadvantage for this v2 design; **?** = not established. Unmarked values are neutral or not directly comparable. Unknown evidence is not a failure.
+
+Prices are **EUR excluding VAT**, unless marked otherwise. See the [supplier register](SOURCING_AND_EVIDENCE.md#price-and-quantity-snapshot) for dated quotes, conversions and stock. “Yes” in a compliance row applies only to the stated board, not the assembled Veetr product.
+
+| Criterion | Qwiic / STEMMA QT | Board-specific headers | mikroBUS / ClickID | Own EEPROM adapters |
+| --- | --- | --- | --- | --- |
+| **Decision** | **★ Prototype choice** | Assembly comparison | ▼ Premium not justified | ▼ Outside BOM |
+| **Sensor soldering** | **★ None with fitted QT** | Fit headers | Depends on board/jumpers | ▼ Per-board assembly |
+| Carrier work | Shared 3.3 V bus ports | Specific footprints | Standard socket footprint | ▼ Adapter design per board |
+| Identification | Supported chip protocol | Supported chip protocol | **★ ClickID where supported** | EEPROM programming |
+| Board mounting | Tray or standoffs | Footprint and supports | Larger standard footprint | Adapter plus supports |
+| Service | Unplug cable | Unplug board | Unplug board | Track board/adapter pairing |
+| Cost consequence | Cables and retention | Headers and assembly labour | ▼ Higher module prices | ▼ PCB, EEPROM and labour |
+| Deciding test | Retention and assembly time | Height and assembly time | Installed cost | No benefit at current scale |
 
 Two connectors on a Qwiic/QT board normally expose the same power and bus signals for chaining. They are not independent buses or mechanically supporting sockets. Start with separate short carrier cables for GNSS, IMU and BMP390; lighting modules may need additional ports or a documented chain. Keep connections inside the sealed enclosure; QT is not a waterproof or marine vibration rating.
 
@@ -33,12 +41,47 @@ GNSS, IMU and pressure can be optional when configured NMEA2000 sources provide 
 
 The reflective panel needs **front illumination** in darkness. Evaluate low-level bezel LEDs or a front-light guide inside the sealed display window. This is an optical/mechanical experiment; no LED part, driver, GPIO or final current budget has been selected.
 
-| Candidate / approach | Supply, current and temperature evidence | Benefit / limitation | Decision |
-| --- | --- | --- | --- |
-| Adafruit 4162 VEML7700 QT ambient sensor | Breakout supports 3–5 V; use 3.3 V bus, address `0x10`. Exact configured board draw and complete-board temperature limit not established | Native QT, inexpensive, digital ambient measurement | Optional prototype sensor for Auto mode |
-| Manual dimming only | LED driver determines load and limits | Simpler, no ambient feedback loop; user must adjust | Required manual control/fallback even with ambient sensor |
-| Bezel LEDs / front-light guide | Driver, current and temperature not selected | Can illuminate panel but may create glare or uneven light | Optical comparison required before ordering final carrier |
-| Different illuminated display | Complete alternative BOM required | May solve night optics but changes power and outdoor readability | Reconsider only if front illumination cannot meet tests |
+### Optional sensor boards
+
+These boards serve different functions; neither replaces the other. V1 has neither feature, so there is no tested v1 sensor to price or rank.
+
+| Criterion | Ambient light: Adafruit VEML7700 | Pressure: Adafruit BMP390 |
+| --- | --- | --- |
+| **Decision** | Optional Auto-light experiment | Included in prototype |
+| Board | 4162 | 4816 |
+| **Price, EUR net** | €4.50 US equivalent | €9.96 US equivalent |
+| **EU seller** | ? | [BerryBase][bmp-eu] |
+| **US seller** | [Adafruit][light-buy] | [Adafruit][bmp-buy] |
+| **Listed stock** | US 42 | EU / US unavailable |
+| Supply commitment | ? | ? |
+| **Quality evidence** | Published board guide | Board guide + Bosch datasheet |
+| **Features** | Digital ambient light | Atmospheric pressure / altitude |
+| **Board voltage** | 3–5 V; use 3.3 V QT | 3–5 V; use 3.3 V QT |
+| **Configured board current** | ? | ? |
+| **Operating temperature, IC** | ? | −40…+85 °C |
+| **Connections** | STEMMA QT / I²C | STEMMA QT / I²C |
+| I²C address | `0x10` | `0x77` / `0x76` |
+| **Assembly** | Direct cable; optical window | Direct cable; protected air path |
+| **CE / EU DoC — board** | Unknown | Unknown |
+| **RoHS — board** | Unknown | Unknown |
+| **REACH / FCC — board** | Unknown / Unknown | Unknown / Unknown |
+| **Hardware / library license** | Exact revision to verify | Exact revision to verify |
+| Deciding test | Self-light rejection and hysteresis | Pressure lag after wetting |
+
+Full-board temperature limits and current at Veetr’s configured sampling rates remain open for both. BMP390’s EU quote is €10.50 including VAT; the net comparison above uses the US quote. No performance winner is assigned across different sensor functions.
+
+### Lighting alternatives
+
+| Criterion | Bezel LEDs / front-light guide | Different illuminated display |
+| --- | --- | --- |
+| **Decision** | **★ First optical experiment** | Fallback if optics fail |
+| Existing RLCD | **★ Retained** | ▼ Replaced |
+| Parts / price | LED and driver selection pending | Complete BOM needed |
+| Supply / current / temperature | Driver and optics dependent | Display dependent |
+| Main tradeoff | Glare and light uniformity | Power and outdoor readability |
+| Deciding test | Wet-window night visibility | Outdoor visibility and runtime |
+
+Manual dimming remains a required control alongside optional ambient sensing.
 
 Provide Auto / Off / On and manual brightness. In Auto, use hysteresis and delay so brief shadows or reflections do not cause flicker. Place the ambient sensor behind a suitable optical window and shield it from the instrument's own LEDs; otherwise the light can repeatedly switch itself. Test through a wet window, in darkness and sunlight, across viewing angles, and with other boat lights present. Include illumination in runtime and IMU interference tests.
 
@@ -54,13 +97,30 @@ Use **BOPLA DAE M12 9005, part 52042000**, as the first vent candidate: black ny
 
 The high-pressure airflow figure does not establish response to small atmospheric changes. Measure lag using the actual enclosure volume, vent, splash shield and mounting orientation. A membrane covered by water or salt may delay pressure equalization even when it prevents ingress.
 
-| Approach | Benefit / limitation | Decision |
-| --- | --- | --- |
-| BMP390 + BOPLA 52042000 + draining splash shield | Replaceable threaded water barrier; concrete EU sourcing; enclosure can exchange air | Selected prototype approach, pending ingress and pressure-response tests |
-| GORE PolyVent screw-in family | Hydrophobic/oleophobic vent options and documented installation guidance | Alternative if the BOPLA assembly fails size, response or exposure tests; exact SKU not selected. [Manufacturer](https://www.gore.com/gorer-protective-vents-screw-series) |
-| Bare adhesive membrane | Compact but assembly depends on adhesive, surface preparation and protection | Not preferred for the first serviceable printed enclosure |
-| Airtight enclosure with internal sensor | Measures trapped air and temperature/flex effects | Not suitable for the intended atmospheric measurement |
-| NMEA pressure | No local sensor required; useful comparison/fallback when available | Retain selectable network source |
+| Criterion | BOPLA DAE M12 9005 | GORE PolyVent screw-in | Bare adhesive membrane |
+| --- | --- | --- | --- |
+| **Decision** | **★ First vent candidate** | Alternative family | ▼ Not preferred |
+| Exact part | 52042000 | ? | ? |
+| **Price, EUR net** | ≈€32.27 / five-pack¹ | ? | ? |
+| **EU seller** | [TME][vent-eu] | Exact SKU / quote needed | Exact SKU / quote needed |
+| **US seller** | [TME US][vent-us] | Exact SKU / quote needed | Exact SKU / quote needed |
+| **Listed stock** | Regional counts conflict¹ | ? | ? |
+| Supply history | Documented in 2019 | Family catalogue | ? |
+| **Quality evidence** | Component ingress test sheet | Manufacturer installation guidance | Depends on selected part |
+| Water barrier | Oleophobic membrane + O-ring | Variant-dependent | Membrane + adhesive seal |
+| Airflow | 400 ml/min at 70 mbar | SKU-dependent | SKU-dependent |
+| Component IP tests | IP66/67/68/69K² | SKU-dependent | SKU-dependent |
+| **Operating temperature** | Exact rating to verify | SKU-dependent | SKU-dependent |
+| Voltage / current | Not applicable; passive | Not applicable; passive | Not applicable; passive |
+| **Mounting** | M12 × 1.5; counter nut if wall <3 mm | SKU-dependent threaded fitting | ▼ Surface/adhesive preparation |
+| **Service** | Replaceable threaded part | Replaceable threaded part | Adhesive removal/resealing |
+| **RoHS / REACH evidence** | Unknown / Unknown | Exact SKU needed | Exact SKU needed |
+| Design reuse license | ? | ? | ? |
+| Deciding test | Installed seal and wet pressure lag | Fit and pressure lag if substituted | Bond durability and protection |
+
+¹ Historical indexed quote converted using the register’s dated rate: ≈€6.45 per vent, minimum pack of five. Regional stock listings show 10/50 without a consistent unit basis; obtain a current quote. ² IP68 test: 2 m freshwater, 60 minutes; component result only. Passive vents have no electrical supply or radio module grant; product-level compliance depends on the completed enclosure.
+
+An airtight box traps air and is unsuitable for local atmospheric measurement. A configured NMEA pressure source remains an alternative to fitting the local sensor. [GORE screw-in family](https://www.gore.com/gorer-protective-vents-screw-series) is the fallback if BOPLA fails fit or exposure tests.
 
 ### Splash-shield geometry
 
@@ -92,3 +152,9 @@ Inspect the exact revision's hardware files and host-library licenses for option
 Promote options only after mechanical retention, wet/night readability, magnetic interference and power tests pass. Local barometry additionally requires an atmospheric response test after the enclosure exposure sequence. Freeze the final mounting approach, connectors and driver signals in the canonical specification before PCB manufacture.
 
 [qt-spec]: https://learn.adafruit.com/introducing-adafruit-stemma-qt/technical-specs
+
+[light-buy]: https://www.adafruit.com/product/4162
+[bmp-buy]: https://www.adafruit.com/product/4816
+[bmp-eu]: https://www.berrybase.de/adafruit-bmp390l-praezisions-druck-und-hoehenmesser-breakout-stemma-qt
+[vent-eu]: https://www.tme.eu/en/details/dae-m12x1.5/enclosures-other-accessories/bopla/52042000/
+[vent-us]: https://www.tme.com/us/en-us/details/dae-m12x1.5/enclosures-other-accessories/bopla/52042000/

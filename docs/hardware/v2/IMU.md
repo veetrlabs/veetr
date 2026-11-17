@@ -8,14 +8,42 @@ Use **Adafruit 4754 BNO085** as the preferred new-build prototype candidate, whi
 
 ## Comparison
 
-| Candidate | Function and interface | Electrical / temperature | Assembly and cost consequence | Disposition |
-| --- | --- | --- | --- | --- |
-| Existing v1 BNO080-family breakout | Working fusion for heading, heel and pitch; I²C | Exact breakout input/current/rating unrecorded; identify actual IC and pull-ups | Already owned; no assumed native QT connector | Mandatory regression reference; do not replace solely because telemetry was slow |
-| Adafruit 4754 BNO085 | Nine-axis sensor plus onboard fusion; QT I²C, UART/SPI pads | Board VIN 3–5 V; use 3.3 V QT. Default `0x4A`, alternate `0x4B`; 10 kΩ pull-ups. IC −40…+85 °C; complete-board limit unconfirmed | Assembled QT connectors and mounting holes; US$29.50 snapshot | Preferred prototype, conditional on bus tests |
-| MikroE MIKROE-6369 Smart DOF 4 Click | BNO085; mikroBUS and ClickID | 3.3 V; same sensor family, no proven measurement improvement; whole-board current/temp unqualified | SPI default; I²C requires solder-jumper configuration. No QT. Price premium buys board/ecosystem features | Not preferred; only reconsider for a deliberate mikroBUS carrier |
-| Unspecified raw accelerometer/gyro/magnetometer board | May provide nine axes without equivalent fusion/calibration | Depends on exact parts | Host fusion, calibration and validation work would increase | No exact candidate selected; not a procurement substitute |
+**★** = best documented fit for the row; **▼** = disadvantage for this v2 design; **?** = not established. Unmarked values are neutral or not directly comparable. Unknown evidence is not a failure.
 
-BNO08x current depends strongly on reports and rates. The [BNO080/085 datasheet in the repository](../../../firmware/include/BNO080_085-Datasheet_v1.16.md) gives, for example, about 35 mW for BNO085 100 Hz fusion under its SPI/rail conditions. This is not a measured QT board current. Log total 3.3 V branch current and startup peaks with the reports Veetr actually uses.
+Prices are **EUR excluding VAT**, unless marked otherwise. See the [supplier register](SOURCING_AND_EVIDENCE.md#price-and-quantity-snapshot) for dated quotes, conversions and stock. “Yes” in a compliance row applies only to the stated board, not the assembled Veetr product.
+
+| Criterion | V1 BNO080-family breakout | Adafruit BNO085 | MikroE Smart DOF 4 Click |
+| --- | --- | --- | --- |
+| **Decision** | Working reference | **★ Preferred prototype** | ▼ Outside preferred BOM |
+| Board | Exact SKU ? | 4754 | MIKROE-6369 |
+| **Price, EUR net** | Replacement price ? | **★ €26.85** US equivalent | ▼ €59.15 |
+| **EU seller** | ? | [BerryBase][imu-eu] | ? |
+| **US seller** | ? | [Adafruit][imu-buy] | ? |
+| Manufacturer / original listing | [V1 purchase][imu-v1] | [Adafruit][imu-buy] | [MikroE, Serbia][imu-click] |
+| **Listed stock** | ? | EU 100+; US count ? | ? |
+| Supply continuity | Exact board revision ? | Product documented since 2020 | Same BNO085 dependency |
+| **Quality evidence** | Working v1 integration | Published PCB and guide | Published schematic |
+| **Features** | Fused heading, heel, pitch | Nine-axis fusion | Nine-axis fusion; ClickID |
+| **Board voltage** | ? | 3–5 V VIN; use 3.3 V QT | 3.3 V |
+| **Power, sensor IC** | Report-dependent | ≈35 mW fusion example¹ | Same IC; ≈35 mW example¹ |
+| **Operating temperature, IC** | Confirm exact IC | −40…+85 °C | −40…+85 °C |
+| **Data interfaces** | I²C used | I²C / UART / SPI | SPI default; I²C configurable |
+| **Connections** | Existing wiring | 2× QT; signal pads | mikroBUS |
+| **Direct Qwiic / QT** | ? | **★ Yes** | ▼ No |
+| I²C address | Verify board | `0x4A` / `0x4B` | Verify jumper configuration |
+| I²C pull-ups | Verify board | 10 kΩ | Verify board |
+| **Assembly for v2** | Reuse wiring | **★ Direct cable** | ▼ I²C solder configuration |
+| **CE / EU DoC — board** | Unknown | Unknown | Unknown |
+| **RoHS — board** | Unknown | Unknown | Unknown |
+| **REACH / FCC — board** | Unknown / Unknown | Unknown / Unknown | Unknown / Unknown |
+| **Hardware license** | ? | **★ [CC BY-SA][imu-license]** | ? |
+| Host software | Existing Veetr driver | Adafruit library candidate | Click SDK / BNO08x driver |
+| **V1 lesson / migration** | Telemetry timing affected freshness | Shared ESP32-S3 I²C test required | Same IC does not resolve I²C warning |
+| Deciding test | Reference acquisition timestamps | Bus recovery and installed heading | Demonstrate a carrier advantage |
+
+¹ BNO08x current depends strongly on reports and rates. The [BNO080/085 datasheet in the repository](../../../firmware/include/BNO080_085-Datasheet_v1.16.md) gives, for example, about 35 mW for BNO085 100 Hz fusion under its SPI/rail conditions. This is not a measured QT board current. Log total 3.3 V branch current and startup peaks with the reports Veetr actually uses.
+
+Full-board current, temperature limits and binding supply commitments are unrecorded for all three. Prices compare new boards with known quotes; reuse of the v1 board adds no purchase cost. BerryBase’s separate Adafruit quote is €37.50 including VAT. A raw nine-axis sensor without fusion would add host calibration/fusion work; no such board is shortlisted.
 
 ## Critical integration gate
 
@@ -40,3 +68,8 @@ Sources: [Adafruit board](https://www.adafruit.com/product/4754), [pinout][imu-p
 [imu-pins]: https://learn.adafruit.com/adafruit-9-dof-orientation-imu-fusion-breakout-bno085/pinouts
 [imu-warning]: https://learn.adafruit.com/adafruit-9-dof-orientation-imu-fusion-breakout-bno085/arduino
 [imu-click]: https://www.mikroe.com/smart-dof-4-click
+
+[imu-eu]: https://www.berrybase.de/en/adafruit-9-dof-orientation-imu-fusion-breakout-bno085-bno080/
+[imu-buy]: https://www.adafruit.com/product/4754
+[imu-v1]: https://s.click.aliexpress.com/e/_okDR7nd
+[imu-license]: https://github.com/adafruit/Adafruit-BNO08x-PCB

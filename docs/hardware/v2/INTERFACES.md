@@ -6,14 +6,39 @@
 
 **Olimex A20-CAN-ISO** is the first prototype candidate. It combines signal isolation and isolated power, an EU manufacturer/store, a signed board EMC/RoHS declaration and a lower price than the shortlisted Click modules. Its normally open termination suits a network drop. The tradeoffs are its unusual carrier connection, 5 V supply and unresolved safe-startup circuit.
 
-| Candidate | Isolation, power and connection | Drop termination / assembly | Decision |
-| --- | --- | --- | --- |
-| Olimex A20-CAN-ISO | TJA1052; F0505S-2WR2 isolated supply; 5 V power, 3.3 V logic; Olimex 40-pin connector and CAN connector | CAN_T1/CAN_T2 shown open; carrier must adapt and key mating connector | Preferred prototype; confirm supplied revision and header population |
-| MIKROE-5785 CAN Isolator 3 Click | MAX14882 with isolated power path; 3.3/5 V selection; mikroBUS | Schematic has two 56 Ω series resistors across CAN, no disable jumper; supplier must prepare unterminated drop variant | Conditional socket alternative; extra cost and configuration |
-| MIKROE-2627 CAN Isolator Click | ADM3053 signal/power isolation; needs 5 V even with 3.3 V I/O | Populated split termination; factory configuration needed | Older alternative; no demonstrated assembly/power advantage |
-| MIKROE-4809 CAN Isolator 2 Click | ISO1042 isolated transceiver; separately isolated bus supply required | Additional supply and carrier integration | Incomplete isolated interface on its own; not preferred |
-| TI ISOW1044DFMEVM | Isolated transceiver/DC-DC evaluation board; board EU DoC listed | Populated termination; evaluation form factor and embedding terms need review | Lab reference, not production winner |
-| Generic non-isolated CAN breakout | Low-cost transceiver, shared ground | Does not meet intended isolation architecture | Excluded from boat-connected prototype |
+**★** = best documented fit for the row; **▼** = disadvantage for this v2 design; **?** = not established. Unmarked values are neutral or not directly comparable. Unknown evidence is not a failure.
+
+Prices are **EUR excluding VAT**, unless marked otherwise. See the [supplier register](SOURCING_AND_EVIDENCE.md#price-and-quantity-snapshot) for dated quotes, conversions and stock. “Yes” in a compliance row applies only to the stated board, not the assembled Veetr product.
+
+| Criterion | Olimex A20-CAN-ISO | CAN Isolator 3 Click | CAN Isolator Click | CAN Isolator 2 Click | TI ISOW1044DFMEVM |
+| --- | --- | --- | --- | --- | --- |
+| **Decision** | **★ Preferred prototype** | Conditional alternative | Older alternative | ▼ Extra supply needed | Lab reference |
+| Board / transceiver | TJA1052 | MIKROE-5785 / MAX14882 | MIKROE-2627 / ADM3053 | MIKROE-4809 / ISO1042 | ISOW1044 EVM |
+| **Price, EUR net** | **★ €15.95** | €46.38 historical¹ | ? | ?; supply extra | ? |
+| **EU seller** | [Olimex, BG][olimex-can] | [TME][can3-eu] | ? | ? | [Mouser][can-evm-eu] |
+| **US seller** | ? | ? | [TME US][can1-us] | ? | [TI][can-evm] |
+| Manufacturer | [Olimex][olimex-can] | [MikroE][can3-buy] | [MikroE][can1-buy] | [MikroE][can2] | [TI][can-evm] |
+| **Listed stock** | In stock; count ? | 0 historical¹ | ? | ? | ? |
+| Supply history | Drawing 2016; OSHWA 2020 | Click family; no commitment | Documented since 2017 | No commitment recorded | Evaluation product |
+| **Quality evidence** | Schematic + signed board DoC | Published schematic | Published schematic | Vendor documentation | EVM documentation |
+| **Signal isolation** | Yes | Yes | Yes | Yes | Yes |
+| **Isolated power included** | Yes; F0505S-2WR2 | Yes | Yes | ▼ No; external bus supply | Yes |
+| **Supply / logic** | 5 V + 3.3 V / 3.3 V | **★ 3.3 or 5 V selectable** | 5 V / 3.3 V-compatible | Separate logic/bus supplies | See EVM rail setup |
+| **Board current** | ? | ? | ? | ? | ? |
+| **Board operating temperature** | ? | ? | ? | ? | ? |
+| **Carrier connection** | 40-pin connector | mikroBUS | mikroBUS | mikroBUS + supply | Evaluation connectors |
+| **Drop termination** | **★ Jumpers normally open** | ▼ Fixed 112 Ω; factory DNP | ▼ Populated split termination | Confirm revision | ▼ Populated termination |
+| **Assembly for v2** | Keyed carrier mating | Factory unterminated variant | Factory termination setup | Additional isolated converter | ▼ Embedding review |
+| **CE / EU DoC — board** | [**Yes — EMC**][olimex-doc] | Unknown | Unknown | Unknown | [**Yes — RoHS only**][ti-doc]² |
+| **RoHS — board** | [**Yes**][olimex-doc] | Unknown | Unknown | Unknown | [**Yes**][ti-doc] |
+| **REACH / FCC — board** | Unknown / Unknown | Unknown / Unknown | Unknown / Unknown | Unknown / Unknown | Unknown / Unknown |
+| **Hardware license** | **★ [CERN OHL 1.2][olimex-license]** | ? | ? | ? | Evaluation terms |
+| Host integration | TWAI + NMEA stack | TWAI + NMEA stack | TWAI + NMEA stack | TWAI + NMEA stack | TWAI + NMEA stack |
+| Deciding test | Safe startup, traffic, isolation | Unterminated drop and cost | Assembly advantage | Complete installed cost | Bench characterization |
+
+¹ Historical quotes/stock are from 2026-10-13; other recorded quotes are dated 2026-11-17. The price marker compares known quotes only. ² TI’s signed 2021-03-25 declaration covers ISOW1044DFMEVM under RoHS 2011/65/EU and amendment 2015/863; it does not declare EMC conformity. Olimex’s signed 2021-07-08 declaration explicitly covers A20-CAN-ISO under EMC and RoHS; it does not establish REACH or FCC status.
+
+V1 has no CAN interface. Generic non-isolated breakouts are excluded because the selected architecture requires isolation.
 
 No complete-board current or temperature envelope has been qualified for Veetr. Measure the selected CAN module at idle, normal traffic and maximum intended traffic, including isolated converter overhead. IC isolation and temperature ratings cannot be applied to the assembled carrier. Compare prices, stock and license evidence in the [supplier register](SOURCING_AND_EVIDENCE.md); those gaps remain explicit rather than filled with chip ratings.
 
@@ -42,11 +67,29 @@ GPIO43 can emit boot UART traffic. The target carrier needs a hardware means to 
 
 Retain the existing converter as the reference for the next bench build. It must present 3.3 V-compatible logic regardless of its supply label. The wind head needs 5 V, and its battery supply is a separate [power decision](POWER.md). Do not confuse the sensor supply with transceiver logic voltage.
 
-| Candidate | Features and integration | Known limitation | Disposition |
+| Criterion | Existing v1 converter | RS485 Isolator 2 Click | Olimex MOD-RS485-ISO |
 | --- | --- | --- | --- |
-| Existing v1 converter | Working UART/DE control and Modbus 9600 8E1 | Exact SKU, isolation, current, temperature and supplier traceability not recorded | Reuse for controlled regression; production selection remains open |
-| MIKROE-3863 RS485 Isolator 2 Click | ADM2867E with isolated power; mikroBUS | Half-duplex / linked DE and /RE require configuration including solder options; factory preparation needed | Isolated upgrade candidate; higher cost, no verified current stock |
-| Olimex MOD-RS485-ISO | EU board with ISO35T, onboard PIC, UEXT; board EMC/RoHS DoC | Verify PIC protocol transparency and 9600 8E1 support; not proven drop-in | Lower-cost comparison only after protocol review |
+| **Decision** | **★ Bench reference** | Isolated upgrade candidate | Protocol review first |
+| Board / transceiver | Exact SKU ? | MIKROE-3863 / ADM2867E | ISO35T + onboard PIC |
+| **Price, EUR net** | Replacement ?; reuse €0 | €40.68 historical¹ | **★ €16.95** historical¹ |
+| **EU seller** | ? | [TME][rs485-eu] | [Olimex, BG][olimex-rs] |
+| **US seller** | ? | ? | ? |
+| Manufacturer / original listing | [V1 purchase][rs485-v1] | [MikroE][rs485] | [Olimex][olimex-rs] |
+| **Listed stock** | Owned | 0 historical¹ | In stock, historical¹; count ? |
+| Supply commitment | ? | ? | ? |
+| **Quality evidence** | Working wind acquisition | Published design | Signed board DoC |
+| **Signal / power isolation** | ? / ? | Yes / Yes | Yes / Yes; review system boundary |
+| **Supply / logic** | Verify board; require 3.3 V I/O | Confirm configured rails / 3.3 V host | Verify UEXT rails / host levels |
+| **Board current / temperature** | ? / ? | ? / ? | ? / ? |
+| **Carrier connection** | Existing wires | mikroBUS | UEXT |
+| **9600 8E1 wind operation** | **★ Working** | Half-duplex setup needed | ▼ PIC transparency unverified |
+| **Assembly for v2** | Reuse | ▼ Factory solder-jumper setup | UEXT harness/carrier |
+| **CE / EU DoC — board** | Unknown | Unknown | [**Yes — EMC**][olimex-rs-doc] |
+| **RoHS — board** | Unknown | Unknown | [**Yes**][olimex-rs-doc] |
+| **REACH / FCC — board** | Unknown / Unknown | Unknown / Unknown | Unknown / Unknown |
+| **Hardware / firmware license** | ? | ? | Exact board/PIC terms to verify |
+| **V1 lesson / migration** | Preserve DE timing and 8E1 | Include wind power in isolation | Extra controller in data path |
+| Deciding test | Regression and GPIO3 loading | Wind power/reference isolation | Transparent Modbus exchange |
 
 A complete wind isolation boundary includes sensor power/reference as well as A/B. A non-isolated boost feeding the remote head can defeat an otherwise isolated signal interface if grounds are joined. Resolve that system boundary before calling the wind connection isolated. Keep reset-time GPIO3 loading and bus direction under test.
 
@@ -91,3 +134,15 @@ Sources: [Olimex product][olimex-can], [signed declaration][olimex-doc], [CAN Is
 [olimex-sch]: https://github.com/OLIMEX/A20-CAN-ISO/blob/ca00943e6385a4c8b9c4c8e3a69489aa078ce446/HARDWARE/A20-CAN-ISO-Rev_B/A20-CAN-ISO_Rev_B.pdf
 [olimex-doc]: https://www.olimex.com/Products/OLinuXino/A20/A20-CAN/resources/EU-DOC-A20-CAN.pdf
 [olimex-rs]: https://www.olimex.com/Products/Modules/Interface/MOD-RS485-ISO/
+
+[can3-eu]: https://www.tme.eu/de/details/mikroe-5785/erweiterungsboards/mikroe/
+[can3-buy]: https://www.mikroe.com/can-isolator-3-click
+[can1-buy]: https://www.mikroe.com/can-isolator-click
+[can1-us]: https://www.tme.com/us/en-us/details/mikroe-2627/add-on-boards/mikroe/can-isolator-click/
+[can-evm-eu]: https://www.mouser.es/es/ProductDetail/Texas-Instruments/ISOW1044DFMEVM?qs=TuK3vfAjtkU%2FNoFUJrmHuQ%3D%3D
+[olimex-license]: https://github.com/OLIMEX/A20-CAN-ISO
+[rs485-eu]: https://www.tme.eu/fr/details/mikroe-3863/plaques-d-expansion/mikroe/
+[rs485-v1]: https://www.aliexpress.com/item/32688467460.html
+[olimex-rs-doc]: https://www.olimex.com/Products/Modules/Interface/MOD-RS485-ISO/resources/EU-DOC-MOD-RS485-ISO.pdf
+
+[ti-doc]: https://www.ti.com/lit/pdf/SSZQOY6
