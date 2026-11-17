@@ -78,7 +78,7 @@ The wind sensor connects to the RS485 side of the converter, not directly to ESP
 
 | Property | Prototype requirement |
 | --- | --- |
-| Receiver | NEO-8M-family breakout board |
+| Receiver | Realpoy NEO-8M breakout, selected NEO-8M variant in the combined GY-NEO6MV2 / GY-NEO7MV2 / GY-NEO8MV2 listing; exact silicon/revision to verify |
 | Interface | UART |
 | Supply | Use the voltage accepted by the specific breakout board |
 | Data | NMEA position, speed, course, time, and signal status |

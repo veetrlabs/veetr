@@ -44,7 +44,7 @@ The [v1 component record](COMPONENTS.md), [firmware pin definitions](../firmware
 | Function | V1 reference | RLCD proof of concept / lesson | V2 decision |
 | --- | --- | --- | --- |
 | Controller and display | DevKitC-style ESP32-WROOM-32U; external antenna; phone dashboard | RLCD adds a local display, SD socket and battery circuit; exposed pins are scarce | Retain RLCD; compare enclosed BLE range against v1's external antenna |
-| GNSS | UART “NEO-8M-family” breakout; exact receiver provenance unconfirmed | UART works but occupies the intended CAN pins | Compare MAX-M10S Qwiic with LC76G; qualify I²C before changing wiring |
+| GNSS | Realpoy NEO-8M UART breakout; seller/variant identified, exact silicon/firmware unverified | UART works but occupies the intended CAN pins | Compare MAX-M10S Qwiic with LC76G; qualify I²C before changing wiring |
 | Heading / heel / pitch | BNO080-family fused IMU; exact board SKU unrecorded | Shared I²C exists; software scheduling can create stale data | Preserve fusion; test Adafruit BNO085 and the existing board side by side |
 | Wind | Ultrasonic Modbus RS485 head and generic TTL converter | Head requires 5 V; current RLCD PoC wind works on USB, not battery alone | Keep wind protocol and pins; add qualified battery-to-5 V conversion |
 | Radio | Working BLE data path | Display, logging and Wi-Fi increase workload | Preserve BLE; qualify simultaneous radio use and per-sensor freshness |
