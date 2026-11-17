@@ -1,5 +1,7 @@
 # RLCD DevBoard to Sensor Board Wiring
 
+This document describes the **existing RLCD proof of concept**, with UART GNSS. The [v2 specification](ESP32-S3-RLCD-4.2.md) owns the target configuration; [decision records](RLCD_V2_HARDWARE.md) explain the planned changes.
+
 This document maps each external sensor board to the corresponding pins on the **Waveshare ESP32-S3-RLCD-4.2** devboard. The canonical source of truth for firmware pin definitions is [`firmware/include/board/pins_esp32s3_rlcd.h`](../firmware/include/board/pins_esp32s3_rlcd.h).
 
 ## Quick Reference
@@ -18,8 +20,6 @@ All sensor signals use GPIOs accessible on the **2×8 expansion header (P1)** �
 | **Discovery Button** | GPIO input | GPIO18 (KEY) | Pin 15 | GPIO0 |
 | **Discovery LED** | GPIO output | GPIO2 | Pin 9 | GPIO2 |
 | **Anchor Light** | Not assigned | — | — | GPIO25 |
-
-> **Legend:** Pins shown with grey background were **available on the DevKitC but NOT on the RLCD 2×8 header** and have been rerouted. Pins shown with white background are unchanged.
 
 ---
 
@@ -47,11 +47,11 @@ SCL     →  GPIO14
 
 ## 2. RS485 Wind Sensor (UART2)
 
-An RS485-to-TTL converter (MAX485/SP3485) sits between the ESP32 UART and the wind sensor differential pair.
+A 3.3 V-logic-compatible RS485-to-TTL converter sits between the ESP32 UART and the wind sensor differential pair.
 
 ```
 RS485 Module  →  RLCD-4.2 header P1
-VCC           →  Pin 1 (3.3V) or Pin 2 (VBUS 5V)
+VCC           →  Supply rated for the actual converter; 3.3V-compatible I/O required
 GND           →  Pin 3 or 4 (GND)
 DI (TX)       →  Pin 13 — GPIO17      (ESP32 TX → RS485 input)
 RO (RX)       →  Pin  7 — GPIO1       (RS485 output → ESP32 RX)
@@ -64,10 +64,12 @@ DE/RE         →  Pin 11 — GPIO3       (ESP32 GPIO controls TX/RX direction)
 | TX (DI) | 17 | 13 | 33 | unchanged |
 | DE/RE | **3** | 11 | 14 | was GPIO42 (module-only), now on header |
 
+- P1-2 VBUS supplies USB 5 V. The wind head requires 5 V; battery-only operation needs the [qualified boost/power path](hardware/v2/POWER.md).
 - Wind sensor: ultrasonic, RS485 Modbus RTU, 9600 baud, 8E1 (IEEE754 float format).
 - Firmware uses `HardwareSerial rs485(RS485_UART)` with UART number 2.
 - DE/RE is driven LOW initially (receive mode); `preTransmission` / `postTransmission` callbacks toggle it HIGH during Modbus requests.
-- GPIO3 is the SD card chip-select. The SD card slot is unused in this design, so there is no conflict.
+- GPIO3 is a JTAG-selection strapping pin on P1-11, used for RS485 direction after reset. Check the converter's reset-time loading.
+- Before concurrent SD/wind operation, confirm the optional GPIO17-to-SD DAT3 connection through R7 is unpopulated. See the [verified wiring](ESP32-S3-RLCD-4.2.md#verified-wiring).
 
 ---
 
@@ -75,7 +77,7 @@ DE/RE         →  Pin 11 — GPIO3       (ESP32 GPIO controls TX/RX direction)
 
 ```
 GPS Module  →  RLCD-4.2 header P1
-VCC         →  Pin 1 (3.3V) or Pin 2 (VBUS 5V)
+VCC         →  Supply rated for the actual GNSS breakout; 3.3V-compatible I/O required
 GND         →  Pin 3 or 4 (GND)
 TX          →  Pin 12 — GPIO44      (GPS TX → ESP32 RX)
 RX          →  Pin 10 — GPIO43      (ESP32 TX → GPS RX)
@@ -86,7 +88,7 @@ RX          →  Pin 10 — GPIO43      (ESP32 TX → GPS RX)
 | RX (GPS TX) | **44** | 12 | 17 | was GPIO6 (not on header) |
 | TX (GPS RX) | **43** | 10 | 16 | was GPIO7 (not on header) |
 
-- Chipset: u-blox NEO-8M, NMEA 0183 at 9600 baud.
+- Receiver: NEO-8M-family board as recorded for v1; verify the actual marking. NMEA 0183 at 9600 baud.
 - Firmware uses `HardwareSerial gpsSerial(GPS_UART)` with UART number 1.
 - GPIO43/GPIO44 are the UART0 default pins but are repurposed for UART1 here.
   Console output works through USB Serial/JTAG (GPIO19/GPIO20) — no debug UART is lost.
@@ -125,7 +127,7 @@ The onboard **KEY** button (GPIO18) replaces the old BOOT button for discovery m
 
 ### Changes from the original DevKitC pinout
 
-| Signal | DevKitC | RLCD (original) | RLCD (final, on header) | Reason |
+| Signal | DevKitC | RLCD (original) | RLCD (current PoC, on header) | Reason |
 |---|---|---|---|---|
 | RS485 DE/RE | GPIO14 | GPIO42 (module-only) | **GPIO3** (P1-11) | DE/RE had to move from GPIO14 (now I2C SCL) |
 | GPS RX | GPIO17 | GPIO6 (not on header) | **GPIO44** (P1-12) | GPIO6 not on header |
@@ -135,12 +137,13 @@ The onboard **KEY** button (GPIO18) replaces the old BOOT button for discovery m
 
 ### Onboard peripherals (do not reassign)
 
-- The RLCD display occupies GPIO5, 11, 12, 40, 41 (SPI + control).
+- The RLCD display occupies GPIO5, 6 (TE), 11, 12, 40, 41 (SPI + control).
 - The I2S audio subsystem occupies GPIO8, 9, 10, 16, 45, 46.
 - The I2C bus (GPIO13/GPIO14) is shared with SHTC3, PCF85063, and the audio codecs.
 - The BOOT button (GPIO0) and KEY button (GPIO18) are on P1-5 and P1-15 respectively.
 - GPIO19/GPIO20 (P1-6/P1-8) are the USB Serial/JTAG pins; both remain reserved for runtime USB.
-- GPIO3 (P1-11) is the SD card CS — unused in this design, safe for RS485 DE/RE.
+- GPIO3 (P1-11) controls RS485 direction; its JTAG strap behavior requires reset-time loading checks.
+- SD uses one-bit SDMMC with CLK38, CMD21 and D0 39; GPIO17 has an optional DAT3 connection through R7, marked NC.
 
 ## Onboard I2C Bus Devices
 

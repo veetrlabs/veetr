@@ -4,7 +4,7 @@ description: The controller, sensors, antennas, converter, PCB, and enclosure us
 editUrl: https://github.com/veetrlabs/veetr/edit/main/docs/COMPONENTS.md
 ---
 
-This page lists the modules used by the current Veetr prototype. Check the model number, connector type, and voltage before ordering: marketplace listings and board revisions can change without notice.
+This page records the **v1 reference hardware**. For the next prototype, use the [v2 decisions](RLCD_V2_HARDWARE.md) and [v2 order plan](hardware/v2/PROTOTYPE_ORDER.md). Check the model number, connector type, and voltage before ordering: marketplace listings and board revisions can change without notice.
 
 ## Shopping checklist
 

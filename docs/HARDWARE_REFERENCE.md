@@ -4,7 +4,7 @@ description: Prototype interfaces, data rates, power estimates, firmware behavio
 editUrl: https://github.com/veetrlabs/veetr/edit/main/docs/HARDWARE_REFERENCE.md
 ---
 
-This page collects the lower-level values used by the current prototype. Treat them as implementation details and test targets, not certified product specifications.
+This page collects the lower-level values used by the v1 reference prototype. The [v1 firmware header](../firmware/include/board/pins_esp32dev.h) defines its pins. See the [RLCD v2 specification](ESP32-S3-RLCD-4.2.md) for the next hardware generation. Treat them as implementation details and test targets, not certified product specifications.
 
 ## Controller configuration
 
@@ -15,7 +15,7 @@ This page collects the lower-level values used by the current prototype. Treat t
 | Firmware storage | 4 MB flash on the referenced module |
 | BLE | Custom sailing-data service |
 | I²C | IMU on GPIO21/GPIO22 |
-| GPS UART | RX GPIO16, TX GPIO17 |
+| GPS UART | RX GPIO17, TX GPIO16 |
 | RS485 UART | RX GPIO32, TX GPIO33, DE/RE GPIO14 |
 
 ## Data handled by the firmware

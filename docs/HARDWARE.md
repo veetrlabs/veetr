@@ -12,6 +12,10 @@ Veetr Vane is the ESP32-based sailing instrument in the Veetr family. A portable
 
 “Vane” connects English and Czech: in English, a wind vane shows the wind’s direction; in Czech, **“vítr vane” means “the wind blows.”** It gives the instrument its own name while keeping its Czech roots.
 
+## Hardware generations
+
+The assembly below is the v1 reference. The [v2 design overview](RLCD_V2_HARDWARE.md) connects component choices, alternatives and prototype tests. [ESP32-S3-RLCD-4.2.md](ESP32-S3-RLCD-4.2.md) owns the v2 configuration and pin allocation.
+
 ## At a glance
 
 | Part | What it does | Connection |
