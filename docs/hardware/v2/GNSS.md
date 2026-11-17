@@ -55,35 +55,13 @@ No controlled Veetr accuracy comparison, complete-board current measurements, co
 
 [ECB rates, 2026-11-17][ecb-rates]: **€1 = US$1.0989 = CZK24.387**. Original prices: Realpoy CZK242.62 gross; SparkFun US$45.95 net; RPishop CZK379.34 net; MikroE US$54 net. Compare board prices before shipping, import/handling, antenna and assembly costs. The [supplier register](SOURCING_AND_EVIDENCE.md) retains purchasing details.
 
-## What other marine projects use
-
-These project references add useful alternatives and integration lessons. They describe different products: a receiver on a custom AIS PCB, a Raspberry Pi HAT and a DIY display. Their choices are not interchangeable QT breakouts or evidence of a marine accuracy ranking.
-
-| Criterion | MAIANA AIS | Hat Labs HALPI2 / HaLOS | Open Boat Projects OBP60 V1 |
-| --- | --- | --- | --- |
-| **GNSS choice** | **Quectel L76L-M33** | **Waveshare MAX-M8Q GNSS HAT** | **NEO-6M** with internal mini antenna |
-| Evidence type | Receiver specified by project author | Supported receiver family + HAT sold by project vendor | Receiver listed in design documentation |
-| **Primary source** | [MAIANA hardware description][marine-maiana] | [HALPI2 GNSS guide][marine-hatlabs] | [OBP60 design][marine-obp60] |
-| Physical integration | Module on custom AIS PCB; ceramic chip antenna | Raspberry Pi HAT; UART connection | Separate GPS module in display/carrier |
-| **Buy / price** | No standalone compatible breakout selected | [Hat Labs EU store][marine-hat-shop]: €50.07 incl. displayed tax; net quote needed | Exact breakout/vendor not specified |
-| Stock | Standalone module order not assessed | Store shows sold-out and add-to-cart states; confirm | ? |
-| Direct QT replacement | ▼ No ready-made QT board identified | ▼ Pi form factor; UART in cited integration | ▼ UART design; exact breakout unknown |
-| Lesson for Veetr | Antenna/enclosure integration matters as much as receiver name | Restore configuration at boot; validate update rate and marine dynamic model | Low-cost receiver families are used in open instrument designs |
-| Next step | Find an exact EU breakout only if it improves cost/integration | Consider as architecture reference; not preferred for scarce RLCD UART pins | Keep v1-family baseline; do not infer our Realpoy board is identical |
-
-MAIANA documents an integrated receiver/antenna design. Its author also discusses antenna detuning in [GNSS improvements][marine-maiana-tuning]. That supports testing the finished enclosure; it does not transfer a performance result to another L76-family board. **L76L-M33 is not LC76G.**
-
-Hat Labs documents UART configuration at 115200 baud, 10 Hz and a sea dynamic model for supported u-blox receivers, reapplied at boot because backup settings can be lost. That is a useful firmware test case for Veetr, subject to the selected receiver's supported configuration. The store's tax-inclusive HAT price is kept separate from the four net breakout prices above.
-
-OBP60's published design lists NEO-6M. A separate Open Boat Projects [battery anchor-alarm design][marine-anchor] lists NEO-6M, NEO-M8N and ATGM336H as options. These are documented choices, not proof of which exact modules were fitted in every built unit.
-
 ## What decides the winner
 
 For the selected carrier, SparkFun's advantage is direct Qwiic assembly and a documented I²C path. LC76G deserves an A/B trial because it is much cheaper. MikroE uses the same MAX-M10S receiver while adding price and a different carrier interface. Price alone does not establish navigation accuracy.
 
 MAX-M10S uses the u-blox host protocol. LC76G uses command/data addresses `0x50` / `0x54` and sequencing described in the [Quectel I²C application note][lc76g-i2c], including 10 ms waits. Implement bounded servicing so GNSS work cannot stall the IMU.
 
-Compare v1 and candidates at the same update rate, antenna exposure and route: cold/warm start, low-speed SOG/COG stability, fix loss/recovery, current and data age. Repeat with IMU, display, SD and radios active. Keep the [v1 stationary-drift and validity handling](../../FIRMWARE_SENSOR_DIAGNOSIS.md). An appropriate reference is needed to assess absolute accuracy.
+Compare v1 and candidates at the same update rate, antenna exposure and route: cold/warm start, low-speed SOG/COG stability, fix loss/recovery, current and data age. Repeat with IMU, display, SD and radios active. Test antenna reception in the finished enclosure and confirm the intended receiver settings are restored after complete power loss. Keep the [v1 stationary-drift and validity handling](../../FIRMWARE_SENSOR_DIAGNOSIS.md). An appropriate reference is needed to assess absolute accuracy.
 
 Promote LC76G if it meets those requirements and its installed cost remains lower after harness and driver work. If shared I²C fails, retain UART and revisit the CAN/controller arrangement before carrier layout. The [canonical specification](../../ESP32-S3-RLCD-4.2.md) owns the final allocation.
 
@@ -104,10 +82,4 @@ Promote LC76G if it meets those requirements and its installed cost remains lowe
 
 [ecb-rates]: https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html
 
-[marine-maiana]: https://github.com/peterantypas/maiana#electrical
-[marine-maiana-tuning]: https://github.com/peterantypas/maiana/discussions/82
-[marine-hatlabs]: https://docs.hatlabs.fi/halpi2/user-guide/interfaces/#gnss-gps
-[marine-hat-shop]: https://shop.hatlabs.fi/products/max-m8q-gnss-hat
-[marine-obp60]: https://open-boat-projects.org/en/diy-multifunktionsdisplay-obp-60/
-[marine-anchor]: https://open-boat-projects.org/de/gps-ankeralarm-mit-epaper-display-fuer-akkubetrieb/
 [lc76g-i2c]: https://www.quectel.com/content/uploads/2024/02/Quectel_LC26GABLC76G_Series_I2C_Application_Note_V1.0.pdf
