@@ -4,6 +4,8 @@ Status: **prototype integration specification; final release pending qualificati
 
 This is the authoritative v2 configuration and pin-allocation document. The [hardware decision overview](RLCD_V2_HARDWARE.md) explains the selections and links alternatives, supplier evidence and v1 lessons. The [order and test plan](hardware/v2/PROTOTYPE_ORDER.md) defines the next build. [RLCD sensor wiring](RLCD_TO_SENSORS.md) describes the existing PoC, and the [firmware header](../firmware/include/board/pins_esp32s3_rlcd.h) defines the currently implemented pin values.
 
+New prototype purchases must satisfy the [production component selection](hardware/v2/PRODUCTION_SELECTION.md): whole-board material-compliance evidence, a traceable sourcing route and confirmed supply/revision. Existing reference hardware does not waive that requirement. The RLCD controller’s whole-board evidence is still an open procurement gate.
+
 ## Configuration baseline
 
 | Subsystem | Target configuration | Qualification state |

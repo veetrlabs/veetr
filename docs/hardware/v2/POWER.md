@@ -74,7 +74,7 @@ Prices are **EUR excluding VAT**, unless marked otherwise. See the [supplier reg
 | **Board operating temperature** | ? | ? | ? |
 | **Connections / assembly** | Existing P1 wiring | 2.54 mm holes; fit headers | 2.54 mm holes; fit headers |
 | **CE / EU DoC — board** | Unknown | Unknown | Unknown |
-| **RoHS — board** | Unknown | Unknown; supplier claim² | Unknown |
+| **RoHS — board** | Unknown | [**Yes — supplier declaration**][power-2562-eu]² | Unknown |
 | **REACH / FCC — board** | Unknown / Unknown | Unknown / Unknown | Unknown / Unknown |
 | **Hardware license** | ? | ? | ? |
 | Host software | None for conversion | None | None |
@@ -83,7 +83,7 @@ Prices are **EUR excluding VAT**, unless marked otherwise. See the [supplier reg
 
 ¹ The 2562’s 1.2 A figure is input/switch capability, not guaranteed 5 V output. The 4085’s headline output also depends on input voltage and thermal conditions. Compare both at the same battery voltage and load. Neither supplies isolated NMEA network power.
 
-² A supplier RoHS claim for 2562 is recorded in the register; an exact-board manufacturer declaration has not been verified. “Unknown” describes that evidence gap. A custom converter remains a fallback if measured loads exclude these boards.
+² Botland publishes an exact-product declaration covering RoHS 2011/65/EU and 2015/863 for its Pololu 2562 supply. This is distributor evidence based on supplier information, not a manufacturer-signed EU DoC. A custom converter remains a fallback if measured loads exclude these boards.
 
 Manufacturer evidence: [2562](https://www.pololu.com/product/2562), [4085](https://www.pololu.com/product/4085). Both are listed Active and Preferred; this is not a guaranteed delivery period. Their published curves are more useful than a single headline amp rating. No complete-board ambient operating range or Veetr-enclosed thermal margin has been established here.
 

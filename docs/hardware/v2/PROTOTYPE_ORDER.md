@@ -4,6 +4,10 @@
 
 Purpose: build one instrument prototype while preserving a working v1/PoC reference, then qualify the decisions that control carrier layout. This is a staged procurement BOM, not a released production BOM. “Reuse” depends on inventory inspection; “hold” requires the named specification before ordering that item.
 
+## Procurement gate
+
+All new purchases, including comparison boards, must meet the [production component selection](PRODUCTION_SELECTION.md). Archive exact-board compliance evidence with the quote, supplier and revision; confirm quantity/lead time and substitution control. Existing v1/PoC parts are regression references. The RLCD whole-board evidence, wind head identity and several power/assembly parts remain unresolved, so this is not yet an order-ready complete BOM.
+
 ## First bench build
 
 | Item | Quantity | Action / exact identity | Included work and order gate |
@@ -28,7 +32,10 @@ All purchasable module identities and supplier links are in the [supplier regist
 
 | Item | Quantity | Purpose / ordering condition |
 | --- | --- | --- |
-| Waveshare LC76G, RPishop WAV579 | 1 | Low-cost GNSS A/B comparison; confirm AB variant, antenna contents and prepared harness first |
+| SparkFun GPS-21834 SAM-M10Q | 0–1 | Integrated-antenna GNSS comparison; documented Botland board RoHS route; confirm quote/dispatch |
+| Waveshare LC76G, RPishop WAV579 | Hold | Exact-board RoHS evidence required before a comparison purchase |
+| SparkFun SEN-22857 BNO086 | Hold | Board RoHS evidence recorded; allocate INT/RST before considering an order |
+| SparkFun SEN-20170 BMP581 | 0–1 | Pressure alternative if sustainable BMP390 supply cannot be confirmed; select one pressure board |
 | Pololu 4085 S13V20F5 | 0–1 | Order if measured wind/CAN load warrants comparing a larger or combined 5 V supply |
 | Adafruit 4162 VEML7700 | 0–1 | Ambient sensing for a night-light experiment; add one QT cable and a documented port/chain |
 | LED / front-light sample set | Hold | Choose optics and driver approach; no final SKU, GPIO or load budget yet |
@@ -55,7 +62,7 @@ Do not send a carrier to fabrication while these entries remain unspecified. Net
 
 ## Cost model
 
-Use the supplier register as the single price ledger. It deliberately retains source currencies and VAT bases rather than summing incompatible figures. Build three quote totals: unchanged new-build v1, v2 with reused prototype parts, and complete new-build v2.
+Use the supplier register as the single price ledger. It records EUR equivalents alongside original quote currencies and VAT bases. Build three quote totals: unchanged new-build v1, v2 with reused prototype parts, and complete new-build v2.
 
 | Cost group | Include |
 | --- | --- |

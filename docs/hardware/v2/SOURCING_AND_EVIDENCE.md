@@ -2,6 +2,10 @@
 
 [Decision overview](../../RLCD_V2_HARDWARE.md) · [Prototype quantities](PROTOTYPE_ORDER.md) · [Project compliance status](../../COMPLIANCE.md)
 
+## Production procurement status
+
+The [production component selection](PRODUCTION_SELECTION.md) records exact-board RoHS declarations, adds SAM-M10Q GNSS, BNO086 IMU and BMP581 pressure candidates, and supersedes earlier unknown RoHS entries for the identified Botland routes. LC76G purchases are held for board evidence. The RLCD controller and complete production BOM remain unapproved. Supplier declarations are evidence for the identified supply, not finished-product certification.
+
 ## Price and quantity snapshot
 
 Reviewed **2026-11-17**, except entries explicitly marked historical. Prices exclude shipping; USD manufacturer prices are before destination taxes. EU VAT status is stated per row. EUR equivalents use the dated conversion below; VAT-inclusive EU quotes are labeled separately. A regional website does not establish warehouse location or sufficient stock for a production run.
@@ -49,7 +53,7 @@ A module certificate does not certify the assembled Veetr product. The [complian
 | Olimex MOD-RS485-ISO | [Board EMC/RoHS DoC][olimex-rs-doc] | Review exact board/PIC sources before adapting firmware | Current revision, protocol and delivery quote still required |
 | MikroE Click alternatives | Exact-board signed EU/FCC/REACH evidence not recorded here; isolator IC certificates have narrower scope | Schematics available; review exact board and SDK terms before copying/integrating | CAN predecessors documented since 2017; ecosystem history does not guarantee a particular SKU |
 | TI CAN EVM | [Yes — board RoHS DoC, 2021-03-25](https://www.ti.com/lit/pdf/SSZQOY6); EMC not declared in this document | Evaluation/embedding terms require review | Lab evidence useful; not chosen as production module |
-| Pololu regulators | Supplier RoHS evidence recorded for 2562; complete-board CE/FCC evidence not established | Hardware design reuse license not established; no host firmware required | Active/Preferred status and quantity tiers; no committed inventory or lifetime |
+| Pololu regulators | [Yes — exact-board Botland RoHS declaration](https://botland.store/converters-step-up/1893-step-up-voltage-regulator-u1v11f5-5v-12a-pololu-2562-5904422308230.html) for 2562; CE/FCC evidence unrecorded | Hardware design reuse license not established; no host firmware required | Active/Preferred status and quantity tiers; no committed inventory or lifetime |
 | Network power input | Exact module and assembled input evidence pending; isolated CAN evidence does not cover this supply | Module design reuse terms and any controller firmware to review | Select input/output ratings, EU sourcing, lifecycle and fixed carrier interface before fabrication |
 | BOPLA pressure vent | Manufacturer fresh-water component ingress tests; no Veetr enclosure or saltwater qualification established | Mechanical purchased part; design reuse terms not established | Part documented in 2019 manufacturer sheet and current catalogue; multiyear commitment unconfirmed. [Manufacturer sheet](https://docs.rs-online.com/aea6/0900766b811170c1.pdf) |
 | Optional sensors / battery / card / connectors | Exact selected BOM evidence incomplete | Host libraries and any copied designs require revision-specific license capture | Battery, antenna, lighting and protection SKUs still open; selected vent mounting hardware to finalize |

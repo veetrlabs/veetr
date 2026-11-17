@@ -2,6 +2,8 @@
 
 Design review: **2026-11-17**. This is the design overview and decision index for the next prototype. The [ESP32-S3-RLCD-4.2 integration specification](ESP32-S3-RLCD-4.2.md) is the source of truth for the v2 configuration, interfaces and pin allocation. It will become the final hardware specification after qualification; the present design is not production-approved.
 
+New prototype purchases must satisfy the [production component selection](hardware/v2/PRODUCTION_SELECTION.md): whole-board material-compliance evidence, a traceable sourcing route and confirmed supply/revision. Existing reference hardware does not waive that requirement. The RLCD controller’s whole-board evidence is still an open procurement gate.
+
 ## What v2 is intended to deliver
 
 V2 keeps local wind, position, heading, heel and pitch measurements and BLE, while adding a readable standalone instrument, battery operation, SD logging and an isolated NMEA2000 interface with network-powered operation. Wi-Fi is available in the controller and needs its own integration and coexistence tests. Optional local sensors can be omitted when the boat's NMEA2000 network supplies equivalent data.
@@ -44,7 +46,7 @@ The [v1 component record](COMPONENTS.md), [firmware pin definitions](../firmware
 | Function | V1 reference | RLCD proof of concept / lesson | V2 decision |
 | --- | --- | --- | --- |
 | Controller and display | DevKitC-style ESP32-WROOM-32U; external antenna; phone dashboard | RLCD adds a local display, SD socket and battery circuit; exposed pins are scarce | Retain RLCD; compare enclosed BLE range against v1's external antenna |
-| GNSS | Realpoy NEO-8M UART breakout; seller/variant identified, exact silicon/firmware unverified | UART works but occupies the intended CAN pins | Compare MAX-M10S Qwiic with LC76G; qualify I²C before changing wiring |
+| GNSS | Realpoy NEO-8M UART breakout; seller/variant identified, exact silicon/firmware unverified | UART works but occupies the intended CAN pins | Compare MAX-M10S with SAM-M10Q through documented supplier routes; qualify I²C |
 | Heading / heel / pitch | BNO080-family fused IMU; exact board SKU unrecorded | Shared I²C exists; software scheduling can create stale data | Preserve fusion; test Adafruit BNO085 and the existing board side by side |
 | Wind | Ultrasonic Modbus RS485 head and generic TTL converter | Head requires 5 V; current RLCD PoC wind works on USB, not battery alone | Keep wind protocol and pins; add qualified battery-to-5 V conversion |
 | Radio | Working BLE data path | Display, logging and Wi-Fi increase workload | Preserve BLE; qualify simultaneous radio use and per-sensor freshness |
@@ -61,7 +63,7 @@ The diagnosis provides software evidence, not measured proof that a particular r
 | Decision | Current winner / status | Why it leads | Alternatives and decision record |
 | --- | --- | --- | --- |
 | Controller, display, SD | Waveshare ESP32-S3-RLCD-4.2 — selected platform | Existing PoC; integrated display, SD, battery circuit and radio | [Controller and storage](hardware/v2/CONTROLLER.md): v1 DevKitC; separate display / larger-I/O controller |
-| GNSS | SparkFun GPS-18037 MAX-M10S — preferred prototype | Native Qwiic, documented I²C protocol and breakout, module-level conformity evidence | [GNSS](hardware/v2/GNSS.md): LC76G low-cost challenger, v1 UART, MikroE GNSS MAX |
+| GNSS | SparkFun GPS-18037 MAX-M10S — preferred prototype | Native Qwiic, documented I²C protocol and breakout, board RoHS supplier declaration plus module-level conformity evidence | [GNSS](hardware/v2/GNSS.md): SAM-M10Q added in [production selection](hardware/v2/PRODUCTION_SELECTION.md); LC76G held for evidence; v1 UART, MikroE GNSS MAX |
 | IMU | Adafruit 4754 BNO085 — preferred prototype, bus gate | Same fusion family, fitted QT ports, lower cost than Click | [IMU](hardware/v2/IMU.md): existing BNO080 and Smart DOF 4 Click; ESP32-S3 I²C caveat |
 | NMEA2000 | Olimex A20-CAN-ISO — preferred prototype | EU-made/store, isolated power, open termination, signed board DoC, price | [Marine interfaces](hardware/v2/INTERFACES.md): three CAN Click variants and TI EVM |
 | Wind interface | Existing converter — reference unit only | Preserves known working behavior during power and bus tests | [Marine interfaces](hardware/v2/INTERFACES.md): isolated RS485 candidates; production winner open |

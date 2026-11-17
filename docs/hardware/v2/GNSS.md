@@ -2,7 +2,7 @@
 
 [Hardware decisions](../../RLCD_V2_HARDWARE.md) · [V2 specification](../../ESP32-S3-RLCD-4.2.md) · [Supplier register](SOURCING_AND_EVIDENCE.md)
 
-**SparkFun MAX-M10S Qwiic leads on integration; Waveshare LC76G is the lower-cost challenger.** V2 needs GNSS on I²C to free two pins for NMEA2000. SparkFun fits the chosen cable system directly. LC76G costs less but needs a different harness and driver. Keep the working v1 board for comparison.
+**SparkFun MAX-M10S Qwiic remains the external-antenna candidate; SAM-M10Q is the new integrated-antenna challenger.** See the [production selection](PRODUCTION_SELECTION.md#additional-gnss-candidate) for their board-level RoHS evidence and comparison. LC76G remains a historical cost alternative, with new purchases on hold for exact-board evidence. V2 needs GNSS on I²C to free two pins for NMEA2000. SparkFun fits the chosen cable system directly. LC76G costs less but needs a different harness and driver. Keep the working v1 board for comparison.
 
 ## Board comparison
 
@@ -12,7 +12,7 @@ Prices are **EUR excluding VAT**, reviewed **2026-11-17**. Conversion and measur
 
 | Criterion | V1 Realpoy NEO-8M | SparkFun MAX-M10S | Waveshare LC76G | MikroE GNSS MAX Click |
 | --- | --- | --- | --- | --- |
-| **Decision** | Working reference | **★ Preferred prototype** | **★ Cost challenger** | ▼ Outside preferred BOM |
+| **Decision** | Working reference | **★ Preferred prototype** | Hold: board RoHS evidence | ▼ Outside preferred BOM |
 | Board / receiver | Selected NEO-8M variant¹ | GPS-18037 / MAX-M10S | WAV579 / LC76G AB² | MIKROE-4643 / MAX-M10S |
 | **Price, EUR net** | **★ €8.22** estimate¹ | €41.81 | €15.56 | ▼ €49.14 |
 | **EU seller** | ? | [Botland, PL][buy-sparkfun-eu] | [RPishop, CZ][buy-lc76g-eu] | [DigiKey EU][buy-click-eu] |
@@ -37,7 +37,7 @@ Prices are **EUR excluding VAT**, reviewed **2026-11-17**. Conversion and measur
 | **Assembly for v2** | Existing UART wiring | **★ Direct cable; no header soldering** | ▼ Prepared harness | ▼ mikroBUS carrier / adapter |
 | **EU RED compliance — receiver⁴** | Unknown | [**Yes**][gnss-doc] | Unknown | [**Yes**][gnss-doc] |
 | **RoHS compliance — receiver⁴** | Unknown | [**Yes**][gnss-doc] | Unknown | [**Yes**][gnss-doc] |
-| **RoHS compliance — complete board** | Unknown | Unknown | Unknown | Unknown |
+| **RoHS compliance — complete board** | Unknown | [**Yes — Botland declaration**](https://botland.store/gps-modules/22065-gnss-max-m10s-module-qwiic-sparkfun-gps-18037.html) | Unknown | Unknown |
 | **REACH / FCC evidence⁴** | ? / ? | ? / ? | ? / ? | ? / ? |
 | **Hardware license** | ? | **★ [CC BY-SA 4.0][sparkfun-license]** | ? | ? |
 | Host software | Existing Veetr UART parser | [SparkFun library][sparkfun-library] candidate | Vendor examples; new driver | Click SDK or u-blox driver |
@@ -57,13 +57,13 @@ No controlled Veetr accuracy comparison, complete-board current measurements, co
 
 ## What decides the winner
 
-For the selected carrier, SparkFun's advantage is direct Qwiic assembly and a documented I²C path. LC76G deserves an A/B trial because it is much cheaper. MikroE uses the same MAX-M10S receiver while adding price and a different carrier interface. Price alone does not establish navigation accuracy.
+For the selected carrier, SparkFun's advantage is direct Qwiic assembly and a documented I²C path. LC76G can re-enter the A/B trial only after its exact-board compliance evidence is obtained; price alone does not meet the procurement gate. MikroE uses the same MAX-M10S receiver while adding price and a different carrier interface. Price alone does not establish navigation accuracy.
 
 MAX-M10S uses the u-blox host protocol. LC76G uses command/data addresses `0x50` / `0x54` and sequencing described in the [Quectel I²C application note][lc76g-i2c], including 10 ms waits. Implement bounded servicing so GNSS work cannot stall the IMU.
 
 Compare v1 and candidates at the same update rate, antenna exposure and route: cold/warm start, low-speed SOG/COG stability, fix loss/recovery, current and data age. Repeat with IMU, display, SD and radios active. Test antenna reception in the finished enclosure and confirm the intended receiver settings are restored after complete power loss. Keep the [v1 stationary-drift and validity handling](../../FIRMWARE_SENSOR_DIAGNOSIS.md). An appropriate reference is needed to assess absolute accuracy.
 
-Promote LC76G if it meets those requirements and its installed cost remains lower after harness and driver work. If shared I²C fails, retain UART and revisit the CAN/controller arrangement before carrier layout. The [canonical specification](../../ESP32-S3-RLCD-4.2.md) owns the final allocation.
+Promote LC76G only if its procurement gate and those requirements pass and its installed cost remains lower after harness and driver work. If shared I²C fails, retain UART and revisit the CAN/controller arrangement before carrier layout. The [canonical specification](../../ESP32-S3-RLCD-4.2.md) owns the final allocation.
 
 [gnss-click]: https://www.mikroe.com/gnss-max-click
 [gnss-doc]: https://content.u-blox.com/sites/default/files/documents/MAX-M10_RED_Conformity_UBX-22013367.pdf

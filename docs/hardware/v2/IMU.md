@@ -34,7 +34,7 @@ Prices are **EUR excluding VAT**, unless marked otherwise. See the [supplier reg
 | I²C pull-ups | Verify board | 10 kΩ | Verify board |
 | **Assembly for v2** | Reuse wiring | **★ Direct cable** | ▼ I²C solder configuration |
 | **CE / EU DoC — board** | Unknown | Unknown | Unknown |
-| **RoHS — board** | Unknown | Unknown | Unknown |
+| **RoHS — board** | Unknown | [**Yes — supplier declaration**](https://botland.store/9dof-imu-sensors/22113-bno085-9-dof-imu-fusion-breakout-3-axis-accelerometer-magnetometer-and-gyroscope-adafruit-4754.html) | Unknown |
 | **REACH / FCC — board** | Unknown / Unknown | Unknown / Unknown | Unknown / Unknown |
 | **Hardware license** | ? | **★ [CC BY-SA][imu-license]** | ? |
 | Host software | Existing Veetr driver | Adafruit library candidate | Click SDK / BNO08x driver |
@@ -44,6 +44,8 @@ Prices are **EUR excluding VAT**, unless marked otherwise. See the [supplier reg
 ¹ BNO08x current depends strongly on reports and rates. The [BNO080/085 datasheet in the repository](../../../firmware/include/BNO080_085-Datasheet_v1.16.md) gives, for example, about 35 mW for BNO085 100 Hz fusion under its SPI/rail conditions. This is not a measured QT board current. Log total 3.3 V branch current and startup peaks with the reports Veetr actually uses.
 
 Full-board current, temperature limits and binding supply commitments are unrecorded for all three. Prices compare new boards with known quotes; reuse of the v1 board adds no purchase cost. BerryBase’s separate Adafruit quote is €37.50 including VAT. A raw nine-axis sensor without fusion would add host calibration/fusion work; no such board is shortlisted.
+
+The [production selection](PRODUCTION_SELECTION.md#additional-imu-candidate) records the dated whole-board supplier declaration and the BNO086 alternative, which needs INT/RST connections in addition to Qwiic.
 
 ## Critical integration gate
 

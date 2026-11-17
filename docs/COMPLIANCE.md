@@ -30,6 +30,8 @@ These statuses cover the original ESP32 prototype and the proposed RLCD v2 assem
 | Proposed CAN interface: Olimex A20-CAN-ISO | [Signed EU declaration](https://www.olimex.com/Products/OLinuXino/A20/A20-CAN/resources/EU-DOC-A20-CAN.pdf), dated 2021-07-08, covers A20-CAN and A20-CAN-ISO under EMC and RoHS. | Olimex board; not the Veetr carrier or complete assembly. |
 | Proposed GNSS: MAX-M10S on SparkFun GPS-18037 (preferred) or MIKROE-4643 (alternative) | [u-blox MAX-M10 declaration](https://content.u-blox.com/sites/default/files/documents/MAX-M10_RED_Conformity_UBX-22013367.pdf), R06 dated 2025-11-26, covers RED/RoHS with a specified external antenna. | u-blox module and stated configuration; not either third-party breakout automatically. |
 
+Board-level RoHS supplier declarations are now recorded for SparkFun GPS-18037/GPS-21834, Adafruit 4754/4816/4162, SparkFun SEN-22857/SEN-20170 and Pololu 2562 through identified Botland supply routes. See the [dated evidence register](hardware/v2/PRODUCTION_SELECTION.md#board-level-rohs-evidence) for scope and links. These statements do not establish whole-product compliance.
+
 The v2 components above remain candidates, not a released production BOM. Evidence for alternatives and gaps in exact-board CE, FCC and REACH documentation are recorded in the [v2 supplier evidence register](hardware/v2/SOURCING_AND_EVIDENCE.md).
 
 ## Qualification work

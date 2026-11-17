@@ -63,7 +63,7 @@ These boards serve different functions; neither replaces the other. V1 has neith
 | I²C address | `0x10` | `0x77` / `0x76` |
 | **Assembly** | Direct cable; optical window | Direct cable; protected air path |
 | **CE / EU DoC — board** | Unknown | Unknown |
-| **RoHS — board** | Unknown | Unknown |
+| **RoHS — board** | [**Yes — supplier declaration**](https://botland.cz/svetelne-a-barevne-senzory/23550-veml7700-senzor-intenzity-svetla-i2c-stemma-qt-qwiic-adafruit-4162.html) | [**Yes — supplier declaration**](https://botland.de/drucksensor/19003-bmp390l-druck-und-temperatursensor-stemma-qt-qwiic-adafruit-4816-5904422354640.html) |
 | **REACH / FCC — board** | Unknown / Unknown | Unknown / Unknown |
 | **Hardware / library license** | Exact revision to verify | Exact revision to verify |
 | Deciding test | Self-light rejection and hysteresis | Pressure lag after wetting |
@@ -90,6 +90,8 @@ Source: [Adafruit VEML7700 board](https://www.adafruit.com/product/4162) and [gu
 ## Barometer and protected pressure vent
 
 **Include local atmospheric pressure in the prototype:** Adafruit 4816 BMP390 QT inside the enclosure, with a replaceable water-barrier pressure vent and an external recessed splash shield. Users may still omit the sensor when using a configured NMEA pressure source. The enclosure vent is part of the prototype design even if sensor delivery is delayed.
+
+The [production selection](PRODUCTION_SELECTION.md#additional-pressure-candidate) adds SparkFun SEN-20170 BMP581 as a documented Qwiic supply alternative. Confirm continuing BMP390 supply before ordering; no automatic sensor substitution is specified.
 
 ### Selected prototype parts
 
