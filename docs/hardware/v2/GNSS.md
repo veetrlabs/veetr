@@ -35,8 +35,9 @@ Prices are **EUR excluding VAT**, reviewed **2026-11-17**. Conversion and measur
 | Auxiliary signals | ? | PPS / reset pads | PPS; remaining pinout to check | See Click pinout |
 | Antenna | Underside patch; external option¹ | External SMA; separate cost | Confirm supplied antenna | External SMA; confirm contents |
 | **Assembly for v2** | Existing UART wiring | **★ Direct cable; no header soldering** | ▼ Prepared harness | ▼ mikroBUS carrier / adapter |
-| **CE / RED evidence⁴** | ? | [MAX-M10 module DoC][gnss-doc] | ? | [MAX-M10 module DoC][gnss-doc] |
-| **RoHS evidence⁴** | ? | MAX-M10 module DoC | ? | MAX-M10 module DoC |
+| **EU RED compliance — receiver⁴** | Unknown | [**Yes**][gnss-doc] | Unknown | [**Yes**][gnss-doc] |
+| **RoHS compliance — receiver⁴** | Unknown | [**Yes**][gnss-doc] | Unknown | [**Yes**][gnss-doc] |
+| **RoHS compliance — complete board** | Unknown | Unknown | Unknown | Unknown |
 | **REACH / FCC evidence⁴** | ? / ? | ? / ? | ? / ? | ? / ? |
 | **Hardware license** | ? | **★ [CC BY-SA 4.0][sparkfun-license]** | ? | ? |
 | Host software | Existing Veetr UART parser | [SparkFun library][sparkfun-library] candidate | Vendor examples; new driver | Click SDK or u-blox driver |
@@ -48,7 +49,7 @@ Prices are **EUR excluding VAT**, reviewed **2026-11-17**. Conversion and measur
 1. **V1 identity and price:** Realpoy's selected “NEO-8M” variant in its combined GY-NEO6MV2 / GY-NEO7MV2 / GY-NEO8MV2 listing. The 2026-11-17 procurement record shows CZK242.62 including VAT (€9.95), 8,855 available and the pictured connectors/patch. Net price assumes 21% VAT. Exact silicon, firmware, board revision and USB function still need checking.
 2. **LC76G variant:** confirm AB on delivery. Quectel's PA/PB power and update-rate figures differ; they cannot be substituted for AB figures.
 3. **Current:** MAX-M10S is a combined VCC + V_IO example at 3.0 V, 1 Hz, GPS/Galileo/BeiDou B1I; LC76G AB is a 3.3 V vendor example. These are different test conditions. Breakout circuitry and active antenna add load. No current winner is assigned until measured under the same conditions. Sources: [MAX-M10S R08][m10-data], [LC76G v1.3][lc76g-data].
-4. **Declarations:** module evidence covers the identified module/configuration, not automatically its breakout or Veetr. Exact-board CE/REACH/FCC evidence remains unrecorded for all four. Receive-only GNSS does not imply a transmitter modular FCC grant is needed.
+4. **Declarations:** u-blox explicitly declares MAX-M10S-00B and MAX-M10S-00B1 compliant with RED 2014/53/EU and RoHS 2011/65/EU, amended by 2015/863 (declaration R06, 2025-11-26). “Yes” applies to those receiver modules; it does not cover the complete SparkFun/MikroE board or Veetr. “Unknown” means compliance has not been verified, not that the part is noncompliant. Exact-board CE/REACH/FCC evidence remains unrecorded for all four. Receive-only GNSS does not imply a transmitter modular FCC grant is needed.
 
 No controlled Veetr accuracy comparison, complete-board current measurements, complete-board temperature qualification or binding multiyear board-supply commitment is recorded for this set. Obtain quantity quotes for 10/100/500 units. Stock listings are snapshots. Host-library licenses must be captured with the selected versions; receiver firmware is vendor-supplied.
 
