@@ -22,6 +22,7 @@ Prices are **EUR excluding VAT**, reviewed **2026-11-17**. Conversion and measur
 | Supply continuity | Revision control unclear | Module production status documented | No lifecycle commitment found | Same receiver supplier as SparkFun |
 | **Quality evidence** | Working v1 integration | Published design + hookup guide | Named module + vendor documentation | Published schematic + module docs |
 | **Features** | Position, SOG, COG, time | Multi-GNSS; u-blox messages | Multi-GNSS; EPO/EASY assistance | Same receiver as SparkFun |
+| **Horizontal position accuracy, CEP50⁵** | ? — receiver identity unverified | 1.5 m | 1.5 m, AB | 1.5 m |
 | Update rate | 1 Hz baseline; maximum ? | Configuration-dependent | Up to 10 Hz, AB² | Configuration-dependent |
 | **Board voltage** | ? | 3.3 V | 3.3 / 5 V | 3.3 V |
 | Host logic | Verify actual board | 3.3 V | Verify I/O / pull-ups | 3.3 V |
@@ -50,6 +51,8 @@ Prices are **EUR excluding VAT**, reviewed **2026-11-17**. Conversion and measur
 2. **LC76G variant:** confirm AB on delivery. Quectel's PA/PB power and update-rate figures differ; they cannot be substituted for AB figures.
 3. **Current:** MAX-M10S is a combined VCC + V_IO example at 3.0 V, 1 Hz, GPS/Galileo/BeiDou B1I; LC76G AB is a 3.3 V vendor example. These are different test conditions. Breakout circuitry and active antenna add load. No current winner is assigned until measured under the same conditions. Sources: [MAX-M10S R08][m10-data], [LC76G v1.3][lc76g-data].
 4. **Declarations:** u-blox explicitly declares MAX-M10S-00B and MAX-M10S-00B1 compliant with RED 2014/53/EU and RoHS 2011/65/EU, amended by 2015/863 (declaration R06, 2025-11-26). “Yes” applies to those receiver modules; it does not cover the complete SparkFun/MikroE board or Veetr. “Unknown” means compliance has not been verified, not that the part is noncompliant. Exact-board CE/REACH/FCC evidence remains unrecorded for all four. Receive-only GNSS does not imply a transmitter modular FCC grant is needed.
+
+5. **Position accuracy:** manufacturer receiver specifications, not measurements of these breakout boards. CEP50 is the horizontal radius containing 50% of position errors, not a maximum error bound. MAX-M10S and LC76G quote 1.5 m for 24-hour static tests at −130 dBm with more than six satellites; u-blox specifies more than six per GNSS system and GPS with SBAS/QZSS. The MAX-M10S value applies to the listed multi-GNSS modes. Their headline figures tie; no installed-performance winner is assigned. V1 stays unknown until the actual receiver is identified. Sources: [MAX-M10S R08, §1.2][m10-data], [LC76G v1.3, §1.3][lc76g-data].
 
 No controlled Veetr accuracy comparison, complete-board current measurements, complete-board temperature qualification or binding multiyear board-supply commitment is recorded for this set. Obtain quantity quotes for 10/100/500 units. Stock listings are snapshots. Host-library licenses must be captured with the selected versions; receiver firmware is vendor-supplied.
 

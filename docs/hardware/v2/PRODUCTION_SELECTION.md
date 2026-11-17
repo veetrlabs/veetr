@@ -38,6 +38,7 @@ The supplier statements resolve the previously unrecorded board-level RoHS evide
 | EU purchase / RoHS route | [Botland][max] | [Botland][sam] |
 | US manufacturer store | [SparkFun MAX][max-us] | [SparkFun SAM][sam-us] |
 | Listed quantity | Confirm dispatch/count | Mouser DE indexed 175; confirm current dispatch |
+| **Horizontal position accuracy, CEP50** | 1.5 m | 1.5 m |
 | Board supply / logic | 3.3 V | 3.3 V |
 | Connection | 2× Qwiic; UART pads | 2× Qwiic; UART pads |
 | I²C address | `0x42` | `0x42`; test separately or reconfigure |
@@ -49,6 +50,8 @@ The supplier statements resolve the previously unrecorded board-level RoHS evide
 | Board temperature / current | Not yet qualified | Not yet qualified |
 | Multiyear supply commitment | Not obtained | Not obtained |
 | Deciding test | Enclosed reception with chosen antenna | Enclosed reception at feasible mounting location |
+
+Both receivers specify **1.5 m CEP50** in their listed multi-GNSS modes: 50% horizontal error radius over 24 hours static, −130 dBm, more than six satellites per GNSS system; GPS includes SBAS/QZSS. This is a specification tie, not a guaranteed maximum error or a measured comparison of the installed boards. Sources: [MAX-M10S R08, §1.2][max-accuracy] and [SAM-M10Q R05, §1.2][sam-accuracy].
 
 [SparkFun's SAM-M10Q hardware guide][sam-guide] supplies the wiring and antenna arrangement. The [Mouser listing][sam-price] is a secondary price/stock snapshot, not the purchasing declaration used above. Re-quote from the intended supplier. The existing [GNSS comparison](GNSS.md) retains v1 and historical alternatives. **LC76G purchases are on hold until exact-board RoHS evidence is obtained.**
 
@@ -125,3 +128,6 @@ The next production-intent GNSS comparison is **MAX-M10S versus SAM-M10Q**, usin
 [bno-pcn]: https://mm.digikey.com/Volume0/opasdata/d220001/medias/docus/5560/EOL_SEN-14686.pdf
 [bmp-us]: https://www.adafruit.com/product/4816
 [pressure-us]: https://www.sparkfun.com/sparkfun-pressure-sensor-bmp581-qwiic.html?___store=default
+
+[max-accuracy]: https://content.u-blox.com/sites/default/files/MAX-M10S_DataSheet_UBX-20035208.pdf
+[sam-accuracy]: https://content.u-blox.com/sites/default/files/documents/SAM-M10Q_DataSheet_UBX-22013293.pdf
